@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Form } from 'antd';
 import type { FormInstance, Rule } from 'antd/es/form';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import {
   buildTenantPortalUrl,
   checkAdminTenantSlugAvailability,
+  getAdminTenantSlugSuggestions,
 } from '@/features/super-admin/api/adminTenants';
-import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
+import type { CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import {
   validateAddress,
   validateCompanyName,
@@ -27,6 +28,8 @@ import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
 
 export type SlugAvailabilityUi = 'idle' | 'checking' | 'available' | 'taken';
 
+const SLUG_AVAILABILITY_DEBOUNCE_MS = 500;
+
 function slugValidationMessage(t: (key: string) => string, code: TenantSlugValidationCode): string {
   return t(`tenants.create.fields.slug.errors.${code}`);
 }
@@ -44,7 +47,7 @@ export function useTenantCreateFormFields(
   const phoneWatch = Form.useWatch('phone', form);
   const addressWatch = Form.useWatch('address', form);
 
-  const debouncedSlug = useDebounce(slugWatch ?? '', 400);
+  const debouncedSlug = useDebounce(slugWatch ?? '', SLUG_AVAILABILITY_DEBOUNCE_MS);
   const normalizedSlug = useMemo(() => normalizeTenantSlugInput(debouncedSlug), [debouncedSlug]);
 
   const slugFormatError = useMemo(() => {
@@ -79,6 +82,21 @@ export function useTenantCreateFormFields(
     }
     return 'idle';
   }, [slugReadyForAvailability, availabilityQuery.isFetching, availabilityQuery.data]);
+
+  const suggestionsQuery = useQuery({
+    queryKey: ['admin', 'tenants', 'slug-suggestions', nameWatch, normalizedSlug],
+    queryFn: () => getAdminTenantSlugSuggestions(nameWatch, normalizedSlug),
+    enabled: open && slugAvailabilityUi === 'taken' && normalizedSlug.length > 0,
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  const slugSuggestions = useMemo(() => {
+    if (slugAvailabilityUi !== 'taken') {
+      return [];
+    }
+    return (suggestionsQuery.data ?? []).filter((s) => s && s !== normalizedSlug).slice(0, 5);
+  }, [slugAvailabilityUi, suggestionsQuery.data, normalizedSlug]);
 
   const portalPreviewUrl = useMemo(() => {
     if (slugAvailabilityUi !== 'available') {
@@ -277,6 +295,15 @@ export function useTenantCreateFormFields(
     }
   };
 
+  const applySlugSuggestion = useCallback(
+    (slug: string) => {
+      const normalized = normalizeTenantSlugInput(slug);
+      form.setFieldValue('slug', normalized);
+      void form.validateFields(['slug']);
+    },
+    [form]
+  );
+
   const canSubmit = Boolean(
     nameWatch?.trim() &&
     !validateCompanyName(nameWatch) &&
@@ -296,6 +323,8 @@ export function useTenantCreateFormFields(
     slugFieldStatus,
     slugAvailabilityUi,
     portalPreviewUrl,
+    slugSuggestions,
+    applySlugSuggestion,
     nameRules,
     nameFieldStatus,
     emailRules,

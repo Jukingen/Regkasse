@@ -8,6 +8,7 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -342,6 +343,10 @@ namespace KasseAPI_Final.Controllers
                     new { id = outcome.Run.Id },
                     dto);
             }
+            catch (LimitExceededException ex)
+            {
+                return Conflict(ex.ToConflictBody());
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating backup");
@@ -526,6 +531,7 @@ namespace KasseAPI_Final.Controllers
                         CompanyTaxNumber = string.Empty,
                         BusinessHours = new Dictionary<string, string>(),
                         WorkingHours = WorkingHoursSettings.CreateDefault(),
+                        AutoTagesabschluss = AutoTagesabschlussSettings.CreateDefault(),
                         Currency = "EUR",
                         Language = "de-DE",
                         TimeZone = "Europe/Vienna",

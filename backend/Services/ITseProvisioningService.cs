@@ -82,29 +82,45 @@ public sealed class TseProvisioningResult
 
     public string? Detail { get; init; }
 
+    /// <summary>Fiskaly SIGN AT SCU id stamped on the tenant, when provisioned.</summary>
+    public string? TseScuId { get; init; }
+
+    /// <summary>Tenant TSE status (<see cref="TenantTseStatuses"/>).</summary>
+    public string? TseStatus { get; init; }
+
+    /// <summary>True when Fiskaly ensure failed after retries and Soft TSE was used instead.</summary>
+    public bool FellBackToSoftTse { get; init; }
+
     public static TseProvisioningResult Fail(string error) => new()
     {
         Outcome = TseProvisioningOutcome.Failed,
         Error = error,
     };
 
-    public static TseProvisioningResult Skipped(string detail) => new()
+    public static TseProvisioningResult Skipped(string detail, string? tseStatus = null) => new()
     {
         Outcome = TseProvisioningOutcome.Skipped,
         Detail = detail,
+        TseStatus = tseStatus,
     };
 
     public static TseProvisioningResult Success(
         TseDevice device,
         bool signatureChainInitialized,
         string? detail = null,
-        bool startbelegCreated = false) => new()
+        bool startbelegCreated = false,
+        string? tseScuId = null,
+        string? tseStatus = null,
+        bool fellBackToSoftTse = false) => new()
     {
         Outcome = TseProvisioningOutcome.Success,
         Device = device,
         SignatureChainInitialized = signatureChainInitialized,
         StartbelegCreated = startbelegCreated,
         Detail = detail,
+        TseScuId = tseScuId,
+        TseStatus = tseStatus,
+        FellBackToSoftTse = fellBackToSoftTse,
     };
 }
 

@@ -2,16 +2,11 @@ name: API contract tests (OpenAPI + backend + Admin/POS smoke)
 
 # Critical route/schema checks, DTO contract tests, Orval smoke, and payment-focused frontend tests.
 
+# Development bypass: OpenAPI contract tests run on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-    paths:
-      - 'backend/**'
-      - 'frontend-admin/**'
-      - 'frontend/**'
-      - 'scripts/validate-critical-openapi-paths.mjs'
-      - '.github/workflows/api-contract-tests.yml'
-  push:
-    branches: [main, master]
     paths:
       - 'backend/**'
       - 'frontend-admin/**'
@@ -53,10 +48,12 @@ jobs:
         id: cache-fa-nm
         uses: actions/cache@v4
         with:
-          path: frontend-admin/node_modules
-          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          path: |
+            node_modules
+            frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-${{ hashFiles('package-lock.json', 'frontend-admin/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-
 
       - name: Cache POS node_modules
         id: cache-pos-nm
@@ -96,12 +93,20 @@ jobs:
           --configuration Release
           --no-build
           --verbosity minimal
-          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests|FullyQualifiedName~OpenApiToolingGenerationTests"
+          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests|FullyQualifiedName~OpenApiToolingGenerationTests|FullyQualifiedName~OnlinePaymentContractTests"
 
       - name: Install frontend-admin dependencies
         if: steps.cache-fa-nm.outputs.cache-hit != 'true'
-        working-directory: frontend-admin
+        working-directory: ${{ github.workspace }}
         run: npm ci
+
+      - name: Ensure frontend-admin node_modules is complete
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ ! -d frontend-admin/node_modules/vitest ] && [ ! -d node_modules/vitest ]; then
+            echo "Vitest missing from cache; running npm ci"
+            npm ci
+          fi
 
       - name: Admin contract + generated client smoke
         working-directory: frontend-admin
@@ -110,7 +115,15 @@ jobs:
       - name: Install POS (frontend) dependencies
         if: steps.cache-pos-nm.outputs.cache-hit != 'true'
         working-directory: frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps --workspaces=false
+
+      - name: Ensure POS node_modules is complete
+        working-directory: frontend
+        run: |
+          if [ ! -d node_modules/jest ] && [ ! -x node_modules/.bin/jest ]; then
+            echo "Jest missing from cache; running npm ci"
+            npm ci --legacy-peer-deps --workspaces=false
+          fi
 
       - name: POS payment contract tests
         working-directory: frontend

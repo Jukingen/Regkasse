@@ -22,6 +22,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IMonatsbelegClosingService _monatsbelegClosingService;
         private readonly IDailyClosingReportService _dailyClosingReportService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IFiskalyReceiptService _fiskalyReceipts;
         private readonly AppDbContext _db;
         private readonly ILogger<TagesabschlussController> _logger;
 
@@ -30,6 +31,7 @@ namespace KasseAPI_Final.Controllers
             IMonatsbelegClosingService monatsbelegClosingService,
             IDailyClosingReportService dailyClosingReportService,
             ISettingsTenantResolver settingsTenantResolver,
+            IFiskalyReceiptService fiskalyReceipts,
             AppDbContext db,
             ILogger<TagesabschlussController> logger)
         {
@@ -37,12 +39,15 @@ namespace KasseAPI_Final.Controllers
             _monatsbelegClosingService = monatsbelegClosingService;
             _dailyClosingReportService = dailyClosingReportService;
             _settingsTenantResolver = settingsTenantResolver;
+            _fiskalyReceipts = fiskalyReceipts;
             _db = db;
             _logger = logger;
         }
 
         /// <summary>
         /// Perform daily closing for the current Vienna day, or for an optional past business day (nachträglich).
+        /// Days with no fiscal invoices are allowed as empty closings (<c>dayKind=empty</c>, <c>isEmpty=true</c>).
+        /// Future dates and duplicate closings remain rejected.
         /// </summary>
         [HttpPost("daily")]
         [HasPermission(AppPermissions.DailyClosingExecute)]
@@ -62,6 +67,11 @@ namespace KasseAPI_Final.Controllers
                 var result = await _tagesabschlussService.PerformDailyClosingAsync(
                     userId,
                     request.CashRegisterId,
+                    new DailyClosingPerformOptions
+                    {
+                        Trigger = DailyClosingTriggers.Manual,
+                        OpenOrdersForced = request.ConfirmCloseOpenTables,
+                    },
                     request.ClosingDate,
                     request.Reason);
 
@@ -186,6 +196,47 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+        /// Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+        /// </summary>
+        [HttpPost("{id:guid}/submit-fiskaly")]
+        [HttpPost("{id:guid}/submit-finanzonline")]
+        [HasPermission(AppPermissions.FiskalyOperationsTagesabschluss)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<FiskalyReceiptEnvelopeDto>> SubmitFiskaly(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _fiskalyReceipts
+                .CreateTagesabschlussAsync(
+                    id,
+                    User.GetActorUserId() ?? User.Identity?.Name ?? "unknown",
+                    User.IsInRole(Roles.SuperAdmin),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            var body = new FiskalyReceiptEnvelopeDto
+            {
+                Success = result.Success,
+                Data = result.Data,
+                Error = result.Error,
+                HistoryId = result.HistoryId
+            };
+
+            if (result.Success)
+                return Ok(body);
+
+            return result.StatusCode switch
+            {
+                StatusCodes.Status404NotFound => NotFound(body),
+                StatusCodes.Status409Conflict => Conflict(body),
+                _ => BadRequest(body)
+            };
+        }
+
         /// <summary>Localized PDF report for a completed RKSV closing (Daily/Monthly/Yearly).</summary>
         [HttpGet("closing/{closingId:guid}/report.pdf")]
         [HasPermission(AppPermissions.DailyClosingView)]
@@ -225,7 +276,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Get closing history for the authenticated user
+        /// Get closing history for the authenticated tenant / operational register.
         /// </summary>
         [HttpGet("history")]
         [HasPermission(AppPermissions.DailyClosingView)]
@@ -235,6 +286,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate,
             [FromQuery] Guid? cashRegisterId,
+            [FromQuery] string? trigger,
             CancellationToken cancellationToken)
         {
             try
@@ -248,12 +300,82 @@ namespace KasseAPI_Final.Controllers
                     toDate,
                     registerResolution.RegisterId!.Value,
                     cancellationToken);
+                if (!string.IsNullOrWhiteSpace(trigger))
+                {
+                    var normalized = DailyClosingTriggers.Normalize(trigger);
+                    history = history
+                        .Where(h => DailyClosingTriggers.Normalize(h.Trigger) == normalized)
+                        .ToList();
+                }
+
                 return Ok(history);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
+        }
+
+        /// <summary>Per-tenant automatic Tagesabschluss fallback settings (Europe/Vienna time).</summary>
+        [HttpGet("auto-close-settings")]
+        [HasPermission(AppPermissions.DailyClosingView)]
+        [ProducesResponseType(typeof(AutoTagesabschlussSettingsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AutoTagesabschlussSettingsDto>> GetAutoCloseSettings(
+            CancellationToken cancellationToken)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = "Tenant context required",
+                    code = TagesabschlussErrorCodes.TenantContextRequired,
+                    details = TagesabschlussErrorCodes.TenantContextRequired,
+                });
+            }
+
+            var settings = await _db.CompanySettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(AutoTagesabschlussSettingsDto.From(settings?.AutoTagesabschluss));
+        }
+
+        /// <summary>Update per-tenant automatic Tagesabschluss fallback settings.</summary>
+        [HttpPut("auto-close-settings")]
+        [HasPermission(AppPermissions.DailyClosingExecute)]
+        [ProducesResponseType(typeof(AutoTagesabschlussSettingsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AutoTagesabschlussSettingsDto>> PutAutoCloseSettings(
+            [FromBody] AutoTagesabschlussSettingsDto? request,
+            CancellationToken cancellationToken)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = "Tenant context required",
+                    code = TagesabschlussErrorCodes.TenantContextRequired,
+                    details = TagesabschlussErrorCodes.TenantContextRequired,
+                });
+            }
+
+            var settings = await _db.CompanySettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (settings == null)
+            {
+                return NotFound(new TagesabschlussErrorResponse
+                {
+                    error = "Company settings not found",
+                    code = "COMPANY_SETTINGS_NOT_FOUND",
+                });
+            }
+
+            settings.AutoTagesabschluss = (request ?? new AutoTagesabschlussSettingsDto()).ToSettings();
+            settings.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return Ok(AutoTagesabschlussSettingsDto.From(settings.AutoTagesabschluss));
         }
 
         /// <summary>
@@ -298,13 +420,27 @@ namespace KasseAPI_Final.Controllers
                     ? 0
                     : await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(
                         cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
+                var transactionCount = isFuture
+                    ? 0
+                    : await _tagesabschlussService.GetPaidInvoiceCountAsync(
+                        cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
+                var isEmptyDay = canClose && !isFuture && transactionCount == 0;
 
                 string message;
                 if (canClose)
                 {
-                    message = isBackdated
-                        ? $"Backdated daily closing can be performed for {targetDay:yyyy-MM-dd}"
-                        : "Daily closing can be performed";
+                    if (isEmptyDay)
+                    {
+                        message = isBackdated
+                            ? $"No transactions for {targetDay:yyyy-MM-dd}. Empty daily closing can be created."
+                            : "No transactions found for today. Empty daily closing can be created.";
+                    }
+                    else
+                    {
+                        message = isBackdated
+                            ? $"Backdated daily closing can be performed for {targetDay:yyyy-MM-dd}"
+                            : "Daily closing can be performed";
+                    }
                 }
                 else if (isFuture)
                 {
@@ -333,6 +469,8 @@ namespace KasseAPI_Final.Controllers
                     lastYearlyClosingDate = lastYearlyClosingDate,
                     lastYearlyClosingPerformedAt = lastYearlyClosingPerformedAt,
                     paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+                    transactionCount = transactionCount,
+                    isEmptyDay = isEmptyDay,
                     isBackdated = isBackdated,
                     closingDate = targetDay,
                     message = message
@@ -449,6 +587,9 @@ namespace KasseAPI_Final.Controllers
             if (errorMessage.Contains("already performed for the current year", StringComparison.OrdinalIgnoreCase))
                 return TagesabschlussErrorCodes.AlreadyClosedYear;
 
+            if (errorMessage.Contains("offene Tische", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.OpenTablesConfirmation;
+
             if (errorMessage.Contains("already performed for today", StringComparison.OrdinalIgnoreCase)
                 || errorMessage.Contains("already performed for ", StringComparison.OrdinalIgnoreCase))
                 return TagesabschlussErrorCodes.AlreadyClosedToday;
@@ -487,6 +628,7 @@ namespace KasseAPI_Final.Controllers
         public const string PaymentsWithoutInvoice = "PAYMENTS_WITHOUT_INVOICE";
         public const string CashRegisterUnavailable = "CASH_REGISTER_UNAVAILABLE";
         public const string TseNotConnected = "TSE_NOT_CONNECTED";
+        public const string OpenTablesConfirmation = "OPEN_TABLES_CONFIRMATION";
         public const string TenantContextRequired = "TENANT_CONTEXT_REQUIRED";
         public const string NoRegister = "TAGESABSCHLUSS_NO_REGISTER";
     }
@@ -508,6 +650,11 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [MaxLength(500)]
         public string? Reason { get; set; }
+
+        /// <summary>
+        /// Set after the operator confirms open tables. Unpaid carts stay out of the Z total.
+        /// </summary>
+        public bool ConfirmCloseOpenTables { get; set; }
     }
 
     public class TagesabschlussCanCloseResponse
@@ -526,6 +673,12 @@ namespace KasseAPI_Final.Controllers
         public DateTime? lastYearlyClosingPerformedAt { get; set; }
         [Required]
         public int paymentsWithoutInvoiceCount { get; set; }
+        /// <summary>Paid fiscal invoices for the evaluated Vienna day (special receipts excluded).</summary>
+        [Required]
+        public int transactionCount { get; set; }
+        /// <summary>True when closing is allowed and the day has no fiscal invoices (empty Tagesabschluss).</summary>
+        [Required]
+        public bool isEmptyDay { get; set; }
         /// <summary>True when <see cref="closingDate"/> is a past Vienna calendar day.</summary>
         [Required]
         public bool isBackdated { get; set; }

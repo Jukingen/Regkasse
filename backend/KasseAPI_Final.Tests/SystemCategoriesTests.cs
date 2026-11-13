@@ -36,6 +36,7 @@ public sealed class SystemCategoriesTests
         Assert.Equal("pizza-mittel", demo.Key);
         Assert.Equal("Pizza, mittel", demo.Name);
         Assert.Equal("🍕", demo.Icon);
+        Assert.Equal("#E53935", demo.Color);
         Assert.Equal(10m, demo.VatRate);
         Assert.Equal(RksvProductCategory.Food, demo.FiscalCategory);
     }

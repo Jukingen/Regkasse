@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
-import { useIdleTimer } from 'react-native-idle-timer-detection';
+
+import { useNativeIdleTimer } from './idle/useNativeIdleTimer';
 
 export type IdleTimeoutConfig = {
   timeoutMinutes: number;
@@ -112,7 +113,7 @@ export function useIdleTimeout({
     };
   }, [enabled, timeoutMinutes, warningBeforeMinutes]);
 
-  const idleTouch = useIdleTimer({
+  const idleTouch = useNativeIdleTimer({
     timeout: Math.max(60, timeoutMinutes * 60),
     onAction: () => {
       if (enabled) scheduleRef.current();

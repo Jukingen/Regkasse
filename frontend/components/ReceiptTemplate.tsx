@@ -44,9 +44,13 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
     cashierDisplayName,
     kassenID,
     footerText,
+    thankYouMessage,
   } = receipt;
 
   const cashierLine = cashierDisplayName?.trim() || (cashierId && cashierId.trim()) || '—';
+  const thankYou = thankYouMessage?.trim() || footerText?.trim() || 'Vielen Dank für Ihren Einkauf!';
+  const companyDescription = company?.description?.trim();
+  const showCompanyDescription = !!companyDescription && companyDescription !== thankYou;
 
   const formatDate = (dateStr: string) => formatUserDateTime(dateStr) || dateStr;
 
@@ -189,7 +193,10 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
         )}
       </View>
 
-      <Text style={styles.footerText}>{footerText || 'Vielen Dank für Ihren Einkauf!'}</Text>
+      <Text style={styles.footerText}>{thankYou}</Text>
+      {showCompanyDescription ? (
+        <Text style={styles.footerText}>{companyDescription}</Text>
+      ) : null}
     </ScrollView>
   );
 };

@@ -57,8 +57,8 @@
     "startbeleg_missing_description": "{{missing}} von {{total}} Kassen haben noch keinen Startbeleg.",
     "monatsbeleg_overdue_title": "Monatsbeleg überfällig",
     "monatsbeleg_overdue_description": "{{count}} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.",
-    "monatsbeleg_pending_title": "Monatsbeleg ausstehend",
-    "monatsbeleg_pending_description": "{{count}} Kassen benötigen einen Monatsbeleg.",
+    "monatsbeleg_pending_title": "Monatsbeleg fehlt",
+    "monatsbeleg_pending_description": "Monatsbeleg fehlt für {{count}} aktive Kasse(n). Monate ohne Umsatz sind ebenfalls nachzuholen. Außer Betrieb genommene Kassen zählen nicht.",
     "jahresbeleg_pending_title": "Jahresbeleg ausstehend",
     "jahresbeleg_pending_description": "{{count}} Kassen benötigen einen Jahresbeleg.",
     "all_current_title": "Alle RKSV-Sonderbelege sind aktuell",
@@ -90,6 +90,15 @@
     "failures_in_row": "Fehler in Folge: {{count}}.",
     "next_probe_eta": "Nächste geplante Prüfung (ETA): {{time}}."
   },
+  "fiskalyStatus": {
+    "disabled": "Deaktiviert",
+    "not_configured": "Nicht konfiguriert",
+    "auth_failed": "Authentifizierung fehlgeschlagen",
+    "active": "Aktiv",
+    "environment": "Umgebung: {{env}}",
+    "last_check": "Letzte Prüfung: {{time}}",
+    "refresh": "Aktualisieren"
+  },
   "cashRegistersWidget": {
     "open_count_title": "Geöffnete Kassen",
     "status_open": "Geöffnet",
@@ -104,6 +113,18 @@
     "hint_pending": "Ausstehende Übermittlungen in der Warteschlange",
     "hint_ok": "Keine offenen Probleme",
     "details": "Details"
+  },
+  "finanzOnlineOutbox": {
+    "pending": "Ausstehende Übermittlungen",
+    "failed24h": "Fehlgeschlagen (24 Std.)",
+    "lastSuccess": "Letzte erfolgreiche Übermittlung",
+    "lastSuccessNever": "noch keine",
+    "openQueue": "Warteschlange öffnen",
+    "retryAllFailed": "Alle Fehlgeschlagenen erneut senden",
+    "retryConfirmTitle": "Alle fehlgeschlagenen Übermittlungen erneut senden?",
+    "retryConfirmBody": "Fehlgeschlagene Einträge werden zurück in die Warteschlange gestellt. Es wird keine neue SOAP-Übermittlung direkt ausgelöst.",
+    "retryQueued": "{{count}} Einträge wurden erneut eingereiht.",
+    "retryError": "Erneutes Senden ist fehlgeschlagen."
   },
   "offlineStatusWidget": {
     "badge_critical": "Kritisch",
@@ -128,7 +149,36 @@
     "storage_alert": "Speicherlimit nähert sich (Staging ≥ 80%)",
     "config_health": "Konfiguration: {{level}}",
     "view_details": "Backup-Übersicht öffnen",
-    "load_failed": "Backup-Status konnte nicht geladen werden."
+    "load_failed": "Backup-Status konnte nicht geladen werden.",
+    "health_score": "Backup-Gesundheit",
+    "rpo_status": "RPO",
+    "rpo_ok": "OK",
+    "rpo_warning": "Warnung",
+    "rpo_overdue": "Überfällig",
+    "rpo_unknown": "Unbekannt",
+    "last_verification": "Letzte Prüfung",
+    "verification_passed": "Bestanden",
+    "verification_failed": "Fehlgeschlagen",
+    "verification_none": "Keine",
+    "content_validation": "Inhaltsprüfung",
+    "health_healthy": "Gesund",
+    "health_warning": "Warnung",
+    "health_critical": "Kritisch",
+    "next_scheduled": "Nächstes geplantes Backup",
+    "no_scheduled": "Kein Zeitplan gemeldet",
+    "pending_runs": "{{count}} Backup-Lauf/Läufe noch in Warteschlange oder laufend",
+    "alert_last_failed": "Letztes Backup fehlgeschlagen — Fehlergrund unter Backup & DR prüfen.",
+    "alert_rpo_critical": "RPO ist kritisch — letztes erfolgreiches Backup ist zu alt.",
+    "alert_rpo_warning": "RPO ist gefährdet — letztes erfolgreiches Backup altert.",
+    "alert_drill_failed": "Letzter Restore-Drill fehlgeschlagen — Wiederherstellbarkeit ist nicht bewiesen."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Ausstehend",
+    "ready": "Bereit",
+    "collected": "Abgeholt",
+    "openList": "Vorbestellungen öffnen",
+    "loadFailed": "Vorbestellungen konnten nicht geladen werden."
   },
   "metricsWidget": {
     "operational": "Betriebsbereit",
@@ -162,7 +212,21 @@
     "refresh": "Aktualisieren",
     "drag_widget": "Widget verschieben"
   },
+  "customize": {
+    "button": "Widgets anpassen",
+    "drawerTitle": "Dashboard anpassen",
+    "drawerIntro": "Widgets ein- oder ausblenden. Sichtbare Widgets können per Ziehen auf dem Dashboard sortiert werden.",
+    "resetLayout": "Standardlayout wiederherstellen",
+    "resetConfirmTitle": "Layout zurücksetzen?",
+    "resetConfirmContent": "Ihre Widget-Reihenfolge und Sichtbarkeit werden auf die Standardwerte zurückgesetzt.",
+    "loadError": "Dashboard konnte nicht geladen werden",
+    "saveError": "Layout konnte nicht gespeichert werden",
+    "toggleAria": "{{title}} anzeigen"
+  },
   "widgets": {
+    "actionRequired": {
+      "noPermission": "Keine Berechtigung für Handlungsbedarf-Hinweise."
+    },
     "todaySales": {
       "totalToday": "Gesamtumsatz heute",
       "salesCount": "{{count}} Verkäufe",
@@ -183,23 +247,36 @@
       "actionRequired": "Mandantenlizenz erfordert eine Verlängerung."
     },
     "licenseCountdown": {
-      "validUntilLabel": "Lizenz gültig bis",
+      "validUntilLabel": "Gültig bis",
       "expired": "Abgelaufen",
       "expiredHint": "Abgelaufen",
       "remainingHint": "verbleibende Zeit",
       "renewNow": "Jetzt verlängern",
       "progressAria": "Lizenzlaufzeit: noch {{days}} Tag(e)"
     },
-    "licenseHealth": {
-      "title": "Lizenz-Health",
-      "statusLabel": "Status",
+    "licenseStatus": {
+      "title": "Lizenz-Status",
       "validUntil": "Gültig bis",
-      "healthy": "Gesund",
+      "status": "Status",
+      "expired": "Abgelaufen",
+      "remainingHint": "verbleibende Zeit",
+      "healthy": "In Ordnung",
       "actionNeeded": "Handlungsbedarf",
       "daysLeft": "{{days}} Tage",
       "extend": "Verlängern",
       "extendNow": "Jetzt verlängern",
-      "progressAria": "Lizenz-Health: {{days}} Tag(e)",
+      "progressAria": "Lizenz-Status: {{days}} Tag(e)"
+    },
+    "licenseHealth": {
+      "title": "Lizenz-Status",
+      "statusLabel": "Status",
+      "validUntil": "Gültig bis",
+      "healthy": "In Ordnung",
+      "actionNeeded": "Handlungsbedarf",
+      "daysLeft": "{{days}} Tage",
+      "extend": "Verlängern",
+      "extendNow": "Jetzt verlängern",
+      "progressAria": "Lizenz-Status: {{days}} Tag(e)",
       "states": {
         "Active": "Aktiv",
         "Grace": "Grace-Periode",
@@ -208,7 +285,7 @@
       }
     },
     "licenseImpact": {
-      "title": "Auswirkungen der Lizenzablauf",
+      "title": "Lizenz-Status",
       "states": {
         "Active": "Aktiv",
         "Grace": "Grace-Periode",
@@ -393,8 +470,63 @@
     "recentActivities": "Letzte Aktivitäten",
     "viewAll": "Alle anzeigen",
     "noActivities": "Keine Aktivitäten",
-    "pendingMonatsbeleg": "{{count}} Kassen mit fehlendem Monatsbeleg",
-    "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
-    "createNow": "Jetzt nachholen"
+    "pendingMonatsbeleg": "Monatsbeleg fehlt für {{count}} Kasse",
+    "pendingMonatsbelegPlural": "Monatsbeleg fehlt für {{count}} Kassen",
+    "pendingMonatsbelegDescription": "Nur aktive Kassen mit einem fehlenden Monat. Ein Monat ohne Umsatz bleibt pflichtig. Außer Betrieb genommene Kassen erscheinen hier nicht.",
+    "createNow": "Jetzt nachholen",
+    "openMonatsbelegRequests": {
+      "title": "Offene Monatsbeleg-Anfragen",
+      "count": "Anfragen (7 Tage)",
+      "empty": "Keine offenen Anfragen in den letzten 7 Tagen.",
+      "cta": "Monatsbelege öffnen"
+    }
+  },
+  "dailyClosing": {
+    "title": "Tagesabschluss",
+    "todayClosed": "Heute geschlossen",
+    "todayOpen": "Heute offen ({{count}} Transaktionen)",
+    "todayEmpty": "Keine Transaktionen — leerer Abschluss möglich",
+    "weekSummaryTitle": "Diese Woche",
+    "weekSummary": "{{closed}} / {{total}} geschlossen",
+    "lastClosing": "Letzter Abschluss: {{date}}",
+    "noClosingYet": "Noch kein Abschluss",
+    "open": "Tagesabschluss öffnen",
+    "closeNow": "Heute schließen",
+    "closeNowConfirmTitle": "Heutigen Tagesabschluss ausführen?",
+    "closeNowConfirm": "RKSV-relevante Operation. Nur ausführen, wenn die Kasse fachlich bereit ist.",
+    "noPermission": "Keine Berechtigung für den Tagesabschluss.",
+    "loadError": "Tagesabschluss-Status konnte nicht geladen werden"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE Nutzung",
+    "volumeTitle": "Zahlungsvolumen (POS)",
+    "loadFailed": "Statistiken konnten nicht geladen werden.",
+    "activeRegisters": "Aktive Kassen",
+    "signaturesToday": "Signaturen heute",
+    "failedSignatures": "Fehlgeschlagen",
+    "signatures": "Signaturen",
+    "revenueThisMonth": "Umsatz dieser Monat",
+    "monthlyGrowth": "Monatsveränderung",
+    "averageTicket": "Ø Bonwert",
+    "revenue": "Umsatz"
+  },
+  "handyLinks": {
+    "title": "Nützliche Links",
+    "subtitle": "Kurzwege zu Kassenverwaltung und weiteren Werkzeugen.",
+    "recentTitle": "Zuletzt verwendet",
+    "recentEmpty": "Noch keine zuletzt geöffneten Seiten."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Mandant",
+    "year": "Jahr",
+    "deadline": "Frist",
+    "status": "Status",
+    "created": "Erstellt",
+    "missing": "Offen",
+    "notDue": "Noch nicht fällig",
+    "empty": "Keine Kasse mit Jahresbeleg-Pflicht.",
+    "loadError": "Jahresbeleg-Status konnte nicht geladen werden.",
+    "warning": "Die Jahresbeleg-Frist ist der 31. Januar. Bitte erstellen.",
+    "open": "Jahresbeleg öffnen"
   }
 }

@@ -48,11 +48,13 @@
     "downloadFailed": "Toplu indirme basarisiz.",
     "allFailed": "Hicbir PDF indirilemedi.",
     "tooLarge": "Cok fazla dosya (maksimum {{max}}).",
-    "cancelled": "Indirme iptal edildi."
+    "cancelled": "Indirme iptal edildi.",
+    "selectedSummaryStorno": "{{total}} secildi · PDF: {{pdf}} · storno: {{storno}}"
   },
   "filters": {
     "placeholderReceiptNumber": "Fis numarasi",
-    "placeholderCashRegister": "Kasa kimligi",
+    "labelCashRegister": "Kasa",
+    "placeholderCashRegister": "Tum kasalar",
     "placeholderCashier": "Kasiyer kimligi",
     "dateFrom": "Baslangic",
     "dateTo": "Bitis",

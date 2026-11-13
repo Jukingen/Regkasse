@@ -16,7 +16,7 @@
   "modals": {
     "openShift": {
       "title": "Vardiya aç",
-      "description": "Bu kasa için vardiya açılsın mı?",
+      "description": "Aktif vardiyayı siz alıyorsunuz. Atanan kasiyer, kasa kapatıldıktan sonra bu kasayı seçebilir.",
       "confirm": "Aç"
     },
     "closeShift": {

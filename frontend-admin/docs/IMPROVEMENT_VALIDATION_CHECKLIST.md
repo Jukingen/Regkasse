@@ -154,7 +154,7 @@ npm test -- src/api
 
 ### Negative / regression
 
-- [ ] `LicenseDashboardBarChart` / `LicenseUsageTrendChart` still lazy (no regression)
+- [ ] `LicenseUsageTrendChart` still lazy (no regression)
 - [ ] No `from 'recharts'` on widget shells / TSE **page** — only on extracted `*Chart*.tsx` modules
 
 Optional bundle analysis:

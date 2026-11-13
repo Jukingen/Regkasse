@@ -679,6 +679,24 @@
     "title": "Bilinen sınırlar (outbox / TSE / altyapı)",
     "body": "Veritabanı yedeği tam RKSV/TSE korumasının yerini tutmaz; outbox ve imza ihtiyaçları ayrı süreç gerektirebilir. RPO/RTO hedefleri bu arayüzden değil altyapıdan gelir."
   },
+  "knownGapAcceptance": {
+    "title": "Bilinen Backup/DR boşlukları",
+    "description": "Kabul, kontrolü kapatmaz. Bilinen bir boşluk kırmızı yerine amber görünür. AllowsGateOverride kapalıyken genel kapı başarısız kalır.",
+    "save": "Kabulü kaydet",
+    "saved": "Bilinen boşluklar kaydedildi.",
+    "loadFailed": "Bilinen boşluklar yüklenemedi.",
+    "invalidGaps": "En az bir boşluk kimliği tanınmıyor.",
+    "acceptedOn": "Biliniyor, {{date}} tarihinde kabul edildi",
+    "verdictPass": "Kapı geçti",
+    "verdictFail": "Kapı geçmedi",
+    "noTenant": "Bilinen boşlukları kabul etmek için bir mandant seçin.",
+    "gaps": {
+      "externalArchiveNotSet": "Harici arşiv ayarlı değil",
+      "scheduledDrillNotRun": "Zamanlanmış geri yükleme tatbikatı gecikmiş",
+      "systemLegalHoldNotConfigured": "Sistem yasal saklaması yapılandırılmamış",
+      "devOnlyFakeAdapter": "Yalnızca geliştirme: sahte adaptör"
+    }
+  },
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
     "hint": "İşler API üzerinden asenkron kuyruğa alınır. Başarıdan sonra artefaktlar aşağıdan indirilebilir (Fake/ProductionStub stub’ları sunucudaysa — üretim pg_dump değil). „Ayarları yönet“; denetim.",
@@ -820,7 +838,8 @@
       "reject": "Reddet"
     },
     "messages": {
-      "requestCreated": "Geri yükleme isteği oluşturuldu — ikinci yönetici onayı gerekli.",
+      "requestCreated": "Geri yükleme isteği oluşturuldu — onay gerekli",
+      "requestExecuting": "Restore çalışıyor…",
       "approvalSubmitted": "Onay gönderildi — doğrulama arka planda çalışıyor.",
       "rejected": "İstek reddedildi."
     },
@@ -891,6 +910,16 @@
     "etaQueued": "Kabaca tahmini bitiş (kuyruk + ortalama süre, n={{n}}): {{time}}",
     "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok.",
     "etaDemotedLead": "Kaba süre ipucu (taahhüt değil):"
+  },
+  "restoreProgress": {
+    "cardTitle": "Restore tatbikatı ilerlemesi",
+    "idle": "Çalışan restore tatbikatı yok.",
+    "titleQueued": "Restore tatbikatı kuyrukta",
+    "titleRunning": "Restore tatbikatı çalışıyor",
+    "titleSucceeded": "Restore tatbikatı bitti",
+    "titleFailed": "Restore tatbikatı başarısız",
+    "estimatedRemaining": "Tahmini kalan süre: {{time}}",
+    "noEta": "Henüz süre tahmini yok (önceki başarılı tatbikat süresi yok)."
   },
   "download": {
     "titleLatestSuccess": "Artefakt indir (son çalıştırma — API başarı durumu)",
@@ -1150,7 +1179,7 @@
     "title": "Son yedek çalıştırmaları",
     "statusHint": "Her satır o çalıştırma için API’nin bildirdiği sonucu gösterir. Bu geçmiş, kurtarılabilirlik bölümündeki son bilinen iyi kanıtının yerini tutmaz."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Son geri yükleme doğrulamaları",
     "empty": "Henüz geri yükleme tatbikatı yok.",
     "statusHint": "Her satır tatbikat için API’nin bildirdiği sonucu gösterir. Tamamlanmış tatbikat teknik metadata’dır — tam kurtarma garantisi değildir."
@@ -1481,6 +1510,14 @@
     "close": "Kapat",
     "download": "İndir",
     "downloadBackup": "Yedeği indir",
+    "createdByEmail": "E-posta",
+    "createdFromIp": "IP adresi",
+    "tenant": "Kiracı",
+    "downloadCount": "İndirme sayısı",
+    "tablesSection": "Tablolar ve satır sayıları",
+    "fileName": "Dosya",
+    "downloadedAt": "İndirilme zamanı",
+    "downloadHistoryEmpty": "Henüz indirme kaydı yok.",
     "triggerLabel": "Tetikleyici",
     "requestedAt": "İstenen zaman",
     "startedAt": "Başlangıç",
@@ -1497,6 +1534,7 @@
     },
     "tabs": {
       "overview": "Özet",
+      "downloadHistory": "İndirme geçmişi",
       "artifacts": "Artefaktlar",
       "verification": "Doğrulama",
       "pipeline": "Pipeline",
@@ -1508,6 +1546,7 @@
       "createdAt": "Oluşturulma",
       "lifecycle": "Lifecycle",
       "onDisk": "Sunucuda",
+      "hash": "SHA-256",
       "empty": "Artefakt yok",
       "sizeBreakdownHint": "Aşağıda artefakt başına boyutlar; tüm bayt boyutları kayıtlıysa toplam bunların toplamına eşittir."
     },
@@ -1519,7 +1558,10 @@
       "verifier": "Verifier",
       "completeness": "Bütünlük",
       "completenessOk": "Tamam",
-      "completenessMissing": "Eksik"
+      "completenessMissing": "Eksik",
+      "lastResult": "Son doğrulama sonucu",
+      "storedHash": "Kayıtlı hash",
+      "computedHash": "Hesaplanan hash"
     },
     "pipeline": {
       "empty": "Pipeline adımı yok"
@@ -1628,6 +1670,48 @@
       "findings": "Bulgular"
     }
   },
+  "drills": {
+    "pageTitle": "Geri yükleme tatbikatları",
+    "pageSubtitle": "Geçmiş geri yükleme kontrolleri: zaman, süre ve sonuç. Dosya yolu yok.",
+    "timelineTitle": "Tatbikat zaman çizelgesi",
+    "empty": "Yüklü geri yükleme tatbikatı yok.",
+    "columns": {
+      "date": "Tarih",
+      "duration": "Süre",
+      "result": "Sonuç",
+      "reason": "Gerekçe"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Bekliyor"
+    },
+    "successRate": "Başarı oranı (30 gün)",
+    "lastSuccess": "Son zamanlanmış tatbikat kanıtı",
+    "daysSince": "Zamanlanmış kanıttan bu yana gün",
+    "durationUnknown": "Süre bilinmiyor",
+    "reasonHidden": "Ayrıntı gizlendi",
+    "scheduleTitle": "Tatbikat planı",
+    "scheduleNext": "Sonraki pencere (varsayılan): {{date}}",
+    "scheduleOverdue": "Pencere {{date}} tarihinden beri gecikmiş",
+    "scheduleEmpty": "Henüz zamanlanmış tatbikat kanıtı yok.",
+    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz.",
+    "downloadPdf": "PDF indir",
+    "downloadPdfSuccess": "Denetim raporu indirildi",
+    "downloadPdfFailed": "Denetim raporu indirilemedi."
+  },
+  "recoverabilityCheck": {
+    "title": "Kurtarılabilirliği denetle",
+    "lastProof": "Son geri yükleme kanıtı",
+    "lastDrill": "Son başarılı tatbikat",
+    "daysSince": "Kanıttan bu yana gün",
+    "nextDrill": "Sonraki planlı tatbikat",
+    "successRate": "Başarı oranı (30 gün)",
+    "acceptedGaps": "Kabul edilen bilinen boşluklar",
+    "compare": "Son 5 tatbikatla karşılaştır",
+    "drift": "Sapma",
+    "driftTooltip": "Son kanıt, son başarılı tatbikatla aynı değil."
+  },
   "compliance": {
     "pageTitle": "RKSV uyumluluk durumu",
     "pageSubtitle": "Yedek geri yükleme hazırlık kapıları (30 gün) — ürün kontrolleri, BMF sertifikası değil.",
@@ -1638,6 +1722,7 @@
     "allOkTitle": "Listedeki tüm yedekler ürün kapılarını geçti",
     "allOkDescription": "Penceredeki başarılı yedeklerde geçerli SHA-256 var. Geri yükleme yine validation-only ve dual onaylıdır.",
     "loadFailed": "Uyumluluk durumu yüklenemedi.",
+    "loadFailedDetail": "Daha fazla sunucu ayrıntısı yok. Ağ, oturum veya API yanıtını kontrol edin.",
     "empty": "Son 30 günde başarılı yedek yok.",
     "listTitle": "Yedek uyumluluk listesi",
     "stats": {
@@ -1666,6 +1751,18 @@
       "missingLogicalDump": "Mantıksal dump yok",
       "backupNotSucceeded": "Başarısız",
       "unknown": "Diğer"
+    },
+    "gate": {
+      "title": "Ürün kapısı",
+      "systemBackup": "Son başarılı sistem yedeği",
+      "legalHold": "7 yıllık yasal saklama",
+      "drill": "Son zamanlanmış geri yükleme kanıtı",
+      "drillThreshold": "Paneldeki geri yükleme kanıtı ile aynı zaman (yalnızca zamanlanmış başarı). Yeşil: en fazla 14 gün. Sarı: 14 günden eski. Kırmızı: 30 günden eski veya zamanlanmış kanıt yok.",
+      "missing": "Kanıt yok",
+      "simulated": "Simüle çalıştırma",
+      "green": "Yeşil",
+      "yellow": "Sarı",
+      "red": "Kırmızı"
     }
   },
   "costs": {
@@ -1729,7 +1826,46 @@
         "title": "Maliyet profili sağlıklı görünüyor",
         "description": "Bütçe ve katman dağılımı beklenen aralıkta. Büyük mandant büyümesinden sonra izlemeye devam edin."
       }
+    },
+    "insights": {
+      "trendTitle": "Depolama maliyet eğilimi (90 gün)",
+      "trendHint": "Başarılı dump boyutu çarpı güncel €/GB. Fatura değildir.",
+      "retentionTitle": "Saklama politikası etkisi",
+      "retentionActual": "Güncel tahmin",
+      "retentionAllHot": "Tümü Hot fiyatı",
+      "tierTitle": "Katman dağılımı",
+      "monthlyEstimate": "Aylık tahmin",
+      "emptyTrend": "Son 90 günde dump boyutu yok."
     }
+  },
+  "retention": {
+    "pageTitle": "Yedek saklama",
+    "pageSubtitle": "Hot/Warm/Cold pencereleri, 7 yıllık yasal saklama (RKSV / BAO §132) ve soğuk depolama.",
+    "legalTitle": "Yasal saklama (7 yıl)",
+    "legalDescription": "Sistem yedekleri 7 yıl saklanmalıdır (BAO §132). Legal Hold silmeyi engeller. Cold storage WORM’dur (bir kez yaz, çok kez oku).",
+    "hotLabel": "Hot",
+    "warmLabel": "Warm",
+    "coldLabel": "Cold (yasal)",
+    "daysSuffix": "gün",
+    "yearsSuffix": "yıl",
+    "policyCardTitle": "Saklama politikası",
+    "hotDays": "Hot saklama (gün)",
+    "warmDays": "Warm saklama (gün)",
+    "coldYears": "Cold saklama (yıl)",
+    "coldYearsHint": "En az 7 yıl — yasal alt sınır.",
+    "coldEnabled": "Cold storage’ı etkinleştir",
+    "cloudProvider": "Bulut sağlayıcı",
+    "cloudReady": "Yapılandırıldı",
+    "cloudNotConfigured": "Yapılandırılmadı (dosya sistemi yedek yolu)",
+    "save": "Politikayı kaydet",
+    "saveSuccess": "Saklama politikası kaydedildi.",
+    "saveFailed": "Saklama politikası kaydedilemedi.",
+    "loadFailed": "Saklama politikası yüklenemedi.",
+    "superAdminOnly": "Politikayı yalnızca Super Admin değiştirebilir.",
+    "statusHot": "Hot",
+    "statusWarm": "Warm",
+    "statusCold": "Cold",
+    "statusLegalHold": "Legal Hold"
   },
   "backupDiff": {
     "cardTitle": "Yedek karşılaştırması",
@@ -1773,8 +1909,19 @@
     "instanceScopeDescription": "Tüm kiracılar aynı PostgreSQL örneğini paylaşır. Liste dağıtım geneli çalıştırmaları gösterir; kiracı filtresi manuel tetiklenen koşularda (idempotency anahtarı) uygulanır.",
     "tenantFilterLabel": "Kiracı (filtre)",
     "tenantFilterPlaceholder": "Tüm kiracılar",
+    "createdBy": "Oluşturan",
+    "createdBySystemCron": "Sistem (Cron)",
+    "filterType": "Tür",
+    "filterTypePlaceholder": "Tüm türler",
+    "filterCreatedByPlaceholder": "Tüm oluşturanlar",
+    "filterDate": "Tarih",
+    "strategyTenant": "Kiracı",
+    "strategySystem": "Sistem",
+    "download": "İndir",
+    "downloadFailed": "İndirme başarısız.",
     "startTime": "Başlangıç",
     "statusColumn": "Durum",
+    "retention": "Saklama",
     "duration": "Süre",
     "durationTooltip": "Başlangıç: {{start}} | Bitiş: {{end}}",
     "size": "Boyut",
@@ -1788,10 +1935,18 @@
     "retry": "Yeniden dene",
     "delete": "Sil",
     "deleteUnavailable": "Silme API'de henüz yok.",
+    "moveToCold": "Cold storage’a taşı",
+    "moveToColdConfirmTitle": "Bu yedek cold storage’a taşınsın mı?",
+    "moveToColdConfirmDescription": "Artefakt sıkıştırılır, mümkünse tekilleştirilir ve WORM (bir kez yaz, çok kez oku) olarak saklanır.",
+    "moveToColdSuccess": "Yedek cold storage’a taşındı.",
+    "moveToColdFailed": "Yedek cold storage’a taşınamadı.",
     "noDuration": "—",
     "durationMinutes": "{{minutes}} dk",
     "retryConfirmTitle": "Yeni yedek kuyruğa alınsın mı?",
     "retryConfirmDescription": "Yeni bir manuel yedek çalıştırması kuyruğa alınır (aynı çalıştırma tekrarlanmaz).",
+    "verify": "Doğrula",
+    "verifyChecksum": "Checksum doğrula",
+    "lastVerification": "Son doğrulama",
     "statusLabels": {
       "queued": "Beklemede",
       "running": "Çalışıyor",
@@ -1809,6 +1964,27 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verify": "Doğrula",
+    "verifyChecksum": "Checksum doğrula",
+    "verifyPassed": "Doğrulama başarılı",
+    "verifyFailed": "Doğrulama başarısız",
+    "checksumPassed": "Bütünlük kontrolü başarılı",
+    "checksumFailed": "Dosya bozuk veya checksum uyuşmuyor",
+    "checksumNotAvailable": "Bu yedek için checksum yok",
+    "lastVerification": "Son doğrulama",
+    "verifying": "Checksum doğrulanıyor…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum başarısız",
+    "badgeUnknown": "Henüz doğrulanmadı",
+    "rpoAlert": "{{days}} gündür başarılı sistem yedeği yok. RPO risk altında olabilir.",
+    "validateContent": "İçeriği doğrula",
+    "contentPassed": "Tüm tablolar doğrulandı",
+    "contentWarning": "İçerik doğrulama uyarılarla tamamlandı",
+    "contentFailed": "İçerik doğrulama başarısız",
+    "contentUnavailable": "İçerik doğrulama kullanılamıyor",
+    "contentReportTitle": "İçerik doğrulama raporu"
   },
   "verificationReport": {
     "sectionTitle": "Yedek doğrulama raporu",
@@ -1867,7 +2043,7 @@
     "cancel": "İptal",
     "restore": "Geri yükle",
     "alertTitle": "Point-in-Time Recovery",
-    "alertDescription": "Veritabanınızı belirli bir ana geri yükleyin. Bu andan sonraki tüm değişiklikler geri alınır.",
+    "alertDescription": "Belirli bir ana kurtarma planlayın. API üretimi asla üzerine yazmaz — Super Admin yalnızca izole doğrulama geri yüklemesi kuyruğa alabilir.",
     "availablePointsTitle": "Kullanılabilir geri yükleme aralığı",
     "walArchivingActive": "WAL arşivleme aktif",
     "earliestPoint": "En erken nokta",
@@ -1885,6 +2061,7 @@
     "estimatedDataLoss": "Tahmini veri kaybı: yaklaşık {{seconds}} saniye",
     "recoveryMethodPitr": "WAL oynatma (PITR)",
     "recoveryMethodFullBackup": "Yalnızca tam yedek",
+    "recoveryMethodFullPlusIncremental": "Tam yedek + artımlılar",
     "walDisabledTitle": "WAL arşivleme etkin değil",
     "walDisabledDescription": "Point-in-Time Recovery için WAL arşivleme gerekir. Şimdilik yalnızca tam yedek geri yüklemeleri kullanılabilir.",
     "scopeNoteTitle": "Geri yükleme kapsamı",
@@ -1892,12 +2069,65 @@
     "tenantRequiredDescription": "PITR kullanmadan önce bir kiracı seçin (impersonation veya kiracı alt alanı). Platform ana bilgisayarındaki Super Admin'in kiracı kapsamı yoktur.",
     "confirmTitle": "Point-in-Time geri yükleme",
     "confirmIntro": "Veritabanını şu ana geri yüklemek üzeresiniz:",
-    "confirmIrreversible": "Bu işlem geri alınamaz. Bu noktadan sonraki tüm veriler kaybolur.",
+    "confirmIrreversible": "Bu, üretim değil izole bir doğrulama geri yüklemesi (restore_validation_*) başlatır. İkinci Super Admin onayı geçerlidir.",
     "confirmSecondApproval": "Bu işlem ikinci bir yönetici onayı gerektirir.",
     "confirmOk": "Geri yükle",
     "moreSupportedPoints": "+{{count}} ek yedek tabanlı geri yükleme noktası",
     "errors": {
       "missingBaseBackup": "Bu geri yükleme noktası için uygun bir temel yedek bulunamadı."
+    }
+  },
+  "pitrPage": {
+    "pageTitle": "Zaman noktası kurtarma",
+    "pageSubtitle": "Geri yükleme zamanı seçin, yedek zincirini inceleyin ve izole dry-run çalıştırın. Üretim üzerine yazılmaz.",
+    "isolatedTitle": "Yalnızca izole doğrulama",
+    "isolatedDescription": "PITR ve artımlı geri yükleme burada yalnızca restore_validation_* / restore-drill kuyruğa alır. WAL replay DBA prosedürüdür.",
+    "walFiles": "WAL dosyaları",
+    "walOpsTitle": "WAL arşiv durumu",
+    "chainTitle": "Yedek zinciri",
+    "chainNote": "Geri yükleme zinciri",
+    "chainEmpty": "Bu kapsamda başarılı tam, artımlı veya Sistem yedeği yok.",
+    "chainKind": "Tür",
+    "chainCompleted": "Tamamlandı",
+    "chainTenant": "Kiracı",
+    "chainWal": "WAL",
+    "chainRunId": "Çalıştırma kimliği",
+    "walCovered": "Kapsanıyor",
+    "walNotCovered": "Kapsanmıyor",
+    "walWindow": "WAL penceresi: {{start}} – {{end}} ({{count}} dosya)",
+    "kind": {
+      "full": "Tam kiracı",
+      "incremental": "Artımlı",
+      "system": "Sistem dökümü"
+    },
+    "reportPassed": "Geri yükleme öncesi kontroller geçti",
+    "reportFailed": "Geri yükleme öncesi kontroller başarısız",
+    "dataLossLabel": "Tahmini veri kaybı",
+    "checkHash": "Bütünlük (hash)",
+    "checkSchema": "Şema / içerik",
+    "checkTse": "TSE zinciri",
+    "checkPassed": "Geçti",
+    "checkFailed": "Başarısız",
+    "dryRun": "İzole veritabanında dry-run",
+    "dryRunConfirmTitle": "İzole restore drill kuyruğa alınsın mı?",
+    "dryRunConfirmBody": "En yakın Sistem dökümü izole bir veritabanına geri yüklenir. Üretim değişmez.",
+    "dryRunOk": "Dry-run kuyruğa al",
+    "dryRunAccepted": "İzole restore drill kuyruğa alındı."
+  },
+  "walStatus": {
+    "title": "WAL arşivleme",
+    "lastSegment": "Son segment",
+    "lag": "Gecikme",
+    "segments24h": "Segmentler (24 sa)",
+    "empty": "WAL arşivleme henüz başlamadı.",
+    "loadFailed": "WAL arşiv durumu yüklenemedi.",
+    "lagValue": "{{seconds}} sn",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} arşivlendi / {{failed}} başarısız",
+    "health": {
+      "healthy": "Sağlıklı",
+      "degraded": "Düşük",
+      "critical": "Kritik"
     }
   },
   "backupList": {
@@ -2033,10 +2263,96 @@
     "lastRunStored": "Son başarılı otomasyon (saklı)",
     "lastScheduledRunLabel": "Son zamanlanmış yedek koşusu",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Son 5 zamanlanmış yedek koşusu",
+    "recentScheduledWhen": "İstek zamanı",
+    "recentScheduledStatus": "Durum",
+    "failureReason": "Hata nedeni",
     "runStatusSuffix": "(durum {{status}})",
     "save": "Kaydet",
     "saveSuccess": "Ayarlar kaydedildi.",
     "saveError": "Ayarlar kaydedilemedi.",
     "loadError": "Zamanlama ayarları yüklenemedi."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Geri yükleme doğrulama",
+    "detailTitle": "Geri yükleme doğrulama ayrıntısı",
+    "pageSubtitle": "İzole restore tatbikatları için PASS/FAIL. Üretim üzerine yazılmaz. Sistem dökümleri yalnızca Super Admin; Mandanten-Admin yalnız kendi kiracı koşularını görür.",
+    "empty": "Bu kapsamda geri yükleme doğrulama kaydı yok.",
+    "loadError": "Geri yükleme doğrulama kayıtları yüklenemedi.",
+    "openDetail": "Aç",
+    "backToList": "Listeye dön",
+    "verifiedAt": "Doğrulama zamanı",
+    "failedChecks": "Başarısız kontroller: {{checks}}",
+    "columns": {
+      "date": "Tarih",
+      "backupId": "Yedek kimliği",
+      "type": "Tür",
+      "status": "Durum",
+      "verdict": "PASS/FAIL",
+      "actions": "İşlemler"
+    },
+    "filters": {
+      "type": "Tür",
+      "status": "Durum",
+      "backupId": "Yedek kimliği ara",
+      "apply": "Uygula"
+    },
+    "status": {
+      "queued": "Kuyrukta",
+      "running": "Çalışıyor",
+      "succeeded": "Başarılı",
+      "failed": "Başarısız",
+      "unknown": "Bilinmiyor"
+    },
+    "type": {
+      "manual": "Manuel",
+      "scheduled": "Zamanlanmış"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash doğrulama",
+      "schema": "Şema doğrulama",
+      "data": "Veri doğrulama",
+      "tse": "TSE zincir doğrulama",
+      "fiscal": "Fiscal SQL",
+      "unknown": "Kontrol"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Atlandı",
+      "unavailable": "Yok"
+    },
+    "detail": {
+      "summary": "Koşu özeti",
+      "checksTitle": "Doğrulama kontrolleri",
+      "check": "Kontrol",
+      "result": "Sonuç",
+      "detail": "Ayrıntı"
+    },
+    "rowCounts": {
+      "title": "Tablo satır sayıları",
+      "id": "Kontrol kimliği",
+      "name": "Ad",
+      "category": "Kategori",
+      "measured": "Ölçülen",
+      "expected": "Min",
+      "status": "Durum",
+      "empty": "Bu tatbikat için klon satır sayıları kaydedilmedi."
+    },
+    "fiscal": {
+      "title": "Fiscal SQL sonucu",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "PDF indir",
+      "csv": "CSV indir",
+      "ready": "Rapor indirildi.",
+      "failed": "Doğrulama raporu indirilemedi."
+    }
   }
 }

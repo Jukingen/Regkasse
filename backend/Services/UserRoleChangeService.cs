@@ -1,4 +1,6 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Caching;
 using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Services;
@@ -8,17 +10,20 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditLogService _auditLog;
     private readonly IUserSessionInvalidation _sessionInvalidation;
+    private readonly ICacheService _cache;
     private readonly ILogger<UserRoleChangeService> _logger;
 
     public UserRoleChangeService(
         UserManager<ApplicationUser> userManager,
         IAuditLogService auditLog,
         IUserSessionInvalidation sessionInvalidation,
+        ICacheService cache,
         ILogger<UserRoleChangeService> logger)
     {
         _userManager = userManager;
         _auditLog = auditLog;
         _sessionInvalidation = sessionInvalidation;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -32,6 +37,19 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
     {
         var normalizedNewRole = newRole.Trim();
         var previousRole = user.Role?.Trim();
+
+        if (!RoleHierarchy.CanChangeUserRole(actorRole, previousRole, normalizedNewRole))
+        {
+            _logger.LogWarning(
+                "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted a role change outside their hierarchy",
+                actorUserId,
+                actorRole,
+                tenantIdForAudit);
+            var error = RoleHierarchy.IsPlatformOperatorRole(previousRole)
+                ? RoleHierarchy.ElevatedTargetError
+                : RoleHierarchy.RoleAssignmentDeniedError;
+            return (new UserRoleChangeResult(), error);
+        }
 
         if (string.Equals(previousRole, normalizedNewRole, StringComparison.OrdinalIgnoreCase))
         {
@@ -57,6 +75,17 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
             cancellationToken).ConfigureAwait(false);
 
         await _sessionInvalidation.InvalidateSessionsForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
+        await CacheInvalidationHelper.InvalidateSpecificCacheAsync(
+                _cache,
+                CacheKeys.Format(CacheKeys.UserPermissions, user.Id),
+                cancellationToken)
+            .ConfigureAwait(false);
+        _logger.LogInformation(
+            "User role updated by actor {ActorUserId} role {ActorRole} tenant {TenantId} for user {UserId}",
+            actorUserId,
+            actorRole,
+            tenantIdForAudit,
+            user.Id);
 
         return (new UserRoleChangeResult
         {

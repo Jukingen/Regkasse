@@ -33,6 +33,7 @@ public sealed class TenantsController : ControllerBase
     /// <summary>
     /// Tenants visible in the dev header switcher (FA and POS <c>DevTenantSwitcher</c>).
     /// SuperAdmin: all non-deleted tenants; others: active memberships only. Requires authentication.
+    /// Unused legacy <c>default</c> is excluded (not used in development — prefer seeded <c>dev</c>).
     /// </summary>
     [HttpGet("switcher")]
     [ProducesResponseType(typeof(IReadOnlyList<AdminTenantListItemDto>), StatusCodes.Status200OK)]

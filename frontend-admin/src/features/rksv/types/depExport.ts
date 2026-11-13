@@ -21,12 +21,22 @@ export type RksvDepExportEnvelope = {
   fromUtc?: string;
   toUtc?: string;
   isDemo?: boolean;
+  isSimulated?: boolean;
+  simulationNote?: string | null;
   environment?: string;
   formatValidated?: boolean;
   legacyJwsCount?: number;
   f5CompliantJwsCount?: number;
   legacyJwsWarning?: string | null;
   prueftoolCompatible?: boolean;
+  /** Server history id for `/api/admin/rksv/dep-export/download/{id}`. */
+  historyId?: string | null;
+  /** Alias of historyId (DepExportResult.exportId). */
+  exportId?: string | null;
+  fileName?: string | null;
+  downloadUrl?: string | null;
+  expiresAt?: string | null;
+  fileSizeBytes?: number | null;
 };
 
 export type DepExportRequestParams = {
@@ -38,10 +48,19 @@ export type DepExportRequestParams = {
 };
 
 export type DepExportLiveMeta = {
+  isSimulated: boolean;
+  simulationNote: string | null;
+  environment: string | null;
   legacyJwsCount: number;
   f5CompliantJwsCount: number;
   legacyJwsWarning: string | null;
   prueftoolCompatible: boolean;
+  historyId?: string | null;
+  exportId?: string | null;
+  fileName?: string | null;
+  downloadUrl?: string | null;
+  expiresAt?: string | null;
+  fileSizeBytes?: number | null;
 };
 
 export type CertificateInfo = {

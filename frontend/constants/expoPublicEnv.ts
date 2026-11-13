@@ -19,7 +19,9 @@ export const EXPO_PUBLIC_ENV_KEYS = {
   adminBaseUrl: 'EXPO_PUBLIC_ADMIN_BASE_URL',
   licenseExtensionUrl: 'EXPO_PUBLIC_LICENSE_EXTENSION_URL',
   appSurface: 'EXPO_PUBLIC_APP_SURFACE',
+  environment: 'EXPO_PUBLIC_ENVIRONMENT',
   simulateNetworkDelayMs: 'EXPO_PUBLIC_SIMULATE_NETWORK_DELAY_MS',
+  enableOfflineGutschein: 'EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN',
 } as const;
 
 /**
@@ -34,6 +36,22 @@ export function getExpoPublicEnvSnapshot() {
     adminBaseUrl: trimExpoPublicEnv(process.env.EXPO_PUBLIC_ADMIN_BASE_URL),
     licenseExtensionUrl: trimExpoPublicEnv(process.env.EXPO_PUBLIC_LICENSE_EXTENSION_URL),
     appSurface: trimExpoPublicEnv(process.env.EXPO_PUBLIC_APP_SURFACE),
+    environment: trimExpoPublicEnv(process.env.EXPO_PUBLIC_ENVIRONMENT),
     simulateNetworkDelayMs: trimExpoPublicEnv(process.env.EXPO_PUBLIC_SIMULATE_NETWORK_DELAY_MS),
+    enableOfflineGutschein: trimExpoPublicEnv(process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN),
   };
+}
+
+/** True only for explicit true/1/yes. Default (unset/empty) is false. */
+export function parseExpoPublicBool(value: string | undefined | null): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+/**
+ * Gutschein offline queue — default false (RKSV: never store plaintext voucher codes).
+ * Static `process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN` so Metro can inline it.
+ */
+export function isExpoPublicOfflineGutscheinEnabled(): boolean {
+  return parseExpoPublicBool(process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN);
 }

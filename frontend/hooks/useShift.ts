@@ -1,9 +1,12 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { usePosStatusOverview } from '../contexts/PosStatusOverviewContext';
+import i18n from '../i18n';
 import {
+  autoOpenShiftApi,
   DailyClosingApiError,
   endShiftApi,
   fetchCurrentShift,
@@ -18,6 +21,12 @@ import {
   performDailyClosing as performDailyClosingRequest,
 } from '../services/dailyClosingService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  SHIFT_AUTO_OPEN_CODES,
+  shiftAutoOpenAlertI18nKeys,
+  shiftAutoOpenNavigateHref,
+} from '../utils/shiftAutoOpenError';
 
 function readApiErrorMessage(error: unknown): string {
   const e = error as { response?: { data?: unknown }; data?: unknown; message?: string } | null;
@@ -178,6 +187,37 @@ export function useShift(explicitRegisterId?: string | null) {
     [posReadiness, refreshOverview, refresh]
   );
 
+  const autoOpenShift = useCallback(async (): Promise<{
+    success: boolean;
+    code: string;
+    shift: CashierShiftDto | null;
+  }> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const shift = await autoOpenShiftApi(cashRegisterId);
+      setActiveShift(shift);
+      await posReadiness.refreshAsync();
+      await refreshOverview(true);
+      return { success: true, code: SHIFT_AUTO_OPEN_CODES.SUCCESS, shift };
+    } catch (e) {
+      const parsed = parseShiftAutoOpenError(e);
+      if (parsed.code === SHIFT_AUTO_OPEN_CODES.SHIFT_ALREADY_OPEN) {
+        await refresh();
+        return { success: true, code: parsed.code, shift: activeShift };
+      }
+      setError(parsed.message);
+      const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
+      const href = shiftAutoOpenNavigateHref(parsed.code);
+      Alert.alert(i18n.t(keys.titleKey), i18n.t(keys.messageKey), href
+        ? [{ text: 'OK', onPress: () => router.replace(href) }]
+        : undefined);
+      return { success: false, code: parsed.code, shift: null };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeShift, cashRegisterId, posReadiness, refresh, refreshOverview]);
+
   return {
     activeShift,
     cashRegisterId,
@@ -185,6 +225,7 @@ export function useShift(explicitRegisterId?: string | null) {
     startShift,
     endShift,
     performDailyClosing,
+    autoOpenShift,
     isLoading,
     error,
     refresh,

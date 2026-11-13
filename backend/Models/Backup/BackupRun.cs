@@ -52,6 +52,15 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     [Column("requested_by_user_id")]
     public string? RequestedByUserId { get; set; }
 
+    /// <summary>Client IP at enqueue time (manual / operator). Null for scheduled cron.</summary>
+    [MaxLength(128)]
+    [Column("requested_from_ip")]
+    public string? RequestedFromIp { get; set; }
+
+    /// <summary>Successful operator downloads of this run (artifact or convenience endpoint).</summary>
+    [Column("download_count")]
+    public int DownloadCount { get; set; }
+
     [Required]
     [Column("requested_at")]
     public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
@@ -119,6 +128,24 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     /// <summary><see cref="NextRetryAtUtc"/> son ayarlandığında UTC (operatör gözlemi).</summary>
     [Column("automatic_retry_last_scheduled_at_utc")]
     public DateTime? AutomaticRetryLastScheduledAtUtc { get; set; }
+
+    /// <summary>When true, retention cleanup must not delete this run (RKSV legal hold or operator hold).</summary>
+    [Column("legal_hold")]
+    public bool LegalHold { get; set; }
+
+    [Column("legal_hold_until_utc")]
+    public DateTime? LegalHoldUntilUtc { get; set; }
+
+    [MaxLength(400)]
+    [Column("legal_hold_reason")]
+    public string? LegalHoldReason { get; set; }
+
+    [MaxLength(450)]
+    [Column("legal_hold_set_by_user_id")]
+    public string? LegalHoldSetByUserId { get; set; }
+
+    [Column("legal_hold_set_at_utc")]
+    public DateTime? LegalHoldSetAtUtc { get; set; }
 
     public ICollection<BackupArtifact> Artifacts { get; set; } = new List<BackupArtifact>();
 

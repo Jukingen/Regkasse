@@ -149,14 +149,34 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvJahresbelegCreate,
                 AppPermissions.RksvJahresbelegView,
                 AppPermissions.RksvSchlussbelegCreate,
+                AppPermissions.FiskalyOperationsView,
+                AppPermissions.FiskalyOperationsNormal,
+                AppPermissions.FiskalyOperationsCancel,
+                AppPermissions.FiskalyOperationsNullbeleg,
+                AppPermissions.FiskalyOperationsStartbeleg,
+                AppPermissions.FiskalyOperationsMonatsbeleg,
+                AppPermissions.FiskalyOperationsJahresbeleg,
+                AppPermissions.FiskalyOperationsSchlussbeleg,
+                AppPermissions.FiskalyOperationsTagesabschluss,
+                AppPermissions.FiskalyOperationsDepExport,
+                AppPermissions.FiskalyHistoryView,
+                AppPermissions.FiskalyHistoryRetry,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.BackupManage,
                 AppPermissions.WebsiteManage,
                 // Online orders: manage implies view — not POS cart bridge (approve).
+                // online-payments.manage stays SuperAdmin-only (synthetic webhook test console).
                 AppPermissions.DigitalOrdersManage,
                 AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                AppPermissions.OfflineRead,
+                AppPermissions.RoomView, AppPermissions.RoomManage,
+                AppPermissions.TicketView, AppPermissions.TicketManage,
+                AppPermissions.AppointmentView, AppPermissions.AppointmentManage,
+                AppPermissions.PatientView, AppPermissions.PatientManage,
+                AppPermissions.ImeiView, AppPermissions.ImeiManage,
+                AppPermissions.TaxiTripView, AppPermissions.TaxiTripManage,
                 AppPermissions.VoucherRead,
                 AppPermissions.VoucherCreate,
                 AppPermissions.VoucherCancel,
@@ -184,7 +204,9 @@ public static class RolePermissionMatrix
                 AppPermissions.LicenseView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
                 AppPermissions.TseSign,
+                AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
                 AppPermissions.RksvMonatsbelegView,
@@ -206,6 +228,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ShiftView, AppPermissions.ShiftClose,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Kitchen] = new[]
@@ -213,6 +236,10 @@ public static class RolePermissionMatrix
                 AppPermissions.OrderView, AppPermissions.OrderUpdate,
                 AppPermissions.ProductView, AppPermissions.CategoryView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                // POS shell polls offline health/limit on every login, including KDS.
+                AppPermissions.OfflineRead,
+                // POS login calls GET /api/license/status before the shell opens.
+                AppPermissions.LicenseView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.ReportViewer] = new[]
@@ -220,6 +247,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ReportView, AppPermissions.ReportExport,
                 AppPermissions.AuditView,
                 AppPermissions.SettingsView,
+                AppPermissions.CashRegisterView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Accountant] = new[]

@@ -33,6 +33,14 @@
   font-size: 15px;
 }
 
+.registerNumberLink {
+  color: inherit;
+}
+
+.registerNumberLink:hover .registerNumber {
+  color: #1677ff;
+}
+
 .registerLocation {
   display: inline-flex;
   align-items: center;

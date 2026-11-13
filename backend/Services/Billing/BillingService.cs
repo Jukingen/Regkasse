@@ -1,5 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
+using KasseAPI_Final.Services.License;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -26,6 +28,7 @@ public sealed class BillingService : IBillingService
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
     private readonly IInvoiceNumberGenerator _invoiceNumberGenerator;
     private readonly BillingBackupConfig _backupConfig;
+    private readonly ILicenseStatusCache _licenseStatusCache;
     private readonly ILogger<BillingService> _logger;
 
     public BillingService(
@@ -37,6 +40,7 @@ public sealed class BillingService : IBillingService
         IInvoicePdfGenerator invoicePdfGenerator,
         IInvoiceNumberGenerator invoiceNumberGenerator,
         IOptions<BillingBackupConfig> backupConfig,
+        ILicenseStatusCache licenseStatusCache,
         ILogger<BillingService> logger)
     {
         _dbContext = dbContext;
@@ -47,6 +51,7 @@ public sealed class BillingService : IBillingService
         _invoicePdfGenerator = invoicePdfGenerator;
         _invoiceNumberGenerator = invoiceNumberGenerator;
         _backupConfig = backupConfig.Value;
+        _licenseStatusCache = licenseStatusCache;
         _logger = logger;
     }
 
@@ -64,7 +69,7 @@ public sealed class BillingService : IBillingService
 
         ValidatePricing(request.PriceNet, request.VatRate);
         var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
-        var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+        var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(validUntil, tenant.Slug);
         var invoiceNumber = await _invoiceNumberGenerator.AllocateAsync(DateTime.UtcNow, ct).ConfigureAwait(false);
         var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
         var durationDays = ResolveDurationDays(request.LicensePlan, validFrom, validUntil);
@@ -109,12 +114,17 @@ public sealed class BillingService : IBillingService
                 .ConfigureAwait(false)
                 ?? throw new KeyNotFoundException($"Tenant {request.TenantId} not found");
 
-            if (tenant.Status == TenantStatuses.Deleted)
+            if (TenantStatuses.IsRemoved(tenant.Status))
                 throw new InvalidOperationException("Deleted tenants cannot receive license sales.");
 
             ValidatePricing(request.PriceNet, request.VatRate);
             var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
-            var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+            var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(validUntil, tenant.Slug);
+            if (!LicenseKeyValidator.Instance.IsValidFormat(licenseKey)
+                || !LicenseKeyValidator.Instance.IsTenantLicense(licenseKey))
+            {
+                throw new InvalidOperationException(LicenseKeyErrorCodes.TenantLicenseExpected);
+            }
 
             var keyExists = await LicenseSalesScope(db)
                 .AnyAsync(l => l.LicenseKey == licenseKey, ct)
@@ -135,6 +145,7 @@ public sealed class BillingService : IBillingService
                 TenantId = request.TenantId,
                 LicenseKey = licenseKey,
                 LicensePlan = plan,
+                LicenseType = request.LicenseType ?? LicenseType.Starter,
                 CustomValidUntilUtc = plan == LicenseSalePlans.Custom ? validUntil : null,
                 ValidFromUtc = validFrom,
                 ValidUntilUtc = validUntil,
@@ -169,6 +180,14 @@ public sealed class BillingService : IBillingService
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
 
+            // Invalidate after commit so concurrent readers never see a stale cached status
+            // while the transaction is still open (Cache-Aside write path).
+            await InvalidateLicenseCacheAsync(request.TenantId, ct).ConfigureAwait(false);
+            _logger.LogInformation(
+                "License status cache invalidated after sale for tenant {TenantId} ({TenantSlug})",
+                request.TenantId,
+                tenant.Slug);
+
             await _billingAudit.LogLicenseSoldAsync(sale, soldByUserId, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);
 
@@ -192,6 +211,12 @@ public sealed class BillingService : IBillingService
         }
     }
 
+    /// <summary>
+    /// Drops cached license status for <paramref name="tenantId"/> (<c>license_status_{tenantId}</c>).
+    /// </summary>
+    private Task InvalidateLicenseCacheAsync(Guid tenantId, CancellationToken ct = default) =>
+        _licenseStatusCache.InvalidateLicenseCacheAsync(tenantId, ct);
+
     public async Task<LicenseSaleResponse> GetLicenseSaleAsync(
         Guid saleId,
         CancellationToken ct = default)
@@ -213,6 +238,7 @@ public sealed class BillingService : IBillingService
         CancellationToken ct = default)
     {
         var db = _dbContext;
+        var now = DateTime.UtcNow;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -229,11 +255,26 @@ public sealed class BillingService : IBillingService
             var status = query.Status.Trim();
             if (!string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
             {
-                if (!LicenseSaleStatuses.IsValid(status))
-                    throw new ArgumentException("Invalid status filter.", nameof(query));
-
-                salesQuery = salesQuery.Where(l => l.Status == status);
+                salesQuery = ApplyStatusFilter(salesQuery, status, now);
             }
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.LicensePlan))
+        {
+            var plan = query.LicensePlan.Trim();
+            if (!LicenseSalePlans.IsValid(plan))
+                throw new ArgumentException("Invalid license plan filter.", nameof(query));
+
+            salesQuery = salesQuery.Where(l => l.LicensePlan == plan);
+        }
+
+        if (query.LicenseType.HasValue)
+            salesQuery = salesQuery.Where(l => l.LicenseType == query.LicenseType.Value);
+
+        if (query.MinDurationDays is > 0)
+        {
+            var minDays = query.MinDurationDays.Value;
+            salesQuery = salesQuery.Where(l => l.ValidUntilUtc >= l.ValidFromUtc.AddDays(minDays));
         }
 
         if (query.FromDate.HasValue)
@@ -252,8 +293,8 @@ public sealed class BillingService : IBillingService
         }
 
         var totalCount = await salesQuery.CountAsync(ct).ConfigureAwait(false);
-        var items = await salesQuery
-            .OrderByDescending(l => l.SoldAtUtc)
+        var orderedQuery = ApplySort(salesQuery, query.SortBy, query.SortDir);
+        var items = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct)
@@ -270,6 +311,81 @@ public sealed class BillingService : IBillingService
             PageSize = pageSize,
             TotalPages = totalPages,
         };
+    }
+
+    private static IQueryable<LicenseSale> ApplySort(
+        IQueryable<LicenseSale> salesQuery,
+        string? sortBy,
+        string? sortDir)
+    {
+        var desc = string.Equals(sortDir?.Trim(), "desc", StringComparison.OrdinalIgnoreCase);
+        var key = (sortBy ?? "validUntilUtc").Trim().ToLowerInvariant();
+
+        IOrderedQueryable<LicenseSale> ordered = key switch
+        {
+            "invoicenumber" => desc
+                ? salesQuery.OrderByDescending(l => l.InvoiceNumber)
+                : salesQuery.OrderBy(l => l.InvoiceNumber),
+            "tenant" => desc
+                ? salesQuery.OrderByDescending(l => l.Tenant != null ? l.Tenant.Name : string.Empty)
+                : salesQuery.OrderBy(l => l.Tenant != null ? l.Tenant.Name : string.Empty),
+            "licensekey" => desc
+                ? salesQuery.OrderByDescending(l => l.LicenseKey)
+                : salesQuery.OrderBy(l => l.LicenseKey),
+            "licenseplan" or "plan" => desc
+                ? salesQuery.OrderByDescending(l => l.LicensePlan)
+                : salesQuery.OrderBy(l => l.LicensePlan),
+            "pricegross" or "brutto" => desc
+                ? salesQuery.OrderByDescending(l => l.PriceGross)
+                : salesQuery.OrderBy(l => l.PriceGross),
+            "pricenet" or "netto" => desc
+                ? salesQuery.OrderByDescending(l => l.PriceNet)
+                : salesQuery.OrderBy(l => l.PriceNet),
+            "soldatutc" or "soldat" => desc
+                ? salesQuery.OrderByDescending(l => l.SoldAtUtc)
+                : salesQuery.OrderBy(l => l.SoldAtUtc),
+            // daysRemaining is derived from valid-until (ascending = expiring first)
+            "daysremaining" or "validuntilutc" or "validuntil" => desc
+                ? salesQuery.OrderByDescending(l => l.ValidUntilUtc)
+                : salesQuery.OrderBy(l => l.ValidUntilUtc),
+            _ => throw new ArgumentException("Invalid sort field.", nameof(sortBy)),
+        };
+
+        return ordered.ThenByDescending(l => l.Id);
+    }
+
+    private static IQueryable<LicenseSale> ApplyStatusFilter(
+        IQueryable<LicenseSale> salesQuery,
+        string status,
+        DateTime nowUtc)
+    {
+        if (string.Equals(status, "expired", StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc <= nowUtc);
+        }
+
+        if (string.Equals(status, "pending", StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active
+                && (l.Tenant == null || l.Tenant.CurrentLicenseSaleId != l.Id));
+        }
+
+        if (string.Equals(status, "revoked", StringComparison.OrdinalIgnoreCase))
+            return salesQuery.Where(l => l.Status == LicenseSaleStatuses.Cancelled);
+
+        // "active" in the list UI means currently valid (not past valid-until).
+        if (string.Equals(status, LicenseSaleStatuses.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc > nowUtc);
+        }
+
+        if (!LicenseSaleStatuses.IsValid(status))
+            throw new ArgumentException("Invalid status filter.", nameof(status));
+
+        return salesQuery.Where(l => l.Status == status);
     }
 
     public async Task<LicenseSaleResponse> CancelLicenseSaleAsync(
@@ -316,6 +432,8 @@ public sealed class BillingService : IBillingService
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            await InvalidateLicenseCacheAsync(sale.TenantId, ct).ConfigureAwait(false);
 
             await _billingAudit.LogLicenseCancelledAsync(sale, cancelledByUserId, reason, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);
@@ -563,7 +681,7 @@ public sealed class BillingService : IBillingService
             .AsNoTracking()
             .AnyAsync(
                 t => t.LicenseKey == key
-                     && t.Status != TenantStatuses.Deleted
+                     && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                      && (t.LicenseValidUntilUtc == null || t.LicenseValidUntilUtc > now),
                 ct)
             .ConfigureAwait(false);
@@ -609,6 +727,7 @@ public sealed class BillingService : IBillingService
             TenantSlug = sale.Tenant?.Slug ?? "Unknown",
             LicenseKey = sale.LicenseKey,
             LicensePlan = sale.LicensePlan,
+            LicenseType = sale.LicenseType,
             ValidFromUtc = sale.ValidFromUtc,
             ValidUntilUtc = sale.ValidUntilUtc,
             PriceNet = sale.PriceNet,

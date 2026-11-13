@@ -27,7 +27,7 @@ public class AuditLogControllerGetUserAuditLogsTests
         var logger = new Mock<ILogger<AuditLogController>>().Object;
         var resolver = actorDisplayNameResolver ?? CreateDefaultResolver();
         var export = new Mock<IAuditExportService>();
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"audit_log_ctrl_{Guid.NewGuid():N}")
             .Options;
@@ -56,6 +56,8 @@ public class AuditLogControllerGetUserAuditLogsTests
     {
         var mock = new Mock<IActorDisplayNameResolver>();
         mock.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        mock.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
             .ReturnsAsync(new Dictionary<string, string>());
         return mock.Object;
     }

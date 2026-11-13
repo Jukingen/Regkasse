@@ -9,6 +9,8 @@ export type CreatePosMonatsbelegParams = {
   year: number;
   month: number;
   reason?: string | null;
+  /** Past Vienna months require backend `?force=true`. */
+  force?: boolean;
 };
 
 export type CreatePosMonatsbelegResult = {
@@ -27,6 +29,7 @@ export async function createPosMonatsbelegAndPrint(
     year: params.year,
     month: params.month,
     reason: params.reason ?? (isDecemberAnnual ? 'POS Jahresbeleg (Dezember)' : 'POS Monatsbeleg'),
+    force: params.force,
   });
 
   let printed = false;
@@ -55,8 +58,15 @@ export function alertPosMonatsbelegCreateSuccess(result: CreatePosMonatsbelegRes
 }
 
 export function alertPosMonatsbelegCreateError(error: unknown, isDecemberAnnual: boolean): void {
-  const err = error as { data?: { message?: string }; message?: string };
-  const msg = err?.data?.message ?? err?.message ?? 'Unbekannter Fehler';
+  const err = error as {
+    data?: { message?: string; requiresForce?: boolean; warningMessage?: string };
+    message?: string;
+  };
+  const data = err?.data;
+  const msg =
+    data?.requiresForce === true && typeof data.warningMessage === 'string' && data.warningMessage.trim()
+      ? data.warningMessage
+      : (data?.message ?? err?.message ?? 'Unbekannter Fehler');
   Alert.alert(isDecemberAnnual ? 'Jahresbeleg' : 'Monatsbeleg', String(msg));
 }
 

@@ -157,6 +157,13 @@ public sealed class LicenseStorageService : ILicenseStorageService
             var plain = AesGcmDecrypt(encrypted);
             return JsonSerializer.Deserialize<LicensePersistedState>(plain, JsonOptions);
         }
+        catch (AuthenticationTagMismatchException)
+        {
+            _logger.LogWarning(
+                "License storage: encrypted file at {Path} cannot be decrypted (machine key changed or file corrupted); treating store as missing.",
+                _filePath);
+            return null;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(

@@ -14,7 +14,7 @@ public sealed class RestoreProofMilestonesQueryServiceTests
     {
         var dbName = $"rv_milestones_{Guid.NewGuid():N}";
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         var l4Good = Guid.NewGuid();
         db.RestoreVerificationRuns.Add(new RestoreVerificationRun
@@ -54,7 +54,7 @@ public sealed class RestoreProofMilestonesQueryServiceTests
     {
         var dbName = $"rv_milestones2_{Guid.NewGuid():N}";
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         var l4Old = Guid.NewGuid();
         db.RestoreVerificationRuns.Add(new RestoreVerificationRun

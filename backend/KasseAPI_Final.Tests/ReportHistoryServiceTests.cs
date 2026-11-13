@@ -119,7 +119,7 @@ public class ReportHistoryServiceTests
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private sealed class FakeSubmissionCompatService : IReportSubmissionCompatibilityService

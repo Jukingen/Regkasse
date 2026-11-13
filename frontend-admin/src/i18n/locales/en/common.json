@@ -74,16 +74,30 @@
     "furtherLabel": "Investigate further"
   },
   "errors": {
-    "http400": "Invalid request.",
+    "http400": "The request could not be processed. Please check your entries.",
     "http401": "Authentication required.",
-    "http403": "Access denied.",
-    "http404": "Not found.",
-    "http409": "Conflict.",
+    "http403": "You do not have permission for this action.",
+    "http404": "The requested entry was not found.",
+    "http409": "This table is open by another cashier. Please close it first.",
     "http422": "Validation failed.",
     "http429": "Too many requests. Try again later.",
     "http500": "Server error. Try again later.",
     "http503": "Service temporarily unavailable.",
     "network": "Network error. Check your connection."
+  },
+  "apiErrors": {
+    "finanzOnlineOutboxNotFound": "The outbox message was not found.",
+    "finanzOnlineOutboxAlreadySent": "The outbox message was already sent.",
+    "finanzOnlineOutboxInProgress": "The outbox message is being processed.",
+    "finanzOnlineOutboxReasonRequired": "A reason is required to close the message without sending it.",
+    "finanzOnlineOutboxInvalidBucket": "The status filter is unknown.",
+    "finanzOnlineOutboxListError": "The outbox list could not be loaded.",
+    "finanzOnlineOutboxWorkerInvalid": "A worker setting is outside the allowed range.",
+    "finanzOnlineOutboxProductionDisableConfirm": "Disabling the outbox worker in production requires explicit confirmation.",
+    "backupKnownGapUnknown": "At least one Backup/DR gap id is unknown.",
+    "extensionOptionsUnsupported": "This extension does not accept options.",
+    "barcodeDuplicate": "This barcode is already in use.",
+    "barcodeNotFound": "No product found for this barcode."
   },
   "backend": {
     "serverHintIntro": "Message from server (language not guaranteed):",
@@ -441,6 +455,11 @@
       "vatRange": "VAT rate must be between {{min}} and {{max}}.",
       "vatPlaceholder": "10 or 20",
       "sortOrderLabel": "Sort order",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "e.g. 🥗",
+      "iconHelp": "Emoji shown in admin and POS. Empty uses 📦.",
+      "colorLabel": "Color",
+      "colorHelp": "Color used as a visual indicator for this category on the cash register.",
       "activeLabel": "Active"
     },
     "table": {

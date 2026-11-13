@@ -1,5 +1,8 @@
-# Comprehensive Regkasse smoke test â€” API + route checks
-# Usage: .\scripts\run-comprehensive-smoke.ps1
+# Comprehensive Regkasse smoke test — API + route checks
+# Usage: .\scripts\test\run-comprehensive-smoke.ps1
+#
+# Local Manager/Cashier passwords: set SMOKE_MANAGER_PASSWORD and SMOKE_CASHIER_PASSWORD.
+# SuperAdmin uses the Development seed Admin123! (UserSeedData). Do not commit local passwords.
 
 $ErrorActionPreference = 'Continue'
 $BaseUrl = 'http://localhost:5184'
@@ -312,7 +315,11 @@ else {
 }
 
 # --- FA Manager ---
-$mgrToken = Get-LoginToken -LoginIdentifier 'manager1' -Password 'Juke1034#' -ClientApp 'admin'
+$mgrPassword = if ($env:SMOKE_MANAGER_PASSWORD) { $env:SMOKE_MANAGER_PASSWORD } elseif ($env:LOGIN_PASSWORD) { $env:LOGIN_PASSWORD } else { $null }
+if (-not $mgrPassword) {
+    Add-Result 'FA Manager' '1. Authentication' 'SKIP' 'Set SMOKE_MANAGER_PASSWORD (do not commit local passwords)'
+} else {
+$mgrToken = Get-LoginToken -LoginIdentifier 'manager1' -Password $mgrPassword -ClientApp 'admin'
 if ($mgrToken) {
     $mgrH = Get-AuthHeaders -Token $mgrToken
     $mgrMe = Invoke-Api -Path '/api/Auth/me' -Headers $mgrH
@@ -399,9 +406,14 @@ if ($mgrToken) {
 else {
     Add-Result 'FA Manager' '1. Authentication' 'FAIL' 'manager1 login failed'
 }
+}
 
 # --- POS Cashier ---
-$posToken = Get-LoginToken -LoginIdentifier 'cashier1' -Password '2&@6AWNy(r38' -ClientApp 'pos'
+$cashierPassword = if ($env:SMOKE_CASHIER_PASSWORD) { $env:SMOKE_CASHIER_PASSWORD } else { $null }
+if (-not $cashierPassword) {
+    Add-Result 'POS Cashier' '1. Authentication' 'SKIP' 'Set SMOKE_CASHIER_PASSWORD (do not commit local passwords)'
+} else {
+$posToken = Get-LoginToken -LoginIdentifier 'cashier1' -Password $cashierPassword -ClientApp 'pos'
 if ($posToken) {
     $posH = Get-AuthHeaders -Token $posToken
     $posMe = Invoke-Api -Path '/api/Auth/me' -Headers $posH
@@ -469,6 +481,7 @@ if ($posToken) {
 }
 else {
     Add-Result 'POS Cashier' '1. Authentication' 'FAIL' 'cashier1 login failed'
+}
 }
 
 # FA route smoke (HTTP reachability)

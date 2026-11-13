@@ -194,11 +194,11 @@ public sealed class FiskalyDepExportPrueftoolTests
         IReadOnlyList<SignedReceiptSeed> receipts,
         string thumbprint)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var registerId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = registerId,
             RegisterNumber = "KASSE-FIXTURE-01",
             Location = "Fiskaly mock test",
@@ -285,7 +285,7 @@ public sealed class FiskalyDepExportPrueftoolTests
             .UseInMemoryDatabase($"FiskalyDepExport_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor

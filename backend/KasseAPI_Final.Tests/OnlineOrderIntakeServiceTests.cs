@@ -58,6 +58,21 @@ public sealed class OnlineOrderIntakeServiceTests
         Assert.Equal(OnlineOrderIntakeService.ClosedCode, result.Code);
     }
 
+    [Fact]
+    public async Task CreateAsync_rejects_marketplace_source_instead_of_storing_web()
+    {
+        var (sut, tenantId, productId) = await CreateSutAsync(WorkingHoursSettings.CreateDefault(), DateTimeOffset.Parse("2026-06-15T12:00:00Z"));
+        var request = ValidRequest(productId);
+        request.Source = OnlineOrderSources.Marketplace;
+
+        var result = await sut.CreateAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(OnlineOrderIntakeService.ValidationCode, result.Code);
+        Assert.Null(result.OrderId);
+        Assert.NotEqual(Guid.Empty, tenantId);
+    }
+
     private static WorkingHoursSettings ClosedChristmasHours()
     {
         var hours = WorkingHoursSettings.CreateDefault();
@@ -86,7 +101,7 @@ public sealed class OnlineOrderIntakeServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var factory = new Factory(options);
         var tenantId = Guid.NewGuid();
         var productId = Guid.NewGuid();
@@ -151,6 +166,6 @@ public sealed class OnlineOrderIntakeServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 }

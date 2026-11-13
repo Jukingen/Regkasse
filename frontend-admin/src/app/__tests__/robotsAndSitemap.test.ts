@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -20,11 +20,7 @@ describe('admin SEO disallow', () => {
     expect(sitemap()).toEqual([]);
   });
 
-  it('public/robots.txt mirrors Disallow: /', () => {
-    const text = readFileSync(join(process.cwd(), 'public/robots.txt'), 'utf8');
-    expect(text).toMatch(/User-agent:\s*\*/i);
-    expect(text).toMatch(/Disallow:\s*\/\s*$/m);
-    expect(text).not.toMatch(/^Allow:/im);
-    expect(text).not.toMatch(/^Sitemap:/im);
+  it('does not ship public/robots.txt beside the App Router route', () => {
+    expect(existsSync(join(process.cwd(), 'public/robots.txt'))).toBe(false);
   });
 });

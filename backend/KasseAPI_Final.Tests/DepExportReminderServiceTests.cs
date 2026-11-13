@@ -72,7 +72,7 @@ public sealed class DepExportReminderMilestonesTests
 
 public sealed class DepExportReminderServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     private sealed class FixedTenantAccessor : ICurrentTenantAccessor
     {
@@ -97,7 +97,7 @@ public sealed class DepExportReminderServiceTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var db = new AppDbContext(dbOptions, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.SaveChanges();
 
         var requirementService = new Mock<IDepExportRequirementService>();

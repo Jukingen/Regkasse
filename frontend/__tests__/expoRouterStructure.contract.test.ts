@@ -24,12 +24,16 @@ describe('expo-router structure contract', () => {
 
   test('primary auth → tabs routes exist', () => {
     expect(exists('(auth)/login.tsx')).toBe(true);
+    expect(exists('(auth)/onboarding.tsx')).toBe(true);
     expect(exists('(auth)/change-password.tsx')).toBe(true);
     expect(exists('(auth)/license-expired.tsx')).toBe(true);
     expect(exists('(tabs)/cash-register.tsx')).toBe(true);
     expect(exists('(tabs)/cart.tsx')).toBe(true);
+    expect(exists('(tabs)/receipt-list.tsx')).toBe(true);
+    expect(exists('(tabs)/ticket-validate.tsx')).toBe(true);
     expect(exists('(tabs)/settings.tsx')).toBe(true);
     expect(exists('(tabs)/admin-menu.tsx')).toBe(true);
+    expect(exists('(tabs)/fiskaly-operations.tsx')).toBe(true);
   });
 
   test('payment / operational stack screens exist', () => {
@@ -37,6 +41,9 @@ describe('expo-router structure contract', () => {
     expect(exists('(screens)/SplitScreen.tsx')).toBe(true);
     expect(exists('(screens)/offline-queue.tsx')).toBe(true);
     expect(exists('(screens)/license-activate.tsx')).toBe(true);
+    expect(exists('(screens)/kitchen-display.tsx')).toBe(true);
+    expect(exists('(tabs)/kitchen-display.tsx')).toBe(true);
+    expect(exists('online-payment/callback.tsx')).toBe(true);
   });
 
   test('components are not registered as routes under app/', () => {
@@ -54,6 +61,38 @@ describe('expo-router structure contract', () => {
     const settingsSource = fs.readFileSync(path.join(appRoot, '(tabs)/settings.tsx'), 'utf8');
     expect(settingsSource).toContain("router.push('/(tabs)/admin-menu'");
     expect(settingsSource).not.toContain("router.push('/(screens)/admin-menu'");
+  });
+
+  test('Belegliste is hidden from the tab bar and opened from UserMenu and cash register', () => {
+    const tabsLayout = fs.readFileSync(path.join(appRoot, '(tabs)/_layout.tsx'), 'utf8');
+    const receiptListBlock = tabsLayout.slice(
+      tabsLayout.indexOf('name="receipt-list"'),
+      tabsLayout.indexOf('name="settings"')
+    );
+    expect(receiptListBlock).toContain('href: null');
+
+    const userMenu = fs.readFileSync(
+      path.join(__dirname, '../components/UserMenu.tsx'),
+      'utf8'
+    );
+    expect(userMenu).toContain("router.push('/(tabs)/receipt-list'");
+    expect(userMenu).toContain("hasPermission(user, 'sale.view')");
+    expect(userMenu).toContain("router.push('/(tabs)/kitchen-display'");
+    expect(userMenu).toContain('posFeatures.kitchenDisplay');
+
+    const cashRegister = fs.readFileSync(path.join(appRoot, '(tabs)/cash-register.tsx'), 'utf8');
+    expect(cashRegister).toContain("router.push('/(tabs)/receipt-list'");
+    expect(cashRegister).toContain('onOpenReceiptList');
+    expect(cashRegister).toContain("hasPermission(user, 'sale.view')");
+  });
+
+  test('Fiskaly operations tab is hidden from the tab bar', () => {
+    const tabsLayout = fs.readFileSync(path.join(appRoot, '(tabs)/_layout.tsx'), 'utf8');
+    const block = tabsLayout.slice(
+      tabsLayout.indexOf('name="fiskaly-operations"'),
+      tabsLayout.indexOf('name="payment"')
+    );
+    expect(block).toContain('href: null');
   });
 
   test('auth layout redirects authenticated users to cash-register', () => {

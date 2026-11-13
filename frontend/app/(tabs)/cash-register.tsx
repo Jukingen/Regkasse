@@ -13,23 +13,50 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextStyle,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
-import { CashRegisterHeader } from '../../components/CashRegisterHeader';
+import { CashRegisterHeader, CashRegisterTableBadge } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
+import { DynamicField } from '../../components/DynamicField';
 import { FavoritesBar } from '../../components/FavoritesBar';
+import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
+import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
+import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
+import { ProductBarcodeScan } from '../../components/ProductBarcodeScan';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
+import { ImeiPickerModal } from '../../components/ImeiPickerModal';
+import { VariantPickerModal } from '../../components/VariantPickerModal';
+import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
+import { FolioChargeBar } from '../../components/FolioChargeBar';
+import { consumeOpenPayment } from '../../components/lodging/folioCheckoutHandoff';
+import { RoomPicker } from '../../components/RoomPicker';
+import { TaxiSalePanel } from '../../components/TaxiSalePanel';
+import { TicketSeatBoard } from '../../components/TicketSeatBoard';
+import { ticketSeatToastMessage } from '../../components/ticketSeatNotice';
 import { ToastContainer } from '../../components/ToastNotification';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import {
   SoftColors,
   SoftRadius,
@@ -38,9 +65,11 @@ import {
   SoftTypography,
   Space8,
 } from '../../constants/SoftTheme';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { isPosSplitLayout, TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useVerticalFeatures } from '../../contexts/VerticalProfileContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
 import { useFavorites } from '../../hooks/useFavorites';
@@ -50,17 +79,39 @@ import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecov
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
+import { productRequiresImeiPicker } from '../../services/api/imeiService';
+import {
+  productRequiresVariantPicker,
+  variantCartLineLabel,
+  type ProductVariantDto,
+} from '../../services/api/variantService';
+import { createKitchenOrder } from '../../services/api/kitchenOrderService';
+import { autoOpenShiftApi } from '../../services/api/shiftService';
+import {
+  clearShiftAutoOpenFailure,
+  getShiftAutoOpenFailureCode,
+  publishShiftAutoOpenFailure,
+  subscribeShiftAutoOpenFailure,
+} from '../../services/shift/shiftAutoOpenNotice';
 import { formatPrice } from '../../utils/formatPrice';
 import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
-import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
+import { isValidPosCashRegisterId, resolveAutoOpenShiftRegisterId } from '../../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  resolveRegisterSelectAutoOpenUx,
+} from '../../utils/shiftAutoOpenError';
+import { hasPermission } from '../../utils/posPermissions';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessOpenRegisterGateActive,
   isReadinessStartbelegGateActive,
+  isReadinessMonatsbelegGateActive,
   registerGateAlertMessage,
   buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { showConfirm } from '../../utils/alert';
+import { collectOpenTableNumbers } from '../../utils/openTableNumbers';
 import { resolveProductDisplayName } from '../../utils/productLocalization';
 import type { ProductTextLocale } from '../../utils/productLocalization';
 
@@ -105,6 +156,8 @@ function POSSummaryBlock({
   incrementModifier,
   decrementModifier,
   onPayment,
+  onSendToKitchen,
+  sendingToKitchen,
   paddingBottom,
   saleCustomer,
   onOpenCustomerSheet,
@@ -112,6 +165,7 @@ function POSSummaryBlock({
   onOpenSplitSheet,
   onOpenMergeSheet,
   benefitSummaryCount,
+  pinCheckout = false,
   t,
 }: {
   activeTableId: number;
@@ -126,6 +180,8 @@ function POSSummaryBlock({
   incrementModifier: (itemId: string, modifierId: string) => void;
   decrementModifier: (itemId: string, modifierId: string) => void;
   onPayment: () => void;
+  onSendToKitchen?: () => void;
+  sendingToKitchen?: boolean;
   paddingBottom: number;
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
   onOpenCustomerSheet?: () => void;
@@ -134,8 +190,11 @@ function POSSummaryBlock({
   onOpenMergeSheet?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
+  /** Wide layout: receipt scrolls, pay stays at the bottom of the order column. */
+  pinCheckout?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }) {
+  const [dockHeight, setDockHeight] = useState(0);
   const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
   const benefitBadgeText =
     (benefitSummaryCount ?? 0) === 1
@@ -143,14 +202,15 @@ function POSSummaryBlock({
       : (benefitSummaryCount ?? 0) > 1
         ? t('checkout:posFlow.personal.benefitMultiple', { count: benefitSummaryCount ?? 0 })
         : '';
-  return (
-    <View style={[styles.summaryBlock, { paddingBottom }]}>
-      <SectionHeader
-        step="4"
-        title={t('checkout:posFlow.section.summary')}
-        rowStyle={styles.summaryBlockHeader}
-        titleStyle={styles.summaryBlockTitle}
-      />
+  const receiptBody = (
+    <>
+      <View style={styles.summaryBlockHeader}>
+        <Text style={styles.stepLabel}>4</Text>
+        <Text style={styles.summaryBlockTitle} accessibilityRole="header">
+          {t('checkout:posFlow.section.summary')}
+        </Text>
+        <CashRegisterTableBadge tableNumber={activeTableId} tone="onCard" />
+      </View>
       {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
           <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
@@ -218,7 +278,61 @@ function POSSummaryBlock({
         onIncrementModifier={incrementModifier}
         onDecrementModifier={decrementModifier}
       />
-      <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
+      {onSendToKitchen && summaryTotals.itemCount > 0 ? (
+        <Pressable
+          style={styles.kitchenSendBtn}
+          onPress={onSendToKitchen}
+          disabled={sendingToKitchen}
+          accessibilityRole="button"
+          accessibilityLabel={t('verticalProfiles:screens.kitchen.send')}>
+          <Text style={styles.kitchenSendText}>
+            {sendingToKitchen
+              ? t('verticalProfiles:screens.kitchen.sending')
+              : t('verticalProfiles:screens.kitchen.send')}
+          </Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+  const checkoutDock = (
+    <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
+  );
+
+  if (pinCheckout) {
+    return (
+      <View
+        testID="pos-order-panel"
+        style={[styles.summaryBlock, styles.summaryBlockPinned]}>
+        <View style={styles.summaryScrollClip}>
+          <ScrollView
+            testID="pos-order-scroll"
+            style={styles.summaryScroll}
+            contentContainerStyle={[
+              styles.summaryScrollContent,
+              { paddingBottom: dockHeight + SoftSpacing.sm },
+            ]}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled">
+            {receiptBody}
+          </ScrollView>
+        </View>
+        <View
+          testID="pos-checkout-dock"
+          style={[styles.checkoutDock, styles.checkoutDockPinned]}
+          onLayout={(event) => {
+            const next = Math.ceil(event.nativeEvent.layout.height);
+            setDockHeight((prev) => (prev === next ? prev : next));
+          }}>
+          {checkoutDock}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.summaryBlock, { paddingBottom }]}>
+      {receiptBody}
+      {checkoutDock}
     </View>
   );
 }
@@ -230,7 +344,7 @@ function usePOSOrderFlow(
   addItem: (
     productId: string,
     qty?: number,
-    options?: { productName?: string; unitPrice?: number }
+    options?: { productName?: string; unitPrice?: number; variantId?: string }
   ) => Promise<void>,
   activeTableId: number,
   addToast: (
@@ -246,16 +360,18 @@ function usePOSOrderFlow(
   >({});
 
   const handleAddProduct = useCallback(
-    async (product: Product) => {
+    async (product: Product, variant?: { id: string; label: string; unitPrice: number }) => {
       if (!activeTableId) {
         addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
       try {
-        const displayName = resolveProductDisplayName(product, displayLocale);
+        const baseName = resolveProductDisplayName(product, displayLocale);
+        const displayName = variant ? variantCartLineLabel(baseName, variant.label) : baseName;
         await addItem(product.id, 1, {
           productName: displayName,
-          unitPrice: product.price ?? 0,
+          unitPrice: variant?.unitPrice ?? product.price ?? 0,
+          variantId: variant?.id,
         });
         addToast(
           'success',
@@ -320,27 +436,49 @@ function usePOSOrderFlow(
  * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
  */
 export default function CashRegisterScreen() {
-  const { t } = useTranslation(['checkout', 'common']);
+  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles']);
+  const { posLayout, posFeatures, profileId } = useVerticalFeatures();
+  const showTables =
+    posFeatures.tables === true ||
+    profileId === 'gastronomy-tables' ||
+    posLayout === 'tables';
+  const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const router = useRouter();
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
+  const [monatsbelegHardBlockVisible, setMonatsbelegHardBlockVisible] = useState(false);
+  const [generateTickets, setGenerateTickets] = useState(true);
   const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
   const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [imeiValue, setImeiValue] = useState('');
+  const [pendingImeiProduct, setPendingImeiProduct] = useState<Product | null>(null);
+  const [pendingVariantProduct, setPendingVariantProduct] = useState<Product | null>(null);
+  const { reserve: reserveImei } = useImeiSelections();
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
   /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
   const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
   const benefitFetchRef = useRef<string | null>(null);
 
-  const { categories } = useProductsUnified();
+  const { categories, products } = useProductsUnified();
+  const [taxiProductId, setTaxiProductId] = useState<string | null>(null);
   const { toasts, addToast, removeToast } = useCashRegisterCart();
   const {
     recoveryData,
     isLoading: recoveryLoading,
+    error: recoveryError,
     provisioningMessage: recoveryProvisioningMessage,
+    refreshTableOrders,
   } = useTableOrdersRecoveryOptimized();
+  const shiftFailureCode = useSyncExternalStore(
+    subscribeShiftAutoOpenFailure,
+    getShiftAutoOpenFailureCode,
+    getShiftAutoOpenFailureCode
+  );
+  const [shiftRetrying, setShiftRetrying] = useState(false);
+  const shiftOpenUx = shiftFailureCode ? resolveRegisterSelectAutoOpenUx(shiftFailureCode) : null;
   const {
     activeTableId,
     currentCart,
@@ -352,6 +490,7 @@ export default function CashRegisterScreen() {
     addItemWithAddOns,
     removeByItemId,
     clearCart,
+    fetchTableCart,
     getCartForTable,
     updateItemQuantityByItemId,
     incrementModifier,
@@ -365,6 +504,20 @@ export default function CashRegisterScreen() {
   } = useCart();
 
   const posReadiness = usePosRegisterReadiness();
+  const { user } = useAuth();
+  const retryShiftOpen = useCallback(async () => {
+    setShiftRetrying(true);
+    try {
+      await autoOpenShiftApi(resolveAutoOpenShiftRegisterId(user?.currentCashRegisterId));
+      clearShiftAutoOpenFailure();
+    } catch (err: unknown) {
+      publishShiftAutoOpenFailure(parseShiftAutoOpenError(err).code);
+    } finally {
+      setShiftRetrying(false);
+    }
+  }, [user?.currentCashRegisterId]);
+  const { canTakeOrders } = usePosPermissions();
+  const canOpenReceiptList = hasPermission(user, 'sale.view');
 
   useFocusEffect(
     useCallback(() => {
@@ -389,6 +542,24 @@ export default function CashRegisterScreen() {
     }, [])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      const pending = consumeOpenPayment();
+      if (!pending) return undefined;
+      let cancelled = false;
+      void (async () => {
+        if (activeTableId !== pending.tableNumber) {
+          await switchTable(pending.tableNumber);
+        }
+        await fetchTableCart(pending.tableNumber, true);
+        if (!cancelled) setIsPaymentModalVisible(true);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [activeTableId, fetchTableCart, setIsPaymentModalVisible, switchTable])
+  );
+
   const handleOpenPaymentHistory = useCallback(() => {
     const registerId = posReadiness.data?.effectiveRegisterId?.trim();
     if (!isValidPosCashRegisterId(registerId)) {
@@ -400,6 +571,18 @@ export default function CashRegisterScreen() {
     }
     router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [posReadiness.data?.effectiveRegisterId, router]);
+
+  const handleOpenReceiptList = useCallback(() => {
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!isValidPosCashRegisterId(registerId)) {
+      Alert.alert(
+        t('receipts:noRegister'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [posReadiness.data?.effectiveRegisterId, router, t]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {
@@ -429,6 +612,8 @@ export default function CashRegisterScreen() {
   // Use context's currentCart so summary/checkout always follow active table (no stale table cart)
   const cart = currentCart;
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const splitLayout = posLayout !== 'taxi' && isPosSplitLayout(windowWidth);
   const footerBottomPadding = TAB_BAR_HEIGHT + insets.bottom;
 
   // ——— Derived UI state (from cart / tables) ———
@@ -454,6 +639,61 @@ export default function CashRegisterScreen() {
     t,
     productDisplayLocale
   );
+
+  const guardTakeOrder = useCallback((): boolean => {
+    if (canTakeOrders) return true;
+    addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+    return false;
+  }, [addToast, canTakeOrders, t]);
+
+  const onAddProductGuarded = useCallback(
+    (product: Parameters<typeof handleAddProduct>[0]) => {
+      if (!guardTakeOrder()) return;
+      if (productRequiresVariantPicker(product)) {
+        setPendingVariantProduct(product);
+        return;
+      }
+      if (productRequiresImeiPicker(product)) {
+        setPendingImeiProduct(product);
+        return;
+      }
+      return handleAddProduct(product);
+    },
+    [guardTakeOrder, handleAddProduct]
+  );
+
+  const onImeiPicked = useCallback(
+    async (imei: string) => {
+      if (!pendingImeiProduct) return;
+      reserveImei(pendingImeiProduct.id, imei);
+      const product = pendingImeiProduct;
+      setPendingImeiProduct(null);
+      await handleAddProduct(product);
+    },
+    [handleAddProduct, pendingImeiProduct, reserveImei]
+  );
+
+  const onVariantPicked = useCallback(
+    async (variant: ProductVariantDto) => {
+      if (!pendingVariantProduct) return;
+      const product = pendingVariantProduct;
+      setPendingVariantProduct(null);
+      await handleAddProduct(product, {
+        id: variant.id,
+        label: variant.variantLabel,
+        unitPrice: (product.price ?? 0) + variant.priceDelta,
+      });
+    },
+    [handleAddProduct, pendingVariantProduct]
+  );
+
+  const onAddAddOnGuarded = useCallback(
+    (addOn: Parameters<typeof handleAddAddOn>[0]) => {
+      if (!guardTakeOrder()) return;
+      return handleAddAddOn(addOn);
+    },
+    [guardTakeOrder, handleAddAddOn]
+  );
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
@@ -474,6 +714,10 @@ export default function CashRegisterScreen() {
       base: { productId: string; productName: string; price: number },
       addOns: { productId: string; productName: string; price: number }[]
     ) => {
+      if (!guardTakeOrder()) {
+        setModifierSheetProduct(null);
+        return;
+      }
       try {
         await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
         addToast(
@@ -486,7 +730,7 @@ export default function CashRegisterScreen() {
       }
       setModifierSheetProduct(null);
     },
-    [addItemWithAddOns, addToast]
+    [addItemWithAddOns, addToast, guardTakeOrder, t]
   );
 
   /** Table number → { items, totalItems } for table selector badges. */
@@ -608,29 +852,101 @@ export default function CashRegisterScreen() {
     }
   }, [activeTableId, clearCart, addToast]);
 
-  const handleClearAllTables = useCallback(async () => {
-    try {
-      if (!activeTableId) {
-        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
-        return;
-      }
-
-      // Capture active table explicitly to avoid race conditions
-      const targetTableId = activeTableId;
-
-      // Call clearCart directly for the active table
-      // Note: We use clearCart from context, which handles the API call and local state update
-      await clearCart(targetTableId);
-
-      // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
-      // ✅ Behavior: UI stays on the same table (targetTableId)
-
-      addToast('success', t('checkout:posFlow.toast.tableCleared', { table: targetTableId }), 3000);
-    } catch (err: any) {
-      console.error('❌ Error clearing table:', err);
-      addToast('error', err?.message ?? t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+  const handleSendToKitchen = useCallback(async () => {
+    const items = (currentCart?.items ?? []).filter((item) => (item.qty ?? 0) > 0);
+    if (items.length === 0) {
+      addToast('error', t('verticalProfiles:screens.kitchen.sendEmpty'), 3000);
+      return;
     }
-  }, [activeTableId, clearCart, addToast]);
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!registerId || !isValidPosCashRegisterId(registerId)) {
+      addToast('error', t('verticalProfiles:screens.kitchen.noRegister'), 3000);
+      return;
+    }
+    setSendingToKitchen(true);
+    try {
+      await createKitchenOrder({
+        cartId: currentCart?.cartRowId ?? null,
+        tableNumber: activeTableId ? String(activeTableId) : null,
+        cashRegisterId: registerId,
+        items: items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.qty,
+          notes: item.notes,
+        })),
+      });
+      await clearCart(activeTableId);
+      addToast('success', t('verticalProfiles:screens.kitchen.sendSuccess'), 2000);
+    } catch (err) {
+      console.error('Kitchen order create failed', err);
+      addToast('error', t('verticalProfiles:screens.kitchen.sendFailed'), 3000);
+    } finally {
+      setSendingToKitchen(false);
+    }
+  }, [activeTableId, addToast, clearCart, currentCart, posReadiness.data?.effectiveRegisterId, t]);
+
+  const handleClearAllTables = useCallback(() => {
+    const openTables = collectOpenTableNumbers(cartsByTable, recoveryData);
+    if (openTables.length === 0) {
+      addToast('info', t('checkout:posFlow.toast.noOpenTables'), 2500);
+      return;
+    }
+
+    showConfirm(
+      t('checkout:posFlow.toast.clearAllConfirmTitle'),
+      t('checkout:posFlow.toast.clearAllConfirmMessage', { count: openTables.length }),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('checkout:posFlow.tableSelector.clearAll'),
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              let cleared = 0;
+              for (const tableId of openTables) {
+                try {
+                  await clearCart(tableId);
+                  cleared += 1;
+                } catch (err) {
+                  console.error(`Error clearing table ${tableId}:`, err);
+                }
+              }
+
+              if (cleared === 0) {
+                addToast('error', t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+                return;
+              }
+
+              try {
+                await refreshTableOrders();
+              } catch (err) {
+                console.error('Table recovery refresh after clear-all failed', err);
+              }
+
+              if (cleared < openTables.length) {
+                addToast(
+                  'warning',
+                  t('checkout:posFlow.toast.tablesClearedPartial', {
+                    cleared,
+                    total: openTables.length,
+                  }),
+                  3500
+                );
+                return;
+              }
+
+              addToast(
+                'success',
+                t('checkout:posFlow.toast.tablesCleared', { count: cleared }),
+                3000
+              );
+            })();
+          },
+        },
+      ]
+    );
+  }, [addToast, cartsByTable, clearCart, recoveryData, refreshTableOrders, t]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {
@@ -645,6 +961,14 @@ export default function CashRegisterScreen() {
 
     if (isReadinessRegisterDecommissioned(posReadiness.data)) {
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
+      return;
+    }
+    if (
+      isReadinessMonatsbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
+      setMonatsbelegHardBlockVisible(true);
       return;
     }
     if (
@@ -690,12 +1014,118 @@ export default function CashRegisterScreen() {
     t,
   ]);
 
+  const tablePane = showTables ? (
+    <>
+      <TableSelector
+        selectedTable={activeTableId}
+        onTableSelect={handleTableSelect}
+        tableCarts={tableCartsMap}
+        recoveryData={recoveryData}
+        tableSelectionLoading={tableSelectionLoading}
+        onClearAllTables={handleClearAllTables}
+        layout={splitLayout ? 'wrap' : 'scroll'}
+      />
+      {shiftOpenUx ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={shiftRetrying}
+            onPress={() => {
+              void retryShiftOpen();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>
+              {shiftRetrying ? t('common:loading') : t('common:retry')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {recoveryError && !recoveryLoading ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>
+            {t('checkout:posFlow.tableSelector.loadFailed')}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void refreshTableOrders();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </>
+  ) : null;
+
+  const orderPane = (
+    <POSSummaryBlock
+      activeTableId={activeTableId}
+      summaryTotals={summaryTotals}
+      cart={cart}
+      cartLoading={cartLoading}
+      cartError={cartError}
+      onQuantityUpdate={handleQuantityUpdate}
+      onItemRemove={handleItemRemove}
+      onClearCart={handleClearCart}
+      onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
+      incrementModifier={incrementModifier}
+      decrementModifier={decrementModifier}
+      onPayment={handlePayment}
+      onSendToKitchen={posFeatures.kitchenDisplay ? handleSendToKitchen : undefined}
+      sendingToKitchen={sendingToKitchen}
+      paddingBottom={footerBottomPadding}
+      saleCustomer={saleCustomer}
+      onOpenCustomerSheet={() => {
+        setCustomerSheetVisible(true);
+      }}
+      onClearCustomer={() => {
+        setSaleCustomer(null);
+      }}
+      onOpenSplitSheet={() => {
+        router.push({
+          pathname: '/(screens)/SplitScreen',
+          params: { tableNumber: String(activeTableId) },
+        });
+      }}
+      onOpenMergeSheet={() => {
+        setSplitMergeMode('merge');
+        setSplitMergeVisible(true);
+      }}
+      benefitSummaryCount={benefitSummaryCount}
+      pinCheckout={splitLayout}
+      t={t}
+    />
+  );
+
   // Top inset is applied once in (tabs)/_layout (licenseStatusBar); bottom by tab bar + footerBottomPadding.
   return (
     <View style={styles.container}>
       <LicenseModeIndicator />
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      <VariantPickerModal
+        visible={pendingVariantProduct != null}
+        productId={pendingVariantProduct?.id ?? null}
+        productName={pendingVariantProduct?.name}
+        productPrice={pendingVariantProduct?.price ?? 0}
+        onClose={() => setPendingVariantProduct(null)}
+        onSelect={(variant) => {
+          void onVariantPicked(variant);
+        }}
+      />
+
+      <ImeiPickerModal
+        visible={pendingImeiProduct != null}
+        productId={pendingImeiProduct?.id ?? null}
+        productName={pendingImeiProduct?.name}
+        onClose={() => setPendingImeiProduct(null)}
+        onSelect={(imei) => {
+          void onImeiPicked(imei);
+        }}
+      />
 
       {/* Customer identification sheet for customer attachment */}
       <CustomerSelectionSheet
@@ -742,16 +1172,55 @@ export default function CashRegisterScreen() {
         recoveryLoading={recoveryLoading}
         provisioningMessage={recoveryProvisioningMessage}
         onOpenPaymentHistory={handleOpenPaymentHistory}
+        onOpenReceiptList={canOpenReceiptList ? handleOpenReceiptList : undefined}
+      />
+
+      <MonatsbelegSalesWarningBanner />
+      <MonatsbelegSessionBlockModal
+        forcedVisible={monatsbelegHardBlockVisible}
+        onRequestClose={() => setMonatsbelegHardBlockVisible(false)}
       />
 
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+      {posLayout === 'taxi' ? (
+        <TaxiSalePanel
+          products={products}
+          selectedProductId={taxiProductId}
+          onSelectProduct={(product) => {
+            setTaxiProductId(product.id);
+            onAddProductGuarded(product);
+          }}
+          onPayment={handlePayment}
+          canPay={canTakeOrders && (cart?.items?.length ?? 0) > 0}
+        />
+      ) : (
+      <View
+        testID={splitLayout ? 'pos-split-layout' : 'pos-stack-layout'}
+        style={splitLayout ? styles.splitRow : styles.stackFill}>
+        {splitLayout ? (
+          <View style={styles.splitCartColumn}>
+            {tablePane ? (
+              <ScrollView
+                style={styles.splitTablesPane}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled">
+                {tablePane}
+              </ScrollView>
+            ) : null}
+            <View style={styles.splitOrderPane}>{orderPane}</View>
+          </View>
+        ) : null}
+        <View style={splitLayout ? styles.splitCatalogColumn : styles.stackFill}>
       <ProductList
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
-        onAddProduct={handleAddProduct}
-        onAddAddOn={handleAddAddOn}
-        onOpenAddOnSheet={setModifierSheetProduct}
+        onAddProduct={onAddProductGuarded}
+        onAddAddOn={onAddAddOnGuarded}
+        onOpenAddOnSheet={(product) => {
+          if (!guardTakeOrder()) return;
+          setModifierSheetProduct(product);
+        }}
         onLongPressProduct={(product) => {
           const wasFavorite = isFavorite(product.id);
           void toggleFavorite(product.id)
@@ -773,6 +1242,10 @@ export default function CashRegisterScreen() {
             <FavoritesBar
               favorites={favorites}
               removeFavorite={removeFavorite}
+              canAddToCart={canTakeOrders}
+              onAddDenied={() => {
+                addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+              }}
               onProductAdded={(name) => {
                 addToast(
                   'success',
@@ -784,19 +1257,85 @@ export default function CashRegisterScreen() {
                 );
               }}
             />
-            {/* Table Selector */}
-            <TableSelector
-              selectedTable={activeTableId}
-              onTableSelect={handleTableSelect}
-              tableCarts={tableCartsMap}
-              recoveryData={recoveryData}
-              tableSelectionLoading={tableSelectionLoading}
-              onClearAllTables={handleClearAllTables}
-            />
+            {profileId === 'mobile-services' ? (
+              <MobileServiceRoutePanel
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <RoomPicker
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <FolioChargeBar
+                amount={summaryTotals.grandTotalGross}
+                customerId={saleCustomer?.id ?? null}
+                description={
+                  (currentCart?.items ?? [])
+                    .filter((item) => (item.qty ?? 0) > 0 && item.productName)
+                    .map((item) => `${item.qty}× ${item.productName}`)
+                    .join(', ')
+                    .slice(0, 255) || undefined
+                }
+                onCharged={() => {
+                  if (!activeTableId) return;
+                  void clearCart(activeTableId).catch(() => undefined);
+                }}
+              />
+            ) : null}
+
+            {splitLayout ? null : tablePane}
+
+            <IfVerticalFeature feature="ticketScan">
+              <TicketSeatBoard
+                onError={(notice) =>
+                  addToast(
+                    'error',
+                    ticketSeatToastMessage((key) => t(`verticalProfiles:${key}`), notice),
+                    3000,
+                  )
+                }
+              />
+              <View style={styles.verticalFieldSection}>
+                <View style={styles.ticketToggleRow}>
+                  <Text style={styles.ticketToggleLabel}>
+                    {t('verticalProfiles:screens.tickets.generateToggle')}
+                  </Text>
+                  <Switch
+                    value={generateTickets}
+                    onValueChange={setGenerateTickets}
+                    accessibilityLabel={t('verticalProfiles:screens.tickets.generateToggle')}
+                  />
+                </View>
+              </View>
+            </IfVerticalFeature>
+
+            <IfVerticalFeature feature="imeiTracking">
+              <View style={styles.verticalFieldSection}>
+                <DynamicField
+                  name="imei"
+                  entity="product"
+                  value={imeiValue}
+                  onChangeText={setImeiValue}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </IfVerticalFeature>
 
             {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
-              <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+              <View style={styles.categoryHeaderRow}>
+                <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+                <ProductBarcodeScan
+                  enabled={posFeatures.barcodeScan === true}
+                  scanBlocked={pendingVariantProduct != null}
+                  onProduct={onAddProductGuarded}
+                  onNotify={(kind, message) => addToast(kind, message, 3000)}
+                />
+              </View>
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -806,42 +1345,12 @@ export default function CashRegisterScreen() {
           </>
         }
         ListFooterComponent={
-          <POSSummaryBlock
-            activeTableId={activeTableId}
-            summaryTotals={summaryTotals}
-            cart={cart}
-            cartLoading={cartLoading}
-            cartError={cartError}
-            onQuantityUpdate={handleQuantityUpdate}
-            onItemRemove={handleItemRemove}
-            onClearCart={handleClearCart}
-            onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
-            incrementModifier={incrementModifier}
-            decrementModifier={decrementModifier}
-            onPayment={handlePayment}
-            paddingBottom={footerBottomPadding}
-            saleCustomer={saleCustomer}
-            onOpenCustomerSheet={() => {
-              setCustomerSheetVisible(true);
-            }}
-            onClearCustomer={() => {
-              setSaleCustomer(null);
-            }}
-            onOpenSplitSheet={() => {
-              router.push({
-                pathname: '/(screens)/SplitScreen',
-                params: { tableNumber: String(activeTableId) },
-              });
-            }}
-            onOpenMergeSheet={() => {
-              setSplitMergeMode('merge');
-              setSplitMergeVisible(true);
-            }}
-            benefitSummaryCount={benefitSummaryCount}
-            t={t}
-          />
+          splitLayout ? <View style={{ height: footerBottomPadding }} /> : orderPane
         }
       />
+        </View>
+      </View>
+      )}
     </View>
   );
 }
@@ -850,6 +1359,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
+  },
+  stackFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+  splitRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 0,
+  },
+  splitCartColumn: {
+    width: 380,
+    maxWidth: '40%',
+    minWidth: 280,
+    minHeight: 0,
+    flexDirection: 'column',
+    borderRightWidth: 1,
+    borderRightColor: SoftColors.borderLight,
+    backgroundColor: SoftColors.bgCard,
+  },
+  splitTablesPane: {
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: 128,
+  },
+  splitOrderPane: {
+    flex: 1,
+    minHeight: 240,
+    minWidth: 0,
+  },
+  splitCatalogColumn: {
+    flex: 1,
+    minWidth: 300,
+    minHeight: 0,
+  },
+  summaryBlockPinned: {
+    flex: 1,
+    flexDirection: 'column',
+    minHeight: 0,
+    marginTop: 0,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  summaryScrollClip: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  summaryScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  summaryScrollContent: {
+    flexGrow: 1,
+  },
+  checkoutDock: {
+    marginTop: 'auto',
+    flexShrink: 0,
+    zIndex: 2,
+    backgroundColor: SoftColors.bgCard,
+  },
+  checkoutDockPinned: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   tableOpsRow: {
@@ -873,6 +1455,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: SoftColors.accent,
+  },
+  tableNotice: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    gap: SoftSpacing.sm,
+  },
+  tableNoticeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: SoftColors.textPrimary,
+  },
+  tableNoticeButton: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableNoticeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  categoryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SoftSpacing.sm,
   },
   categorySection: {
     backgroundColor: SoftColors.bgCard,
@@ -909,9 +1526,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...SoftShadows.sm,
   },
+  verticalFieldSection: {
+    backgroundColor: SoftColors.bgCard,
+    paddingHorizontal: SoftSpacing.md,
+    paddingTop: SoftSpacing.md,
+  },
+  ticketToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: SoftSpacing.sm,
+  },
+  ticketToggleLabel: {
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
+    flex: 1,
+    paddingRight: SoftSpacing.md,
+  },
   summaryBlockHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: SoftSpacing.xs,
     paddingHorizontal: SoftSpacing.md,
     paddingTop: SoftSpacing.md,
@@ -976,5 +1610,19 @@ const styles = StyleSheet.create({
   benefitBadge: {
     ...SoftTypography.caption,
     color: SoftColors.textSecondary,
+  },
+  kitchenSendBtn: {
+    marginHorizontal: SoftSpacing.md,
+    marginTop: SoftSpacing.sm,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    paddingVertical: SoftSpacing.sm,
+    alignItems: 'center',
+  },
+  kitchenSendText: {
+    color: SoftColors.accentDark,
+    fontWeight: '600',
   },
 });

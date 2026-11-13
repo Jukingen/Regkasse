@@ -10,7 +10,7 @@ namespace KasseAPI_Final
         public static async Task AddDemoDataAsync(AppDbContext context)
         {
             Console.WriteLine("Demo veriler ekleniyor...");
-            var tenantId = LegacyDefaultTenantIds.Primary;
+            var tenantId = SystemTenantIds.Platform;
 
             // Kategoriler ekle (upsert — duplicate tenant+name/key engellenir)
             var categoriesCreated = await CategorySeedData.SeedLegacyDevCategoriesAsync(context, tenantId);

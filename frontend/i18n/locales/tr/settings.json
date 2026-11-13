@@ -39,6 +39,16 @@
     "noRegisterMessage": "Lütfen önce \"Kasa\" bölümünden bir yazar kasa seçin veya vardiya başlatın.",
     "noRegisterHint": "Önce bir kasa atayın (yukarıdaki \"Kasa\" bölümü)."
   },
+  "receiptList": {
+    "title": "Fis listesi",
+    "description": "Bu kasanin son fislerini goruntuleyin ve yeniden yazdirin.",
+    "open": "Fis listesini ac"
+  },
+  "fiskalyOps": {
+    "title": "Fiskaly / Sonderbelege",
+    "description": "Startbeleg, Nullbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg ve storno.",
+    "open": "Islemleri ac"
+  },
   "appUpdate": {
     "title": "Uygulama güncellemesi",
     "description": "Regkasse POS uygulamasının yeni bir sürümü olup olmadığını kontrol eder, APK'yı indirir ve yükleyiciyi açar.",
@@ -169,7 +179,8 @@
       "deadlineWorkingHoursGeneric": "kapanış saatine kadar",
       "deadlineMidnight": "00:00 Europe/Vienna’ya kadar",
       "cta": "Şimdi yap",
-      "countdownA11y": "Geri sayım {{countdown}}"
+      "countdownA11y": "Geri sayım {{countdown}}",
+      "cashCountHint": "Lütfen kasa sayın. Kapanış yapılmazsa {{time}} saatinde otomatik gün sonu oluşur."
     }
   },
   "registerAssignment": {
@@ -184,6 +195,55 @@
     "savedMessage": "Kasa atandı.",
     "saveErrorTitle": "Hata",
     "saveErrorMessage": "Atama sunucu tarafından reddedildi (geçersiz kasa, yetki yok veya kasa açık değil)."
+  },
+  "registerSelect": {
+    "title": "Kasa seçin",
+    "intro": "Lütfen bir yazar kasa seçin. Kapalı kasa seçildiğinde vardiya otomatik açılır.",
+    "introNoPermission": "Lütfen açık bir yazar kasa seçin. Kapalı kasalar Mandanten-Admin tarafından açılmalıdır.",
+    "select": "Seç",
+    "openingShift": "Vardiya açılıyor…",
+    "noDescription": "Açıklama yok",
+    "statusAvailable": "Kullanılabilir",
+    "statusOpen": "Açık",
+    "onlyMine": "Sadece benim kasalarım",
+    "statusClosed": "Kapalı",
+    "statusClosedOpensOnSelect": "Kapalı — seçildiğinde açılır",
+    "statusUnavailable": "Kullanılamaz",
+    "mustBeOpenedByManager": "Kasa Mandanten-Admin tarafından açılmalıdır.",
+    "requestOpen": "Kasa açılışı talep et",
+    "requestSent": "Talep gönderildi",
+    "requestDenied": "Talep reddedildi. Yeniden talep gönderebilirsiniz.",
+    "requestFailed": "Talep gönderilemedi. Lütfen tekrar deneyin.",
+    "listLoadFailed": "Kasa listesi yüklenemedi. Lütfen tekrar deneyin.",
+    "needRegisterTitle": "Kasa seçin",
+    "needRegisterSelection": "Devam etmeden önce lütfen bir kasa seçin.",
+    "registerUnavailableTitle": "Kasa kullanılamıyor",
+    "registerUnavailable": "Seçilen kasa kullanılamıyor. Lütfen Mandanten-Admin ile iletişime geçin.",
+    "registerDecommissionedTitle": "Kasa kapatıldı",
+    "registerDecommissioned": "Bu kasa kapatıldı ve artık kullanılamaz.",
+    "noActiveRegistersTitle": "Kasa yok",
+    "noActiveRegisters": "Aktif kasa bulunamadı. Lütfen Mandanten-Admin ile iletişime geçin.",
+    "openShiftErrorTitle": "Vardiya açılamadı",
+    "openShiftError": "Lütfen tekrar deneyin veya Mandanten-Admin ile iletişime geçin.",
+    "emptyNoneOpen": "Tüm kasalar kapalı. Bir kasa seçin — vardiya otomatik açılır.",
+    "emptyNoneAssigned": "Size atanmış bir kasa yok. Lütfen yöneticinizle iletişime geçin.",
+    "emptyNoneSelectable": "Sizin için kullanılabilir kasa yok. Lütfen Mandanten-Admin ile iletişime geçin.",
+    "inUse": "Kullanımda",
+    "inUseHint": "Lütfen yöneticiden kasayı kapatmasını isteyin.",
+    "registerMaintenance": "Kasa bakım modunda. Lütfen yönetici ile iletişime geçin.",
+    "registerDisabled": "Kasa devre dışı. Lütfen yönetici ile iletişime geçin.",
+    "registerInactive": "Kasa etkin değil. Lütfen yönetici ile iletişime geçin.",
+    "registerAssignedToOtherUser": "Kasa başka bir kasiyere atanmış. Lütfen yönetici ile iletişime geçin.",
+    "registerConflictOtherUser": "Kasa başka bir kasiyer tarafından zaten açılmış.",
+    "registerAlreadyOpenTitle": "Zaten açık",
+    "registerActorHasOtherOpen": "Zaten başka bir kasanız açık. Lütfen önce onu kapatın.",
+    "closeOtherRegister": "Diğer kasayı kapat",
+    "registerStartbelegRequired": "Startbeleg eksik. Lütfen yönetici ile iletişime geçin.",
+    "registerMonatsbelegRequired": "Monatsbeleg eksik. Lütfen yönetici ile iletişime geçin.",
+    "contactManager": "Yöneticiye ulaş",
+    "registerInvalidState": "Kasa bu durumda açılamaz. Lütfen yönetici ile iletişime geçin.",
+    "requestOpenShort": "Açılış talep et",
+    "reload": "Yeniden yükle"
   },
   "cashRegister": {
     "sectionTitle": "Kasa",
@@ -307,6 +367,18 @@
     "copiedMessage": "{{label}} panoya kopyalandı.",
     "offlineQueueIdLabel": "Çevrimdışı kuyruk ID",
     "supportHandoffLabel": "Destek aktarımı",
-    "shareReplayTitle": "Destek: replay batch"
+    "shareReplayTitle": "Destek: replay batch",
+    "retryAll": "Tumunu tekrar dene",
+    "deleteItem": "Sil",
+    "deleteConfirmTitle": "Kayit silinsin mi?",
+    "deleteConfirmMessage": "Yalnizca mali olmayan yerel kayitlar silinebilir.",
+    "deleteFiscalBlockedTitle": "Silme yok",
+    "deleteFiscalBlocked": "Mali cevrimdisi kayitlar silinemez.",
+    "lastSuccessfulSync": "Son basarili senkron: {{time}}",
+    "lastSuccessfulSyncNever": "henuz yok",
+    "nextRetry": "Sonraki otomatik deneme: {{time}}",
+    "nextRetryNone": "Otomatik deneme planlanmadi.",
+    "sourceOrder": "Siparis anlik goruntusu",
+    "sourceTransaction": "Odeme niyeti"
   }
 }

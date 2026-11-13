@@ -28,7 +28,7 @@ public sealed class PaymentServiceStockEnforcementTests
             .UseInMemoryDatabase(databaseName: $"StockEnf_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, InventoryOptions inventoryOptions)
@@ -123,12 +123,12 @@ public sealed class PaymentServiceStockEnforcementTests
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "OutOfStock",
             Price = 5m,
             CategoryId = categoryId,
@@ -148,7 +148,7 @@ public sealed class PaymentServiceStockEnforcementTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -192,12 +192,12 @@ public sealed class PaymentServiceStockEnforcementTests
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "OutOfStock",
             Price = 5m,
             CategoryId = categoryId,
@@ -217,7 +217,7 @@ public sealed class PaymentServiceStockEnforcementTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",

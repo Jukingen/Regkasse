@@ -10,6 +10,10 @@ import {
 import { Tag } from 'antd';
 import React from 'react';
 
+import {
+  backupRunTrafficLightTagColor,
+  resolveBackupRunTrafficLight,
+} from '@/features/backup/logic/backupRunTrafficLight';
 import { resolveBackupRunStatusUiKey } from '@/features/backup/logic/backupRunTablePresentation';
 import { useI18n } from '@/i18n';
 
@@ -24,42 +28,38 @@ export function BackupStatusBadge({ status }: BackupStatusBadgeProps) {
     uiKey === 'unknown'
       ? t('backupDr.summary.unknown')
       : t(`backupDr.runsTable.statusLabels.${uiKey}`);
+  const color = backupRunTrafficLightTagColor(resolveBackupRunTrafficLight(status));
 
   switch (uiKey) {
     case 'succeeded':
       return (
-        <Tag color="success" icon={<CheckCircleOutlined />}>
+        <Tag color={color} icon={<CheckCircleOutlined />}>
           {label}
         </Tag>
       );
     case 'failed':
-      return (
-        <Tag color="error" icon={<CloseCircleOutlined />}>
-          {label}
-        </Tag>
-      );
     case 'verificationFailed':
       return (
-        <Tag color="warning" icon={<ExclamationCircleOutlined />}>
+        <Tag color={color} icon={uiKey === 'failed' ? <CloseCircleOutlined /> : <ExclamationCircleOutlined />}>
           {label}
         </Tag>
       );
     case 'running':
     case 'awaitingVerification':
       return (
-        <Tag color="processing" icon={<SyncOutlined spin />}>
+        <Tag color={color} icon={<SyncOutlined spin />}>
           {label}
         </Tag>
       );
     case 'queued':
       return (
-        <Tag color="default" icon={<ClockCircleOutlined />}>
+        <Tag color={color} icon={<ClockCircleOutlined />}>
           {label}
         </Tag>
       );
     case 'cancelled':
       return (
-        <Tag color="default" icon={<CloseCircleOutlined />}>
+        <Tag color={color} icon={<CloseCircleOutlined />}>
           {label}
         </Tag>
       );

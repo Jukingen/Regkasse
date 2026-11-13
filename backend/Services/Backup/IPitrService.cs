@@ -1,5 +1,6 @@
 using KasseAPI_Final.DTOs;
 
+
 namespace KasseAPI_Final.Services.Backup;
 
 public interface IPitrService
@@ -14,5 +15,16 @@ public interface IPitrService
     Task<RestorePointValidationResultDto> ValidateRestorePointAsync(
         Guid? tenantId,
         DateTime targetTimeUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<PitrPreRestoreValidationDto> ValidatePreRestoreAsync(
+        Guid? tenantId,
+        DateTime targetTimeUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<PitrDryRunResponseDto> RequestDryRunAsync(
+        Guid? tenantId,
+        DateTime targetTimeUtc,
+        string actorUserId,
         CancellationToken cancellationToken = default);
 }

@@ -72,6 +72,14 @@ public static class DemoTenantAdminSeed
                 continue;
             }
 
+            if (tenant != null
+                && IsDevelopmentPresetSlug(spec.Slug)
+                && TryReactivateDevelopmentPresetTenant(tenant, now))
+            {
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                Console.WriteLine("Demo tenant reactivated in Development: {0}", spec.Slug);
+            }
+
             if (tenant == null)
             {
                 tenant = new Tenant
@@ -91,6 +99,9 @@ public static class DemoTenantAdminSeed
             }
 
             var user = await userManager.FindByEmailAsync(spec.Email).ConfigureAwait(false);
+            // Username alignment may have rewritten admin@slug to {username}@slug. The stable id still owns the row.
+            if (user == null)
+                user = await userManager.FindByIdAsync(spec.UserId).ConfigureAwait(false);
             if (user == null)
             {
                 user = new ApplicationUser
@@ -168,19 +179,108 @@ public static class DemoTenantAdminSeed
                 .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: true, cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        await ArchiveLeftoverDemoTenantsAsync(db, now, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Seeds only operational tenants. Missing prod rows are not recreated after soft-delete.
+    /// Seeds operational demo tenants. Missing <c>dev</c> is created; missing/deleted <c>prod</c> is not.
+    /// Suspended <c>dev</c> is reactivated in Development (see <see cref="TryReactivateDevelopmentPresetTenant"/>).
     /// </summary>
     private static bool ShouldProvisionDemoTenant(Tenant? tenant, string slug)
     {
         if (tenant != null)
         {
+            if (TenantStatuses.IsRemoved(tenant.Status))
+                return false;
+
+            if (IsDevelopmentPresetSlug(slug))
+                return true;
+
             return tenant.IsActive
                    && string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase);
         }
 
         return string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Soft-delete leftover Test Cafe / Test Bar rows so they leave switcher and cash-register views.
+    /// Platform sentinel is never archived here (FK continuity).
+    /// </summary>
+    internal static async Task ArchiveLeftoverDemoTenantsAsync(
+        AppDbContext db,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        var leftover = await db.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => LeftoverDemoTenantSlugs.StorageSlugs.Contains(t.Slug))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        leftover.RemoveAll(t =>
+            SystemTenantIds.IsPlatformTenantId(t.Id) || SystemTenantIds.IsPlatformSlug(t.Slug));
+
+        if (leftover.Count == 0)
+            return;
+
+        var changed = false;
+        foreach (var tenant in leftover)
+        {
+            if (TenantStatuses.IsRemoved(tenant.Status) && !tenant.IsActive)
+                continue;
+
+            tenant.Status = TenantStatuses.Cancelled;
+            tenant.IsActive = false;
+            tenant.DeletedAtUtc ??= utcNow;
+            tenant.UpdatedAt = utcNow;
+            changed = true;
+            Console.WriteLine("Leftover demo tenant soft-deleted: {0} ({1})", tenant.Name, tenant.Slug);
+        }
+
+        if (!changed)
+            return;
+
+        var leftoverIds = leftover.Select(t => t.Id).ToList();
+        var memberships = await db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .Where(m => leftoverIds.Contains(m.TenantId) && m.IsActive)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var membership in memberships)
+            membership.IsActive = false;
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool IsDevelopmentPresetSlug(string slug) =>
+        string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Local DX: keep seeded <c>dev</c> bindable. Does not resurrect archived/cancelled rows.
+    /// </summary>
+    internal static bool TryReactivateDevelopmentPresetTenant(Tenant tenant, DateTime utcNow)
+    {
+        if (!IsDevelopmentPresetSlug(tenant.Slug) || TenantStatuses.IsRemoved(tenant.Status))
+            return false;
+
+        var changed = false;
+        if (!tenant.IsActive)
+        {
+            tenant.IsActive = true;
+            changed = true;
+        }
+
+        if (!string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            tenant.Status = TenantStatuses.Active;
+            changed = true;
+        }
+
+        if (changed)
+            tenant.UpdatedAt = utcNow;
+
+        return changed;
     }
 }

@@ -7,10 +7,10 @@ Windows helpers migrated from `C:\Scripts\`. Run without Docker; logs stay in **
 
 | Script | Purpose |
 |--------|---------|
-| `start-all.bat` | Redis + Backend + POS + Admin (separate windows) |
+| `start-all.bat` | Redis + Backend + Admin + POS |
 | `start-backend.bat` | Host `dotnet run` |
-| `start-frontend.bat` | Host Expo POS |
-| `start-frontend-admin.bat` | Host Next.js Admin |
+| `start-frontend.bat` | Host Expo POS (`npm run dev`, `--max-workers=2`) |
+| `start-frontend-admin.bat` | Host Next.js Admin (`next dev --webpack`, worker cap in config) |
 | `start-redis.bat` | Portable Redis (`tools/redis`; may call `scripts\dev\start-redis-dev.ps1`) |
 | `kill-ports.bat` / `.ps1` | Free common ports |
 | `open-tabs.bat` / `.ps1` | Explorer tabs |

@@ -20,20 +20,33 @@ export type FavoritesBarProps = {
   removeFavorite: (favoriteId: string) => Promise<void>;
   /** Optional toast/feedback after a favorite line was added to the cart. */
   onProductAdded?: (productName: string) => void;
+  /** When false, taps do not add to the cart (Waiter/Cashier order gate). */
+  canAddToCart?: boolean;
+  onAddDenied?: () => void;
 };
 
-export function FavoritesBar({ favorites, removeFavorite, onProductAdded }: FavoritesBarProps) {
+export function FavoritesBar({
+  favorites,
+  removeFavorite,
+  onProductAdded,
+  canAddToCart = true,
+  onAddDenied,
+}: FavoritesBarProps) {
   const { addItem } = useCart();
 
   const addToCart = useCallback(
     async (fav: FavoriteItem) => {
+      if (!canAddToCart) {
+        onAddDenied?.();
+        return;
+      }
       await addItem(fav.productId, 1, {
         productName: fav.productName,
         unitPrice: fav.productPrice,
       });
       onProductAdded?.(fav.productName);
     },
-    [addItem, onProductAdded]
+    [addItem, canAddToCart, onAddDenied, onProductAdded]
   );
 
   const renderRightActions = useCallback(

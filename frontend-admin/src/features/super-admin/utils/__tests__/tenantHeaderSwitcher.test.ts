@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 
@@ -58,6 +58,15 @@ const baseRow = (overrides: Partial<AdminTenantListItem>): AdminTenantListItem =
 });
 
 describe('tenantHeaderSwitcher', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-20T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('uses green indicator when active with owner admin', () => {
     expect(
       getTenantStatusIcon({
@@ -181,8 +190,8 @@ describe('tenantHeaderSwitcher', () => {
   });
 
   it('uses warning days label when seven or fewer days remain', () => {
-    const until = new Date();
-    until.setDate(until.getDate() + 5);
+    // Production uses ceil of a 24-hour window, not a local calendar day.
+    const until = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
     const badge = getTenantSwitcherLicenseBadge(
       baseRow({
         licenseValidUntilUtc: until.toISOString(),

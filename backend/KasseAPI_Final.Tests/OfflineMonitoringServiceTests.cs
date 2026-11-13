@@ -1,6 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -17,12 +18,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task GetOrderStatsAsync_CountsPendingAndExpired()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -55,12 +56,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task CheckAnomaliesAsync_FlagsTenantPendingLimitFromAlertRules()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -97,12 +98,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task CheckAnomaliesAsync_FlagsBacklogAndExpiry()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -134,12 +135,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task GetSystemStatusAsync_ReturnsCriticalWhenExpiredPendingExists()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -211,12 +212,14 @@ public sealed class OfflineMonitoringServiceTests
         var env = new Mock<IHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
 
+        var limits = new Mock<ITenantLimitService>();
         return new OfflineMonitoringService(
             ctx,
             accessor,
             optionsMonitor.Object,
             alertRulesMonitor.Object,
             tseOptions.Object,
+            limits.Object,
             env.Object);
     }
 }

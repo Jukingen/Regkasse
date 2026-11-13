@@ -21,11 +21,11 @@ public class SettingsTenantResolverTests
     [Fact]
     public async Task ResolveEffectiveTenantIdAsync_Delegates_To_AuthTenantSnapshot()
     {
-        var expected = LegacyDefaultTenantIds.Primary.ToString("D");
+        var expected = SystemTenantIds.Platform.ToString("D");
         var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
         snapshotMock
             .Setup(p => p.GetSnapshotAsync(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(expected, "X", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(expected, "X", SystemTenantIds.PlatformSlug, null, null));
 
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns((HttpContext?)null);
@@ -33,7 +33,7 @@ public class SettingsTenantResolverTests
         var resolver = CreateResolver(http.Object, snapshotMock.Object);
         var id = await resolver.ResolveEffectiveTenantIdAsync();
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, id);
+        Assert.Equal(SystemTenantIds.Platform, id);
         snapshotMock.Verify(p => p.GetSnapshotAsync(null, It.IsAny<CancellationToken>()), Times.Once);
     }
 

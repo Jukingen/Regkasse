@@ -29,9 +29,14 @@ type OrderDetailProps = {
 };
 
 function orderTypeLabel(t: (key: string) => string, orderType: string): string {
-  const known = ['dine-in', 'takeaway', 'delivery'] as const;
-  if ((known as readonly string[]).includes(orderType)) {
-    return t(`onlineOrders.orderTypes.${orderType}`);
+  const i18nKeyByApiValue: Record<string, string> = {
+    'dine-in': 'dineIn',
+    takeaway: 'takeaway',
+    delivery: 'delivery',
+  };
+  const i18nKey = i18nKeyByApiValue[orderType];
+  if (i18nKey) {
+    return t(`onlineOrders.orderTypes.${i18nKey}`);
   }
   return orderType;
 }
@@ -91,7 +96,9 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
 
   const history = order.statusHistory ?? [];
   const next = getNextOnlineOrderStatus(order.orderStatus);
-  const canCancel = order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
+  const actionsEnabled = order.marketplaceStatusActionsEnabled !== false;
+  const canCancel =
+    actionsEnabled && order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -139,7 +146,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
       </Descriptions>
 
       <Space wrap>
-        {next ? (
+        {actionsEnabled && next ? (
           <Button
             type="primary"
             loading={updateStatus.isPending && updateStatus.variables?.status === next}

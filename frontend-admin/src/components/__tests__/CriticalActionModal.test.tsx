@@ -80,7 +80,7 @@ describe('CriticalActionModal', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
 
-    expect(screen.getByText('Zweite Authentifizierung erforderlich')).toBeTruthy();
+    expect(screen.getAllByText('Zweite Authentifizierung erforderlich').length).toBeGreaterThan(0);
     expect(onConfirm).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByPlaceholderText(/2FA/), {

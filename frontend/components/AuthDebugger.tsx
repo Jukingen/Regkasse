@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu component, auth durumunu detaylı debug etmek için kullanılır
 // Sadece development modunda görünür
 
@@ -60,7 +61,7 @@ export const AuthDebugger: React.FC = () => {
         {
           text: 'Evet',
           onPress: async () => {
-            console.log('🔍 Manuel auth check başlatılıyor...');
+            safeLog('🔍 Manuel auth check başlatılıyor...');
             await checkAuthStatus();
             await checkStorage(); // Storage'ı güncelle
           },
@@ -86,7 +87,7 @@ export const AuthDebugger: React.FC = () => {
                 SESSION_KEYS.user,
                 SESSION_KEYS.tokenExpiry,
               ]);
-              console.log('🔴 Storage cleared');
+              safeLog('🔴 Storage cleared');
               await checkStorage(); // Storage'ı güncelle
             } catch (error) {
               console.error('Storage clear failed:', error);

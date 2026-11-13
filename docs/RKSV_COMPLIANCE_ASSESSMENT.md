@@ -1,109 +1,109 @@
-# RKSV Uyumluluk Değerlendirme Raporu
+# RKSV Compliance Assessment Report
 
-**Tarih:** 2026-07-29 (ilk değerlendirme)  
-**Son güncelleme:** 2026-07-29 — P0–P2 kod kapanışı + final validation checklist  
-**Kapsam:** `backend/`, `frontend/`, `frontend-admin/`, `docs/` (kod + yapılandırma + dokümantasyon kanıtı)  
-**Yöntem:** Gereksinim → uygulama eşlemesi (Adım 1–4 analizlerinin birleşimi)
+**Date:** 2026-07-29 (initial assessment)  
+**Last updated:** 2026-07-29 — P0–P2 code closure + final validation checklist  
+**Scope:** `backend/`, `frontend/`, `frontend-admin/`, `docs/` (code + configuration + documentation evidence)  
+**Method:** Requirement → implementation mapping (combined Step 1–4 analyses)
 
-> **Önemli uyarı:** Bu rapor **yazılım kanıtına** dayanır. BMF/FinanzOnline resmi kabulü, TSE donanım onayı veya yasal “RKSV sertifikası” iddiası değildir. Kaynak: `ai/05_SECURITY_COMPLIANCE.md`.
+> **Important disclaimer:** This report is based on **software evidence**. It is not official BMF/FinanzOnline acceptance, TSE hardware approval, or a legal “RKSV certificate” claim. Source: `ai/05_SECURITY_COMPLIANCE.md`.
 
-**İlgili hub dokümanlar:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) · [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) (sign-off) · `docs/RKSV_COMPLIANCE.md` · `docs/DEP_EXPORT_DEVELOPMENT.md` · `docs/RKSV_CASH_REGISTER_OPERATIONS.md` · `docs/FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` · `docs/RKSV_OFFICIAL_SOURCES.md` · `AGENTS.md` § Fiscal Rules.
+**Related hub docs:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) · [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) (sign-off) · `docs/RKSV_COMPLIANCE.md` · `docs/DEP_EXPORT_DEVELOPMENT.md` · `docs/RKSV_CASH_REGISTER_OPERATIONS.md` · `docs/FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` · `docs/RKSV_OFFICIAL_SOURCES.md` · `AGENTS.md` § Fiscal Rules.
 
 ---
 
-## 1. Özet Tablo
+## 1. Summary table
 
-| # | Gereksinim | Durum | Tamamlanma |
+| # | Requirement | Status | Completion |
 |---|------------|--------|------------|
-| 1 | **Signaturerstellungseinheit (SCU / TSE)** — her mali işlemin elektronik imzası | ✅ Tam* | Önceden (çekirdek) |
-| 2 | **Datenerfassungsprotokoll (DEP)** — BMF Signaturjournal dışa aktarımı | ✅ Tam* | F1–F5 + P2-1…P2-3 (2026-07-29) |
-| 3 | **Beleg (fiş)** — yasal geçerli müşteri fişi + QR/machine code | ✅ Tam* | Önceden (çekirdek) |
-| 4 | **FinanzOnline** — kasa kaydı + Sonderbeleg gönderimi | ✅ Kod hazır† | P0-1, P1-1, P1-2 (2026-07-29) |
-| 5a | **Sürekli:** Signaturkarte / sertifika periyodik yenileme | 🟡 Kısmen‡ | Mevcut `TseCertificateService`; P1-4 açık |
-| 5b | **Sürekli:** Arıza / sistem değişikliği → FinanzOnline bildirimi | ✅ Kod hazır† | P0-3 (2026-07-29) |
-| 5c | **Sürekli:** Mayıs 2027 Signaturkarte değişim zorunluluğu | ✅ Kod + FA† | P1-3 (2026-07-29) |
+| 1 | **Signaturerstellungseinheit (SCU / TSE)** — electronic signature on every fiscal transaction | ✅ Complete* | Prior (core) |
+| 2 | **Datenerfassungsprotokoll (DEP)** — BMF Signaturjournal export | ✅ Complete* | F1–F5 + P2-1…P2-3 (2026-07-29) |
+| 3 | **Beleg (receipt)** — legally valid customer receipt + QR/machine code | ✅ Complete* | Prior (core) |
+| 4 | **FinanzOnline** — cash register registration + Sonderbeleg submission | ✅ Code ready† | P0-1, P1-1, P1-2 (2026-07-29) |
+| 5a | **Ongoing:** Signaturkarte / certificate periodic renewal | 🟡 Partial‡ | Existing `TseCertificateService`; P1-4 open |
+| 5b | **Ongoing:** Outage / system change → FinanzOnline notification | ✅ Code ready† | P0-3 (2026-07-29) |
+| 5c | **Ongoing:** May 2027 Signaturkarte replacement mandate | ✅ Code + FA† | P1-3 (2026-07-29) |
 
-\* “Tam” = çekirdek yazılım yüzeyi karşılanıyor; üretim yapılandırması (gerçek SCU, Soft TSE kapalı, Prüftool/crypto eşleşmesi) operatör sorumluluğundadır.  
-† Kod yüzeyi tamam; **BMF TEST/PROD E2E / live cutover kanıtı** Ops+Compliance sign-off’una bağlı — bkz. [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md).  
-‡ Yenileme API + uyarı var; vendor runbook / fleet i18n (P1-4) henüz kapanmadı.
+\* “Complete” = the core software surface is covered; production configuration (real SCU, Soft TSE off, Prüftool/crypto match) is the operator’s responsibility.  
+† Code surface is complete; **BMF TEST/PROD E2E / live cutover evidence** depends on Ops+Compliance sign-off — see [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md).  
+‡ Renewal API + alerts exist; vendor runbook / fleet i18n (P1-4) is not closed yet.
 
-| Alt konu (derin analiz) | Durum | Tamamlanma |
+| Subtopic (deep analysis) | Status | Completion |
 |-------------------------|--------|------------|
-| DEP BMF `Belege-Gruppe` şeması | ✅ Tam | F1–F5 |
-| DEP normal + özel + daily closing kapsamı | ✅ Tam (varsayılan bayraklar) | F1–F5 |
-| DEP thumbprint / leaf / CA zinciri | ✅ Tam (leaf hard-fail; CA boş → uyarı) | P2-3 leaf (2026-07-29) |
-| DEP Prüftool (`verify-rksv-dep-export.ps1`) | ✅ Tam (fixture + [CI](../.github/workflows/dep-prueftool.yml)) | P2-1 (2026-07-29) |
-| Pre-F5 legacy JWS uyarı | ✅ Tam (envelope + FA + history) | P2-2 (2026-07-29) |
-| FON outbox Startbeleg / Jahresbeleg | ✅ Tam (SOAP Real + Fake; prod Fake yasak) | P0-1 (2026-07-29) |
-| FON outbox Monatsbeleg | ✅ **NotRequired** ([karar](MONATSBELEG_FINANZONLINE_DECISION.md)) | P1-1 (2026-07-29) |
-| FON Sonderbeleg gerçek SOAP | ✅ Kod hazır (BMF E2E Ops) | P0-1 (2026-07-29) |
-| FON outbox Mode ambient | ✅ Tam | P1-2 (2026-07-29) |
-| FON outbox retry / hata yönetimi | ✅ Tam | Önceden |
-| FA FON / TSE / Ausfall / 2027 UI | ✅ Tam | P0–P1 (2026-07-29) |
-| TSE Production config lock | ✅ Tam | P0-2 (2026-07-29) |
-| Ausfallmeldung kod yüzeyi | ✅ Tam | P0-3 (2026-07-29) |
+| DEP BMF `Belege-Gruppe` schema | ✅ Complete | F1–F5 |
+| DEP normal + special + daily closing coverage | ✅ Complete (default flags) | F1–F5 |
+| DEP thumbprint / leaf / CA chain | ✅ Complete (leaf hard-fail; empty CA → warning) | P2-3 leaf (2026-07-29) |
+| DEP Prüftool (`verify-rksv-dep-export.ps1`) | ✅ Complete (fixture + [CI](../.github/workflows/dep-prueftool.yml)) | P2-1 (2026-07-29) |
+| Pre-F5 legacy JWS warning | ✅ Complete (envelope + FA + history) | P2-2 (2026-07-29) |
+| FON outbox Startbeleg / Jahresbeleg | ✅ Complete (SOAP Real + Fake; Fake banned in prod) | P0-1 (2026-07-29) |
+| FON outbox Monatsbeleg | ✅ **NotRequired** ([decision](MONATSBELEG_FINANZONLINE_DECISION.md)) | P1-1 (2026-07-29) |
+| FON Sonderbeleg real SOAP | ✅ Code ready (BMF E2E Ops) | P0-1 (2026-07-29) |
+| FON outbox Mode ambient | ✅ Complete | P1-2 (2026-07-29) |
+| FON outbox retry / error handling | ✅ Complete | Prior |
+| FA FON / TSE / Ausfall / 2027 UI | ✅ Complete | P0–P1 (2026-07-29) |
+| TSE Production config lock | ✅ Complete | P0-2 (2026-07-29) |
+| Ausfallmeldung code surface | ✅ Complete | P0-3 (2026-07-29) |
 
 ---
 
-## 2. Detaylı Bulgular
+## 2. Detailed findings
 
-### 2.1 Signaturerstellungseinheit (SCU) — ✅ Tam*
+### 2.1 Signaturerstellungseinheit (SCU) — ✅ Complete*
 
-Her mali işlem, yapılandırılmış TSE/SCU üzerinden ES256 compact JWS ile imzalanır.
+Every fiscal transaction is signed with ES256 compact JWS through the configured TSE/SCU.
 
-| Katman | Dosya / sınıf | Not |
+| Layer | File / class | Note |
 |--------|----------------|-----|
-| Ödeme kapısı | `backend/Services/PaymentService.cs` | `effectiveTseRequired` iken imza yoksa rollback |
-| İmza servisi | `backend/Services/TseService.cs` — `CreateInvoiceSignatureAsync` | Belegdaten → pipeline → zincir |
+| Payment gate | `backend/Services/PaymentService.cs` | Rolls back when `effectiveTseRequired` and no signature |
+| Signature service | `backend/Services/TseService.cs` — `CreateInvoiceSignatureAsync` | Belegdaten → pipeline → chain |
 | Pipeline | `backend/Tse/SignaturePipeline.cs` | JWS header `{"alg":"ES256"}`, §9 machine code; `IsF5CompliantJws` |
-| SCU (fiskaly) | `backend/Tse/FiskalyTseKeyProvider.cs`, `FiskalyHttpClient`, `FiskalyOptions.SignatureCreationUnitId` | Private key export edilmez |
-| Soft / Fake | `SoftwareTseKeyProvider`, `FakeTseProvider` | Dev/demo; **Production’da P0-2 kilidi** |
-| Offline limit | `TseOptions.MaxOfflineTransactionsPerCashRegister` (50); POS `frontend/constants/offlineConfig.ts` | %80 uyarısı (40) |
-| Prod kilidi | `TseProductionOptionsValidator`, `/health/tse/mode`, FA banner | [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) |
+| SCU (fiskaly) | `backend/Tse/FiskalyTseKeyProvider.cs`, `FiskalyHttpClient`, `FiskalyOptions.SignatureCreationUnitId` | Private key is not exported |
+| Soft / Fake | `SoftwareTseKeyProvider`, `FakeTseProvider` | Dev/demo; **P0-2 lock in Production** |
+| Offline limit | `TseOptions.MaxOfflineTransactionsPerCashRegister` (50); POS `frontend/constants/offlineConfig.ts` | 80% warning (40) |
+| Prod lock | `TseProductionOptionsValidator`, `/health/tse/mode`, FA banner | [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) |
 
-**Testler:** `PaymentReceiptSignatureIntegrationTests`, `SignaturePipelineTests`, `FiskalyTseKeyProviderTests`, `TseServiceSignatureChainPostgreSqlTests`.
+**Tests:** `PaymentReceiptSignatureIntegrationTests`, `SignaturePipelineTests`, `FiskalyTseKeyProviderTests`, `TseServiceSignatureChainPostgreSqlTests`.
 
 ---
 
-### 2.2 Datenerfassungsprotokoll (DEP) — ✅ Tam*
+### 2.2 Datenerfassungsprotokoll (DEP) — ✅ Complete*
 
-BMF Signaturjournal (`Belege-Gruppe`) formatında dışa aktarım, yapısal doğrulama, history/archive/compliance, Prüftool CI ve P2 sertleştirmeleri mevcuttur (F1–F5 + P2-1…P2-3).
+BMF Signaturjournal (`Belege-Gruppe`) export, structural validation, history/archive/compliance, Prüftool CI, and P2 hardening are in place (F1–F5 + P2-1…P2-3).
 
-#### Şema
+#### Schema
 
 ```text
 RksvDepExportRootDto
   └─ "Belege-Gruppe"[]
-       ├─ "Signaturzertifikat"   (leaf DER Base64 — boş emit yasak, P2-3)
+       ├─ "Signaturzertifikat"   (leaf DER Base64 — empty emit forbidden, P2-3)
        ├─ "Zertifizierungsstellen"[]  (issuer CA DER Base64)
        └─ "Belege-kompakt"[]     (compact JWS strings)
 ```
 
-| Bileşen | Yol |
+| Component | Path |
 |---------|-----|
-| Servis | `backend/Services/RksvDepExportService.cs` |
+| Service | `backend/Services/RksvDepExportService.cs` |
 | DTO / envelope | `RksvDepExportDtos`, `RksvDepExportEnvelopeDto` (`legacyJwsCount`, …) |
 | API | `AdminRksvDepExportController` — `GET /api/admin/rksv/dep-export` |
-| CA zinciri | `TseCertificateChainBuilder`, `ITseKeyProvider.GetCertificateChainAsync` |
+| CA chain | `TseCertificateChainBuilder`, `ITseKeyProvider.GetCertificateChainAsync` |
 | FA | `/admin/rksv/dep-export`, compliance/history |
 | CI | `.github/workflows/dep-prueftool.yml` |
 | Docs | `docs/DEP_EXPORT_DEVELOPMENT.md`, `docs/DEP_EXPORT_COMPLETION.md` |
 
-#### Kapsam (veri kaynakları)
+#### Coverage (data sources)
 
-| Kaynak | Tür | Filtre |
+| Source | Type | Filter |
 |--------|-----|--------|
 | `payment_details` | Normal (`RksvSpecialReceiptKind == null`) | `CreatedAt` |
 | `payment_details` | Nullbeleg / Startbeleg / Monatsbeleg / Jahresbeleg / Schlussbeleg | `CreatedAt` |
-| `DailyClosings` | Tagesabschluss (+ monthly closing satırları) | `ClosingDate` |
+| `DailyClosings` | Tagesabschluss (+ monthly closing rows) | `ClosingDate` |
 
-Varsayılan: `includeSpecialReceipts=true`, `includeDailyClosings=true`. Sıra: `IssuedAt` → `SequenceNumber`. İmzasız / geçersiz JWS satırlar bilinçli dışlanır. Max dönem: **366 gün**.
+Defaults: `includeSpecialReceipts=true`, `includeDailyClosings=true`. Order: `IssuedAt` → `SequenceNumber`. Unsigned / invalid JWS rows are excluded by design. Max period: **366 days**.
 
-#### İmza zinciri ve sertifika
+#### Signature chain and certificate
 
-- Gruplama: `certificate_thumbprint` (yoksa aktif TSE cert).
-- Leaf boş → `RksvDepExportCertificateMissingException` / HTTP 500 `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` (P2-3).
-- Pre-F5 JSON payload JWS → `legacyJwsCount` + FA uyarı (P2-2); otomatik re-sign **yok**.
+- Grouping: `certificate_thumbprint` (falls back to the active TSE cert).
+- Empty leaf → `RksvDepExportCertificateMissingException` / HTTP 500 `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` (P2-3).
+- Pre-F5 JSON payload JWS → `legacyJwsCount` + FA warning (P2-2); no automatic re-sign.
 
 #### Prüftool
 
@@ -111,156 +111,156 @@ Varsayılan: `includeSpecialReceipts=true`, `includeDailyClosings=true`. Sıra: 
 - Fixture: `backend/Tests/fixtures/prueftool/` — PASS.
 - CI: JDK 17 + fixture smoke + `Category=DepPrueftool` seeded export.
 
-**Testler:** `RksvDepExportServiceTests`, `DepExportValidationServiceTests`, `RksvDepPrueftoolFixtureTests`, `FiskalyDepExportPrueftoolTests`.
+**Tests:** `RksvDepExportServiceTests`, `DepExportValidationServiceTests`, `RksvDepPrueftoolFixtureTests`, `FiskalyDepExportPrueftoolTests`.
 
 ---
 
-### 2.3 Beleg (fiş) — ✅ Tam*
+### 2.3 Beleg (receipt) — ✅ Complete*
 
-Ödeme → TSE imza → Receipt/QR → POS yazdırma zinciri kuruludur.
+Payment → TSE signature → Receipt/QR → POS print chain is in place.
 
-| Katman | Dosya / sınıf |
+| Layer | File / class |
 |--------|----------------|
 | Model | `backend/Models/Receipt.cs` |
-| Servis | `backend/Services/ReceiptService.cs`, `ReceiptSequenceService` |
+| Service | `backend/Services/ReceiptService.cs`, `ReceiptSequenceService` |
 | QR / §9 | `RksvReceiptQrPayloadBuilder`, `RksvMachineCodeBuilder`, `BelegdatenPayloadBuilder` |
 | POS | `frontend/components/ReceiptPrint.tsx`, `frontend/services/receiptPrinter.ts` |
 
-**Test / docs:** `ReceiptServiceGenerateTests`, `RksvReceiptQrPayloadBuilderTests`; `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md`.
+**Tests / docs:** `ReceiptServiceGenerateTests`, `RksvReceiptQrPayloadBuilderTests`; `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md`.
 
 ---
 
-### 2.4 FinanzOnline — ✅ Kod hazır†
+### 2.4 FinanzOnline — ✅ Code ready†
 
-> Not: Entegrasyon `backend/Services/FinanzOnlineIntegration/` altındadır.
+> Note: Integration lives under `backend/Services/FinanzOnlineIntegration/`.
 
-#### Kasa / SCU kayıt
+#### Cash register / SCU registration
 
-SOAP + simülasyon: `FinanzOnlineRegistrierkassenInfrastructure`, `SoapFinanzOnlineRegistrierkassenTransport`, `SimulatedFinanzOnlineAdapters`.
+SOAP + simulation: `FinanzOnlineRegistrierkassenInfrastructure`, `SoapFinanzOnlineRegistrierkassenTransport`, `SimulatedFinanzOnlineAdapters`.
 
-#### Sonderbeleg üretimi
+#### Sonderbeleg generation
 
 `RksvSpecialReceiptService` + FA `/rksv/sonderbelege`. Docs: `docs/RKSV_CASH_REGISTER_OPERATIONS.md` §4.
 
-#### Outbox kapsamı
+#### Outbox coverage
 
-| Tür | Outbox + FO submission satırı |
+| Type | Outbox + FO submission row |
 |-----|-------------------------------|
 | Startbeleg | ✅ `RksvStartbelegSubmission` |
 | Jahresbeleg | ✅ `RksvJahresbelegSubmission` |
 | Monatsbeleg | ✅ **NotRequired** — [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md) |
-| Nullbeleg / Schlussbeleg | ❌ (manuel Belegcheck isteğe bağlı) |
+| Nullbeleg / Schlussbeleg | ❌ (optional manual Belegcheck) |
 
 Enqueue Mode: ambient `FinanzOnline:Mode` (`FinanzOnlineModeResolver.ResolveOutboxMode`) — P1-2.
 
-#### Üretim vs Fake / Real
+#### Production vs Fake / Real
 
-| ClientKind | Davranış |
+| ClientKind | Behavior |
 |------------|----------|
-| `Fake` | Ağ yok; Production’da yasak |
+| `Fake` | No network; banned in Production |
 | `Real` | BMF/rkdb SOAP via `IFinanzOnlineSubmissionService` + beleg mapper |
 | `Enabled=false` | Skip → `RKS_SUBMISSION_DISABLED` |
 | Monatsbeleg | `RKS_MONATSBELEG_NOT_REQUIRED` |
 
 #### Retry / Admin UI — ✅
 
-Outbox retry + FA `/rksv/finanz-online-*`, Sonderbelege FO kartları (Start/Jahres tracked; Monatsbeleg NotRequired notu).
+Outbox retry + FA `/rksv/finanz-online-*`, Sonderbelege FO cards (Start/Jahres tracked; Monatsbeleg NotRequired note).
 
 ---
 
-### 2.5 Sürekli yükümlülükler
+### 2.5 Ongoing obligations
 
-#### 5a. Signaturkarte / sertifika yenileme — 🟡 Kısmen‡
+#### 5a. Signaturkarte / certificate renewal — 🟡 Partial‡
 
-| Yetenek | Kanıt |
+| Capability | Evidence |
 |---------|--------|
 | Lifecycle | `TseCertLifecycleStatus` |
-| Uyarı penceresi | `TseOptions.CertificateExpiringSoonDays` (default 30) |
-| Periyodik tarama | `TseFailoverBackgroundService` → `ProcessExpiryWarningsAsync` |
+| Warning window | `TseOptions.CertificateExpiringSoonDays` (default 30) |
+| Periodic scan | `TseFailoverBackgroundService` → `ProcessExpiryWarningsAsync` |
 | Activity | `TseCertificateExpiringSoon` / `Expired` / `Renewed` / `RenewalScheduled` |
 | API / FA | `AdminTseManagementController`, `/admin/tse-management` |
 
-**Açık (P1-4):** fiskaly kart yenileme runbook; fleet “X gün içinde dolacak” özeti; `TseCertificate*` i18n güçlendirme.
+**Open (P1-4):** fiskaly card renewal runbook; fleet “expires within X days” summary; `TseCertificate*` i18n hardening.
 
-#### 5b. Arıza bildirimi (Ausfall) — ✅ Kod hazır†
+#### 5b. Outage notification (Ausfall) — ✅ Code ready†
 
-`rksv_ausfall_episodes`, rkdb XML, failover hooks, outbox, FA `/admin/tse/ausfall`. Detay: [`AUSFALL_BENACHRICHTIGUNG_PLAN.md`](AUSFALL_BENACHRICHTIGUNG_PLAN.md). BMF E2E Ops sign-off’ta.
+`rksv_ausfall_episodes`, rkdb XML, failover hooks, outbox, FA `/admin/tse/ausfall`. Detail: [`AUSFALL_BENACHRICHTIGUNG_PLAN.md`](AUSFALL_BENACHRICHTIGUNG_PLAN.md). BMF E2E is on the Ops sign-off.
 
-#### 5c. Mayıs 2027 Signaturkarte deadline — ✅ Kod + FA†
+#### 5c. May 2027 Signaturkarte deadline — ✅ Code + FA†
 
-Config + reminder + FA `/admin/tse/signaturkarte-program`. Detay: [`MAI_2027_SIGNATURKARTE_PLAN.md`](MAI_2027_SIGNATURKARTE_PLAN.md).
+Config + reminder + FA `/admin/tse/signaturkarte-program`. Detail: [`MAI_2027_SIGNATURKARTE_PLAN.md`](MAI_2027_SIGNATURKARTE_PLAN.md).
 
 ---
 
-## 3. Riskler ve Eksiklikler (güncel)
+## 3. Risks and gaps (current)
 
-| Risk | Etki | Şiddet | Durum |
+| Risk | Impact | Severity | Status |
 |------|------|--------|--------|
-| Soft TSE / `TseMode=Off` üretimde | İmzasız mali işlem | Yüksek | ✅ Kod kilidi (P0-2); Ops prod config doğrulamalı |
-| FON Sonderbeleg Fake / iskelet | Sahte Verified | Yüksek | ✅ Real SOAP kod (P0-1); BMF E2E açık |
-| Monatsbeleg ayrı FON outbox yok | Yanlış operatör beklentisi | Düşük | ✅ NotRequired + FA (P1-1) |
-| Enqueue `Mode=TEST` sabit | Yanlış ortam etiketi | Orta | ✅ Ambient Mode (P1-2) |
-| FON Ausfallmeldung yok | Yasal bildirim kaçırma | Yüksek | ✅ Kod (P0-3); BMF E2E açık |
-| Mayıs 2027 takibi yok | Deadline kaçırma | Yüksek | ✅ Program + FA (P1-3) |
-| Pre-F5 / legacy JWS | Prüftool beleg fail | Orta | ✅ Uyarı (P2-2); re-sign yok |
-| Boş `Signaturzertifikat` | Geçersiz DEP | Orta | ✅ Hard-fail (P2-3) |
-| Demo Prüftool skip | False confidence | Düşük | ✅ CI hard-fail (P2-1) |
-| Signaturkarte runbook / i18n (P1-4) | Operatör yenileme kaçırabilir | Düşük–Orta | ⬜ Açık |
-| BMF TEST/PROD cutover kanıtı | Resmi “üretim hazır” iddiası | Yüksek (gate) | ⬜ Ops/Compliance |
+| Soft TSE / `TseMode=Off` in production | Unsigned fiscal transaction | High | ✅ Code lock (P0-2); Ops must verify prod config |
+| FON Sonderbeleg Fake / skeleton | Fake Verified | High | ✅ Real SOAP code (P0-1); BMF E2E open |
+| No separate FON outbox for Monatsbeleg | Wrong operator expectation | Low | ✅ NotRequired + FA (P1-1) |
+| Enqueue `Mode=TEST` hardcoded | Wrong environment label | Medium | ✅ Ambient Mode (P1-2) |
+| No FON Ausfallmeldung | Missed legal notification | High | ✅ Code (P0-3); BMF E2E open |
+| No May 2027 tracking | Missed deadline | High | ✅ Program + FA (P1-3) |
+| Pre-F5 / legacy JWS | Prüftool beleg fail | Medium | ✅ Warning (P2-2); no re-sign |
+| Empty `Signaturzertifikat` | Invalid DEP | Medium | ✅ Hard-fail (P2-3) |
+| Demo Prüftool skip | False confidence | Low | ✅ CI hard-fail (P2-1) |
+| Signaturkarte runbook / i18n (P1-4) | Operator may miss renewal | Low–Medium | ⬜ Open |
+| BMF TEST/PROD cutover evidence | Official “production ready” claim | High (gate) | ⬜ Ops/Compliance |
 
-**İş etkisi özeti:** P0–P2 **yazılım yüzeyi** büyük ölçüde kapanmıştır. Kalan asıl engel **operasyonel/BMF kanıtı** (TEST/PROD cutover, canlı Ausfall, prod Soft TSE yokluğu doğrulaması) ve **P1-4** runbook/i18n’dir.
+**Business impact summary:** P0–P2 **software surface** is largely closed. The remaining blocker is **operational/BMF evidence** (TEST/PROD cutover, live Ausfall, confirmation that Soft TSE is absent in prod) and **P1-4** runbook/i18n.
 
 ---
 
-## 4. Aksiyon Önerileri (durum)
+## 4. Action recommendations (status)
 
-### P0 — Üretim kesici — ✅ Kod complete
+### P0 — Production blockers — ✅ Code complete
 
 1. Sonderbeleg SOAP — ✅ P0-1  
-2. TSE Production kilidi — ✅ P0-2  
+2. TSE Production lock — ✅ P0-2  
 3. Ausfallmeldung — ✅ P0-3  
 
-### P1 — Uyumluluk — ✅ / ⬜
+### P1 — Compliance — ✅ / ⬜
 
 4. Monatsbeleg FON — ✅ NotRequired (P1-1)  
 5. Enqueue Mode — ✅ (P1-2)  
-6. Mayıs 2027 — ✅ (P1-3)  
-7. Signaturkarte runbook + FA fleet/i18n — ⬜ **P1-4 açık**
+6. May 2027 — ✅ (P1-3)  
+7. Signaturkarte runbook + FA fleet/i18n — ⬜ **P1-4 open**
 
-### P2 — Kalite — ✅ / ⬜
+### P2 — Quality — ✅ / ⬜
 
 8. DEP Prüftool CI — ✅ (P2-1)  
-9. Legacy JWS uyarı — ✅ (P2-2)  
-10. Boş Signaturzertifikat hard-fail — ✅ (P2-3)  
-11. Cutover sonrası doküman senkronu — 🟡 Bu güncelleme + [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) (P2-4 kısmen; live cutover sonrası yeniden onay)
+9. Legacy JWS warning — ✅ (P2-2)  
+10. Empty Signaturzertifikat hard-fail — ✅ (P2-3)  
+11. Post-cutover document sync — 🟡 This update + [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) (P2-4 partial; reconfirm after live cutover)
 
 ---
 
-## 5. Sonuç
+## 5. Conclusion
 
-### Karar: **Koşullu GO (yazılım) / NO-GO (tam üretim iddiası)**
+### Decision: **Conditional GO (software) / NO-GO (full production claim)**
 
-| Perspektif | Karar | Gerekçe |
+| Perspective | Decision | Rationale |
 |------------|--------|---------|
-| **Yazılım / platform yüzeyi (P0–P2 kod)** | **GO — koşullu** | SCU/Beleg/DEP, FON SOAP istemcisi, Ausfall kodu, TSE prod kilidi, Mayıs 2027 programı, DEP CI + legacy/cert sertleştirmeleri kodda mevcut |
-| **Tam RKSV üretim / Betriebsprüfung iddiası** | **NO-GO** | BMF TEST (ve PROD) Start/Jahres E2E kanıtı, canlı Ausfall kanıtı, prod Soft TSE yokluğu ve cutover checklist imzası henüz bu rapora bağlanmamış; P1-4 runbook açık |
+| **Software / platform surface (P0–P2 code)** | **GO — conditional** | SCU/Beleg/DEP, FON SOAP client, Ausfall code, TSE prod lock, May 2027 program, DEP CI + legacy/cert hardening are in code |
+| **Full RKSV production / Betriebsprüfung claim** | **NO-GO** | BMF TEST (and PROD) Start/Jahres E2E evidence, live Ausfall evidence, prod Soft TSE absence, and cutover checklist signatures are not yet bound to this report; P1-4 runbook is open |
 
-Regkasse, **çekirdek RKSV yazılım yüzeyinde** güçlüdür. “Yeşil” FA UI veya yeşil CI, **BMF kabulü** anlamına gelmez.
+Regkasse is strong on the **core RKSV software surface**. A “green” FA UI or green CI is not **BMF acceptance**.
 
-**Sign-off yolu:** [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) maddelerini Ops + Compliance ile işaretleyin; ardından bu bölümü **GO** olarak güncelleyin.
+**Sign-off path:** Mark [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) items with Ops + Compliance; then update this section to **GO**.
 
 ---
 
-## Ek A — Analiz izi (Adım 1–4)
+## Appendix A — Analysis trail (Steps 1–4)
 
-| Adım | Konu | Ana çıktı (güncel) |
+| Step | Topic | Main output (current) |
 |------|------|---------------------|
-| 1 | Genel RKSV gereksinimleri | Özet tablo — P0–P2 kod ✅ |
-| 2 | DEP | Şema ✅, CI ✅, leaf hard-fail ✅, legacy uyarı ✅ |
+| 1 | General RKSV requirements | Summary table — P0–P2 code ✅ |
+| 2 | DEP | Schema ✅, CI ✅, leaf hard-fail ✅, legacy warning ✅ |
 | 3 | FinanzOnline | Outbox Start/Jahres ✅; Real SOAP ✅; Monatsbeleg NotRequired |
-| 4 | Sürekli yükümlülükler | Ausfall ✅ kod; Mayıs 2027 ✅; cert yenileme 🟡 (P1-4) |
+| 4 | Ongoing obligations | Ausfall ✅ code; May 2027 ✅; cert renewal 🟡 (P1-4) |
 
-## Ek B — Hızlı dosya indeksi
+## Appendix B — Quick file index
 
 **Backend:** `TseService`, `SignaturePipeline`, `TseProductionOptionsValidator`, `FiskalyTseKeyProvider`, `RksvDepExportService`, `AdminRksvDepExportController`, `RksvSpecialReceiptService`, `RksvFinanzOnlineSubmissionClient`, `RksvSpecialReceiptFinanzOnlineOutboxHandler`, `FinanzOnlineOutbox`, `TseCertificateService`, Ausfall episodes/services
 
@@ -274,4 +274,4 @@ Regkasse, **çekirdek RKSV yazılım yüzeyinde** güçlüdür. “Yeşil” FA 
 
 ---
 
-**Son güncelleme:** 2026-07-29 — P0–P2 kod kapanışı yansıtıldı; Go/No-Go: koşullu yazılım GO / tam üretim NO-GO (cutover + P1-4).
+**Last updated:** 2026-07-29 — P0–P2 code closure reflected; Go/No-Go: conditional software GO / full production NO-GO (cutover + P1-4).

@@ -373,7 +373,7 @@ public sealed class PermissionAuditService : IPermissionAuditService
 
             var tenantId = _tenantAccessor?.TenantId is Guid tid && tid != Guid.Empty
                 ? tid
-                : LegacyDefaultTenantIds.Primary;
+                : SystemTenantIds.Platform;
 
             await _activityEvents.TryPublishAsync(
                 tenantId,

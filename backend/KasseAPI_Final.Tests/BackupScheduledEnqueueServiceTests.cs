@@ -1,8 +1,10 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -65,6 +67,13 @@ public sealed class BackupScheduledEnqueueServiceTests
             .UseInMemoryDatabase(name)
             .Options);
 
+    private static IServiceScopeFactory ScopeFactoryWithAudit()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(_ => Mock.Of<IAuditLogService>());
+        return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+    }
+
     private static BackupScheduledEnqueueService Sut(
         AppDbContext db,
         BackupOptions backupOptions,
@@ -74,6 +83,7 @@ public sealed class BackupScheduledEnqueueServiceTests
             OptionsMonitor(backupOptions),
             readiness ?? HealthyReadiness(),
             time,
+            ScopeFactoryWithAudit(),
             NullLogger<BackupScheduledEnqueueService>.Instance);
 
     [Fact]

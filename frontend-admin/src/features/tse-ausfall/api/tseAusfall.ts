@@ -50,12 +50,16 @@ export function normalizeRksvAusfallEpisode(raw: unknown): RksvAusfallEpisode | 
 
 export async function listRksvAusfallEpisodes(params?: {
   status?: string;
+  tenantId?: string;
   signal?: AbortSignal;
 }): Promise<RksvAusfallEpisode[]> {
   const data = await customInstance<unknown>({
     url: '/api/admin/tse/ausfall/episodes',
     method: 'GET',
-    params: params?.status ? { status: params.status } : undefined,
+    params: {
+      ...(params?.status ? { status: params.status } : {}),
+      ...(params?.tenantId ? { tenantId: params.tenantId } : {}),
+    },
     signal: params?.signal,
   });
   const list = Array.isArray(data) ? data : [];

@@ -21,4 +21,17 @@ describe('fetchTenantSwitcherList', () => {
       params: { includeDeleted: false },
     });
   });
+
+  it('hides platform, Test Cafe, and Test Bar leftovers', async () => {
+    (apiClient.get as jest.Mock).mockResolvedValue([
+      { id: '1', name: 'Development', slug: 'dev', status: 'active', isActive: true },
+      { id: '2', name: 'Platform', slug: 'platform', status: 'active', isActive: true },
+      { id: '3', name: 'Test Cafe', slug: 'test-cafe', status: 'active', isActive: true },
+      { id: '4', name: 'Test Bar', slug: 'bar', status: 'active', isActive: true },
+    ]);
+
+    await expect(fetchTenantSwitcherList()).resolves.toEqual([
+      { id: '1', name: 'Development', slug: 'dev', status: 'active', isActive: true },
+    ]);
+  });
 });

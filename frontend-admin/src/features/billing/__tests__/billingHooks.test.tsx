@@ -74,9 +74,10 @@ describe('Billing Hooks', () => {
       pageSize: 20,
       tenantId: undefined,
       search: undefined,
-      status: undefined,
       fromDate: undefined,
       toDate: undefined,
+      sortBy: 'validUntilUtc',
+      sortDir: 'asc',
     });
   });
 
@@ -99,10 +100,11 @@ describe('Billing Hooks', () => {
         page: 2,
         pageSize: 10,
         tenantId: undefined,
-        search: 'dev',
-        status: undefined,
+        search: 'cafe',
         fromDate: undefined,
         toDate: undefined,
+        sortBy: 'validUntilUtc',
+        sortDir: 'asc',
       })
     );
   });

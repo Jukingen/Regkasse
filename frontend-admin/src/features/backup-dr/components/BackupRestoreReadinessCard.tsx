@@ -75,7 +75,7 @@ export function BackupRestoreReadinessCard({
         if (res.newQueuedRunCreated) {
           message.success(t('backupDr.messages.restoreDrillEnqueued'));
         } else if (res.existingRunReturned) {
-          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.NUMBER_1) {
+          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.ExistingByIdempotencyKey) {
             message.info(t('backupDr.messages.restoreDrillIdempotent'));
           } else {
             message.info(t('backupDr.messages.restoreDrillExistingActive'));
@@ -163,7 +163,7 @@ export function BackupRestoreReadinessCard({
           </Typography.Text>{' '}
           {formatDt(model.lastVerifiedBackupAt, formatLocale)}
         </Typography.Paragraph>
-        {drillStatus === RestoreVerificationStatus.NUMBER_3 && restoreLatest?.failureDetail ? (
+        {drillStatus === RestoreVerificationStatus.Failed && restoreLatest?.failureDetail ? (
           <Typography.Paragraph type="danger" style={{ marginTop: 8, marginBottom: 0 }}>
             {restoreLatest.failureDetail}
           </Typography.Paragraph>

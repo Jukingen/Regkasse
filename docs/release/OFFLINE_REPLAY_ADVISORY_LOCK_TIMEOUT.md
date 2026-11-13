@@ -1,40 +1,40 @@
 # Offline replay advisory lock — timeout and safety
 
-## Amaç
+## Purpose
 
-Uzun süreli (deadlock benzeri) beklemeleri engellemek: `pg_advisory_lock` yerine **try-lock + retry** ile en fazla **max wait** süresi kadar beklenir; aşılırsa audit + log + client’a LOCK_TIMEOUT ile fail dönülür.
+Avoid deadlock-like long waits: replace `pg_advisory_lock` with **try-lock + retry**, wait at most **max wait**, then fail the client with LOCK_TIMEOUT plus audit + log.
 
-## Davranış
+## Behavior
 
-1. **Try-lock + retry:** `pg_try_advisory_lock` ile non-blocking deneme; başarısızsa `LockRetryIntervalMs` (varsayılan 100 ms) bekleyip tekrar denenir.
-2. **Max wait:** Toplam bekleme süresi `MaxLockWaitMs` (varsayılan 10 s) aşılınca lock alınmaz.
-3. **Timeout sonrası:**
-   - `OfflineReplayLockTimeoutException` fırlatılır.
-   - `OfflineTransactionService`: log (Warning, wait duration + register ids), audit (`LogSystemOperationAsync`: action `OfflineReplayLockTimeout`, status Failed, requestData: WaitDurationMs, RegisterIds), tüm batch item’ları `ErrorCode: LOCK_TIMEOUT`, mesaj "Advisory lock timeout; try again later." ile fail döner.
+1. **Try-lock + retry:** Non-blocking `pg_try_advisory_lock`; on failure wait `LockRetryIntervalMs` (default 100 ms) and retry.
+2. **Max wait:** If total wait exceeds `MaxLockWaitMs` (default 10 s), the lock is not taken.
+3. **After timeout:**
+   - Throw `OfflineReplayLockTimeoutException`.
+   - `OfflineTransactionService`: log (Warning, wait duration + register ids), audit (`LogSystemOperationAsync`: action `OfflineReplayLockTimeout`, status Failed, requestData: WaitDurationMs, RegisterIds), fail every batch item with `ErrorCode: LOCK_TIMEOUT` and message "Advisory lock timeout; try again later."
 4. **Log:**
-   - Lock alındığında bekleme varsa: `"Offline replay advisory lock acquired after {WaitDurationMs}ms. ReplayBatchCorrelationId=..."`.
+   - When a lock is acquired after waiting: `"Offline replay advisory lock acquired after {WaitDurationMs}ms. ReplayBatchCorrelationId=..."`.
    - Timeout: `"Offline replay advisory lock timeout after {WaitDurationMs}ms for register(s) {RegisterIds}. ReplayBatchCorrelationId=..."`.
 
 ## Config
 
-- **OfflineReplay:MaxLockWaitMs** — Max bekleme (ms). Varsayılan 10000 (10 s).
-- **OfflineReplay:LockRetryIntervalMs** — Denemeler arası bekleme (ms). Varsayılan 100.
+- **OfflineReplay:MaxLockWaitMs** — Max wait (ms). Default 10000 (10 s).
+- **OfflineReplay:LockRetryIntervalMs** — Wait between attempts (ms). Default 100.
 
-## Testler
+## Tests
 
-- **AdvisoryLock_SecondAcquireWaitsUntilFirstScopeDisposed** — İkinci acquire, ilki bırakana kadar bekler (try+retry ile, varsayılan 10 s timeout).
-- **AdvisoryLock_Timeout_WhenHolderKeepsLockLongerThanMaxWait** — Bir instance lock’u max wait’ten uzun tutar; ikinci timeout alır, `OfflineReplayLockTimeoutException` ve WaitDurationMs/RegisterIds doğrulanır.
-- **AdvisoryLock_AcquireSucceedsWhenLockFree_WaitDurationZeroOrSmall** — Kimse lock almamışken acquire hemen başarılır, `WaitDurationMs` 0 veya çok küçük.
+- **AdvisoryLock_SecondAcquireWaitsUntilFirstScopeDisposed** — Second acquire waits until the first is released (try+retry, default 10 s timeout).
+- **AdvisoryLock_Timeout_WhenHolderKeepsLockLongerThanMaxWait** — One instance holds the lock longer than max wait; the second times out; `OfflineReplayLockTimeoutException` and WaitDurationMs/RegisterIds are asserted.
+- **AdvisoryLock_AcquireSucceedsWhenLockFree_WaitDurationZeroOrSmall** — Acquire succeeds immediately when nobody holds the lock; `WaitDurationMs` is 0 or very small.
 
-PostgreSQL (Docker veya `REGKASSE_TEST_POSTGRES`) yoksa testler Skip edilir.
+Tests Skip when PostgreSQL (Docker or `REGKASSE_TEST_POSTGRES`) is missing.
 
-## Değişen dosyalar
+## Changed files
 
-| Dosya | Değişiklik |
-|-------|------------|
+| File | Change |
+|------|--------|
 | `backend/Options/OfflineReplayOptions.cs` | MaxLockWaitMs, LockRetryIntervalMs. |
-| `backend/Services/OfflineReplayLockTimeoutException.cs` | Yeni: WaitDurationMs, CashRegisterIds. |
-| `backend/Services/OfflineReplayRegisterLock.cs` | pg_try_advisory_lock + retry döngüsü, timeout’ta exception; scope’a WaitDurationMs. |
-| `backend/Services/OfflineTransactionService.cs` | Acquire’da timeout options; catch’te audit + log + tüm item’lar LOCK_TIMEOUT. |
+| `backend/Services/OfflineReplayLockTimeoutException.cs` | New: WaitDurationMs, CashRegisterIds. |
+| `backend/Services/OfflineReplayRegisterLock.cs` | pg_try_advisory_lock + retry loop, exception on timeout; WaitDurationMs on the scope. |
+| `backend/Services/OfflineTransactionService.cs` | Timeout options on acquire; catch: audit + log + all items LOCK_TIMEOUT. |
 | `backend/appsettings.json` | OfflineReplay: MaxLockWaitMs, LockRetryIntervalMs. |
 | `backend/KasseAPI_Final.Tests/PostgreSqlOfflineReplayConcurrencyTests.cs` | AdvisoryLock_Timeout_..., AdvisoryLock_AcquireSucceedsWhenLockFree_.... |

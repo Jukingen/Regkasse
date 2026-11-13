@@ -9,6 +9,7 @@ export { useBillingSalesList } from './useBillingSalesList';
 export { useBillingStats } from './useBillingStats';
 export { useBillingTenantLicense } from './useBillingTenantLicense';
 export { useExpiringLicenses } from './useExpiringLicenses';
+export { useLicenseSalesBulkActions } from './useLicenseSalesBulkActions';
 export { useLicenseStatus } from './useLicenseStatus';
 export { useTenantReminders } from './useTenantReminders';
 

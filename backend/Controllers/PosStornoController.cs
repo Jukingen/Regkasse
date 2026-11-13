@@ -85,11 +85,11 @@ public sealed class PosStornoController : ControllerBase
             .AnyAsync(p => p.OriginalPaymentId == request.PaymentId && p.IsStorno, cancellationToken);
         if (!originalPayment.IsActive || hasStornoChild)
         {
-            return BadRequest(new StornoResponse
+            return Conflict(new StornoResponse
             {
                 Success = false,
                 ErrorKey = "errors.alreadyCancelled",
-                DiagnosticCode = "ALREADY_CANCELLED",
+                DiagnosticCode = "STORNO_ALREADY_EXISTS",
             });
         }
 
@@ -103,16 +103,42 @@ public sealed class PosStornoController : ControllerBase
             });
         }
 
-        var hoursSincePayment = (DateTime.UtcNow - originalPayment.CreatedAt).TotalHours;
-        if (hoursSincePayment > DefaultStornoWindowHours
-            && !string.Equals(userRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        if (PosReceiptStornoEligibility.IsCashier(userRole)
+            && !PosReceiptStornoEligibility.IsPrivilegedPosActor(userRole))
         {
-            return BadRequest(new StornoResponse
+            if (!PosReceiptStornoEligibility.IsOwnReceipt(originalPayment.CashierId, userId))
             {
-                Success = false,
-                ErrorKey = "errors.stornoTimeLimitExceeded",
-                DiagnosticCode = "STORNO_TIME_LIMIT",
-            });
+                return BadRequest(new StornoResponse
+                {
+                    Success = false,
+                    ErrorKey = PosReceiptStornoEligibility.NotOwnerErrorKey,
+                    DiagnosticCode = PosReceiptStornoEligibility.NotOwnerDiagnostic,
+                });
+            }
+
+            if (!PosReceiptStornoEligibility.IsViennaCalendarToday(originalPayment.CreatedAt))
+            {
+                return BadRequest(new StornoResponse
+                {
+                    Success = false,
+                    ErrorKey = PosReceiptStornoEligibility.NotTodayErrorKey,
+                    DiagnosticCode = PosReceiptStornoEligibility.NotTodayDiagnostic,
+                });
+            }
+        }
+        else
+        {
+            var hoursSincePayment = (DateTime.UtcNow - originalPayment.CreatedAt).TotalHours;
+            if (hoursSincePayment > DefaultStornoWindowHours
+                && !string.Equals(userRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new StornoResponse
+                {
+                    Success = false,
+                    ErrorKey = "errors.stornoTimeLimitExceeded",
+                    DiagnosticCode = "STORNO_TIME_LIMIT",
+                });
+            }
         }
 
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 5)
@@ -149,6 +175,16 @@ public sealed class PosStornoController : ControllerBase
 
         if (!result.Success)
         {
+            if (result.DiagnosticCode is "STORNO_ALREADY_EXISTS" or "ALREADY_CANCELLED")
+            {
+                return Conflict(new StornoResponse
+                {
+                    Success = false,
+                    ErrorKey = "errors.alreadyCancelled",
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS",
+                });
+            }
+
             return BadRequest(new StornoResponse
             {
                 Success = false,

@@ -109,5 +109,40 @@
       "success": "Mandanten-Rollback ausgelöst.",
       "failed": "Mandanten-Rollback fehlgeschlagen."
     }
+  },
+  "goLive": {
+    "pageTitle": "Production Readiness",
+    "accessDenied": "Nur Super-Administratoren können den Go-Live-Status einsehen.",
+    "introBody": "Automatische GO/NO-GO-Prüfung für Fiskaly, Konfiguration, FinanzOnline, Backup, Monitoring und Sign-off.",
+    "verdict": "Status",
+    "statusGo": "GO",
+    "statusNoGo": "NO-GO",
+    "statusUnknown": "Unbekannt",
+    "notReady": "Production ist NICHT bereit",
+    "ready": "Alle Bedingungen erfüllt",
+    "recheck": "Erneut prüfen",
+    "loadFailed": "Go-Live-Status konnte nicht geladen werden.",
+    "checkedAt": "Geprüft: {{when}}",
+    "missingCount": "{{count}} Bedingungen fehlen.",
+    "humanNote": "Host-Nachweise und menschliche Unterschriften (GO_LIVE_CHECKLIST §8) können nicht von diesem Dienst gefälscht werden.",
+    "linkDashboard": "Deployment-Dashboard",
+    "noChecks": "Noch keine Prüfung",
+    "passed": "Bestanden",
+    "failed": "Fehlgeschlagen",
+    "columns": {
+      "name": "Prüfung",
+      "category": "Kategorie",
+      "passed": "Ergebnis",
+      "details": "Details",
+      "remediation": "Maßnahmen"
+    },
+    "checks": {
+      "fiskaly": "Fiskaly LIVE",
+      "configuration": "Konfiguration",
+      "fon": "FinanzOnline",
+      "backup": "Backup",
+      "monitoring": "Monitoring",
+      "signOff": "Sign-off"
+    }
   }
 }

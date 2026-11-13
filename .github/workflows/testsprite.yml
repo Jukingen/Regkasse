@@ -3,15 +3,11 @@ name: TestSprite specs & API smoke
 # Spec validation always runs (YAML ↔ swagger.json).
 # Live API smoke: workflow_dispatch with live_smoke=true (+ optional secrets).
 
+# Development bypass: OpenAPI spec validation runs on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-    paths:
-      - 'testsprite/**'
-      - 'testsprite.config.json'
-      - 'backend/swagger.json'
-      - '.github/workflows/testsprite.yml'
-  push:
-    branches: [main, master]
     paths:
       - 'testsprite/**'
       - 'testsprite.config.json'

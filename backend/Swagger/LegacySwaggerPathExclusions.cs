@@ -1,8 +1,9 @@
 namespace KasseAPI_Final.Swagger;
 
 /// <summary>
-/// Central list of routes excluded from Swagger/OpenAPI output. Runtime routes may remain for backward compatibility
-/// (see <see cref="KasseAPI_Final.Services.LegacyRouteDeprecationFilter"/>); they are hidden from the published contract.
+/// Central list of routes excluded from Swagger/OpenAPI output.
+/// <c>/api/Cart</c>, <c>/api/Payment</c>, and <c>/api/Product</c> aliases were hard-removed (2026-08-13);
+/// exclusions remain as a safety net if a dual route is reintroduced.
 /// </summary>
 public static class LegacySwaggerPathExclusions
 {
@@ -20,7 +21,7 @@ public static class LegacySwaggerPathExclusions
             || MatchesPrefix(relativePath, "api/Product"))
             return true;
 
-        // Legacy route aliases — canonical paths remain in OpenAPI (runtime still serves both).
+        // Other retired aliases — canonical paths remain in OpenAPI.
         if (MatchesPrefix(relativePath, "api/CompanySettings")
             || MatchesPrefix(relativePath, "api/pos/company-profile")
             || MatchesPrefix(relativePath, "api/pos/payment/card"))

@@ -10,6 +10,7 @@ import {
   getRegisteredMessageKeyForApiErrorCode,
   registerApiErrorCodeTranslation,
 } from '@/shared/errors/apiErrorCodeRegistry';
+import { translateLimitExceededError } from '@/shared/errors/limitExceededMessage';
 import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import { buildTechnicalApiErrorPayload } from '@/shared/errors/technicalApiErrorLog';
 
@@ -42,6 +43,19 @@ export const DEFAULT_API_ERROR_CODE_I18N_KEYS: Readonly<Record<string, string>> 
   SLUG_CONFLICT: 'common.apiErrors.SLUG_CONFLICT',
   TENANT_SLUG_TAKEN: 'common.apiErrors.SLUG_CONFLICT',
   SLUG_TAKEN: 'common.apiErrors.SLUG_CONFLICT',
+  FINANZONLINE_OUTBOX_NOT_FOUND: 'common.apiErrors.finanzOnlineOutboxNotFound',
+  FINANZONLINE_OUTBOX_ALREADY_SENT: 'common.apiErrors.finanzOnlineOutboxAlreadySent',
+  FINANZONLINE_OUTBOX_IN_PROGRESS: 'common.apiErrors.finanzOnlineOutboxInProgress',
+  FINANZONLINE_OUTBOX_REASON_REQUIRED: 'common.apiErrors.finanzOnlineOutboxReasonRequired',
+  FINANZONLINE_OUTBOX_INVALID_BUCKET: 'common.apiErrors.finanzOnlineOutboxInvalidBucket',
+  FINANZONLINE_OUTBOX_LIST_ERROR: 'common.apiErrors.finanzOnlineOutboxListError',
+  FO_OUTBOX_WORKER_INVALID: 'common.apiErrors.finanzOnlineOutboxWorkerInvalid',
+  FO_OUTBOX_PRODUCTION_DISABLE_CONFIRM_REQUIRED:
+    'common.apiErrors.finanzOnlineOutboxProductionDisableConfirm',
+  BACKUP_KNOWN_GAP_UNKNOWN: 'common.apiErrors.backupKnownGapUnknown',
+  EXTENSION_OPTIONS_UNSUPPORTED: 'common.apiErrors.extensionOptionsUnsupported',
+  BARCODE_DUPLICATE: 'common.apiErrors.barcodeDuplicate',
+  BARCODE_NOT_FOUND: 'common.apiErrors.barcodeNotFound',
 };
 
 let defaultsRegistered = false;
@@ -68,6 +82,7 @@ export function isUnsafeTechnicalErrorDetail(message: string | undefined | null)
   const m = message.trim();
   if (!m) return true;
   if (m.length > 280) return true;
+  if (/^Request failed with status code \d{3}$/i.test(m)) return true;
   if (/Exception\b|StackTrace|stack trace|InnerException/i.test(m)) return true;
   if (/System\.|Microsoft\.(AspNetCore|EntityFramework)|Npgsql\.|at [A-Za-z0-9_$.]+\(/i.test(m))
     return true;
@@ -115,6 +130,9 @@ export function translateApiError(
     const ctx = options.logContext ?? 'translateApiError';
     technicalConsole.error(`[API Error] ${ctx}`, buildTechnicalApiErrorPayload(normalized));
   }
+
+  const limitMsg = translateLimitExceededError(t, error);
+  if (limitMsg) return limitMsg;
 
   const byCode = tryTranslateRegisteredCode(t, normalized.code);
   if (byCode) return byCode;

@@ -11,12 +11,30 @@ import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShe
 import { DASHBOARD_WIDGET_IDS } from '@/features/dashboard/types';
 import { ActiveCashRegistersWidget } from '@/features/dashboard/widgets/ActiveCashRegistersWidget';
 import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWidget';
+import { PreorderStatusWidget } from '@/features/dashboard/widgets/PreorderStatusWidget';
+import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
+import { FiskalyStatusWidget } from '@/features/dashboard/widgets/FiskalyStatusWidget';
+import { FinanzOnlineOutboxWidget } from '@/features/dashboard/widgets/FinanzOnlineOutboxWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
+import { JahresbelegStatusWidget } from '@/features/dashboard/widgets/JahresbelegStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlertsWidget';
 import { parsePaymentTrendPeriod } from '@/features/dashboard/widgets/paymentTrendPeriod';
 import { RecentPermissionChangesWidget } from '@/features/dashboard/widgets/RecentPermissionChangesWidget';
 import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidget';
+import {
+  ActionRequiredWidget,
+  ManagerActivityWidget,
+  ManagerExportQuickActionsWidget,
+  ManagerHospitalityLinksWidget,
+  ManagerKpiStripWidget,
+  ManagerLicenseChecklistWidget,
+  ManagerLicenseStatusWidget,
+  ManagerLicenseSupportWidget,
+  ManagerMonatsbelegWidget,
+  ManagerOfflineQueueWidget,
+  ManagerTseHealthWidget,
+} from '@/features/dashboard/widgets/ManagerDashboardWidgets';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
 
 const TodaySalesWidget = dynamic(
@@ -49,6 +67,32 @@ export function renderDashboardWidget(
   };
 
   switch (widgetId) {
+    case DASHBOARD_WIDGET_IDS.actionRequired:
+      return <ActionRequiredWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.dailyClosing:
+      return <DailyClosingWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseStatus:
+      return <ManagerLicenseStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerKpiStrip:
+      return <ManagerKpiStripWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerMonatsbeleg:
+      return <ManagerMonatsbelegWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerActivity:
+      return <ManagerActivityWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerTseHealth:
+      return <ManagerTseHealthWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.fiskalyStatus:
+      return <FiskalyStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerOfflineQueue:
+      return <ManagerOfflineQueueWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseChecklist:
+      return <ManagerLicenseChecklistWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseSupport:
+      return <ManagerLicenseSupportWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerHospitalityLinks:
+      return <ManagerHospitalityLinksWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerExportQuickActions:
+      return <ManagerExportQuickActionsWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.todaySales:
       return <TodaySalesWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.activeCashRegisters:
@@ -63,10 +107,16 @@ export function renderDashboardWidget(
       return <LicenseExpiryWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.finanzOnlineStatus:
       return <FinanzOnlineStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.finanzOnlineOutbox:
+      return <FinanzOnlineOutboxWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.offlineSystemStatus:
       return <OfflineStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.backupStatus:
       return <BackupStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.preorderStatus:
+      return <PreorderStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.jahresbelegStatus:
+      return <JahresbelegStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.dataRetention:
       return <DataRetentionWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.topSellingProducts: {

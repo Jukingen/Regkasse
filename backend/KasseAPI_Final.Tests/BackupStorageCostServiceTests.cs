@@ -109,6 +109,119 @@ public sealed class BackupStorageCostServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_tier_slices_sum_to_headline_totals()
+    {
+        await using var db = CreateDb(nameof(GetAsync_tier_slices_sum_to_headline_totals));
+        var bytes = 400_000_000L;
+        foreach (var tier in new[] { BackupStorageTier.Hot, BackupStorageTier.Warm, BackupStorageTier.Cold })
+        {
+            var runId = Guid.NewGuid();
+            db.BackupRuns.Add(new BackupRun
+            {
+                Id = runId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.System,
+                RequestedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+            });
+            db.BackupArtifacts.Add(new BackupArtifact
+            {
+                Id = Guid.NewGuid(),
+                BackupRunId = runId,
+                ArtifactType = BackupArtifactType.LogicalDump,
+                StorageDescriptor = tier + ".dump",
+                ByteSize = bytes,
+                StorageTier = tier,
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var sut = new BackupStorageCostService(
+            db,
+            Options(new BackupOptions
+            {
+                StorageCostHotEurPerGbMonth = 0.023m,
+                StorageCostWarmEurPerGbMonth = 0.0125m,
+                StorageCostColdEurPerGbMonth = 0.004m,
+            }));
+
+        var dto = await sut.GetAsync();
+
+        Assert.Equal(dto.TotalStorageGb, dto.Tiers.Sum(t => t.SizeGb), 3);
+        Assert.Equal(dto.MonthlyCostEur, dto.Tiers.Sum(t => t.CostEur), 4);
+        Assert.True(dto.TotalStorageGb > 0);
+        Assert.True(dto.MonthlyCostEur > 0);
+    }
+
+    [Fact]
+    public async Task GetAsync_empty_store_keeps_zero_cost_slices_equal_to_total()
+    {
+        await using var db = CreateDb(nameof(GetAsync_empty_store_keeps_zero_cost_slices_equal_to_total));
+        var sut = new BackupStorageCostService(db, Options(new BackupOptions()));
+
+        var dto = await sut.GetAsync();
+
+        Assert.Equal(0, dto.BackupCount);
+        Assert.Equal(0d, dto.MonthlyCostEur);
+        Assert.Equal(0d, dto.TotalStorageGb);
+        Assert.Equal(3, dto.Tiers.Count);
+        Assert.Equal(dto.MonthlyCostEur, dto.Tiers.Sum(t => t.CostEur), 4);
+        Assert.Equal(dto.TotalStorageGb, dto.Tiers.Sum(t => t.SizeGb), 3);
+        Assert.All(dto.Tiers, tier => Assert.Equal(0d, tier.CostEur));
+    }
+
+    [Fact]
+    public async Task GetAsync_single_hot_tier_cost_equals_monthly_total()
+    {
+        await using var db = CreateDb(nameof(GetAsync_single_hot_tier_cost_equals_monthly_total));
+        var runId = Guid.NewGuid();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            Strategy = BackupStrategyKind.System,
+            RequestedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow,
+        });
+        db.BackupArtifacts.Add(new BackupArtifact
+        {
+            Id = Guid.NewGuid(),
+            BackupRunId = runId,
+            ArtifactType = BackupArtifactType.LogicalDump,
+            StorageDescriptor = "only-hot.dump",
+            ByteSize = (long)BackupStorageCostService.BytesPerGiB,
+            StorageTier = BackupStorageTier.Hot,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var sut = new BackupStorageCostService(
+            db,
+            Options(new BackupOptions
+            {
+                StorageCostHotEurPerGbMonth = 0.023m,
+                StorageCostWarmEurPerGbMonth = 0.0125m,
+                StorageCostColdEurPerGbMonth = 0.004m,
+            }));
+
+        var dto = await sut.GetAsync();
+        var hot = Assert.Single(dto.Tiers, t => t.Name == "Hot");
+
+        Assert.Equal(1, dto.BackupCount);
+        Assert.Equal(0.023d, dto.MonthlyCostEur, 4);
+        Assert.Equal(dto.MonthlyCostEur, hot.CostEur, 4);
+        Assert.Equal(0d, dto.Tiers.Where(t => t.Name != "Hot").Sum(t => t.CostEur));
+        Assert.Equal(dto.MonthlyCostEur, dto.Tiers.Sum(t => t.CostEur), 4);
+        Assert.Equal(dto.TotalStorageGb, dto.Tiers.Sum(t => t.SizeGb), 3);
+    }
+
+    [Fact]
     public async Task GetAsync_respects_tenant_access_scope()
     {
         await using var db = CreateDb(nameof(GetAsync_respects_tenant_access_scope));

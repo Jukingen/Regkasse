@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Models;
 
@@ -28,6 +29,10 @@ public class LicenseSale : ITenantEntity
     [Column("license_plan")]
     [MaxLength(50)]
     public string LicensePlan { get; set; } = string.Empty;
+
+    /// <summary>Package tier (Trial / Starter / Business / Plus). Null only for legacy rows before backfill.</summary>
+    [Column("license_type")]
+    public LicenseType? LicenseType { get; set; }
 
     [Column("custom_valid_until_utc")]
     public DateTime? CustomValidUntilUtc { get; set; }
@@ -93,6 +98,17 @@ public class LicenseSale : ITenantEntity
 
     [Column("extended_by_user_id")]
     public Guid? ExtendedByUserId { get; set; }
+
+    /// <summary>True when this sale was linked via trial → paid conversion.</summary>
+    [Column("converted_from_trial")]
+    public bool ConvertedFromTrial { get; set; }
+
+    /// <summary>Remaining trial calendar days appended to <see cref="ValidUntilUtc"/> at conversion (if any).</summary>
+    [Column("remaining_trial_days_added")]
+    public int? RemainingTrialDaysAdded { get; set; }
+
+    [Column("trial_converted_at_utc")]
+    public DateTime? TrialConvertedAtUtc { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

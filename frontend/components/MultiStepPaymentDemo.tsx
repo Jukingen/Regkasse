@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Multi-step ödeme ekranını test etmek için demo bileşeni
 
 import React, { useState } from 'react';
@@ -39,18 +40,18 @@ const MultiStepDemo: React.FC = () => {
   const totalAmount = cartItems.reduce((sum, item) => sum + item.totalAmount, 0);
 
   const handlePaymentComplete = (receipt: any) => {
-    console.log('Ödeme tamamlandı:', receipt);
+    safeLog('Ödeme tamamlandı:', receipt);
     setShowPayment(false);
     // Burada başarılı ödeme sonrası işlemler yapılabilir
   };
 
   const handlePaymentCancel = () => {
-    console.log('Ödeme iptal edildi');
+    safeLog('Ödeme iptal edildi');
     setShowPayment(false);
   };
 
   const handlePaymentCancelled = (response: any) => {
-    console.log('Ödeme iptal yanıtı:', response);
+    safeLog('Ödeme iptal yanıtı:', response);
   };
 
   return (

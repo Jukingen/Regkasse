@@ -1,0 +1,122 @@
+{
+  "languageLabel": "Language",
+  "nav": {
+    "label": "Main navigation",
+    "features": "Features",
+    "industries": "Industries",
+    "pricing": "Pricing",
+    "demo": "Demo",
+    "login": "Login",
+    "legal": "Legal"
+  },
+  "hero": {
+    "headline": "The cash register for every trade",
+    "subheadline": "RKSV-compliant, multi-tenant, ready in minutes.",
+    "primaryCta": "Request a demo",
+    "secondaryCta": "See features"
+  },
+  "video": {
+    "title": "Product demo",
+    "body": "The video demo is being prepared. Until then, request a demo tenant."
+  },
+  "featuresTitle": "Features",
+  "features": [
+    {
+      "title": "RKSV & TSE",
+      "text": "Receipts are signed. Special receipts, DEP export, and FinanzOnline stay in the product."
+    },
+    {
+      "title": "Multi-tenant",
+      "text": "One system, separate tenants. Each business sees only its own data."
+    },
+    {
+      "title": "Backup & GDPR",
+      "text": "Backups and data exports. Fiscal records stay retained for as long as the law requires."
+    }
+  ],
+  "industriesTitle": "Industries",
+  "industries": {
+    "gastronomy": { "name": "Restaurant", "description": "Food and drinks at the counter." },
+    "gastronomy-tables": { "name": "Restaurant with tables", "description": "Orders and service at the table." },
+    "vet": { "name": "Veterinary clinic", "description": "Patient record and treatment." },
+    "doctor": { "name": "Medical practice", "description": "Appointments and treatment." },
+    "hair-salon": { "name": "Hair salon", "description": "Appointments and services." },
+    "mobile-services": { "name": "Mobile services", "description": "Job and address on site." },
+    "handy-shop": { "name": "Phone shop", "description": "Devices, accessories, and IMEI." },
+    "taxi": { "name": "Taxi", "description": "Trips and fares." },
+    "ticket-sales": { "name": "Ticket sales", "description": "Events, seats, and categories." },
+    "beherbergung": { "name": "Lodging", "description": "Rooms and folios." },
+    "retail": { "name": "Retail", "description": "Register, goods, and barcode." }
+  },
+  "pricingTitle": "Pricing",
+  "pricing": {
+    "annualToggle": "Pay yearly, save 2 months",
+    "trialCta": "Try free for 14 days",
+    "vatNote": "All prices exclude 20% VAT.",
+    "perMonth": "month",
+    "perYear": "year",
+    "custom": "Custom",
+    "tiers": {
+      "starter": { "name": "Starter", "detail": "1 register, up to 3 users, RKSV & TSE included." },
+      "professional": { "name": "Professional", "detail": "3 registers, up to 10 users, backup included, priority support." },
+      "enterprise": { "name": "Enterprise", "detail": "Unlimited, your own infrastructure, SLA, dedicated contact." }
+    }
+  },
+  "demoTitle": "Request a demo",
+  "form": {
+    "name": "Name",
+    "email": "Email",
+    "company": "Company",
+    "industry": "Industry",
+    "message": "Message",
+    "submit": "Request a demo",
+    "pending": "Sending…",
+    "success": "Thank you. We have received your demo request.",
+    "rateLimit": "Too many requests. Please try again in an hour.",
+    "invalid": "Please check your details.",
+    "failed": "The request could not be sent. Please try again later."
+  },
+  "faqTitle": "Questions",
+  "faq": [
+    {
+      "question": "RKSV-compliant?",
+      "answer": "Yes. The Austrian register signs receipts through the TSE and stays on the RKSV path."
+    },
+    {
+      "question": "How long does setup take?",
+      "answer": "A demo tenant is ready in minutes. A production setup depends on the register, the TSE, and master data."
+    },
+    {
+      "question": "Can I export my data?",
+      "answer": "Yes. Exports and GDPR data rights stay available. Fiscal records are retained as the law requires."
+    },
+    {
+      "question": "Which industries?",
+      "answer": "Eleven industry profiles, from restaurants and medical practices to taxi, lodging, and retail."
+    },
+    {
+      "question": "What does cancellation cost?",
+      "answer": "You can try for 14 days at no charge. After that a subscription ends at the end of its term, with no extra cancellation fee."
+    },
+    {
+      "question": "Demo tenant?",
+      "answer": "Yes. A demo request can become a demo tenant with sample data. The trial follows the 14-day offer."
+    },
+    {
+      "question": "How often are backups taken?",
+      "answer": "Backups can be scheduled. The instance backup runs daily by default. Backup is included in Professional."
+    },
+    {
+      "question": "GDPR?",
+      "answer": "You can view and export your data. A deletion does not remove receipts that tax law requires us to keep."
+    },
+    {
+      "question": "Support languages?",
+      "answer": "Support replies in German, English, and Turkish."
+    },
+    {
+      "question": "Multiple locations?",
+      "answer": "Yes. One tenant can run several registers and locations. Other businesses cannot see that data."
+    }
+  ]
+}

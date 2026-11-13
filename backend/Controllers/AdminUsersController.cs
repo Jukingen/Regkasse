@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -10,6 +11,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Validators;
 using Microsoft.AspNetCore.Authorization;
@@ -110,15 +112,54 @@ public partial class AdminUsersController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (_tenantAccessor.TenantId is not Guid ambientTenantId)
+        {
+            if (!IsActorSuperAdmin())
+                LogHierarchyDenial();
             return IsActorSuperAdmin();
+        }
+
+        if (!IsActorSuperAdmin())
+        {
+            // Mandanten-Admin: platform operators and the platform sentinel are out of scope (404).
+            if (SystemTenantIds.IsPlatformTenantId(ambientTenantId)
+                || await IsSuperAdminRoleUserAsync(userId, cancellationToken).ConfigureAwait(false))
+            {
+                LogHierarchyDenial();
+                return false;
+            }
+        }
 
         if (await ValidateUserInTenantAsync(userId, ambientTenantId, cancellationToken).ConfigureAwait(false))
             return true;
 
         if (!IsActorSuperAdmin())
+        {
+            LogHierarchyDenial();
             return false;
+        }
 
         return await IsPlatformScopedUserAsync(userId, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> IsSuperAdminRoleUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var role = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return RoleHierarchy.IsPlatformOperatorRole(role);
+    }
+
+    private void LogHierarchyDenial()
+    {
+        _logger.LogWarning(
+            "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to access a user outside their hierarchy",
+            string.IsNullOrEmpty(ActorId) ? "unknown" : ActorId,
+            ActorRole,
+            _tenantAccessor.TenantId);
     }
 
     /// <summary>
@@ -164,7 +205,7 @@ public partial class AdminUsersController : ControllerBase
             && m.TenantId == tenantId
             && m.Tenant != null
             && m.Tenant.IsActive
-            && m.Tenant.Status != TenantStatuses.Deleted);
+            && !TenantStatuses.IsRemoved(m.Tenant.Status));
 
     /// <summary>
     /// SuperAdmin role or no active business-tenant membership (platform operator).
@@ -182,7 +223,7 @@ public partial class AdminUsersController : ControllerBase
             && businessTenantIds.Contains(m.TenantId)
             && m.Tenant != null
             && m.Tenant.IsActive
-            && m.Tenant.Status != TenantStatuses.Deleted);
+            && !TenantStatuses.IsRemoved(m.Tenant.Status));
     }
 
     private bool CanAccessUserInAmbientTenant(
@@ -190,22 +231,33 @@ public partial class AdminUsersController : ControllerBase
         Guid ambientTenantId,
         IReadOnlySet<Guid> businessTenantIds)
     {
+        if (!IsActorSuperAdmin())
+        {
+            if (SystemTenantIds.IsPlatformTenantId(ambientTenantId))
+                return false;
+
+            if (RoleHierarchy.IsPlatformOperatorRole(user.Role))
+                return false;
+
+            return HasActiveMembershipInTenant(user, ambientTenantId);
+        }
+
         if (HasActiveMembershipInTenant(user, ambientTenantId))
             return true;
 
         if (!IsPlatformOperator(user, businessTenantIds))
             return false;
 
-        return IsActorSuperAdmin();
+        return true;
     }
 
-    private async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
+    internal async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
         await _context.Tenants
             .AsNoTracking()
             .Where(t => t.IsActive
-                && t.Status != TenantStatuses.Deleted
+                && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 && t.Slug != "admin"
-                && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
+                && !SystemTenantIds.PlatformSlugs.Contains(t.Slug.Trim().ToLower()))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -272,7 +324,7 @@ public partial class AdminUsersController : ControllerBase
 
         var operationalTenantIds = await _context.Tenants
             .AsNoTracking()
-            .Where(t => t.IsActive && t.Status != TenantStatuses.Deleted)
+            .Where(t => t.IsActive && !TenantStatuses.RemovedStatuses.Contains(t.Status))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -321,7 +373,9 @@ public partial class AdminUsersController : ControllerBase
     {
         if (!IsActorSuperAdmin())
         {
-            if (_tenantAccessor.TenantId is not Guid ambientTenantId || ambientTenantId == Guid.Empty)
+            if (_tenantAccessor.TenantId is not Guid ambientTenantId
+                || ambientTenantId == Guid.Empty
+                || SystemTenantIds.IsPlatformTenantId(ambientTenantId))
                 return new List<AdminTenantUserRowDto>();
 
             // Mandanten-Admin: ignore client-supplied tenantId; ambient JWT tenant only.
@@ -330,11 +384,20 @@ public partial class AdminUsersController : ControllerBase
 
         if (tenantId.HasValue && tenantId.Value != Guid.Empty)
         {
-            var tenantUsers = await _tenantUserService
-                .ListAsync(tenantId.Value, cancellationToken)
-                .ConfigureAwait(false);
-            if (tenantUsers == null)
-                return new List<AdminTenantUserRowDto>();
+            var tenantUsers = new List<TenantUserDto>();
+            const int membershipPageSize = 100;
+            for (var membershipPage = 1; ; membershipPage++)
+            {
+                var batch = await _tenantUserService
+                    .ListAsync(tenantId.Value, membershipPage, membershipPageSize, cancellationToken)
+                    .ConfigureAwait(false);
+                if (batch == null)
+                    return new List<AdminTenantUserRowDto>();
+
+                tenantUsers.AddRange(batch.Items);
+                if (batch.Items.Count == 0 || tenantUsers.Count >= batch.TotalCount)
+                    break;
+            }
 
             var tenant = await _context.Tenants
                 .AsNoTracking()
@@ -355,9 +418,14 @@ public partial class AdminUsersController : ControllerBase
                 {
                     if (!usersById.TryGetValue(dto.UserId, out var user))
                         return false;
+                    if (!IsActorSuperAdmin()
+                        && (RoleHierarchy.IsPlatformOperatorRole(user.Role)
+                            || SystemTenantIds.IsPlatformTenantId(tenant.Id)
+                            || SystemTenantIds.IsPlatformSlug(tenant.Slug)))
+                        return false;
                     if (isActive.HasValue && user.IsActive != isActive.Value)
                         return false;
-                    if (!string.IsNullOrWhiteSpace(role) && user.Role != role)
+                    if (!RoleMatches(user.Role, role))
                         return false;
                     return MatchesTenantUserSearch(search, dto.Name, dto.UserName, dto.Email, tenant.Name, tenant.Slug);
                 })
@@ -370,7 +438,9 @@ public partial class AdminUsersController : ControllerBase
                         UserName = !string.IsNullOrEmpty(dto.UserName) ? dto.UserName : user?.UserName ?? string.Empty,
                         Email = dto.Email,
                         Name = dto.Name,
-                        Role = dto.Role,
+                        Role = string.IsNullOrWhiteSpace(dto.Role)
+                            ? dto.Role
+                            : RoleCanonicalization.GetCanonicalRole(dto.Role),
                         IsOwner = dto.IsOwner,
                         IsActive = user?.IsActive ?? true,
                         TenantId = tenant.Id,
@@ -404,7 +474,7 @@ public partial class AdminUsersController : ControllerBase
         if (isActive.HasValue)
             filtered = filtered.Where(x => x.User.IsActive == isActive.Value);
         if (!string.IsNullOrWhiteSpace(role))
-            filtered = filtered.Where(x => x.User.Role == role);
+            filtered = filtered.Where(x => RoleMatches(x.User.Role, role));
         if (!string.IsNullOrWhiteSpace(search))
         {
             filtered = filtered.Where(x =>
@@ -428,7 +498,9 @@ public partial class AdminUsersController : ControllerBase
                 UserName = x.User.UserName ?? string.Empty,
                 Email = x.User.Email ?? x.User.UserName ?? string.Empty,
                 Name = FormatTenantUserName(x.User),
-                Role = x.User.Role ?? Roles.FallbackUnknown,
+                Role = string.IsNullOrWhiteSpace(x.User.Role)
+                    ? Roles.FallbackUnknown
+                    : RoleCanonicalization.GetCanonicalRole(x.User.Role),
                 IsOwner = x.Membership.IsOwner,
                 IsActive = x.User.IsActive,
                 TenantId = x.Tenant.Id,
@@ -440,21 +512,92 @@ public partial class AdminUsersController : ControllerBase
             .ToList();
     }
 
+    /// <summary>
+    /// Default list for Mandanten-Admin: active memberships in the ambient business tenant only.
+    /// SuperAdmin accounts and the platform sentinel are omitted.
+    /// </summary>
+    private async Task<List<AdminUserDto>> ListAmbientTenantUserDtosAsync(
+        string? role,
+        bool? isActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        if (_tenantAccessor.TenantId is not Guid ambientTenantId
+            || ambientTenantId == Guid.Empty
+            || SystemTenantIds.IsPlatformTenantId(ambientTenantId))
+            return new List<AdminUserDto>();
+
+        if (!string.IsNullOrWhiteSpace(role)
+            && RoleHierarchy.IsPlatformOperatorRole(RoleCanonicalization.GetCanonicalRole(role)))
+            return new List<AdminUserDto>();
+
+        var businessTenantIdSet = (await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+
+        var query = _context.Users
+            .AsNoTracking()
+            .Include(u => u.UserTenantMemberships)
+            .ThenInclude(m => m.Tenant)
+            .Where(u => u.Role == null
+                || (u.Role.ToLower() != Roles.SuperAdmin.ToLower()
+                    && u.Role.ToLower() != RoleHierarchy.PlatformAdmin.ToLower()))
+            .Where(u => _context.UserTenantMemberships.Any(m =>
+                m.UserId == u.Id
+                && m.TenantId == ambientTenantId
+                && m.IsActive));
+
+        if (_context.Database.IsRelational())
+            query = query.AsSplitQuery();
+
+        if (isActive == true)
+            query = query.Where(u => u.IsActive);
+        else if (isActive == false)
+            query = query.Where(u => !u.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var wanted = RoleCanonicalization.GetCanonicalRole(role).ToLowerInvariant();
+            query = query.Where(u => u.Role != null && u.Role.ToLower() == wanted);
+        }
+
+        query = ApplyUserSearchFilter(query, search);
+
+        var users = await query
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return users.Select(u => ToDto(u, businessTenantIdSet)).ToList();
+    }
+
     private static string FormatTenantUserName(ApplicationUser u)
     {
         var name = $"{u.FirstName} {u.LastName}".Trim();
         return string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
     }
 
+    private static bool RoleMatches(string? userRole, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return true;
+
+        return string.Equals(
+            RoleCanonicalization.GetCanonicalRole(userRole),
+            RoleCanonicalization.GetCanonicalRole(filter),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private IQueryable<UserTenantMembership> MembershipsQuery() =>
-        _tenantAccessor.TenantId is Guid
-            ? _context.UserTenantMemberships.AsNoTracking()
-            : _context.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters();
+        IsActorSuperAdmin() || _tenantAccessor.TenantId is not Guid
+            ? _context.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters()
+            : _context.UserTenantMemberships.AsNoTracking();
 
     private IQueryable<ApplicationUser> UsersWithMembershipsQuery()
     {
         var query = _context.Users.AsNoTracking();
-        if (_tenantAccessor.TenantId is not Guid)
+        // Super Admin user admin is cross-tenant. The FA header tenant (often dev / Development)
+        // must not hide other memberships or stamp every row with that mandant.
+        if (IsActorSuperAdmin() || _tenantAccessor.TenantId is not Guid)
             query = query.IgnoreQueryFilters();
 
         query = query
@@ -476,7 +619,7 @@ public partial class AdminUsersController : ControllerBase
             .Where(m => m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && m.Tenant.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.IsRemoved(m.Tenant.Status))
             .ToList();
 
         if (active.Count == 0)
@@ -505,7 +648,7 @@ public partial class AdminUsersController : ControllerBase
             FirstName = u.FirstName,
             LastName = u.LastName,
             EmployeeNumber = u.EmployeeNumber,
-            Role = u.Role,
+            Role = string.IsNullOrWhiteSpace(u.Role) ? u.Role : RoleCanonicalization.GetCanonicalRole(u.Role),
             TaxNumber = u.TaxNumber,
             Notes = u.Notes,
             IsActive = u.IsActive,
@@ -546,7 +689,7 @@ public partial class AdminUsersController : ControllerBase
                 && m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && m.Tenant.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.IsRemoved(m.Tenant.Status))
             .OrderByDescending(m => m.IsOwner)
             .ThenBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)
@@ -558,8 +701,9 @@ public partial class AdminUsersController : ControllerBase
     /// <summary>
     /// List users. <paramref name="type"/> = <c>platform</c> | <c>tenant</c> (alias: <c>scope</c>).
     /// Tenant rows include membership metadata; optional <paramref name="tenantId"/> filters one mandant.
-    /// Requires <c>user.view</c>. The <c>tenant</c> scope self-restricts to the caller's ambient tenant for
-    /// non–Super Admin actors; <c>platform</c> and the cross-tenant default listing are Super Admin only.
+    /// Requires <c>user.view</c>. Non–Super Admin actors only receive users with an active membership in the
+    /// ambient business tenant (platform operators and other mandants are omitted). <c>platform</c> and the
+    /// cross-tenant default listing stay Super Admin only.
     /// </summary>
     [HasPermission(AppPermissions.UserView)]
     [HttpGet]
@@ -575,17 +719,21 @@ public partial class AdminUsersController : ControllerBase
         [FromQuery] string? search = null)
     {
         var listType = (type ?? scope)?.Trim();
+        var cancellationToken = HttpContext?.RequestAborted ?? default;
         if (string.Equals(listType, "tenant", StringComparison.OrdinalIgnoreCase))
-            return Ok(await ListTenantUsersAsync(role, isActive, tenantId, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+            return Ok(await ListTenantUsersAsync(role, isActive, tenantId, search, cancellationToken).ConfigureAwait(false));
 
-        // Platform and cross-tenant default listings expose users beyond a single mandant.
         if (!IsActorSuperAdmin())
-            return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can list platform or cross-tenant users."));
+        {
+            if (string.Equals(listType, "platform", StringComparison.OrdinalIgnoreCase))
+                return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can list platform or cross-tenant users."));
+
+            return Ok(await ListAmbientTenantUserDtosAsync(role, isActive, search, cancellationToken).ConfigureAwait(false));
+        }
 
         if (string.Equals(listType, "platform", StringComparison.OrdinalIgnoreCase))
-            return Ok(await ListPlatformUsersAsync(isActive, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+            return Ok(await ListPlatformUsersAsync(isActive, search, cancellationToken).ConfigureAwait(false));
 
-        var cancellationToken = HttpContext?.RequestAborted ?? default;
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
         var businessTenantIdSet = businessTenantIds.ToHashSet();
 
@@ -593,7 +741,10 @@ public partial class AdminUsersController : ControllerBase
         if (isActive == true)
             query = query.Where(u => u.IsActive);
         if (!string.IsNullOrWhiteSpace(role))
-            query = query.Where(u => u.Role == role);
+        {
+            var wanted = RoleCanonicalization.GetCanonicalRole(role).ToLowerInvariant();
+            query = query.Where(u => u.Role != null && u.Role.ToLower() == wanted);
+        }
         query = ApplyUserSearchFilter(query, search);
 
         var users = await query
@@ -658,7 +809,10 @@ public partial class AdminUsersController : ControllerBase
                 return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
             if (!CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+            {
+                LogHierarchyDenial();
                 return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+            }
         }
 
         return Ok(ToDto(user, businessTenantIdSet));
@@ -691,7 +845,10 @@ public partial class AdminUsersController : ControllerBase
                 return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
             if (!CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+            {
+                LogHierarchyDenial();
                 return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+            }
         }
 
         var membershipQuery = MembershipsQuery()
@@ -980,7 +1137,7 @@ public partial class AdminUsersController : ControllerBase
             if (!string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             {
                 await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                    user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt).ConfigureAwait(false);
+                    user.Id, SystemTenantIds.Platform, cancellationToken: createCt).ConfigureAwait(false);
             }
 
             await tx.CommitAsync(createCt).ConfigureAwait(false);
@@ -1009,7 +1166,7 @@ public partial class AdminUsersController : ControllerBase
         }
 
         await _activityEvents.TryPublishAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             ActivityEventType.UserCreated,
             new
             {
@@ -1057,6 +1214,8 @@ public partial class AdminUsersController : ControllerBase
 
         if (error == "Tenant not found.")
             return NotFound(ApiError.NotFound("Tenant not found", error));
+        if (LimitErrorDto.TryParseServiceError(error, out var limitError))
+            return Conflict(limitError);
         if (error != null)
             return BadRequest(ApiError.Validation("User creation failed", new Dictionary<string, string[]> { ["create"] = new[] { error } }));
 
@@ -1142,6 +1301,20 @@ public partial class AdminUsersController : ControllerBase
             user.IsDemo = request.IsDemo.Value;
         if (request.Role != null && request.Role != user.Role)
         {
+            if (!RoleHierarchy.CanChangeUserRole(ActorRole, user.Role, request.Role))
+            {
+                _logger.LogWarning(
+                    "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted a role change outside their hierarchy",
+                    string.IsNullOrEmpty(ActorId) ? "unknown" : ActorId,
+                    ActorRole,
+                    _tenantAccessor.TenantId);
+                if (RoleHierarchy.IsPlatformOperatorRole(user.Role))
+                    return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+                return BadRequest(ApiError.Validation(
+                    RoleHierarchy.RoleAssignmentDeniedError,
+                    new Dictionary<string, string[]> { ["role"] = new[] { RoleHierarchy.RoleAssignmentDeniedError } }));
+            }
+
             user.Role = request.Role;
             roleChanged = true;
         }
@@ -1177,6 +1350,12 @@ public partial class AdminUsersController : ControllerBase
 
         if (ActorId != null)
         {
+            _logger.LogInformation(
+                "Admin {ActorUserId} role {ActorRole} tenant {TenantId} updated user {TargetUserId}",
+                ActorId,
+                ActorRole,
+                _tenantAccessor.TenantId,
+                id);
             var newSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
             await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserUpdated, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, $"User updated: {user.UserName}", oldSnapshot, newSnapshot);
             if (roleChanged)

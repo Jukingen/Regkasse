@@ -158,6 +158,12 @@ public static class PermissionImplication
             [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
             [AppPermissions.CashRegisterDecommission] = [AppPermissions.CashRegisterView],
             [AppPermissions.TableManage] = [AppPermissions.TableView],
+            [AppPermissions.RoomManage] = [AppPermissions.RoomView],
+            [AppPermissions.TicketManage] = [AppPermissions.TicketView],
+            [AppPermissions.AppointmentManage] = [AppPermissions.AppointmentView],
+            [AppPermissions.PatientManage] = [AppPermissions.PatientView],
+            [AppPermissions.ImeiManage] = [AppPermissions.ImeiView],
+            [AppPermissions.TaxiTripManage] = [AppPermissions.TaxiTripView],
             [AppPermissions.LicenseManage] = [AppPermissions.LicenseView],
             // Domains/customization — view/preview/request only (not create/publish).
             [AppPermissions.WebsiteManage] =
@@ -271,6 +277,17 @@ public static class PermissionImplication
                 AppPermissions.DigitalOrdersManage,
             ],
             [AppPermissions.DailyClosingExecute] = [AppPermissions.DailyClosingView],
+            [AppPermissions.FiskalyOperationsNormal] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsCancel] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsNullbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsStartbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsMonatsbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsJahresbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsSchlussbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsTagesabschluss] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsDepExport] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsConfig] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyHistoryRetry] = [AppPermissions.FiskalyHistoryView],
         };
 
         return map.ToFrozenDictionary(

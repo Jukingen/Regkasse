@@ -5,6 +5,7 @@
 export const ACCESS_AREA_ROUTE_PATHS = [
   '/admin/access',
   '/admin/users',
+  '/admin/sessions',
   '/admin/access/roles',
   '/admin/access/matrix',
   '/admin/access/permission-history',

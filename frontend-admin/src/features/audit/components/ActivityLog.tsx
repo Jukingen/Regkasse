@@ -4,7 +4,7 @@ import { FileExcelOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Card, DatePicker, Input, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
@@ -21,9 +21,14 @@ import {
   useActivityLog,
 } from '@/features/audit/hooks/useActivityLog';
 import { resolveActivityActionLabel } from '@/features/audit/utils/resolveActivityActionLabel';
-import { useTenantStaff } from '@/features/staff/hooks/useTenantStaff';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useUsersList } from '@/features/users/hooks/useUsersList';
+import { formatRoleDisplayLabel } from '@/features/users/utils/roleDisplayLabel';
+import { activityRoleFilterValues, isPlatformUserRole } from '@/features/users/utils/userScope';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
@@ -41,10 +46,19 @@ function staffDisplayName(
 export function ActivityLog() {
   const { t, formatLocale } = useI18n();
   const { message } = useAntdApp();
+  const { user: currentUser } = useAuth();
+  const actorIsSuperAdmin = isSuperAdmin(currentUser?.role);
   const [filters, setFilters] = useState<ActivityLogFilters>(defaultActivityLogFilters);
   const [searchDraft, setSearchDraft] = useState('');
+  const debouncedSearch = useDebounce(searchDraft, 300);
 
-  const { staff, isLoading: staffLoading } = useTenantStaff({ page: 1, pageSize: 200 });
+  useEffect(() => {
+    const search = debouncedSearch.trim();
+    setFilters((prev) => (prev.search === search ? prev : { ...prev, search, page: 1 }));
+  }, [debouncedSearch]);
+
+  const usersQuery = useUsersList({ page: 1, pageSize: 100 });
+  const staffLoading = usersQuery.isLoading;
   const { activities, total, isLoading, isFetching, refetch } = useActivityLog(filters);
 
   const actionOptions = useMemo(
@@ -65,14 +79,24 @@ export function ActivityLog() {
 
   const staffOptions = useMemo(
     () =>
-      staff
+      (usersQuery.data?.items ?? [])
         .filter((user) => Boolean(user.id))
+        .filter((user) => actorIsSuperAdmin || !isPlatformUserRole(user.role))
         .map((user) => ({
           value: user.id!,
           label: staffDisplayName(user.firstName, user.lastName, user.userName),
         }))
         .sort((a, b) => a.label.localeCompare(b.label, formatLocale)),
-    [formatLocale, staff]
+    [actorIsSuperAdmin, formatLocale, usersQuery.data?.items]
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      activityRoleFilterValues(actorIsSuperAdmin).map((value) => ({
+        value,
+        label: formatRoleDisplayLabel(t, value),
+      })),
+    [actorIsSuperAdmin, t]
   );
 
   const formatActionLabel = useCallback(
@@ -142,6 +166,7 @@ export function ActivityLog() {
         endDate: to?.format('YYYY-MM-DD'),
         userId: filters.userId,
         action: filters.actionType || undefined,
+        search: filters.search.trim() || undefined,
         page: 1,
         pageSize: 1000,
       });
@@ -152,7 +177,7 @@ export function ActivityLog() {
     } catch {
       message.error(t('activity.exportFailed'));
     }
-  }, [filters.actionType, filters.dateRange, filters.userId, message, t]);
+  }, [filters.actionType, filters.dateRange, filters.search, filters.userId, message, t]);
 
   const onDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setFilters((prev) => ({
@@ -184,23 +209,44 @@ export function ActivityLog() {
           allowClear
         />
 
-        <Select
-          placeholder={t('activity.filters.userPlaceholder')}
-          style={{ minWidth: 180 }}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          loading={staffLoading}
-          value={filters.userId}
-          options={staffOptions}
-          onChange={(value) =>
-            setFilters((prev) => ({
-              ...prev,
-              userId: value,
-              page: 1,
-            }))
-          }
-        />
+        {!staffLoading && staffOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('activity.filters.userPlaceholder')}
+            style={{ minWidth: 180 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            loading={staffLoading}
+            value={filters.userId}
+            options={staffOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userId: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
+
+        {roleOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('staff.list.roleFilter')}
+            style={{ minWidth: 160 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            value={filters.userRole}
+            options={roleOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userRole: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
 
         <Select
           placeholder={t('activity.filters.actionTypePlaceholder')}
@@ -217,22 +263,25 @@ export function ActivityLog() {
           }
         />
 
-        <Input.Search
-          placeholder={t('activity.filters.search')}
-          allowClear
-          value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
-          onSearch={(value) => {
-            setSearchDraft(value);
-            setFilters((prev) => ({
-              ...prev,
-              search: value,
-              page: 1,
-            }));
-          }}
-          style={{ width: 220 }}
-        />
       </Space>
+
+      <Input.Search
+        placeholder={t('activity.filters.search')}
+        aria-label={t('activity.filters.search')}
+        allowClear
+        value={searchDraft}
+        onChange={(e) => setSearchDraft(e.target.value)}
+        onSearch={(value) => {
+          const search = value.trim();
+          setSearchDraft(search);
+          setFilters((prev) => ({
+            ...prev,
+            search,
+            page: 1,
+          }));
+        }}
+        style={{ width: '100%', maxWidth: 480, marginBottom: 16 }}
+      />
 
       <Table<ActivityLogRow>
         columns={columns}

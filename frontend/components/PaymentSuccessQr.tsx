@@ -17,8 +17,9 @@ import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Platform } from 'react-native';
 
 import { API_BASE_URL } from '../config';
+import { useRksvStatus } from '../hooks/useRksvStatus';
 import { RksvQrCodeSvg } from './RksvQrCodeSvg';
-import { resolveTenantFetchHeaders } from '../services/api/config';
+import { resolveTenantFetchRequest } from '../services/api/config';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import { posPaymentQrPngAbsoluteUrl } from '../services/api/posPaymentPaths';
 import { sessionManager } from '../services/session/sessionManager';
@@ -35,10 +36,12 @@ interface PaymentSuccessQrProps {
 
 async function fetchQrPngAsDataUrl(paymentId: string): Promise<string | null> {
   const token = await sessionManager.getAccessToken();
-  const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
-  const res = await fetch(url, {
-    headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
-  });
+  const rawUrl = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
+  const { url, headers } = await resolveTenantFetchRequest(
+    rawUrl,
+    token ? { Authorization: `Bearer ${token}` } : {}
+  );
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     console.warn('[PaymentSuccessQr] QR PNG HTTP error:', res.status, url);
     return null;
@@ -55,11 +58,13 @@ export function PaymentSuccessQr({
   size = 160,
 }: PaymentSuccessQrProps) {
   const { t } = useTranslation(['payment']);
+  const { data: rksvEnv } = useRksvStatus();
   const [serverPngDataUrl, setServerPngDataUrl] = useState<string | null>(null);
   const [pngLoading, setPngLoading] = useState(false);
 
   const qrPayload = tse?.qrPayload?.trim() || '';
-  const isDemoFiscal = tse?.isDemoFiscal === true;
+  const showDemoLabel =
+    typeof tse?.showDemoLabel === 'boolean' ? tse.showDemoLabel : rksvEnv?.showDemoLabel === true;
 
   const clientEcl = useMemo(() => (qrPayload ? resolveRksvQrEcl(qrPayload) : null), [qrPayload]);
 
@@ -115,9 +120,9 @@ export function PaymentSuccessQr({
       style={styles.container}
       accessibilityLabel={t('tse.qrAccessibilityLabel', 'RKSV QR-Code')}
       testID="payment-success-qr">
-      {isDemoFiscal && (
+      {showDemoLabel && (
         <View style={styles.demoBanner}>
-          <Text style={styles.demoText}>{t('tse.demoFiscalWarning', 'DEMO / FISKAL DEĞİL')}</Text>
+          <Text style={styles.demoText}>{t('tse.demoFiscalWarning', 'DEMO / NICHT FISKAL')}</Text>
         </View>
       )}
       <View style={styles.qrWrapper}>

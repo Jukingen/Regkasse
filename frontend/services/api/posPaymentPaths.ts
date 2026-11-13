@@ -6,7 +6,7 @@
  * Do not duplicate `/pos/payment` or raw `/Payment` path fragments elsewhere in POS — import helpers here and call through `paymentService`.
  *
  * Admin payments/reporting use `/api/admin/payments` (and related admin surfaces), never this POS prefix.
- * Legacy `/api/Payment/*` is deprecated (Sunset 2026-09-30); do not reintroduce it in clients.
+ * Legacy `/api/Payment/*` was removed (2026-08-13); do not reintroduce it in clients.
  */
 export const POS_PAYMENT_API_PREFIX = '/pos/payment';
 
@@ -33,4 +33,17 @@ export function posPaymentByIdPath(paymentId: string, tail?: string): string {
 export function posPaymentQrPngAbsoluteUrl(apiBaseUrl: string, paymentId: string): string {
   const base = apiBaseUrl.replace(/\/+$/, '');
   return `${base}${POS_PAYMENT_API_PREFIX}/${encodeURIComponent(paymentId)}/qr.png`;
+}
+
+/** POST — start hosted online payment (Kreditkarte / PayPal). Relative to `/api`. */
+export const POS_PAYMENT_INITIATE_PATH = `${POS_PAYMENT_API_PREFIX}/initiate` as const;
+
+export function posPaymentInitiatePath(): string {
+  return POS_PAYMENT_INITIATE_PATH;
+}
+
+/** GET — poll hosted online payment status. Relative to `/api`. */
+export function posPaymentInitiateStatusPath(onlinePaymentId: string): string {
+  const id = encodeURIComponent(onlinePaymentId.trim());
+  return `${POS_PAYMENT_INITIATE_PATH}/${id}`;
 }

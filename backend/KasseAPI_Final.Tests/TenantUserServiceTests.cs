@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -12,7 +13,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -65,13 +68,19 @@ public sealed class TenantUserServiceTests
         IQuickUserGeneratorService? quickUserGenerator = null,
         IAuditLogService? auditLog = null,
         ICurrentTenantAccessor? tenantAccessor = null,
-        IUserRoleChangeService? userRoleChangeService = null)
+        IUserRoleChangeService? userRoleChangeService = null,
+        string actorRole = Roles.SuperAdmin,
+        KasseAPI_Final.Services.Limits.ITenantLimitGuard? tenantLimitGuard = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var roleChange = userRoleChangeService ?? new UserRoleChangeService(
             userManager,
             audit,
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
+            new MemoryCacheService(
+                new MemoryCache(new MemoryCacheOptions()),
+                NullLogger<MemoryCacheService>.Instance,
+                new KasseAPI_Final.Services.Metrics.CacheMetricsService()),
             Mock.Of<ILogger<UserRoleChangeService>>());
 
         var httpContext = new DefaultHttpContext
@@ -81,7 +90,7 @@ public sealed class TenantUserServiceTests
                     [
                         new System.Security.Claims.Claim(
                             System.Security.Claims.ClaimTypes.Role,
-                            Roles.SuperAdmin),
+                            actorRole),
                         new System.Security.Claims.Claim(
                             System.Security.Claims.ClaimTypes.NameIdentifier,
                             "test-super-admin"),
@@ -108,7 +117,9 @@ public sealed class TenantUserServiceTests
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
-            Mock.Of<ILogger<TenantUserService>>());
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
+            Mock.Of<ILogger<TenantUserService>>(),
+            tenantLimitGuard);
     }
 
     private static Mock<IAuditLogService> CreateAuditMock()
@@ -233,11 +244,70 @@ public sealed class TenantUserServiceTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db, CreateUserManager(db));
-        var rows = await service.ListAsync(tenantId);
-        Assert.NotNull(rows);
-        var row = Assert.Single(rows!);
+        var page = await service.ListAsync(tenantId);
+        Assert.NotNull(page);
+        var row = Assert.Single(page!.Items);
         Assert.Equal("cashier99", row.UserName);
         Assert.Equal("list-user", row.UserId);
+        Assert.Equal(1, page.TotalCount);
+    }
+
+    [Fact]
+    public async Task ListAsync_Paginates_AndDoesNotReturnEveryRow()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Paged Cafe",
+            Slug = "paged-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        for (var i = 0; i < 3; i++)
+        {
+            var userId = $"paged-user-{i}";
+            db.Users.Add(new ApplicationUser
+            {
+                Id = userId,
+                UserName = $"paged{i}",
+                Email = $"paged{i}@cafe.test",
+                FirstName = "Paged",
+                LastName = $"User{i:D2}",
+                EmployeeNumber = $"EMP-{i}",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            db.UserTenantMemberships.Add(new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var first = await service.ListAsync(tenantId, page: 1, pageSize: 2);
+        Assert.NotNull(first);
+        Assert.Equal(3, first!.TotalCount);
+        Assert.Equal(2, first.Items.Count);
+        Assert.Equal(1, first.Page);
+        Assert.Equal(2, first.PageSize);
+
+        var second = await service.ListAsync(tenantId, page: 2, pageSize: 2);
+        Assert.NotNull(second);
+        Assert.Single(second!.Items);
+        Assert.Equal(3, second.TotalCount);
+        Assert.Empty(first.Items.Select(row => row.UserId).Intersect(second.Items.Select(row => row.UserId)));
     }
 
     [Fact]
@@ -307,6 +377,48 @@ public sealed class TenantUserServiceTests
 
         var created = await db.Users.AsNoTracking().SingleAsync(u => u.Email == "create@cafe.test");
         Assert.Null(created.TaxNumber);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTenantUserLimitExceeded_ReturnsLimitError()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Capped Cafe",
+            Slug = "capped-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var guard = new Mock<KasseAPI_Final.Services.Limits.ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanCreateUserAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new KasseAPI_Final.Services.Limits.LimitExceededException(
+                TenantLimitKeys.MaxUsersPerTenant,
+                1,
+                1,
+                "Maximum 1 users per tenant reached"));
+
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantLimitGuard: guard.Object);
+        var (result, error) = await service.CreateAsync(
+            tenantId,
+            new CreateTenantUserRequest { Email = "over@cafe.test", Role = Roles.Cashier },
+            Guid.NewGuid().ToString("D"),
+            Roles.SuperAdmin);
+
+        Assert.Null(result);
+        Assert.NotNull(error);
+        Assert.StartsWith(KasseAPI_Final.Services.Limits.LimitExceededException.ErrorCodeValue, error);
+        Assert.Equal(0, await db.Users.CountAsync(u => u.Email == "over@cafe.test"));
     }
 
     [Fact]
@@ -490,7 +602,7 @@ public sealed class TenantUserServiceTests
     [Fact]
     public async Task CreateAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
     {
-        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         await using var db = CreateDb(tenantAccessor);
         await SeedRolesAsync(db);
         var targetTenantId = Guid.NewGuid();
@@ -771,7 +883,11 @@ public sealed class TenantUserServiceTests
             });
         await db.SaveChangesAsync();
 
-        var service = CreateService(db, CreateUserManager(db), tenantAccessor: tenantAccessor);
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantAccessor: tenantAccessor,
+            actorRole: Roles.Manager);
         var result = await service.ListAsync(tenantB);
 
         Assert.Null(result);

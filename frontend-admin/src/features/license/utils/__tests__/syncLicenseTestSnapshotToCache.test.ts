@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { tenantLicenseUnifiedQueryKeyFor } from '@/api/manual/adminLicense';
 import type { LicenseTestSnapshot } from '@/features/license/api/licenseTest';
@@ -7,6 +7,15 @@ import { tenantLicenseQueryKeys } from '@/features/license/api/tenantLicense';
 import { syncLicenseTestSnapshotToCache } from '@/features/license/utils/syncLicenseTestSnapshotToCache';
 
 describe('syncLicenseTestSnapshotToCache', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-15T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('writes unified and admin detail caches from test snapshot', () => {
     const queryClient = new QueryClient();
     const tenantId = 'b0000001-0001-4001-8001-000000000001';

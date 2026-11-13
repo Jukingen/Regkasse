@@ -22,6 +22,7 @@ import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { useSystem } from '../contexts/SystemContext';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
+import { useTseHealth } from '../hooks/useTseHealth';
 import { cartService } from '../services/api/cartService';
 import { customerService } from '../services/api/customerService';
 import paymentService, {
@@ -42,6 +43,7 @@ import {
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
 import { validateAmount } from '../utils/validation';
+import { shouldRequireTseForPosPayment } from '../utils/shouldRequireTseForPosPayment';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
 type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
@@ -113,6 +115,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
 }) => {
   const { t, i18n } = useTranslation(['checkout', 'payment', 'common', 'settings']);
   const { isOnline } = useSystem();
+  const tseHealth = useTseHealth();
   const {
     cashRegisterId,
     cashRegisterResolved,
@@ -333,7 +336,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         taxType: line.taxType as PaymentItem['taxType'],
       }));
 
-      const shouldRequireTse = !__DEV__;
+      const shouldRequireTse = shouldRequireTseForPosPayment(tseHealth.requiresFiscalSignature);
 
       const idempotencyKey =
         typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -390,9 +393,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       }
 
       try {
-        await receiptPrinter.print(response.paymentId, {
-          isDemoFiscal: response.tse?.isDemoFiscal ?? false,
-        });
+        await receiptPrinter.print(response.paymentId);
       } catch (printErr) {
         if (!isPrintCancelled(printErr)) {
           console.error('[PaymentScreen] Print failed:', printErr);

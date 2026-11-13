@@ -43,6 +43,16 @@ export interface BackupDashboardStatsResponseDto {
   lastSuccessfulRestoreDrillAtUtc?: string | null;
   latestRestoreDrillStatus?: number;
   lastVerifiedBackupAtUtc?: string | null;
+  lastVerificationStatus?: number | null;
+  lastVerificationRunId?: string | null;
+  rpoStatus?: string | null;
+  healthScore?: number;
+  healthLevel?: string | null;
+  contentValidationSummary?: {
+    status?: string | null;
+    summary?: string | null;
+    lastSucceededRunId?: string | null;
+  } | null;
   averageSucceededBackupDurationSeconds?: number | null;
   averageSucceededBackupDurationSampleCount?: number;
   configurationHealth?: BackupConfigurationHealthResponseDto;

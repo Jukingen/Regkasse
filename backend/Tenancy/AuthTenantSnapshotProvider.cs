@@ -48,7 +48,7 @@ public sealed class AuthTenantSnapshotProvider : IAuthTenantSnapshotProvider
             }
         }
 
-        var primary = LegacyDefaultTenantIds.Primary;
+        var primary = SystemTenantIds.Platform;
         var rowDefault = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)
             .ConfigureAwait(false);

@@ -1,0 +1,488 @@
+---
+description: Backend conventions for ASP.NET Core, EF Core, auth, caching, backup, and SaaS limits
+globs: backend/**/*.cs
+alwaysApply: false
+---
+
+# Backend
+
+Follow nearby C# patterns. Fiscal signing, receipt numbers, and DEP export rules are in `.cursor/rules/104-fiscal.mdc`. Database migrations are in `.cursor/rules/103-database.mdc`.
+
+## EF Core and tenant filters
+- Tenant-scoped tables MUST have non-null `tenant_id` on entities implementing `ITenantEntity`.
+- EF Core global query filters in `AppDbContext` automatically filter by `ICurrentTenantAccessor.TenantId`.
+- Cross-tenant access MUST return HTTP 404 (NOT 403).
+- NEVER use `IgnoreQueryFilters()` except for Super Admin operations.
+- Startup and singleton hosted services have **no HTTP request**; `ICurrentTenantAccessor.TenantId` may be null.
+- Singletons that need EF must use **`IServiceScopeFactory.CreateScope()`** before `IDbContextFactory<AppDbContext>`.
+- `AppDbContext` + `ICurrentTenantAccessor` are **scoped** — do not create DbContext from the root provider inside a singleton.
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await factory.CreateDbContextAsync(ct);
+```
+
+Full tenant resolution, Super Admin exemptions, and impersonation: `.cursor/rules/000-core.mdc`.
+
+## License Sales (Super Admin Only)
+
+- License sales are independent from RKSV/fiscal system
+- All sales are logged in `billing_audit_log` (not fiscal audit)
+- Invoices are generated as PDF with company logo and VAT breakdown
+- Unified license keys: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{8 alnum}` (mandant). Deployment keys use slug `system`. Legacy `REGK-XXXXX-XXXXX-XXXXX` is still accepted for on-prem display keys.
+- Mandanten-Admins (`Manager` role) can extend licenses using license keys provided by Super Admin. Activation: `POST /api/license/activate` (POS + FA).
+
+**Docs:** `docs/BILLING_TENANT_LICENSE.md`, `docs/API_CONTRACTS.md` (Billing section), `ai/modules/billing_license.md`
+
+## Trial / Demo system
+
+SaaS mandant trials are first-class (`Trial` config section, `ITrialService`). Not a POS/RKSV flow.
+
+| Item | Detail |
+|------|--------|
+| Config | `Trial:*` — `Enabled`, `DefaultDurationDays` (14), `AllowedDurationDays` `[14,30,60,90]`, `GracePeriodDays` (7), `AutoDeleteAfterGraceDays` (30), `ReminderDays` `[7,3,1]`, `MaxRegistersInTrial` (1), `MaxUsersInTrial` (3), `DemoCatalogImport` |
+| Statuses | `active` → `expired` (grace) → soft `deleted` (RKSV retained) or `converted` |
+| Super Admin API | `/api/admin/trials` (dashboard, analytics, grant/extend/convert/delete) |
+| Super Admin UI | `/admin/trials` |
+| Conversion | `ITrialConversionService` + license sale (`ConvertedFromTrial`); keeps remaining trial days by default |
+| Jobs | `TrialReminderHostedService` (interval hours), `TrialCleanupHostedService` (daily UTC hour) |
+| Limits | `TrialLimitGuard` — extra registers/users while trial is open → `TrialLimitExceededException` |
+
+Wizard create-tenant can start a managed trial (syncs `LicenseValidUntilUtc`, no paid `LicenseKey` until conversion).
+
+## Tenant Limits
+
+Per-mandant operational caps (`tenant_limits`, one row per tenant). Defaults are applied when the row is missing. Full reference: [`docs/TENANT_LIMITS.md`](../../docs/TENANT_LIMITS.md). Config TTL: `CacheSettings:TenantLimitsCacheMinutes` (5).
+
+| Key | Default | Where it fires |
+|-----|---------|----------------|
+| `maxActiveRegistersPerUser` | 5 | FA cash-register assignment |
+| `maxProductsPerTenant` | 10000 | Product create |
+| `maxUsersPerTenant` | 50 | User create / invite |
+| `dailyMaxTransactions` | 1000 | POS sale |
+| `maxTransactionAmount` | 10000 EUR | POS sale |
+| `dailyMaxRevenue` | 50000 EUR | POS sale |
+| `maxBackupsPerTenant` | 50 | Tenant backup trigger |
+| `maxBackupSizeMB` | 500 | Tenant backup (cumulative dump size) |
+| `maxOfflineTransactions` | 50 | TSE offline intent queue (tenant-wide) |
+
+- HTTP **409** + `LimitErrorDto` (`code=LIMIT_EXCEEDED`, `limitKey`, `limit`, `current`, `message`, `canForce`).
+- SuperAdmin **override** (`force=true`) exists **only** for assignment (`maxActiveRegistersPerUser`).
+- Offline queue SoT is `tenant_limits`, **not** `TseOptions.MaxOfflineTransactionsPerCashRegister` (obsolete bind-only).
+- Distinct from `TrialLimitGuard` and `TenantOperationLimits` — do not merge.
+
+Usage: `GET /api/admin/limits`. Dashboard: `GET /api/admin/limits/dashboard` (`license.manage`). Super Admin: `?allTenants=true` or no ambient tenant = all mandants; `?tenantId=` = one mandant. Mandanten-Admin: **own ambient tenant only** — `tenantId` / `allTenants` query is **ignored** (HTTP **200** own dashboard, not 404). DTO: `lastUpdated`, `summary` (healthy/warning/critical/total), per-limit `Healthy`/`Warning` (≥80%)/`Critical` (≥100%) with 7-day trend, critical users (`Approaching`/`Full`/`Exceeded`), `recentActivity`. Super Admin CRUD: `/api/admin/tenants/{id}/limits`.
+Activity feed: `LimitApproaching` (≥80%) and `LimitExceeded` (>100%) — in-app + email/webhook to Mandanten-Admin and Super Admin. FA: `/admin/limits/dashboard`.
+
+**Development Limit Test Panel** (`/admin/development/limits`, `/api/dev/limits/*`): SuperAdmin + Development only (`system.critical`). SuperAdmin + Production → FA UI 404 + API 404. Mandanten-Admin / Cashier → FA **403** (not 404). `/api/dev/limits` is **not** a SuperAdmin ambient-tenant exemption — missing ambient tenant → middleware **404**. Caps move relative to live usage (`near` / `at` / `tiny` / `reset`); no fiscal test rows. Details: [`docs/TENANT_LIMITS.md`](../../docs/TENANT_LIMITS.md) § Development Limit Test Panel.
+
+## Self-service portal (Mein Konto)
+
+Mandanten-Admin hub for license, invoices, profile, and support. Permission: `license.manage` (Super Admin via `system.critical`).
+
+| FA page | Purpose | API |
+|---------|---------|-----|
+| `/tenant/portal` | Mein Konto hub | onboarding + license status |
+| `/tenant/license` | Activate / extend / status | `POST /api/license/activate`, tenant license APIs |
+| `/tenant/invoices` | Billing invoices + PDF | `GET /api/admin/billing/tenant-invoices` |
+| `/tenant/profile` | Company / account profile | tenant settings |
+| `/tenant/support` | Own tickets | `GET/POST /api/admin/support/tickets` |
+| `/admin/support` | Super Admin inbox (all tenants) | `/api/admin/support/admin/tickets` |
+
+Cross-tenant ticket access → HTTP **404**. Staff internal notes are hidden from Mandanten-Admin.
+
+## Unified license
+
+One REGK format for mandant billing and deployment keys (`LicenseKeyGenerator`):
+
+- **Mandant:** `REGK-yyyyMMdd-{tenantSlug}-{8}` — slug is the mandant; date is `validUntil` UTC.
+- **Deployment / system:** slug `system` (`LicenseKeyKinds.System`).
+- **Legacy on-prem display:** `REGK-XXXXX-XXXXX-XXXXX` still validates via `RegkTenantLicenseKeyFormat`.
+- Activate once: `POST /api/license/activate`. Status: `GET /api/license/status`. Cache key `license_status_{tenantId}` (5 min) + invalidation on sale/activate/extend.
+
+Do not invent a second key family. Reserved slugs (`pos`, `api`, `admin`, `www`) are rejected as key slugs.
+
+## Authentication & User Management
+
+### Login Methods
+- **Email:** `user@example.com`
+- **Username:** `manager1`, `cashier2` (case-insensitive)
+- Login endpoint: `POST /api/Auth/login` with `loginIdentifier` field
+
+```typescript
+// Use this:
+{ "loginIdentifier": "manager1", "password": "..." }
+// loginIdentifier can be email OR username (case-insensitive)
+
+// Deprecated (do not use in new code):
+{ "email": "user@example.com", "password": "..." }
+```
+
+### Username Rules
+- Min 3, max 50 characters
+- Allowed: `a-z`, `0-9`, `_`, `-`
+- Case-insensitive (`Mustafa = mustafa = MUSTAFA`)
+- Auto-generated on Quick Create: `{rolePrefix}{nextNumber}`
+
+### Password Rules
+- Min 8 characters
+- Generated on user creation (displayed once, never stored in plain text)
+- Force change on first login when configured
+
+### SuperAdmin two-factor authentication (2FA)
+
+**Hub:** [`docs/AUTH_TWO_FACTOR.md`](../../docs/AUTH_TWO_FACTOR.md)
+
+| Environment | SuperAdmin | Others |
+|-------------|------------|--------|
+| Development (`TwoFactorAuth:BypassInDevelopment=true`) | No 2FA challenge | Unchanged |
+| Production (`TwoFactorAuth:Enabled=true`) | TOTP after password (`POST /api/Auth/verify-2fa`) | Unchanged |
+
+- Config section: `TwoFactorAuth` (`Enabled`, `BypassInDevelopment`, `TestToken`). Bypass codes (`DEV-2FA-BYPASS` / `TestToken`) work **only** in Development.
+- FA: `TwoFactorAuth.tsx` — Dev Alert + Continue; Production authenticator form.
+- Not SMS; Identity authenticator TOTP. Not applied to Mandanten-Admin / Cashier by default.
+
+### Username Change Requirements
+- MUST log `AuditEventType.UserNameChanged`
+- MUST store both `old_username` and `new_username` in audit
+- MUST require reason field (optional but recommended)
+- MUST invalidate all active sessions for the user
+- MUST check username uniqueness (case-insensitive)
+
+### Roles
+
+Canonical backend role names (database / JWT / API) and Admin UI display labels (German default):
+
+| Backend (`Roles.cs`) | UI display (de) | Scope |
+|----------------------|-----------------|-------|
+| **SuperAdmin** | Super-Administrator | System-wide administrator |
+| **Manager** | **Mandanten-Admin** | Tenant-level administrator |
+| **Cashier** | Kassierer | POS operations |
+| **Waiter** | Kellner | Order taking |
+| **Kitchen** | Küche | Kitchen display |
+| **Accountant** | Buchhaltung | Financial reporting |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
+
+- **SuperAdmin**: Full system access; platform operator on `admin.regkasse.at`.
+- **Cache troubleshooting:** Super Admin may clear domain cache via `POST /api/admin/cache/clear` (`tenantId` / `prefix` / `clearAll`) or FA Systemwartung → Cache leeren. Prefer automatic invalidation; manual clear is for emergencies (see `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` § Cache Management).
+- **Mandanten-Admin (`Manager`)**: Tenant administrator — users, settings, reports, backup (`backup.manage`) for **their** tenant only; cannot access other tenants.
+- Backend role string remains `"Manager"` for compatibility; only UI labels use **Mandanten-Admin** (see `users.roles.displayNames` in FA i18n).
+
+#### Digital services & online orders (role matrix)
+
+Source of truth: `backend/Authorization/RolePermissionMatrix.cs`, `AppPermissions.cs`. Website/app generation and online orders are **not** POS/RKSV/TSE flows (`online_orders` table; status-only fulfillment).
+
+| Role | Digital services (website / app) | Online orders (website / app) |
+|------|----------------------------------|-------------------------------|
+| **SuperAdmin** | Create, publish, edit, delete, activate, pricing (`digital.create` / `publish` / `edit` / `delete` / `manage` / …) | Full: view, status manage, optional POS cart bridge approve (`digital.orders.view` / `manage` / `approve`) |
+| **Manager** (Mandanten-Admin) | View own services, preview templates, request creation (`digital.view` / `preview` / `request`). **No** create / publish / delete | View + status lifecycle only (`digital.orders.view` / `manage`). **No** POS cart push (`digital.orders.approve`) |
+| **Cashier** (and other POS roles) | **No** digital service permissions by default | **No** `digital.orders.*` by default (POS `order.*` is separate) |
+
+**FA surfaces:** Super Admin `/admin/digital`, `/admin/digital/requests`; Manager `/settings/digital`, `/orders/online` (alias `/online-orders`), `/tenant/{id}/website-preview`, `/tenant/{id}/orders`. Sidebar: nested **Digitale Dienste** under Einstellungen (Manager) and Lizenzverwaltung (Super Admin). i18n: `digital.*`, `nav.digital*`, `tenants.digitalServices.*`, `onlineOrders.*`.
+
+**Customer website runtime (`frontend-sites/`):** Shared Next.js app for tenant storefronts (`/[slug]`), public catalog (`/api/public/tenants/*`, `/api/sites/{slug}/status`), and online-order intake UI. Not fiscal/POS. Working hours gate intake only. Locale catalogs for Sites are **deferred** in `localization/namespace-manifest.json` (German hardcoded UI today) — register namespaces when i18n is added. Dev: `npm run dev:sites` (port **3001**).
+
+#### Working hours (website/app only)
+
+**Hub:** [`docs/WORKING_HOURS.md`](../../docs/WORKING_HOURS.md)
+
+Working hours (`CompanySettings.WorkingHours` JSON) restrict **customer online-order intake only**. They must **never** gate POS, FA, or authenticated POS/admin APIs.
+
+| Applies to | Does **not** apply to |
+|------------|------------------------|
+| Tenant websites / PWAs / native apps (display + order CTAs) | POS FE — always open for cart / payment / register |
+| `GET /api/sites/{tenantSlug}/status` (website status) | FA — full schedule management (`/settings/working-hours`) |
+| `POST /api/public/online-orders` when `!canOrder` → `ONLINE_ORDERS_CLOSED` | Authenticated `/api/pos/*`, `/api/admin/*`, Auth, fiscal flows |
+
+- **Server gate:** `OnlineOrderIntakeService` → `WorkingHoursSettings.EvaluateWebsiteStatus` / `CanOrder` (stop-before-close cutoff included).
+- **POS:** `app/(tabs)/cash-register.tsx` never checks hours; `useWorkingHours` / `posOperationsAllowed` is **always** `true` — schedule is display + Tagesabschluss reminder only.
+- **FA:** configures hours; protection note in i18n (`settings.workingHours.protectionNote`); never access-gated by open/closed.
+- **Contract tests:** `WorkingHoursPosFaNonGatingContractTests`, POS `workingHoursStatus` tests, FA `workingHoursNonGating.contract.test.ts`.
+
+#### Expired license — customer data management (RKSV)
+
+| State | Days overdue | POS | FA | Data |
+|-------|--------------|-----|----|------|
+| **Active** | ≤0 | Full | Full | Full |
+| **Grace** | 1–7 | Full (warnings) | Full | Full |
+| **Locked** | 8–30 | Blocked | Read-only | Read-only |
+| **Archived** | &gt;30 | Blocked | Read-only | Read-only |
+| **ExportRequest** | overlay | Blocked | Limited | Export + deletion request |
+| **Deleted** | purge done | Blocked | Limited | RKSV-only retained |
+
+##### GDPR data request types
+
+| Type | Description | Approval | Processing time |
+|------|-------------|----------|-----------------|
+| **View** | View all data (inventory summary) | Auto | Instant |
+| **Export** | Download all data (ZIP artifact) | Auto | &lt; 24 hours |
+| **Delete** | Delete all non-RKSV data | Manual + 7 days | 7 days |
+
+- Entity: `TenantDataRightsRequest` (`tenant_data_rights_requests`); services: `IDataAccessService` (access control), `ICustomerDataRightsService` (fulfillment).
+- Access control (`DataAccessService.ProcessRequestAsync`): **View/Export** auto-approved then processed; **Delete** → `pending_approval` + Super Admin notify (`DataAccessDeleteRequested` activity + email) before Manager confirm / 7-day purge.
+- API: `GET …/data-management/request-types`, `GET/POST …/requests` (returns `DataAccessResult`; Delete → HTTP 202), `GET …/requests/{id}/download`, `POST …/requests/{id}/confirm|execute` (`backup.manage`; execute Super Admin only).
+- Legacy sync routes (`GET …/export`, `POST …/deletion-request*`) remain; they create/link typed rights requests where applicable.
+- Export flow (`DataExportService.CreateExportAsync(requestId)`): collect → ZIP → `App_Data/data-exports/` → opaque download token (7 days) → notify requester (`DataExportReady` + email). Public download: `GET /data/download/{token}` (`DataExport:PublicApiBaseUrl`, default `https://api.regkasse.at`). Retry via `DataRightsExportProcessorService` (15 min).
+- Export JSON shape (`data-export.json` in ZIP, `regkasse.tenant-data-export.v2`): `{ tenant: { name, slug, exportedAt }, data: { products, categories, customers, payments, receipts, invoices, orders, vouchers, settings }, rksv: { note, retentionUntil } }`. RKSV rows (`payments` / `receipts` / `invoices`) are **masked** (TSE/JWS/QR secrets → `***`); Identity credentials excluded.
+- Delete links to `TenantDataDeletionRequest` + `DataDeletionService` (RKSV retention unchanged).
+
+- Thresholds: `LicenseGracePeriodConfig` (`GracePeriodDays=7`, `ArchiveAfterDays=30`); resolver: `ILicenseLifecycleResolver`.
+- POS lockdown: `LicenseMiddleware` blocks `IsPosOperation`; FA writes gated by `TenantOperationalGateMiddleware` (data-management routes allowed).
+- FA page: `/tenant/[id]/data-management` — GDPR request types, inventory, ZIP export, deletion request/confirm, RKSV 7-year note.
+- API: `GET/POST …/data-management*` (`backup.manage`); Super Admin `POST …/execute`; services: `DataExportService`, `DataDeletionService`, `CustomerDataRightsService`.
+- Deletion flow: **Archived only** → request → FA confirm (Manager + Super Admin CC email) → **7-day wait** → auto-purge (`AutoPurgeService`, daily) or Super Admin execute.
+- Purge deletes: products, categories, customers, company settings, customizations, non-fiscal invoices (`SourcePaymentId` null); soft-removes memberships + deactivates users.
+- Purge **keeps**: payments, receipts, fiscal invoices, audit, TSE, online orders, vouchers. Irreversible (`CustomerDataPurgedAtUtc`); restore from backup only.
+
+### User Permissions
+- `users.view` - View user list
+- `users.manage` - Create/edit/delete users
+- `settings.view` - View system settings (includes backup status/history routes)
+- `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Mandanten-Admin (`Manager`) by default)
+- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`. Also covers expired-license **data management** export / deletion request.
+- `website.manage` - Tenant domain / customization (implies digital view/preview/request, not create/publish)
+- `digital.view` / `digital.preview` / `digital.request` - Mandanten digital portal (status, preview, request)
+- `digital.create` / `digital.publish` / `digital.edit` / `digital.delete` / `digital.manage` - Super Admin website/app generators and platform digital control
+- `digital.orders.view` / `digital.orders.manage` - FA online-order inbox (status updates; **not** fiscal POS)
+- `digital.orders.approve` - Super Admin only (optional POS cart bridge on accept)
+- `reports.view` - View reports
+- `reports.export` - Export reports
+- **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
+- **Admin session filter:** JWT/`/me` permissions for `app_context=admin` via `AdminAppPermissionProfile` (Cashier whitelist; Mandanten-Admin strips POS-terminal keys)
+
+## Audit & Compliance
+
+### Mandatory Audit Fields
+Every fiscal or security-sensitive operation MUST log:
+- `actor_user_id` - Who performed the action
+- `actor_role` - Their role (`SuperAdmin`, `Manager`, `Cashier`)
+- `tenant_id` - Which tenant (`NULL` only for system operations)
+- `action_type` - From `AuditEventType` enum (see `backend/Models/AuditEventType.cs`)
+- `old_values` / `new_values` - For sensitive changes
+- `correlation_id` - For tracking related events
+- `ip_address` - Client IP
+- `timestamp_utc` - UTC timestamp
+
+### Audit Event Types (`AuditEventType`)
+Security and lifecycle audit log — source of truth: `backend/Models/AuditEventType.cs`.
+
+Key values include: `UserCreated`, `UserUpdated`, `UserRoleChanged`, `UserDeactivated`, `UserReactivated`, `UserDeleted`, `UserNameChanged`, `PasswordResetForced`, `UserTenantMembershipChanged`, `RestoreRequested`, `RestoreApproved`, `RestoreRejected`, `RestoreCompleted`, `RestoreFailed`, `FinanzOnlineOutboxRetried` (139), `FinanzOnlineOutboxBulkRetried` (140), `FinanzOnlineOutboxMarkedResolved` (141).
+
+Do **not** confuse with `ActivityEventType` (admin activity feed / notifications).
+
+### Activity Feed Event Types (`ActivityEventType`)
+Admin bell / SSE / email / webhook — source of truth: `backend/Models/ActivityEventType.cs`.
+
+Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`, `DailyClosingBackdatedCreated`, `DailyClosingPendingReminder`.
+
+### Data Retention
+- Audit logs: minimum 7 years
+- Payment data: minimum 7 years
+- User data: keep until account deletion; preserve when legal hold applies
+
+## Backup & Disaster Recovery
+
+**Hub doc:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](../../docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](../../docs/BACKUP_SYSTEM.md)  
+**Permissions:** [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md) · **Content/cost:** [`docs/BACKUP_CONTENT_POLICY.md`](../../docs/BACKUP_CONTENT_POLICY.md) · **Restore boundary:** [`docs/restore-boundary-notes.md`](../../docs/restore-boundary-notes.md)
+
+### Backup Types
+- **Tenant Backup** (`BackupStrategyKind.Tenant`): Mandanten-Admin (`Manager`) — single-tenant business/fiscal package (`*.tenant.zip`). Facade: `IBackupService.CreateTenantBackupAsync`.
+- **System Backup** (`BackupStrategyKind.System`): Super Admin — full instance `pg_dump` + structured `*.system.zip` (all active tenants, Identity, licenses, platform). Facade: `IBackupService.CreateSystemBackupAsync`. Scheduled cron uses System strategy (`BackupScheduledEnqueueService`).
+
+### Backup Content
+| Included | Tenant | System |
+|----------|--------|--------|
+| Payments, receipts, products, customers, vouchers, cash registers, fiscal rows | Yes (own tenant) | Yes (all tenants) |
+| Reports / invoices (DB metadata; PDF bytes under `report-pdfs/` are filesystem, not in dump) | Yes | Yes |
+| Audit logs (read-only history in package) | Tenant-scoped | Full / deployment |
+| User credentials (`AspNet*` Identity) | **No** | **Yes** |
+
+Sensitive data in manifests/logs MUST be masked. Backup metadata MUST include `strategy`, optional `tenant_id`, actor, timestamps, and `status`.
+
+### Retention Policy
+- **Tenant Backup:** default **30** days (admin API / FA clamp **7–90**)
+- **System Backup:** default **90** days
+- Auto-delete of expired succeeded artifacts after each succeeded run (`BackupSucceededRunRetentionCleaner`)
+- Optional GFS smart retention (`Backup:SmartRetentionEnabled`): 7 daily / 4 weekly / 12 monthly / 7 yearly sparse archives via `SmartRetentionService` (replaces flat cutoff when enabled)
+- Optional storage tiers (`Backup:StorageTierManagementEnabled`): Hot ≤30d / Warm ≤90d / Cold &gt;90d via `StorageTierService` (Super Admin FA `/backup/retention`). Cold upload is explicit via `ICloudStorageService` (Filesystem WORM, S3 Glacier, Azure Archive, GCS Coldline). System backups keep a 7-year Legal Hold (BAO §132).
+- Storage cost dashboard: `GET /api/admin/backup/storage-costs` + FA `/backup/costs` (indicative EUR rates, not invoices)
+- Optional daily cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`): retention delete + tier retag + `BACKUP_AUTO_DELETED` audit
+
+### Restore Rules (HIGH RISK)
+- Restore only into **same tenant** when ambient tenant and `backup_runs.tenant_id` are both set (RKSV / isolation gate via `IRestoreService`)
+- **No backdating** of restored fiscal timestamps (`IssuedAt` / receipt times are not rewritten)
+- **Full audit trail** required (`AuditEventType.Restore*`, correlation IDs)
+- Cross-tenant restore via API is **prohibited** (404 semantics)
+- NEVER automatic restore to production; validation-only isolated DB (`restore_validation_*`); dual Super Admin approval
+- Tenant ZIP packages are **not** `pg_restore`-compatible; validation restore stays on System `pg_dump` artifacts
+
+### Permissions
+
+| Actor | Allowed |
+|-------|---------|
+| **Mandanten-Admin (`Manager`)** | View / list / trigger **own Tenant** backups (`settings.view` + `backup.manage`); download own tenant packages; schedule/retention for tenant scope. **No** System list/download. **No** restore / restore-drill. |
+| **Super Admin** | View / list **all** backups + System backup; trigger System; execution mode (`settings.manage`); validation restore + restore drills (dual approval where required) |
+
+**Permission keys:** `settings.view` (read), `backup.manage` (trigger + schedule + tenant download/import), `settings.manage` (platform ops; implies `backup.manage`). Mandanten-Admin must **not** receive `settings.manage` for backup-only access.
+
+**Tenant scoping:** Trigger body does not accept client `tenantId`; non–Super Admin requires JWT tenant context (`TENANT_CONTEXT_REQUIRED`). List/download/run access: `BackupRunAccessEvaluator` — Managers see only `strategy=Tenant` + own `tenant_id` (System dumps are Super Admin only).
+
+**FA UI:** `/backup` hub is role-aware (`TenantBackupView` vs `SystemBackupView`). Related: `/backup/dashboard`, runs, configuration, audit, **`/backup/costs`** (storage cost), **`/backup/compliance`** (RKSV product-gate readiness).
+
+### Backup Status (`BackupRunStatus`)
+`Queued`, `Running`, `AwaitingVerification`, `Succeeded`, `Failed`, `VerificationFailed`, `Cancelled`
+
+### Operational extras
+- Staging disk usage alerts at **80%** (`Backup:StagingDiskUsageAlertPercent`) + periodic `StorageAlertService`
+- Enqueue storage budget guard (~**10 GB** succeeded dumps via `BackupService.MaxStorageBytes`)
+- Optional automatic cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`) with `BACKUP_AUTO_DELETED` audit
+
+### Backup Configuration
+```yaml
+enabled: true
+scheduleCron: "0 2 * * *"  # Daily 02:00 UTC (System strategy)
+retentionDays: 30           # Tenant default; System default 90 via strategy policy
+# SmartRetentionEnabled: false  # optional GFS 7/4/12/7 via SmartRetentionService
+# StorageTierManagementEnabled: false
+# AutomaticCleanupEnabled: false
+executionMode: "PgDump"     # Fake, PgDump, ProductionStub
+externalArchiveRoot: "/backup/archive"  # Super Admin only
+```
+
+## Activity Feed & Notifications
+
+### Activity Feed
+- Important business and security events MUST be written to activity feed
+- Feed entries MUST be tenant-scoped and permission-filtered
+- Feed payloads must avoid raw secrets and sensitive payment data
+
+### Event Types to Track
+- User actions (create, update, delete, username change)
+- Cash register actions (open, close, decommission)
+- Backup events (start, success, failure)
+- License events (expiring, expired)
+- FinanzOnline events (submission success, submission failure)
+
+### Notification Rules
+- Critical failures (TSE/RKSV, backup, restore, auth anomalies) MUST generate notifications
+- Use Server-Sent Events (SSE) for in-app notifications
+- Optional email channel for critical events
+- Optional outbound webhooks (Slack/Discord/Teams) when configured
+
+### Permissions UI (Admin)
+- Show/hide frontend elements based on `hasPermission()`
+- Redirect unauthorized users to 403 page
+- Denied access attempts MUST be written to audit log
+
+## Security Rules
+
+### CSRF (double-submit)
+
+**Hub config:** `Security:Csrf` (`Enabled`, `BypassInDevelopment`). Middleware: `CsrfMiddleware`. Token API: `GET /api/csrf/token`.
+
+| When enabled | Behavior |
+|--------------|----------|
+| POST / PUT / PATCH / DELETE | Require `X-XSRF-TOKEN` header matching `XSRF-TOKEN` cookie (or `X-CSRF-COOKIE` mirror for native clients) + server cache entry |
+| GET / HEAD / OPTIONS | Not checked |
+| Exempt | `/api/Auth/login`, `/api/Auth/refresh`, `/health`, `/api/health`, `/swagger`, `/metrics`, `/api/webhooks/*`, `/api/csrf/token` |
+| Development | Skipped when `BypassInDevelopment=true` (Development env only) |
+
+Defaults: Development `Enabled=false` + bypass; Production `Enabled=true` + no bypass. Clients: fetch token once, send header on mutations. Auth remains JWT Bearer.
+
+### Input Validation
+- ALL user inputs MUST be validated on backend
+- Client-side validation is UX-only and is NOT a security boundary
+- Username regex: `^[a-zA-Z0-9_-]{3,50}$`
+- Email format: RFC 5322 compliant
+- Tax number regex: `^ATU\d{8}$`
+
+### Session Management
+- Use JWT with 24h expiry
+- Enforce refresh token rotation
+- Auto-logout after 30 minutes inactivity
+- Username change MUST invalidate all active sessions:
+  1. Update `SecurityStamp`
+  2. Invalidate all existing JWTs
+  3. Force re-login on all devices
+
+### Sensitive Data
+- NEVER log passwords (including hashed form)
+- NEVER log voucher codes
+- Mask payment card numbers as `**** **** **** 1234`
+- Encrypt secrets in `appsettings.Production.json`
+
+### Error Handling
+User-facing errors (German):
+- `Benutzername oder Passwort ist falsch`
+- `Sie haben keine Berechtigung für diese Aktion`
+- `Das Backup ist fehlgeschlagen. Bitte kontaktieren Sie den Support.`
+- `Die TSE-Signatur konnte nicht erstellt werden`
+
+Technical logs (English):
+- `User login failed: invalid credentials`
+- `Permission denied for user {id} on resource {resource}`
+- `Backup failed: pg_dump exited with code {code}`
+- `TSE signature creation timeout after 30s`
+
+## Caching (Backend)
+
+The system uses Redis as a distributed cache (`RedisCacheService`) with automatic fallback to process-local `IMemoryCache`. Prefer incremental Cache-Aside on hot reads — do not invent parallel cache stacks. Always depend on `ICacheService` (`backend/Services/Caching/`), never Redis or `IMemoryCache` directly from domain services.
+
+| Environment | Implementation | Notes |
+|-------------|----------------|-------|
+| Development | `MemoryCacheService` | Default unless `Redis:Enabled=true` |
+| Staging/Production | `RedisCacheService` (`IDistributedCache`) | Falls back to `IMemoryCache` if Redis fails |
+
+### When to use cache
+
+- **Do cache:** Read-heavy, rarely changing domain snapshots — mandant license status, product catalogs, effective user permissions, tenant settings, tenant operational caps.
+- **Do not put on `ICacheService`:** CSRF tokens, lockout counters, rate-limits, 2FA challenges — those stay on process-local `IMemoryCache`.
+- **Never cache sensitive data:** passwords (including hashes), voucher codes, payment card / payment detail payloads, PII, TSE/JWS secrets, raw fiscal signature material.
+- **Never cache real-time accuracy data:** live stock levels, payment/checkout status, open cart contents.
+
+### TTL recommendations (defaults via `CacheSettings`)
+
+| Domain | Default TTL | Config key |
+|--------|-------------|------------|
+| Licenses (`license_status_{tenantId}` / `CacheKeys.LicenseStatus`) | **5 min** | `CacheSettings:LicenseCacheMinutes` |
+| Products (`product_list_{tenantId}` / `CacheKeys.ProductList`) | **15 min** | `CacheSettings:ProductCacheMinutes` |
+| Permissions (`user_permissions_{userId}` / `CacheKeys.UserPermissions`) | **30 min** | `CacheSettings:PermissionCacheMinutes` |
+| Tenant settings (`tenant_settings_{tenantId}` / `CacheKeys.TenantSettings`) | **60 min** | `CacheSettings:TenantSettingsCacheMinutes` |
+| Tenant limits (`tenant_limits_{tenantId}` / `CacheKeys.TenantLimits`) | **5 min** | `CacheSettings:TenantLimitsCacheMinutes` |
+| TSE health (`tse_health_{scopeId}` / `CacheKeys.TseHealth`) | **30 sec** | `CacheSettings:TseHealthCacheSeconds` (reserved; process monitor is in-memory) |
+
+Override per environment in appsettings / env (`CacheSettings__*`). Details: `backend/CONFIGURATION.md`.
+
+### Cache-Aside pattern
+
+```csharp
+// Always use Cache-Aside (via ICacheService.GetOrCreateAsync or explicit get/set)
+var cached = await _cache.GetAsync<MyDto>(key);
+if (cached != null) return cached;
+var data = await _db.QueryAsync(/* … */);
+await _cache.SetAsync(key, data, ttl);
+return data;
+```
+
+Prefer `GetOrCreateAsync` + `CacheKeys.Format(...)` + `IOptions<CacheSettings>` TTLs over ad-hoc strings / hardcoded `TimeSpan`s.
+
+### Invalidation patterns
+
+- **Event-based (preferred):** After writes, call `CacheInvalidationHelper` with `CacheKeys.*` — license sale/activate/extend, product create/update/delete/stock, user role change → drop `user_permissions_{userId}`. Do not rely on TTL alone for correctness after mutations.
+- **Time-based:** TTL expiry is a safety net for missed invalidation and natural refresh; keep license TTL short so SaaS gating stays fresh.
+- **Ops / emergency:** Super Admin `POST /api/admin/cache/clear` (tenant / prefix / clearAll) — not a substitute for automatic invalidation.
+
+### Best practices
+
+1. Always use `ICacheService` (not Redis or `IMemoryCache` directly from domain code).
+2. Use Cache-Aside: check cache → on miss load from DB → store with TTL.
+3. Include tenant (or user) id in keys via `CacheKeys` for multi-tenant isolation.
+4. Log cache get/set/hit/miss at **Debug**; Redis failures at **Error**.
+5. Monitor hit/miss in Staging before changing Production TTLs (`docs/CACHE_OPTIMIZATION.md`).
+
+**Keys:** Always use `CacheKeys.*` — no magic strings.
+
+**Ops / health:** Readiness includes `cache` on `/api/health/ready` with top-level `redisStatus` (`Healthy`\|`Degraded`). Redis failure must not fail the process solely for cache.
+
+**Logging:** `RedisCacheService` logs get/set/remove and hit/miss at **Debug**, Redis failures at **Error**. In Development, enable cache observability by setting `Logging:LogLevel:KasseAPI_Final.Services.Caching` to `Debug` (hit/miss) or at least `Information`/`Warning` (errors only). Production example keeps Caching at **Warning** to avoid log noise.

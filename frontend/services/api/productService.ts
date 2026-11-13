@@ -2,11 +2,13 @@ import { apiClient } from './config';
 import { handleAPIError, ErrorMessages } from '../errorService'; // ✅ YENİ: Standardize error handling
 import { API_PATHS } from './apiPaths'; // ✅ Centralized swagger-accurate paths
 import type { ModifierGroupDto } from './productModifiersService';
+import { safeLog } from '../../utils/loggingUtils';
+import { sessionManager } from '../session/sessionManager';
 
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
   products: null as Product[] | null,
-  categories: null as string[] | null,
+  categories: null as ProductCategory[] | null,
   lastFetch: null as number | null,
   cacheTimeout: 15 * 60 * 1000, // 15 dakika cache süresi
 
@@ -59,6 +61,12 @@ export interface Product {
   stockQuantity: number;
   minStockLevel: number; // Minimum stok seviyesi
   unit: string;
+  durationMinutes?: number | null;
+  staffId?: string | null;
+  imeiTracked?: boolean;
+  isTicket?: boolean;
+  hasVariants?: boolean;
+  barcode?: string | null;
   category: string;
   taxType: TaxType; // RKSV vergi tipleri
   isActive: boolean;
@@ -80,6 +88,8 @@ export interface Product {
   // Backend catalog endpoint'inden gelen ek field'lar
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
+  categoryIcon?: string | null;
+  categoryColor?: string | null;
   /**
    * Modifier groups from catalog. Phase D PR-C: catalog returns groups with empty modifiers; use .products only.
    */
@@ -89,6 +99,10 @@ export interface Product {
 export interface ProductCategory {
   id: string;
   name: string;
+  icon?: string | null;
+  color?: string | null;
+  sortOrder?: number;
+  vatRate?: number;
   description?: string;
   isActive?: boolean;
 }
@@ -127,6 +141,12 @@ const mapProduct = (p: any): Product => ({
   stockQuantity: p.StockQuantity ?? p.stockQuantity,
   minStockLevel: p.MinStockLevel ?? p.minStockLevel,
   unit: p.Unit ?? p.unit,
+  durationMinutes: p.DurationMinutes ?? p.durationMinutes ?? null,
+  staffId: p.StaffId ?? p.staffId ?? null,
+  imeiTracked: Boolean(p.ImeiTracked ?? p.imeiTracked),
+  isTicket: Boolean(p.IsTicket ?? p.isTicket),
+  hasVariants: Boolean(p.HasVariants ?? p.hasVariants),
+  barcode: p.Barcode ?? p.barcode ?? null,
   category: p.Category ?? p.category,
   taxType: p.TaxType ?? p.taxType,
   isActive: p.IsActive ?? p.isActive,
@@ -143,6 +163,8 @@ const mapProduct = (p: any): Product => ({
   // Backend catalog endpoint'inden gelen field'lar
   productCategory: p.ProductCategory ?? p.productCategory,
   categoryId: p.CategoryId ?? p.categoryId,
+  categoryIcon: p.CategoryIcon ?? p.categoryIcon ?? null,
+  categoryColor: p.CategoryColor ?? p.categoryColor ?? null,
 });
 
 /** Maps API modifier group to DTO. Phase D PR-C: POS endpoints return modifier groups with empty modifiers; use .products only. */
@@ -175,6 +197,28 @@ const unwrapData = <T>(resp: any): T => {
   if (Array.isArray(resp?.data)) return resp.data as T;
   if (Array.isArray(resp?.items)) return resp.items as T;
   return [] as unknown as T;
+};
+
+function unwrapProduct(resp: unknown): Record<string, unknown> | null {
+  const body = (resp as { data?: unknown })?.data ?? resp;
+  if (!body || typeof body !== 'object') return null;
+  const record = body as Record<string, unknown>;
+  const nested = record.data;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  if ('id' in record || 'Id' in record) return record;
+  return null;
+}
+
+/** Active catalog product for a scanned barcode. Does not log the code. */
+export const getProductByBarcode = async (barcode: string): Promise<Product> => {
+  const resp = await apiClient.get<unknown>(API_PATHS.PRODUCT.BY_BARCODE(barcode));
+  const raw = unwrapProduct(resp);
+  if (!raw) {
+    throw new Error('PRODUCT_NOT_FOUND');
+  }
+  return mapProduct(raw);
 };
 
 export const getAllProducts = async (
@@ -218,25 +262,41 @@ export const getActiveProductsForHomePage = async (): Promise<
   }
 };
 
+const mapCatalogCategory = (c: unknown): ProductCategory => {
+  if (typeof c === 'string') {
+    return { id: c, name: c };
+  }
+  const row = (c ?? {}) as Record<string, unknown>;
+  return {
+    id: String(row.Id ?? row.id ?? ''),
+    name: String(row.Name ?? row.name ?? ''),
+    icon: (row.Icon ?? row.icon) as string | null | undefined,
+    color: (row.Color ?? row.color) as string | null | undefined,
+    sortOrder: Number(row.SortOrder ?? row.sortOrder ?? 0),
+    vatRate: Number(row.VatRate ?? row.vatRate ?? 0),
+  };
+};
+
 /**
  * Tüm kategorileri getir - Cache ile optimize edilmiş
- * @returns Kategori listesi
+ * @returns Kategori listesi (icon/color included)
  */
-export const getAllCategories = async (): Promise<string[]> => {
+export const getAllCategories = async (): Promise<ProductCategory[]> => {
   try {
     if (productCache.categories && !productCache.isExpired()) {
-      console.log('📦 Returning categories from cache');
+      safeLog('📦 Returning categories from cache');
       return productCache.categories;
     }
 
-    console.log('🔄 Fetching categories from API...');
+    safeLog('🔄 Fetching categories from API...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATEGORIES);
-    const categories = unwrapData<string[]>(resp);
+    const raw = unwrapData<unknown[]>(resp);
+    const categories = (Array.isArray(raw) ? raw : []).map(mapCatalogCategory);
 
     productCache.categories = categories;
     productCache.lastFetch = Date.now();
 
-    console.log(`✅ Fetched ${categories.length} categories and updated cache`);
+    safeLog(`✅ Fetched ${categories.length} categories and updated cache`);
     return categories;
   } catch (error) {
     console.error('Error fetching all categories:', error);
@@ -244,13 +304,26 @@ export const getAllCategories = async (): Promise<string[]> => {
   }
 };
 
+/** Thrown when `/pos/catalog` must not be sent because the POS session has no access token. */
+export class CatalogAuthRequiredError extends Error {
+  constructor() {
+    super('CATALOG_AUTH_REQUIRED');
+    this.name = 'CatalogAuthRequiredError';
+  }
+}
+
 // Katalog endpoint'i: kategorileri ID'lerle ve ürünleri categoryId ile döndürür
 export const getProductCatalog = async (): Promise<{
-  categories: { id: string; name: string }[];
+  categories: ProductCategory[];
   products: (Product & { categoryId?: string })[];
 }> => {
+  const token = await sessionManager.getAccessToken();
+  if (!token) {
+    throw new CatalogAuthRequiredError();
+  }
+
   try {
-    console.log('🔄 Fetching product catalog...');
+    safeLog('🔄 Fetching product catalog...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATALOG);
 
     // Response format kontrolü - SuccessResponse sarmalaması olabilir
@@ -259,7 +332,7 @@ export const getProductCatalog = async (): Promise<{
       data = resp.data; // SuccessResponse format
     }
 
-    console.log('📦 Catalog response received:', {
+    safeLog('📦 Catalog response received:', {
       hasData: !!data,
       hasCategories: !!data?.Categories,
       hasProducts: !!data?.Products,
@@ -267,10 +340,7 @@ export const getProductCatalog = async (): Promise<{
       productsCount: data?.Products?.length || 0,
     });
 
-    const categories = (data?.Categories ?? data?.categories ?? []).map((c: any) => ({
-      id: c.Id ?? c.id,
-      name: c.Name ?? c.name,
-    }));
+    const categories = (data?.Categories ?? data?.categories ?? []).map(mapCatalogCategory);
 
     const productsRaw = data?.Products ?? data?.products ?? [];
     const products = productsRaw.map((p: any) => ({
@@ -281,7 +351,7 @@ export const getProductCatalog = async (): Promise<{
         : [],
     }));
 
-    console.log(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
+    safeLog(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
     return { categories, products };
   } catch (error) {
     console.error('❌ Error fetching product catalog:', error);
@@ -382,7 +452,7 @@ export const calculateTaxAmount = (price: number, taxType: TaxType): number => {
 // Cache temizleme fonksiyonu
 export const clearProductCache = () => {
   productCache.clear();
-  console.log('🧹 Product cache cleared');
+  safeLog('🧹 Product cache cleared');
 };
 
 // Geriye uyumluluk için eski fonksiyonları koru

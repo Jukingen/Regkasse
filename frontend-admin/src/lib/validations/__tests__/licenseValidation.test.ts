@@ -19,6 +19,7 @@ describe('licenseValidation', () => {
   it('accepts billing format REGK-yyyyMMdd-slug-random', () => {
     expect(isValidBillingLicenseKey('REGK-20261231-cafe-A7F3K2D9')).toBe(true);
     expect(isValidBillingLicenseKey('REGK-20260601-my-cafe-shop-A7F3K2D9')).toBe(true);
+    expect(isValidBillingLicenseKey('REGK-20260813-system-1R61EMER')).toBe(true);
     expect(isValidBillingLicenseKey('REGK-20261331-cafe-A7F3K2D9')).toBe(false); // invalid date
     expect(isValidBillingLicenseKey('REGK-20261231-admin-A7F3K2D9')).toBe(false); // reserved slug
     expect(isValidBillingLicenseKey('REGK-ABCDE-BBBBB-CCCCC')).toBe(false);
@@ -26,6 +27,7 @@ describe('licenseValidation', () => {
 
   it('detectLicenseKeyKind distinguishes formats', () => {
     expect(detectLicenseKeyKind('REGK-20261231-dev-A7F3K2D9')).toBe('billing');
+    expect(detectLicenseKeyKind('REGK-20260813-system-1R61EMER')).toBe('billing');
     expect(detectLicenseKeyKind('REGK-AAAAA-BBBBB-CCCCC')).toBe('display');
     expect(detectLicenseKeyKind('nope')).toBe('none');
     expect(isValidLicenseKey('REGK-AAAAA-BBBBB-CCCCC')).toBe(true);

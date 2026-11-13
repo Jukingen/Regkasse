@@ -17,13 +17,19 @@ export type TenantFilterProps = {
   onChange: (value: string) => void;
   /** When true, adds a «Plattform» option (Super Admin operators only). */
   includePlatformOption?: boolean;
+  /**
+   * When set, the list is locked to this mandant (Mandanten-Admin).
+   * Omits «all» and platform. Empty string yields no options.
+   */
+  scopeToTenantId?: string;
 } & Pick<SelectProps, 'style' | 'className' | 'disabled'>;
 
-/** Mandant filter for super-admin user list (`all` | `__platform__` | tenant UUID). */
+/** Mandant filter for the user list (`all` | `__platform__` | tenant UUID). */
 export function TenantFilter({
   value,
   onChange,
   includePlatformOption = false,
+  scopeToTenantId,
   style,
   className,
   disabled,
@@ -40,6 +46,20 @@ export function TenantFilter({
   );
 
   const options = useMemo(() => {
+    if (scopeToTenantId !== undefined) {
+      const tenantId = scopeToTenantId.trim();
+      if (!tenantId) return [];
+      const tenant = businessTenants.find((row) => row.id === tenantId);
+      return [
+        {
+          value: tenantId,
+          label: tenant
+            ? t('users.create.tenantOption', { name: tenant.name, slug: tenant.slug })
+            : tenantId,
+        },
+      ];
+    }
+
     const rows: { value: string; label: string }[] = [
       { value: TENANT_FILTER_ALL_UI, label: t('users.unified.filterAllTenants') },
     ];
@@ -56,7 +76,7 @@ export function TenantFilter({
       });
     }
     return rows;
-  }, [businessTenants, includePlatformOption, t]);
+  }, [businessTenants, includePlatformOption, scopeToTenantId, t]);
 
   return (
     <Select

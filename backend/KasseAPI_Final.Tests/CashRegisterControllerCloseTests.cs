@@ -29,7 +29,7 @@ public class CashRegisterControllerCloseTests
             .UseInMemoryDatabase($"CashRegClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static UserManager<ApplicationUser> CreateTestUserManager()
@@ -51,10 +51,11 @@ public class CashRegisterControllerCloseTests
             CreateTestUserManager(),
             shift,
             TenantTestDoubles.PrimaryTenantResolver,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -87,7 +88,7 @@ public class CashRegisterControllerCloseTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -129,7 +130,7 @@ public class CashRegisterControllerCloseTests
         const string otherId = "other-2";
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -146,7 +147,8 @@ public class CashRegisterControllerCloseTests
         var controller = CreateController(ctx, otherId);
         var actionResult = await controller.CloseCashRegister(regId, new CloseCashRegisterModel { ClosingBalance = 1m }, CancellationToken.None);
 
-        Assert.IsType<ForbidResult>(actionResult);
+        var forbidden = Assert.IsType<ObjectResult>(actionResult);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
 
         var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
         Assert.Equal(RegisterStatus.Open, reg.Status);
@@ -163,7 +165,7 @@ public class CashRegisterControllerCloseTests
         const string ownerId = "owner-1";
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

@@ -1,6 +1,6 @@
-# Placeholder — replace webhook URLs before enabling Alertmanager in production.
-# Prefer mounting a host secret file derived from alertmanager.yml.example.
-# For local dry-run, null receiver avoids accidental spam.
+# Placeholder — null receiver so local compose does not spam Slack/email.
+# Production: render alertmanager.yml.example (see render-alertmanager-config.ps1)
+# and mount the host-only file. Never commit webhooks or SMTP passwords.
 
 global:
   resolve_timeout: 5m

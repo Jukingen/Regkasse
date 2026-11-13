@@ -16,7 +16,7 @@ public class Phase2ModifierGroupProductsTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"ModifierGroupProducts_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -27,12 +27,12 @@ public class Phase2ModifierGroupProductsTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -52,7 +52,7 @@ public class Phase2ModifierGroupProductsTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -61,7 +61,7 @@ public class Phase2ModifierGroupProductsTests
         {
             ModifierGroupId = groupId,
             ProductId = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
@@ -91,12 +91,12 @@ public class Phase2ModifierGroupProductsTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Add-on Product",
             Price = 2.00m,
             CategoryId = categoryId,
@@ -116,7 +116,7 @@ public class Phase2ModifierGroupProductsTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -125,7 +125,7 @@ public class Phase2ModifierGroupProductsTests
         {
             ModifierGroupId = groupId,
             ProductId = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 1
         });
         await context.SaveChangesAsync();

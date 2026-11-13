@@ -95,4 +95,13 @@ public sealed class FinanzOnlineOutboxMessage
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? ProcessedAt { get; set; }
+
+    /// <summary>Operator reason when status is <c>Resolved</c>. Not a FON response.</summary>
+    [MaxLength(500)]
+    public string? ResolutionReason { get; set; }
+
+    [MaxLength(64)]
+    public string? ResolvedByUserId { get; set; }
+
+    public DateTime? ResolvedAtUtc { get; set; }
 }

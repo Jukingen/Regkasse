@@ -1,10 +1,11 @@
 import type { Rule } from 'antd/es/form';
 
-/** Austrian UID (ATU + 8 digits) — AGENTS.md / backend tax-number contract. */
-export const ATU_TAX_NUMBER_PATTERN = /^ATU\d{8}$/;
+import {
+  USERNAME_PATTERN,
+  compileVatIdPattern,
+} from '@/lib/validations/common';
 
-/** Username: 3–50 chars, a-z / 0-9 / _ / - (case-insensitive identity). */
-export const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,50}$/;
+export { USERNAME_PATTERN, compileVatIdPattern };
 
 export type ValidationTranslate = (
   key: string,
@@ -23,9 +24,37 @@ export type ValidationRules = {
   min: (min: number) => Rule;
   max: (max: number) => Rule;
   pattern: (pattern: RegExp, message: string) => Rule;
-  atuTaxNumber: (required?: boolean) => Rule[];
+  atuTaxNumber: (pattern?: string | null, required?: boolean) => Rule[];
+  vatIdNumber: (pattern?: string | null, required?: boolean) => Rule[];
   username: (required?: boolean) => Rule[];
 };
+
+function vatIdRules(
+  t: ValidationTranslate,
+  pattern: string | null | undefined,
+  required: boolean
+): Rule[] {
+  const compiled = compileVatIdPattern(pattern);
+  const requiredMessage = t('common.validation.atuTaxNumberRequired');
+  const rules: Rule[] = [];
+  if (required) {
+    rules.push({ required: true, message: requiredMessage });
+  }
+  if (!compiled) return rules;
+  rules.push({
+    validator: async (_, value) => {
+      const trimmed = String(value ?? '').trim();
+      if (!trimmed) {
+        if (required) throw new Error(requiredMessage);
+        return;
+      }
+      if (!compiled.test(trimmed)) {
+        throw new Error(t('common.validation.invalidValue'));
+      }
+    },
+  });
+  return rules;
+}
 
 /**
  * Build locale-aware Ant Design Form rules.
@@ -57,30 +86,10 @@ export function createValidationRules(t: ValidationTranslate): ValidationRules {
       pattern,
       message,
     }),
-    atuTaxNumber: (required = true) => {
-      const rules: Rule[] = [];
-      if (required) {
-        rules.push({
-          required: true,
-          message: t('common.validation.atuTaxNumberRequired'),
-        });
-      }
-      rules.push({
-        validator: async (_, value) => {
-          const trimmed = String(value ?? '').trim();
-          if (!trimmed) {
-            if (required) {
-              throw new Error(t('common.validation.atuTaxNumberRequired'));
-            }
-            return;
-          }
-          if (!ATU_TAX_NUMBER_PATTERN.test(trimmed)) {
-            throw new Error(t('common.validation.atuTaxNumberPattern'));
-          }
-        },
-      });
-      return rules;
-    },
+    atuTaxNumber: (pattern?: string | null, required = true) =>
+      vatIdRules(t, pattern, required),
+    vatIdNumber: (pattern?: string | null, required = true) =>
+      vatIdRules(t, pattern, required),
     username: (required = true) => {
       const rules: Rule[] = [];
       if (required) {

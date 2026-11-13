@@ -57,6 +57,7 @@ describe('useCashRegisterSelection', () => {
       expect.objectContaining({
         allowTenantScopedDefault: true,
         allowAllTenants: false,
+        excludeDecommissioned: true,
         enabled: true,
       })
     );

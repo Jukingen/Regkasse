@@ -31,7 +31,7 @@ import {
 import type { TseCostReport, TseCostTrend } from '@/features/tse-failover/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -97,7 +97,7 @@ export default function TseCostPage() {
     <>
       <AdminPageHeader
         title={t('tseCost.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseCost.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseCost.title') })}
         extra={
           <Space>
             <TseActiveTenantTag />

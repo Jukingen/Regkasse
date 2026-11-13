@@ -41,12 +41,14 @@ public static class RksvReportTemplateMapper
             DepExportStatus = model.DepExportStatusLabel,
             QrCode = qrPayload,
             RksvFooter = rksvFooter,
-            OperatorNotice = model.IsBackdated
-                ? DailyClosingBackdatedReportNote.Format(
-                    model.ClosingDate,
-                    model.CreatedAt,
-                    model.LateCreationReason)
-                : null,
+            OperatorNotice = JoinOperatorNotices(
+                model.IsBackdated
+                    ? DailyClosingBackdatedReportNote.Format(
+                        model.ClosingDate,
+                        model.CreatedAt,
+                        model.LateCreationReason)
+                    : null,
+                DailyClosingOpenTablesReportNote.TryFormat(model.OpenOrdersForced, model.OpenOrdersCount)),
             EnvironmentDisplay = environmentDisplay,
             CashTotal = model.CashTotal,
             CardTotal = model.CardTotal,
@@ -102,7 +104,9 @@ public static class RksvReportTemplateMapper
             DepExportStatus = cloudContext?.DepExportStatusLabel ?? report.DepExportStatusLabel,
             QrCode = report.QrPayload ?? string.Empty,
             RksvFooter = report.SnapshotDisclaimerDe,
-            OperatorNotice = report.BackdatedNotice,
+            OperatorNotice = JoinOperatorNotices(
+                report.BackdatedNotice,
+                report.OpenTablesForcedNotice),
             EnvironmentDisplay = report.FiscalEnvironment,
             CashTotal = payments.Cash > 0m ? payments.Cash : report.TotalCash,
             CardTotal = payments.Card > 0m ? payments.Card : report.TotalCard,
@@ -217,4 +221,15 @@ public static class RksvReportTemplateMapper
         !string.IsNullOrWhiteSpace(primary)
             ? primary.Trim()
             : string.IsNullOrWhiteSpace(fallback) ? string.Empty : fallback.Trim();
+
+    private static string? JoinOperatorNotices(string? first, string? second)
+    {
+        var left = string.IsNullOrWhiteSpace(first) ? null : first.Trim();
+        var right = string.IsNullOrWhiteSpace(second) ? null : second.Trim();
+        if (left == null)
+            return right;
+        if (right == null)
+            return left;
+        return left + "\n" + right;
+    }
 }

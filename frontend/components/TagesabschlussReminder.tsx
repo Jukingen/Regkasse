@@ -31,7 +31,8 @@ function parseMoneyInput(value: string): number | null {
  *
  * CRITICAL:
  * - Display + optional CTA only — never blocks cart, orders, payments, or navigation.
- * - Never auto-closes the register (RKSV); cashier must confirm via DailyClosingModal.
+ * - Never auto-closes the register from POS (RKSV); cashier must confirm via DailyClosingModal.
+ *   Backend AutoTagesabschlussHostedService may still create a fallback Daily closing after cutoff.
  * - Renders as a sibling banner above tabs, not a modal gate or full-screen lock.
  */
 export function TagesabschlussReminder() {
@@ -45,6 +46,8 @@ export function TagesabschlussReminder() {
     usedWorkingHours,
     loading,
     refresh,
+    shouldPromptCashCount,
+    autoCloseTimeLabel,
   } = useTagesabschlussStatus();
   const { performDailyClosing, isLoading, refreshDailyClosingStatus } = useShift();
 
@@ -180,6 +183,12 @@ export function TagesabschlussReminder() {
       ? t('settings:dailyClosing.reminder.deadlineWorkingHours', { time: closingTimeLabel })
       : t('settings:dailyClosing.reminder.deadlineWorkingHoursGeneric')
     : t('settings:dailyClosing.reminder.deadlineMidnight');
+  const bodyText = shouldPromptCashCount
+    ? t('settings:dailyClosing.reminder.cashCountHint', { time: autoCloseTimeLabel })
+    : t('settings:dailyClosing.reminder.body', {
+        count: hoursRemaining,
+        deadlineHint,
+      });
 
   return (
     <>
@@ -188,22 +197,14 @@ export function TagesabschlussReminder() {
         onPress={handleDailyClosing}
         accessibilityRole="button"
         accessibilityLabel={t('settings:dailyClosing.reminder.cta')}
-        accessibilityHint={t('settings:dailyClosing.reminder.body', {
-          count: hoursRemaining,
-          deadlineHint,
-        })}>
+        accessibilityHint={bodyText}>
         <View style={styles.titleRow}>
           <Text style={styles.icon} accessibilityElementsHidden>
             ⚠️
           </Text>
           <Text style={styles.warningTitle}>{t('settings:dailyClosing.reminder.title')}</Text>
         </View>
-        <Text style={styles.warningText}>
-          {t('settings:dailyClosing.reminder.body', {
-            count: hoursRemaining,
-            deadlineHint,
-          })}
-        </Text>
+        <Text style={styles.warningText}>{bodyText}</Text>
         <Text
           style={styles.countdown}
           accessibilityLabel={t('settings:dailyClosing.reminder.countdownA11y', {

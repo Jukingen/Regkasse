@@ -3,8 +3,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -55,6 +57,10 @@ public sealed class LicenseControllerMandantStatusTests
         Assert.Equal(5, dto.DaysRemaining);
         Assert.Equal("Lizenz läuft in 5 Tagen ab", dto.StatusMessage);
         Assert.False(dto.IsInGracePeriod);
+        Assert.True(dto.AnyActive);
+        Assert.NotNull(dto.SystemLicense);
+        Assert.NotNull(dto.TenantLicense);
+        Assert.Equal("active", dto.Status);
     }
 
     [Fact]
@@ -100,15 +106,28 @@ public sealed class LicenseControllerMandantStatusTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var db = new AppDbContext(dbOptions, NullCurrentTenantAccessor.Instance);
+        var unified = new UnifiedLicenseService(
+            db,
+            licenseService,
+            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<ILicenseStatusCache>(),
+            tenantAccessor.Object,
+            NullLogger<UnifiedLicenseService>.Instance);
 
         return new LicenseController(
             licenseService,
             Mock.Of<ITenantLicenseService>(),
-            Mock.Of<ILicenseKeyGenerator>(),
+            unified,
             Options.Create(new Configuration.LicenseOptions()),
             Mock.Of<IWebHostEnvironment>(),
             NullLogger<LicenseController>.Instance,
             tenantAccessor.Object,
-            db);
+            db)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext(),
+            },
+        };
     }
 }

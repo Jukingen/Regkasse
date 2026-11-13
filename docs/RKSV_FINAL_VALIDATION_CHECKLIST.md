@@ -1,120 +1,120 @@
-# RKSV Final Validation Checklist (Sign-off)
+# RKSV final validation checklist (sign-off)
 
-**Tarih:** 2026-07-29  
-**Amaç:** P0–P2 kod iyileştirmeleri sonrası **operasyonel / BMF** doğrulama ve üretim sign-off.  
-**Kaynak:** [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) · [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md)
+**Date:** 2026-07-29  
+**Purpose:** Operational / BMF validation and production sign-off after P0–P2 code improvements.  
+**Sources:** [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) · [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md)
 
-> Bu checklist **yasal sertifika** değildir. Her madde için **kanıt** (ekran görüntüsü, log, ticket, CI run URL, cutover formu) ekleyin. İmza: Ops + Compliance (+ Backend lead isteğe bağlı).
+> This checklist is **not** a legal certificate. Attach **evidence** for every item (screenshot, log, ticket, CI run URL, cutover form). Sign-off: Ops + Compliance (+ Backend lead optional).
 
 ---
 
-## 1. Kod yüzeyi (referans — 2026-07-29)
+## 1. Code surface (reference — 2026-07-29)
 
-| Paket | Kod durumu | Detay doküman |
-|-------|------------|---------------|
+| Package | Code status | Detail doc |
+|---------|-------------|------------|
 | P0-1 Sonderbeleg SOAP | ✅ | `FINANZONLINE_SOAP_IMPLEMENTATION_PLAN.md` |
 | P0-2 TSE Production Lock | ✅ | `TSE_PRODUCTION_CONFIG_LOCK.md` |
 | P0-3 Ausfallmeldung | ✅ | `AUSFALL_BENACHRICHTIGUNG_PLAN.md` |
 | P1-1 Monatsbeleg NotRequired | ✅ | `MONATSBELEG_FINANZONLINE_DECISION.md` |
 | P1-2 Enqueue Mode | ✅ | Action plan |
-| P1-3 Mayıs 2027 | ✅ | `MAI_2027_SIGNATURKARTE_PLAN.md` |
-| P1-4 Signaturkarte runbook/fleet | ⬜ Açık | — |
+| P1-3 May 2027 | ✅ | `MAI_2027_SIGNATURKARTE_PLAN.md` |
+| P1-4 Signaturkarte runbook/fleet | ⬜ Open | — |
 | P2-1 DEP Prüftool CI | ✅ | `DEP_EXPORT_DEVELOPMENT.md`, `dep-prueftool.yml` |
-| P2-2 Legacy JWS uyarı | ✅ | `DEP_EXPORT_DEVELOPMENT.md` § Legacy JWS |
+| P2-2 Legacy JWS warning | ✅ | `DEP_EXPORT_DEVELOPMENT.md` § Legacy JWS |
 | P2-3 Empty Signaturzertifikat | ✅ | `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` |
 
 ---
 
-## 2. Validation checklist (işaretlenecek)
+## 2. Validation checklist (to check)
 
-### P0 — Üretim güvenliği & FON
+### P0 — Production safety and FON
 
-- [ ] **TSE Production Lock:** Production (veya Staging prod-like) ortamında Soft TSE / `TseMode=Off` / Fake signing **engelleniyor**; `/health/tse/mode` beklenen sonucu veriyor; FA “demo fiscal” banner’ı yalnızca uygun olmayan modda görünüyor.  
-  - **Kanıt:** health JSON + config snippet (secrets maskeli) + FA screenshot  
-  - **Sahip:** Ops + Backend
+- [ ] **TSE Production Lock:** Production (or prod-like Staging) blocks Soft TSE / `TseMode=Off` / fake signing; `/health/tse/mode` returns the expected result; FA “demo fiscal” banner appears only in an unsuitable mode.
+  - **Evidence:** health JSON + config snippet (secrets masked) + FA screenshot
+  - **Owner:** Ops + Backend
 
-- [ ] **SOAP Sonderbeleg (BMF TEST):** Startbeleg ve Jahresbeleg gerçek **BMF TEST** `belegpruefung` hattına gidiyor; outbox → Verified (veya kabul edilen terminal durum); Fake client Production’da kullanılmıyor.  
-  - **Kanıt:** outbox satır ID’leri, FO yanıt özeti, `FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` TEST bölümü imzalı  
-  - **Sahip:** Ops + Compliance (+ Backend)
+- [ ] **SOAP Sonderbeleg (BMF TEST):** Startbeleg and Jahresbeleg go to the real **BMF TEST** `belegpruefung` path; outbox → Verified (or an accepted terminal state); Fake client is not used in Production.
+  - **Evidence:** outbox row IDs, FO response summary, signed TEST section of `FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`
+  - **Owner:** Ops + Compliance (+ Backend)
 
-- [ ] **Ausfallmeldung:** TSE failover / down senaryosunda Ausfall episode veya FA `/admin/tse/ausfall` **önerisi** görünüyor; (politikaya göre) outbox enqueue veya manuel gönderim yolu doğrulanmış.  
-  - **Kanıt:** failover drill notu + FA screenshot / episode ID  
-  - **Sahip:** Ops + Compliance
+- [ ] **Ausfallmeldung:** TSE failover / down scenario shows an Ausfall episode or FA `/admin/tse/ausfall` **suggestion**; (per policy) outbox enqueue or manual submit path verified.
+  - **Evidence:** failover drill note + FA screenshot / episode ID
+  - **Owner:** Ops + Compliance
 
-### P1 — Uyumluluk politikası
+### P1 — Compliance policy
 
-- [ ] **Mayıs 2027:** Super Admin banner / program sayfası (`/admin/tse/signaturkarte-program`) görünüyor; milestone reminder (activity/email) test ortamında tetiklenebiliyor.  
-  - **Kanıt:** FA screenshot + reminder log/activity  
-  - **Sahip:** Compliance + Ops
+- [ ] **May 2027:** Super Admin banner / program page (`/admin/tse/signaturkarte-program`) is visible; milestone reminder (activity/email) can fire in test.
+  - **Evidence:** FA screenshot + reminder log/activity
+  - **Owner:** Compliance + Ops
 
-- [ ] **Monatsbeleg:** Ayrı FON outbox **yok** (NotRequired); FA Sonderbelege’de `MonatsbelegInfoCard` + doküman [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md); Aralık → Jahresbeleg yolu çalışıyor.  
-  - **Kanıt:** FA screenshot + (isteğe bağlı) Aralık Jahresbeleg FO satırı  
-  - **Sahip:** Compliance + Frontend spot-check
+- [ ] **Monatsbeleg:** No separate FON outbox (**NotRequired**); FA Sonderbelege shows `MonatsbelegInfoCard` + [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md); December → Jahresbeleg path works.
+  - **Evidence:** FA screenshot + (optional) December Jahresbeleg FO row
+  - **Owner:** Compliance + Frontend spot-check
 
-### P2 — DEP kalite
+### P2 — DEP quality
 
-- [ ] **DEP Prüftool CI:** `.github/workflows/dep-prueftool.yml` son `main`/`PR` koşusu **yeşil** (fixture `-UseFixtures` + `Category=DepPrueftool`).  
-  - **Kanıt:** GitHub Actions run URL  
-  - **Sahip:** Backend / Ops
+- [ ] **DEP Prüftool CI:** Latest `main`/`PR` run of `.github/workflows/dep-prueftool.yml` is **green** (fixture `-UseFixtures` + `Category=DepPrueftool`).
+  - **Evidence:** GitHub Actions run URL
+  - **Owner:** Backend / Ops
 
-- [ ] **Legacy JWS:** Pre-F5 (JSON payload) imza içeren bir export’ta FA uyarı Alert’i ve/veya envelope `legacyJwsCount` > 0; history “Prüftool-kompatibel: Nein”.  
-  - **Kanıt:** FA screenshot veya API envelope JSON  
-  - **Sahip:** Backend + Frontend spot-check
+- [ ] **Legacy JWS:** Export that contains a pre-F5 (JSON payload) signature shows the FA warning Alert and/or envelope `legacyJwsCount` > 0; history “Prüftool-kompatibel: Nein”.
+  - **Evidence:** FA screenshot or API envelope JSON
+  - **Owner:** Backend + Frontend spot-check
 
-- [ ] **Empty certificate hard-fail:** Bilinen eksik thumbprint grubunda DEP export **HTTP 500** `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` (veya servis exception); boş `Signaturzertifikat` JSON’da **yok**.  
-  - **Kanıt:** API hata gövdesi veya unit test CI yeşili + manuel negatif test notu  
-  - **Sahip:** Backend
+- [ ] **Empty certificate hard-fail:** Known missing-thumbprint group → DEP export **HTTP 500** `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` (or service exception); empty `Signaturzertifikat` is **absent** from JSON.
+  - **Evidence:** API error body or green unit-test CI + manual negative-test note
+  - **Owner:** Backend
 
-### Opsiyonel / kalan
+### Optional / remaining
 
-- [ ] **P1-4** Signaturkarte yenileme runbook + fleet “X gün” + i18n  
-- [ ] **BMF PROD** Start/Jahres cutover (`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` PROD bölümü)  
-- [ ] **`ai/05_SECURITY_COMPLIANCE.md`** cutover sonrası satır güncellemesi  
+- [ ] **P1-4** Signaturkarte renewal runbook + fleet “X days” + i18n
+- [ ] **BMF PROD** Start/Jahres cutover (`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` PROD section)
+- [ ] **`ai/05_SECURITY_COMPLIANCE.md`** row update after cutover
 
 ---
 
-## 3. Go / No-Go önerisi (2026-07-29)
+## 3. Go / No-Go recommendation (2026-07-29)
 
-### Yazılım / platform (P0–P2 kod)
+### Software / platform (P0–P2 code)
 
-| Karar | **KOŞULLU GO** |
-|-------|----------------|
-| Anlam | Ürün kodu RKSV çekirdeği + P0–P2 iyileştirmeleri için **merge/release adayıdır**; staging’de doğrulamaya hazırdır. |
-| Koşullar | Soft TSE prod’da kapalı kalmalı; FON ClientKind=Real + credentials; Ausfall politikası operatörlere iletilmiş olmalı. |
+| Decision | **CONDITIONAL GO** |
+|----------|---------------------|
+| Meaning | Product code is a **merge/release candidate** for the RKSV core + P0–P2 improvements; ready for staging validation. |
+| Conditions | Soft TSE must stay off in prod; FON ClientKind=Real + credentials; Ausfall policy communicated to operators. |
 
-### Tam RKSV üretim / resmi “üretim hazır” iddiası
+### Full RKSV production / official “production ready” claim
 
-| Karar | **NO-GO** |
-|-------|-----------|
-| Anlam | Bugün **Betriebsprüfung / “tam FON üretim uyumlu”** iddiası için imza verilmemelidir. |
-| Engeller | (1) BMF TEST Start/Jahres E2E kanıtı eksik veya bu checklist’te işaretlenmemiş; (2) canlı Ausfall drill eksik; (3) prod TSE kilidi Ops tarafından imzalanmamış; (4) P1-4 runbook açık; (5) BMF PROD cutover ayrıca gerekir. |
+| Decision | **NO-GO** |
+|----------|-----------|
+| Meaning | Do not sign a **Betriebsprüfung / “full FON production compliant”** claim today. |
+| Blockers | (1) BMF TEST Start/Jahres E2E evidence missing or unchecked here; (2) live Ausfall drill missing; (3) prod TSE lock not signed by Ops; (4) P1-4 runbook open; (5) BMF PROD cutover is separate. |
 
-### Ne zaman tam **GO**?
+### When is full **GO**?
 
-Bölüm 2’deki **zorunlu** maddeler (TSE Lock, SOAP BMF TEST, Ausfall drill, Mayıs 2027, Monatsbeleg, DEP CI, Legacy JWS, Empty cert) **hepsi işaretli + kanıtlı** ve Compliance + Ops imzalı olduğunda:
+When every **required** item in section 2 (TSE Lock, SOAP BMF TEST, Ausfall drill, May 2027, Monatsbeleg, DEP CI, Legacy JWS, empty cert) is **checked + evidenced** and signed by Compliance + Ops:
 
-1. Bu belgeye **GO — Production candidate (FON TEST validated)** yazın.  
-2. PROD cutover için `FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` ayrı imzalanır → **GO — Production FON**.  
-3. [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5 Sonuç tablosunu güncelleyin.
+1. Write **GO — Production candidate (FON TEST validated)** on this document.
+2. Sign `FINANZONLINE_PROD_CUTOVER_CHECKLIST.md` separately for PROD cutover → **GO — Production FON**.
+3. Update [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5 Result table.
 
 ---
 
 ## 4. Sign-off
 
-| Rol | Ad | Tarih | İmza / onay |
-|-----|-----|-------|-------------|
+| Role | Name | Date | Signature / approval |
+|------|------|------|----------------------|
 | **Ops** | | | ☐ |
 | **Compliance** | | | ☐ |
-| **Backend lead** (isteğe bağlı) | | | ☐ |
-| **Product / Super Admin** (isteğe bağlı) | | | ☐ |
+| **Backend lead** (optional) | | | ☐ |
+| **Product / Super Admin** (optional) | | | ☐ |
 
-**Karar kutusu (işaretleyin):**
+**Decision box (check one):**
 
-- [ ] **NO-GO** — üretim iddiası yok; yalnızca kod/staging devam  
-- [ ] **KOŞULLU GO** — yazılım OK; BMF TEST + drill tamam; PROD FON henüz değil  
-- [ ] **GO — Production candidate** — Bölüm 2 zorunlu maddeler + Ops/Compliance imzalı  
-- [ ] **GO — Production FON** — + PROD cutover checklist imzalı  
+- [ ] **NO-GO** — no production claim; code/staging only
+- [ ] **CONDITIONAL GO** — software OK; BMF TEST + drill done; not PROD FON yet
+- [ ] **GO — Production candidate** — section 2 required items + Ops/Compliance signed
+- [ ] **GO — Production FON** — plus PROD cutover checklist signed
 
 ---
 
-**Son güncelleme:** 2026-07-29 — ilk final validation checklist (P0–P2 kod kapanışı sonrası).
+**Last updated:** 2026-07-29 — first final validation checklist (after P0–P2 code close).

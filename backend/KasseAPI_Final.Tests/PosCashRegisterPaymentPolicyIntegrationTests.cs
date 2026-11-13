@@ -31,7 +31,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             .Options;
         return new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, ICashRegisterResolutionService resolution)
@@ -130,12 +130,12 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         var customerId = Guid.NewGuid();
         var openId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Item",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -154,7 +154,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "C", Email = "c@test", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = openId,
             RegisterNumber = "K-OPEN",
             Location = "T",
@@ -168,7 +168,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "OLD-DIS",
             Location = "T",
@@ -213,12 +213,12 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         var customerId = Guid.NewGuid();
         var decommissionedId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Item",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -237,7 +237,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "C", Email = "c@test", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = decommissionedId,
             RegisterNumber = "K-END",
             Location = "T",

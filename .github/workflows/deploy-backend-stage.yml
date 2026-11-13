@@ -171,7 +171,7 @@ jobs:
         run: sleep 20
 
       - name: Report smoke_running
-        if: inputs.migrations_only != true
+        if: inputs.migrations_only != true && (inputs.stage != 'staging' || vars.BACKEND_STAGING_API_BASE_URL != '' || vars.BACKEND_STAGING_SMOKE_ENABLED == 'true')
         env:
           DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
           DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
@@ -184,9 +184,15 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash scripts/ci/backend-deploy-status.sh
 
+      - name: Skip staging smoke
+        if: inputs.migrations_only != true && inputs.stage == 'staging' && vars.BACKEND_STAGING_API_BASE_URL == '' && vars.BACKEND_STAGING_SMOKE_ENABLED != 'true'
+        run: |
+          echo "Staging not configured; skipping smoke and rollback."
+          exit 0
+
       - name: Smoke tests
         id: smoke
-        if: inputs.migrations_only != true
+        if: inputs.migrations_only != true && (inputs.stage != 'staging' || vars.BACKEND_STAGING_API_BASE_URL != '' || vars.BACKEND_STAGING_SMOKE_ENABLED == 'true')
         env:
           API_BASE: ${{ inputs.api_base_url }}
           TENANT_ID: ${{ inputs.tenant_ids || 'smoke' }}
@@ -227,7 +233,7 @@ jobs:
           GIT_REF: ${{ inputs.git_ref }}
           IMAGE_TAG: ${{ inputs.image }}
           TENANT_IDS: ${{ inputs.tenant_ids }}
-          SMOKE_PASSED: 'true'
+          SMOKE_PASSED: ${{ steps.smoke.outcome == 'success' && 'true' || 'skipped' }}
           SMOKE_SUMMARY: ${{ steps.smoke.outputs.smoke_summary }}
           SOAK_HOURS: ${{ inputs.soak_hours }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Activity;
@@ -38,8 +39,8 @@ public sealed class ActivityStreamHub : IActivityStreamHub
             if (!writer.TryWrite(message))
             {
                 _logger.LogDebug(
-                    "Activity SSE subscriber channel full for tenant {TenantId}; dropping event",
-                    tenantId);
+                    "Activity SSE subscriber channel full for tenant: {TenantId}; dropping event",
+                    LogIdFormatting.ShortGuid(tenantId));
             }
         }
     }
@@ -58,36 +59,94 @@ public sealed class ActivityStreamHub : IActivityStreamHub
 
         Register(tenantId, channel.Writer);
 
-        // PeriodicTimer allows only one in-flight WaitForNextTickAsync at a time.
-        // Racing it with WaitToReadAsync via Task.WhenAny left the previous wait active
-        // when activity arrived first, causing InvalidOperationException on the next loop.
-        // Own the timer exclusively in a ping loop that writes into the same channel.
-        using var pingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var pingSeconds = Math.Clamp(_options.SsePingIntervalSeconds, 5, 120);
-        var pingTask = RunSsePingLoopAsync(channel.Writer, pingSeconds, pingCts.Token);
+        using var pingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var pingTask = WriteKeepAlivePingsAsync(channel.Writer, pingSeconds, pingCts.Token);
 
         try
         {
-            while (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var message in ReadAllUntilCanceledAsync(channel.Reader, cancellationToken))
             {
-                while (channel.Reader.TryRead(out var message))
-                    yield return message;
+                yield return message;
             }
         }
         finally
         {
             pingCts.Cancel();
-            try
-            {
-                await pingTask.ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
-            {
-                // Expected when the SSE client disconnects.
-            }
+            await AwaitPingShutdownAsync(pingTask).ConfigureAwait(false);
 
             Unregister(tenantId, channel.Writer);
             channel.Writer.TryComplete();
+        }
+    }
+
+    /// <summary>
+    /// Sequential PeriodicTimer loop (one WaitForNextTickAsync at a time).
+    /// Keeps SSE alive without racing the channel reader via Task.WhenAny.
+    /// </summary>
+    private static async Task WriteKeepAlivePingsAsync(
+        ChannelWriter<ActivityStreamMessage> writer,
+        int pingSeconds,
+        CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(pingSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!writer.TryWrite(new ActivityStreamMessage("ping", new { })))
+                    break;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when client disconnects
+        }
+    }
+
+    /// <summary>
+    /// Channel read loop that swallows disconnect cancellation.
+    /// MoveNext is outside try/catch-around-yield (CS1626 / CS1631).
+    /// </summary>
+    private static async IAsyncEnumerable<ActivityStreamMessage> ReadAllUntilCanceledAsync(
+        ChannelReader<ActivityStreamMessage> reader,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var enumerator = reader.ReadAllAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
+        try
+        {
+            while (await MoveNextIgnoreCancelAsync(enumerator).ConfigureAwait(false))
+                yield return enumerator.Current;
+        }
+        finally
+        {
+            await enumerator.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<bool> MoveNextIgnoreCancelAsync(
+        IAsyncEnumerator<ActivityStreamMessage> enumerator)
+    {
+        try
+        {
+            return await enumerator.MoveNextAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when client disconnects
+            return false;
+        }
+    }
+
+    private static async Task AwaitPingShutdownAsync(Task pingTask)
+    {
+        try
+        {
+            await pingTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on disconnect / unsubscribe
         }
     }
 

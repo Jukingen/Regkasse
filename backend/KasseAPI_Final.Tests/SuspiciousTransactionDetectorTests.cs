@@ -23,7 +23,7 @@ public sealed class SuspiciousTransactionDetectorTests
             .UseInMemoryDatabase($"suspicious_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static IOptionsMonitor<T> MonitorOf<T>(T value) where T : class

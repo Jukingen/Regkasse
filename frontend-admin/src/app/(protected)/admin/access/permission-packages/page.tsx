@@ -8,7 +8,7 @@ import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { PermissionPackagesPanel } from '@/features/users/components/PermissionPackagesPanel';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function PermissionPackagesPage() {
@@ -20,11 +20,10 @@ export default function PermissionPackagesPage() {
     hasPermission(PERMISSIONS.ROLE_MANAGE) ||
     hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('access.hub.pageTitle'), href: '/admin/access' },
     { title: t('access.permissionPackages.pageTitle') },
-  ];
+  ]);
 
   if (!canView) {
     return (

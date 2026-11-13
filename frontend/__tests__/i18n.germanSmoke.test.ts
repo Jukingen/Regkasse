@@ -47,6 +47,8 @@ describe('POS i18n German (de)', () => {
     expect(i18n.t('cart:applyCoupon')).toBe('Gutschein anwenden');
     expect(i18n.t('payment:methods.voucher')).toBe('Gutschein');
     expect(i18n.t('payment:methods.cash')).toBe('Bargeld');
+    expect(i18n.t('payment:methods.credit_card')).toBe('Kreditkarte');
+    expect(i18n.t('payment:methods.paypal')).toBe('PayPal');
     expect(i18n.t('checkout:posFlow.payment.voucher.codeLabel')).toMatch(/Gutschein/);
     expect(i18n.t('customers:selectionTitle')).toBe('Kundenauswahl');
     expect(i18n.t('common:tax.reduced')).toBe('Ermäßigt');

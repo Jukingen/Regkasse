@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupAlertPublisher _alerts;
     private readonly ILogger<BackupManualTriggerService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public BackupManualTriggerService(
         AppDbContext db,
@@ -32,7 +34,8 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         ICurrentTenantAccessor tenantAccessor,
         IOptionsMonitor<BackupOptions> options,
         IBackupAlertPublisher alerts,
-        ILogger<BackupManualTriggerService> logger)
+        ILogger<BackupManualTriggerService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _audit = audit;
@@ -40,6 +43,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         _logger = logger;
         _options = options;
         _alerts = alerts;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     public async Task<BackupManualTriggerOutcome> RequestManualBackupAsync(
@@ -50,7 +54,8 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         BackupStrategyKind? strategy = null,
         bool deploymentWide = false,
         CancellationToken cancellationToken = default,
-        DateTime? incrementalSinceUtc = null)
+        DateTime? incrementalSinceUtc = null,
+        string? requestedFromIp = null)
     {
         var normalizedIdempotency = deploymentWide
             ? (string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim())
@@ -157,6 +162,16 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
                 "Incremental package watermark is only valid for Tenant strategy backups.");
         }
 
+        if (resolvedStrategy == BackupStrategyKind.Tenant
+            && runTenantId is Guid tenantLimitId
+            && tenantLimitId != Guid.Empty
+            && _tenantLimitGuard != null)
+        {
+            await _tenantLimitGuard
+                .EnsureCanCreateBackupAsync(tenantLimitId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var configJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
             opts,
             "backup_manual_enqueue",
@@ -182,6 +197,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
                 : runTenantId,
             Strategy = resolvedStrategy,
             RequestedByUserId = requestedByUserId,
+            RequestedFromIp = string.IsNullOrWhiteSpace(requestedFromIp) ? null : requestedFromIp.Trim(),
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
             CorrelationId = correlationId,
@@ -231,6 +247,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             requestData: new { run.Id, run.IdempotencyKey, correlationId, strategy = run.Strategy.ToString() },
             responseData: new { run.Status },
             correlationIdOverride: correlationId,
+            actionType: AuditEventType.BackupCreated,
             entityId: run.Id,
             tenantId: auditTenantId);
 

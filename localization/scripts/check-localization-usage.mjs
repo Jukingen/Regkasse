@@ -406,6 +406,12 @@ function normalizeUsage(appId, rawKey, knownNamespaces, defaultNs = null) {
 
   if (appId === 'frontend-admin') {
     const [namespace, ...rest] = key.split('.');
+    if (knownNamespaces.has(namespace) && rest.length > 0) {
+      return { namespace: namespace.trim(), keyPath: rest.join('.').trim() };
+    }
+    if (defaultNs && knownNamespaces.has(defaultNs)) {
+      return { namespace: defaultNs, keyPath: key };
+    }
     if (!namespace || rest.length === 0) return null;
     return { namespace: namespace.trim(), keyPath: rest.join('.').trim() };
   }

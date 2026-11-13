@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Secret scan (pre-commit + CI):** Husky blocks commits that add sensitive filenames or high-confidence secrets (`scripts/git-hooks/scan-secrets.mjs`). Policy in [`SECURITY.md`](SECURITY.md); `npm run verify:secrets` / `npm run test:secrets`.
+
+- **POS receipt P0/P1 + Dankesnachricht:** printed receipts include `Kassen-ID` (`cashRegister.registerNumber`) and the full compact JWS (`TSE-Signatur`, not truncated). Optional `Filiale` from register `Location` and `Terminal` when present. Configurable thank-you line stored on `company_settings.thank_you_message` (default `Vielen Dank für Ihren Einkauf!`). API `GET/POST /api/admin/settings/receipt` (`settings.view`); FA `/settings/receipt`.
+
+- **POS Belegliste / Nachdruck:** cashiers can list the last 20 receipts of the current cash register and reprint them (`receipt.reprint`) without creating a new fiscal Beleg. API `GET /api/pos/receipts` and `GET /api/pos/receipts/{receiptId}/reprint`. POS entry: user menu **Belegliste** (not a footer tab).
+
+- **RKSV runtime config (Super Admin):** persisted instance overlay for `RKSV.Mode` / `TseMode` / `FinanzOnlineMode` / `ShowDemoLabel` / `BypassTseInDevelopment` (`rksv_runtime_config`). API `GET/POST /api/admin/rksv/config`; FA `/admin/rksv/config`. `TseMode=Real` disables Development TSE health bypass. Guide: [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md).
+
+- **POS online payments (Kreditkarte / PayPal):** hosted initiate + poll (`POST/GET /api/pos/payment/initiate`), provider webhooks (`POST /api/webhooks/payment/{provider}`), intents on `gateway_payment_intents`. Webhooks never create TSE/RKSV receipts. Super Admin FA **Online-Zahlungen** (`/admin/online-payments`, `online-payments.manage`) lists intents and runs a non-fiscal test console. Guide: [`docs/ONLINE_PAYMENTS.md`](docs/ONLINE_PAYMENTS.md).
+
+- **Dashboard widget customization (P2):** Manager license / KPI / Monatsbeleg / activity / TSE / offline / license checklist / export quick-actions participate in existing `@dnd-kit` `WidgetGrid` + `GET/POST /api/admin/dashboard/preferences`. Handlungsbedarf (Tagesabschluss + RKSV) remains pinned. Reset layout + i18n for “Widgets anpassen”. See [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md).
+- **DEP export history:** download token / expiry / `download_count` / `is_simulated` migrations; Soft TSE leaf/chain fallback for **demo/simulation only** when historical thumbprint is missing; `DepExportStatus` JSON string enum for FA.
+- **EF snapshot sync migration** `20260808214645_SyncDepExportAndPendingModelSnapshot` (no SQL) so `dotnet ef migrations has-pending-model-changes` is clean.
+- **Production release notes:** [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md); expanded Production checklist in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 - **Comprehensive Windows script ecosystem:**
   - **13** root-level `.bat` files for common tasks (`start-dev`, `start-backend` / `admin` / `pos` / `sites`, `test-all`, `clean-all`, `docker-up` / `down` / `clean` / `status`, `deploy`, `rollback`)
   - **8** `scripts\` maintenance helpers (`clean-backend`, `dev-purge-tenant`, `generate-dep-export`, `ensure-bmf-prueftool`, `fix-antd`, `dev-mail`, `smoke-test`, `run-with-log`)
@@ -42,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **TSE health bypass is opt-in in Development:** no longer implied by `ASPNETCORE_ENVIRONMENT=Development`. Default is **do not bypass** (`DevelopmentOptions:BypassTseInDevelopment=false`, `bypassTseCheck` seed false). FA `/admin/rksv/config` overlay `TseMode=Real` always runs real probes/signing. See [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md).
+
+- **Legacy API aliases removed:** `/api/Payment`, `/api/Cart`, `/api/Product` no longer bind. Use `/api/pos/payment/*`, `/api/pos/cart/*`, `/api/pos/*` (admin products: `/api/admin/products`). See [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
+
+- **Dashboard catalog:** `DashboardWidgetCatalog.FilterByPermissions` honors `PermissionImplication` (manage→view) so Mandanten-Admin sees cash-register / license view widgets.
 - **POS Expo SDK 56 patch bump:** `expo` `~56.0.16` → `~56.0.18` (plus aligned `expo-router`, `expo-linking`, `expo-sharing`, `expo-splash-screen`, `expo-web-browser`, `expo-build-properties`, `react-native-screens` `~4.26.0`, TypeScript `~6.0.3` via `npx expo install --fix`). Pins updated in `AGENTS.md`, `frontend/README.md`, onboarding / comprehensive docs.
 - **Documentation accuracy:** Single POS UI hosts (`pos` / `admin` / `api`.regkasse.at); JWT tenant; Dev-only `X-Tenant-Id` — updates across `docs/`, `ai/`, offline deploy, impersonation, onboarding.
 - **Backup FA docs:** hub `/backup` (+ costs/compliance); Mandanten-Admin `backup.manage`; auto-cleanup audit `BACKUP_AUTO_DELETED`.
@@ -54,6 +73,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **POS receipt MwSt table:** printed receipts now show a single MwSt header (`MwSt% Netto MwSt Brutto`) instead of a duplicated pipe-separated title plus table header. Thank-you text is always the configured Dankesnachricht (default `Vielen Dank für Ihren Einkauf!`); `CompanyDescription` prints after it, not as a substitute.
+
+- **Elmah PostgreSQL `"User"` column:** `elmah_error` created from lowercase `"user"` DDL could not accept ElmahCore.Postgresql inserts (`42703 column "User" does not exist`). Migration `20260827170615_AddElmahUserColumn` creates the table when missing, ensures a single nullable `"User"` (quoted PascalCase), backfills/renames leftover `"user"`, and is idempotent.
+
+- **Staging host user secrets:** `WebApplication.CreateBuilder` skips user secrets outside Development, so local `ASPNETCORE_ENVIRONMENT=Staging` never resolved `ConnectionStrings:DefaultConnection` / `JwtSettings:SecretKey`. `ApplicationHost` now loads user secrets in Staging (optional; no-op on servers without a secrets file).
+- **AuditLog Manager 500:** removed `.Include(a => a.User)` / search on ignored navigation; actor display names resolved after materialization — [`docs/FIXES.md`](docs/FIXES.md).
+- **DEP Soft TSE missing certificate (demo only):** fallback to current Soft leaf/chain; Production still throws.
+- **DEP history FA download disabled:** `DepExportStatus` string enum + FA status normalizers.
 - **AI contracts:** removed false “Customer not `ITenantEntity`” claim; Production tenancy framed as JWT on reserved hosts (not subdomain-only).
 - **Auth docs:** invalid login expected status **401** (not 400) in TestSprite / API contract summaries.
 - **Seed / smoke scripts:** `seed-test-data.mjs` uses `loginIdentifier` and clearer API-unreachable errors; FA E2E uses Dev tenant header `dev`.
@@ -63,10 +90,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`email`** on login request bodies — still accepted when `loginIdentifier` is empty; new clients must use **`loginIdentifier`** (OpenAPI marks `email` deprecated).
 - **Legacy slug POS entry** (`{slug}.regkasse.at` as primary POS) — prefer `pos.regkasse.at` + JWT; FA impersonation slug handoff treated as technical debt vs shared Admin host.
-- **Legacy API families** `/api/Payment`, `/api/Cart`, `/api/Product` — no new features; see [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
 
 ### Removed
 
+- **Legacy API aliases** `/api/Payment`, `/api/Cart`, `/api/Product` (2026-08-13). Controllers remain on `/api/pos/*`.
 - Obsolete scripts: `migrate_i18n.js`, `patch-swagger-backup-dr.cjs`, `parse-demo-menu-html.*`, `ci-smoke-test.sh` (legacy Cart smoke).
 - Empty `tools/LicenseTools.slnx`; duplicate TestSprite YAML (`multi-tenant.yml`, `backup-restore.yml` merged into remaining suites).
 - Broken standalone `tools/i18n/projects.mjs` / legacy validate implementation (replaced by localization wrappers).

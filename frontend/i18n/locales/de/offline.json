@@ -1,0 +1,9 @@
+{
+  "limit": {
+    "used": "{{current}} von {{limit}} Offline-Transaktionen verwendet",
+    "title": "Offline-Limit erreicht",
+    "body": "Offline-Limit erreicht. Verkäufe blockiert, bis die Synchronisierung abgeschlossen ist.",
+    "retryNow": "Jetzt synchronisieren",
+    "cancel": "Abbrechen"
+  }
+}

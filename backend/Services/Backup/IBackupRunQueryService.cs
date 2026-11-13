@@ -14,6 +14,7 @@ public interface IBackupRunQueryService
         int page,
         int pageSize,
         BackupRunAccessScope? accessScope = null,
+        BackupRunHistoryFilter? filter = null,
         CancellationToken cancellationToken = default);
 
     Task<BackupVerification?> GetLatestVerificationAsync(
@@ -26,7 +27,8 @@ public interface IBackupRunQueryService
     Task<IReadOnlyList<Guid>> GetRecentSucceededRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gerçek PostgreSQL <c>pg_dump</c> yoluyla tamamlanmış başarılı yedekler (adaptör <c>PgDump</c>); restore drill için tercih edilen kaynak.
+    /// Gerçek PostgreSQL <c>pg_dump</c> yoluyla tamamlanmış başarılı yedekler
+    /// (<c>PgDump</c> veya <c>SystemComposite</c>); restore drill için tercih edilen kaynak.
     /// </summary>
     Task<IReadOnlyList<Guid>> GetRecentSucceededPgDumpRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
 

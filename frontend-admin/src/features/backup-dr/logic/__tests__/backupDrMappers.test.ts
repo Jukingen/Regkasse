@@ -4,8 +4,8 @@ import type {
   BackupArtifactResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
-import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupArtifactLifecycleState } from '@/api/generated/model/backupArtifactLifecycleState';
 import {
   computeEffectiveRestoreReadinessLevel,
   configurationHealthSummaryI18nKey,
@@ -194,31 +194,31 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
 
   it('externalLifecycleOk / failed / staging / mixed', () => {
     const logical = (ls: number): BackupArtifactResponseDto => ({
-      artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-      lifecycleState: ls as BackupArtifactResponseDtoLifecycleState,
+      artifactType: BackupArtifactType.LogicalDump,
+      lifecycleState: ls as BackupArtifactLifecycleState,
     });
     expect(
       mapArtifactsToExternalCopyVariant([
-        logical(BackupArtifactResponseDtoLifecycleState.NUMBER_2),
+        logical(BackupArtifactLifecycleState.ExternalCopyVerified),
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ])
     ).toBe('externalLifecycleOk');
 
     expect(
-      mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3)])
+      mapArtifactsToExternalCopyVariant([logical(BackupArtifactLifecycleState.ExternalCopyFailed)])
     ).toBe('failed');
 
     expect(
-      mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_0)])
+      mapArtifactsToExternalCopyVariant([logical(BackupArtifactLifecycleState.Staging)])
     ).toBe('staging');
 
     expect(
       mapArtifactsToExternalCopyVariant([
-        logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3),
-        logical(BackupArtifactResponseDtoLifecycleState.NUMBER_2),
+        logical(BackupArtifactLifecycleState.ExternalCopyFailed),
+        logical(BackupArtifactLifecycleState.ExternalCopyVerified),
       ])
     ).toBe('mixed');
   });

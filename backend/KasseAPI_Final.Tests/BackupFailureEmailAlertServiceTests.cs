@@ -127,6 +127,47 @@ public sealed class EmailBackupAlertPublisherTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task Publish_RpoOverdue_invokes_email()
+    {
+        var email = new Mock<IBackupFailureEmailAlertService>();
+        email
+            .Setup(e => e.SendFailureAlertAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var services = new ServiceCollection().BuildServiceProvider();
+        var publisher = new EmailBackupAlertPublisher(
+            services.GetRequiredService<IServiceScopeFactory>(),
+            email.Object,
+            NullLogger<EmailBackupAlertPublisher>.Instance);
+
+        publisher.Publish(new BackupAlertEvent(
+            BackupAlertKind.RpoOverdue,
+            null,
+            null,
+            "No successful system backup for 2 days",
+            new Dictionary<string, string>
+            {
+                ["tenantSlug"] = "deployment",
+            }));
+
+        await WaitForAsync(() => email.Invocations.Count > 0);
+
+        email.Verify(
+            e => e.SendFailureAlertAsync(
+                "deployment",
+                "No successful system backup for 2 days",
+                null,
+                null,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
     {
         var start = Environment.TickCount64;

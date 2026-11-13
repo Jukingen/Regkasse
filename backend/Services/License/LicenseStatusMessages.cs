@@ -26,9 +26,9 @@ public static class LicenseStatusMessages
                 en: "Tenant license expired {0} day(s) ago. POS can still be used for {1} more day(s). POS will lock on {2}.",
                 tr: "Kiracı lisansı {0} gün önce sona erdi. POS {1} gün daha kullanılabilir. POS {2} tarihinde kilitlenecek."),
             [LicenseStatusMessageKeys.Locked] = Msg(
-                de: "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren. Bitte Lizenz erneuern.",
-                en: "License expired! POS is locked. Only a Super Admin can unlock. Please renew the license.",
-                tr: "Lisans süresi doldu! POS kilitli. Yalnızca Süper Yönetici kilidi açabilir. Lütfen lisansı yenileyin."),
+                de: "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
+                en: "Tenant locked — please activate a tenant license.",
+                tr: "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin."),
             [LicenseStatusMessageKeys.None] = Msg(
                 de: "Keine Mandantenlizenz konfiguriert.",
                 en: "No tenant license configured.",

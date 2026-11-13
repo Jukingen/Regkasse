@@ -25,6 +25,7 @@ import {
   type MaintenanceNotificationDto,
   type StartMaintenanceModeRequest,
 } from '@/api/manual/maintenanceMode';
+import { clearAdminCache } from '@/api/manual/adminCache';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { dateColumnRender } from '@/components/DateColumn';
@@ -32,7 +33,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 
 const STATUS_QUERY_KEY = ['admin', 'maintenance', 'status'] as const;
 const LIST_QUERY_KEY = ['admin', 'maintenance', 'notifications'] as const;
@@ -50,11 +51,9 @@ export default function MaintenanceManagementPage() {
   }>();
   const [startOpen, setStartOpen] = useState(false);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
-    { title: t('nav.maintenance') },
-  ];
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', {
+    title: t('nav.maintenance'),
+  });
 
   const statusQuery = useQuery({
     queryKey: STATUS_QUERY_KEY,
@@ -102,6 +101,19 @@ export default function MaintenanceManagementPage() {
     onError: (err) => {
       notify.apiError(err, {
         logContext: 'MaintenancePage.end',
+        fallbackKey: 'maintenance.manage.actionFailed',
+      });
+    },
+  });
+
+  const clearCacheMutation = useMutation({
+    mutationFn: () => clearAdminCache({ clearAll: true }),
+    onSuccess: () => {
+      notify.successKey('maintenance.manage.clearCacheSuccess');
+    },
+    onError: (err) => {
+      notify.apiError(err, {
+        logContext: 'MaintenancePage.clearCache',
         fallbackKey: 'maintenance.manage.actionFailed',
       });
     },
@@ -162,6 +174,15 @@ export default function MaintenanceManagementPage() {
       content: t('maintenance.manage.endConfirmBody'),
       okText: t('maintenance.manage.endAction'),
       onOk: () => endMutation.mutateAsync(),
+    });
+  };
+
+  const confirmClearCache = () => {
+    modal.confirm({
+      title: t('maintenance.manage.clearCacheConfirmTitle'),
+      content: t('maintenance.manage.clearCacheConfirmBody'),
+      okText: t('maintenance.manage.clearCacheAction'),
+      onOk: () => clearCacheMutation.mutateAsync(),
     });
   };
 
@@ -245,6 +266,21 @@ export default function MaintenanceManagementPage() {
               {t('maintenance.manage.refresh')}
             </Button>
           </Space>
+        </Space>
+      </Card>
+
+      <Card title={t('maintenance.manage.cacheCardTitle')} style={{ marginTop: 16 }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            {t('maintenance.manage.cacheCardHint')}
+          </Typography.Text>
+          <Button
+            danger
+            onClick={confirmClearCache}
+            loading={clearCacheMutation.isPending}
+          >
+            {t('maintenance.manage.clearCacheAction')}
+          </Button>
         </Space>
       </Card>
 

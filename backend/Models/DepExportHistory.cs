@@ -1,8 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Models;
 
+/// <summary>DEP history status for API responses (string enum JSON: "Completed", not 2).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DepExportStatus
 {
     Pending,
@@ -74,9 +77,31 @@ public class DepExportHistory : ITenantEntity
     [Column("error_message", TypeName = "text")]
     public string? ErrorMessage { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(1024)]
     [Column("storage_path")]
     public string? StoragePath { get; set; }
+
+    /// <summary>Opaque short-lived download token (hex). Null when not issued or revoked.</summary>
+    [MaxLength(64)]
+    [Column("download_token")]
+    public string? DownloadToken { get; set; }
+
+    /// <summary>UTC expiry for <see cref="DownloadToken"/>.</summary>
+    [Column("download_token_expires_at_utc")]
+    public DateTime? DownloadTokenExpiresAtUtc { get; set; }
+
+    /// <summary>When the hot/working download copy is considered expired (default ExportedAt + 7 days).</summary>
+    [Column("expires_at")]
+    public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>Last successful file download timestamp (UTC).</summary>
+    [Column("downloaded_at")]
+    public DateTime? DownloadedAt { get; set; }
+
+    /// <summary>Successful download count (id or token path).</summary>
+    [Required]
+    [Column("download_count")]
+    public int DownloadCount { get; set; }
 
     [Column("schedule_id")]
     public Guid? ScheduleId { get; set; }
@@ -86,6 +111,15 @@ public class DepExportHistory : ITenantEntity
 
     [Column("include_daily_closings")]
     public bool IncludeDailyClosings { get; set; } = true;
+
+    /// <summary>True when the export was created while RKSV demo / TSE simulation was active.</summary>
+    [Column("is_simulated")]
+    public bool IsSimulated { get; set; }
+
+    /// <summary>Operator note when <see cref="IsSimulated"/>; null otherwise.</summary>
+    [MaxLength(500)]
+    [Column("simulation_note")]
+    public string? SimulationNote { get; set; }
 
     /// <summary>Pending, Passed, Failed, or Skipped.</summary>
     [MaxLength(16)]

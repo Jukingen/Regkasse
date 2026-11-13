@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
@@ -22,7 +23,7 @@ public class CatalogStructureTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"CatalogStructure_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void SetAuth(ProductController controller, string userId = "u1")
@@ -59,12 +60,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -83,7 +84,7 @@ public class CatalogStructureTests
         context.Products.Add(new Product
         {
             Id = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -103,7 +104,7 @@ public class CatalogStructureTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -112,14 +113,14 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
@@ -179,12 +180,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Pizza",
             Price = 8.50m,
             CategoryId = categoryId,
@@ -203,7 +204,7 @@ public class CatalogStructureTests
         context.Products.Add(new Product
         {
             Id = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Oliven",
             Price = 0.80m,
             CategoryId = categoryId,
@@ -223,7 +224,7 @@ public class CatalogStructureTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Toppings",
             SortOrder = 0,
             IsActive = true
@@ -232,14 +233,14 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
@@ -324,5 +325,110 @@ public class CatalogStructureTests
         Assert.Single(roundTrip.ModifierGroups);
         Assert.Single(roundTrip.ModifierGroups[0].Products);
         Assert.Equal("Extra Käse", roundTrip.ModifierGroups[0].Products[0].ProductName);
+    }
+
+    [Fact]
+    public async Task GetCatalog_ReturnsCategoryIconAndColor()
+    {
+        await using var context = CreateContext();
+        var categoryId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = categoryId,
+            Name = "Salate",
+            Icon = "🥗",
+            Color = "#7CB342",
+            SortOrder = 10,
+            VatRate = 10m,
+            IsActive = true
+        });
+        context.Products.Add(new Product
+        {
+            Id = productId,
+            TenantId = SystemTenantIds.Platform,
+            Name = "Gemischter Salat",
+            Price = 8.90m,
+            CategoryId = categoryId,
+            Category = "Salate",
+            StockQuantity = 10,
+            MinStockLevel = 0,
+            Unit = "Stk",
+            TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
+        SetAuth(controller);
+
+        var result = await controller.GetCatalog();
+        var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        var data = GetCatalogDataFromResponse(ok.Value) as CatalogResponseDto;
+        Assert.NotNull(data);
+
+        var category = Assert.Single(data.Categories);
+        Assert.Equal(categoryId, category.Id);
+        Assert.Equal("🥗", category.Icon);
+        Assert.Equal("#7CB342", category.Color);
+        Assert.Equal(10, category.SortOrder);
+
+        var product = Assert.Single(data.Products);
+        Assert.Equal("🥗", product.CategoryIcon);
+        Assert.Equal("#7CB342", product.CategoryColor);
+    }
+
+    [Fact]
+    public async Task GetAllCategories_ReturnsIconAndColorFromCategoriesTable()
+    {
+        await using var context = CreateContext();
+        var categoryId = Guid.NewGuid();
+
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = categoryId,
+            Name = "Pizza, mittel",
+            Icon = "wine",
+            Color = "#e53935",
+            SortOrder = 50,
+            VatRate = 10m,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
+        SetAuth(controller);
+
+        var result = await controller.GetAllCategories();
+        var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+
+        CatalogCategoryDto? mapped = null;
+        foreach (var prop in ok.Value!.GetType().GetProperties())
+        {
+            if (prop.GetValue(ok.Value) is IEnumerable<CatalogCategoryDto> list)
+            {
+                mapped = Assert.Single(list);
+                break;
+            }
+        }
+
+        Assert.NotNull(mapped);
+        Assert.Equal(categoryId, mapped.Id);
+        Assert.Equal("🍷", mapped.Icon);
+        Assert.Equal("#e53935", mapped.Color);
+        Assert.Equal("Pizza, mittel", mapped.Name);
     }
 }

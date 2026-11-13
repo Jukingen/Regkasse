@@ -1,6 +1,5 @@
 'use client';
 
-import { CopyOutlined } from '@ant-design/icons';
 import { Alert, Button, Modal, Space } from 'antd';
 
 import { CredentialCopyRow } from '@/features/super-admin/components/CredentialCopyRow';
@@ -10,7 +9,6 @@ export type CreateUserPasswordSuccessModalProps = {
   open: boolean;
   result: CreateUserResult | null;
   password: string;
-  onCopyPassword: () => void;
   onClose: () => void;
   t: (key: string) => string;
 };
@@ -19,7 +17,6 @@ export function CreateUserPasswordSuccessModal({
   open,
   result,
   password,
-  onCopyPassword,
   onClose,
   t,
 }: CreateUserPasswordSuccessModalProps) {
@@ -32,10 +29,7 @@ export function CreateUserPasswordSuccessModal({
       mask={{ closable: true }}
       destroyOnHidden
       footer={[
-        <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={onCopyPassword}>
-          {t('users.create.copyPassword')}
-        </Button>,
-        <Button key="close" onClick={onClose}>
+        <Button key="close" type="primary" onClick={onClose}>
           {t('users.create.close')}
         </Button>,
       ]}

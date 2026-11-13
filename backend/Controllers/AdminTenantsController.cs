@@ -1,11 +1,17 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.ActivityReports;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Auth;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,42 +25,134 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
+    private readonly IAdminTenantCsvExportService _csvExport;
     private readonly IAdminTenantLicenseService _tenantLicenseService;
     private readonly ITenantDeletionService _tenantDeletionService;
     private readonly IActivityReportService _activityReportService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITrialConversionService _trialConversion;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
+    private readonly ITenantDemoSeeder _demoSeeder;
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
+        IAdminTenantCsvExportService csvExport,
         IAdminTenantLicenseService tenantLicenseService,
         ITenantDeletionService tenantDeletionService,
         IActivityReportService activityReportService,
         IAuditLogService auditLogService,
+        ITrialConversionService trialConversion,
         IHostEnvironment environment,
-        ILogger<AdminTenantsController> logger)
+        ILogger<AdminTenantsController> logger,
+        ITenantDemoSeeder demoSeeder)
     {
         _tenantService = tenantService;
+        _csvExport = csvExport;
         _tenantLicenseService = tenantLicenseService;
         _tenantDeletionService = tenantDeletionService;
         _activityReportService = activityReportService;
         _auditLogService = auditLogService;
+        _trialConversion = trialConversion;
         _environment = environment;
         _logger = logger;
+        _demoSeeder = demoSeeder;
     }
 
     private string? ActorUserId => User.GetActorUserId();
+    private string? ActorRole => User.GetActorRole();
 
-    /// <summary>List all tenants (optionally include soft-deleted).</summary>
+    /// <summary>List tenants with optional filter, sort, and pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AdminTenantListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AdminTenantListItemDto>>> List(
+    [ProducesResponseType(typeof(PagedResult<AdminTenantListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AdminTenantListItemDto>>> List(
         [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? status = null,
+        [FromQuery] string? licenseType = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var items = await _tenantService.ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
-        return Ok(items);
+        LicenseType? parsedLicenseType = null;
+        if (!string.IsNullOrWhiteSpace(licenseType))
+        {
+            if (!Enum.TryParse<LicenseType>(licenseType.Trim(), ignoreCase: true, out var lt))
+            {
+                return Ok(new PagedResult<AdminTenantListItemDto>
+                {
+                    Items = [],
+                    TotalCount = 0,
+                    Page = Math.Max(1, page),
+                    PageSize = Math.Clamp(pageSize <= 0 ? 20 : pageSize, 1, 100),
+                    TotalPages = 0,
+                });
+            }
+
+            parsedLicenseType = lt;
+        }
+
+        var result = await _tenantService
+            .ListPagedAsync(
+                new AdminTenantListQuery
+                {
+                    IncludeDeleted = includeDeleted,
+                    Status = status,
+                    LicenseType = parsedLicenseType,
+                    Search = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    Page = page,
+                    PageSize = pageSize,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Export filtered tenant inventory as CSV (same filters as list; no pagination).</summary>
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportCsv(
+        [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? status = null,
+        [FromQuery] string? licenseType = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null,
+        CancellationToken cancellationToken = default)
+    {
+        LicenseType? parsedLicenseType = null;
+        if (!string.IsNullOrWhiteSpace(licenseType))
+        {
+            if (!Enum.TryParse<LicenseType>(licenseType.Trim(), ignoreCase: true, out var lt))
+                return BadRequest(new { message = "Invalid licenseType." });
+            parsedLicenseType = lt;
+        }
+
+        var rows = await _tenantService
+            .ListForExportAsync(
+                new AdminTenantListQuery
+                {
+                    IncludeDeleted = includeDeleted,
+                    Status = status,
+                    LicenseType = parsedLicenseType,
+                    Search = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    Page = 1,
+                    PageSize = int.MaxValue,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var bytes = _csvExport.BuildCsv(rows);
+        var fileName = $"tenants_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}_UTC.csv";
+        Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
     /// <summary>Super Admin mandant license inventory for <c>/admin/license</c> overview table.</summary>
@@ -137,10 +235,45 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(checks);
     }
 
+    /// <summary>
+    /// Convert an open SaaS trial to a paid license sale (Super Admin).
+    /// Managers use <c>POST /api/admin/tenants/{tenantId}/license/convert-to-paid</c> instead.
+    /// </summary>
+    [HttpPost("{tenantId:guid}/convert-to-paid")]
+    [HasPermission(AppPermissions.TenantManage)]
+    [ProducesResponseType(typeof(TrialConversionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrialConversionResult>> ConvertToPaid(
+        Guid tenantId,
+        [FromBody] ConvertToPaidRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.LicenseSaleId == Guid.Empty)
+            return BadRequest(new { message = "licenseSaleId is required." });
+
+        var (result, error) = await _trialConversion
+            .ConvertToPaidAsync(
+                tenantId,
+                request.LicenseSaleId,
+                request.AddRemainingTrialDays ?? true,
+                request.Notes,
+                ActorUserId,
+                ActorRole ?? Roles.SuperAdmin,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
     /// <summary>Create a new tenant (generates id, unique slug).</summary>
     [HttpPost]
     [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<AdminTenantDetailDto>> Create(
         [FromBody] CreateAdminTenantRequest request,
         CancellationToken cancellationToken = default)
@@ -148,20 +281,68 @@ public sealed class AdminTenantsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var (result, failure) = await _tenantService
-            .CreateWithFailureDetailAsync(request, ActorUserId, cancellationToken)
-            .ConfigureAwait(false);
-        if (failure != null)
-        {
-            return BadRequest(new
-            {
-                message = failure.Message,
-                code = failure.Code,
-                suggestions = failure.SlugSuggestions,
-            });
-        }
+        if (request.SeedDemo && !User.IsInRole(Roles.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Demo seed requires SuperAdmin." });
 
-        return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
+        try
+        {
+            var (result, failure) = await _tenantService
+                .CreateWithFailureDetailAsync(request, ActorUserId, cancellationToken)
+                .ConfigureAwait(false);
+            if (failure != null)
+            {
+                return BadRequest(new
+                {
+                    message = failure.Message,
+                    code = failure.Code,
+                    suggestions = failure.SlugSuggestions,
+                });
+            }
+
+            if (request.SeedDemo)
+            {
+                var profileId = await _demoSeeder
+                    .ResolveVerticalProfileIdAsync(result!.Id, cancellationToken)
+                    .ConfigureAwait(false);
+                var seeded = await _demoSeeder
+                    .SeedAsync(result.Id, profileId, cancellationToken)
+                    .ConfigureAwait(false);
+                if (seeded.FailedProfile is null)
+                {
+                    await _auditLogService.LogSystemOperationAsync(
+                        "TENANT_DEMO_SEEDED",
+                        "Tenant",
+                        ActorUserId ?? "system",
+                        ActorRole ?? Roles.SuperAdmin,
+                        description: "Demo catalog seeded",
+                        actionType: AuditEventType.TenantDemoSeeded,
+                        entityId: result.Id,
+                        tenantId: result.Id,
+                        newValues: new
+                        {
+                            tenantId = result.Id,
+                            verticalProfileId = profileId,
+                            productsAdded = seeded.ProductsAdded,
+                            customersAdded = seeded.CustomersAdded,
+                            cashRegisterId = seeded.CashRegisterId,
+                        }).ConfigureAwait(false);
+                }
+            }
+
+            return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
+        }
+        catch (UnknownCountryCodeException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (CountryNotSelectableException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (InvalidVatRegimeForCountryException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
     }
 
     /// <summary>Import the demo menu catalog (Salate, Pizzas, Pasta, …) for an existing tenant.</summary>
@@ -315,6 +496,51 @@ public sealed class AdminTenantsController : ControllerBase
         if (error != null)
             return BadRequest(new { message = error, code = "INVALID_OPERATION_MODE" });
         return Ok(result);
+    }
+
+    /// <summary>Super Admin: change mandant operating country and VAT regime.</summary>
+    [HttpPatch("{tenantId:guid}/country")]
+    [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AdminTenantDetailDto>> UpdateCountry(
+        Guid tenantId,
+        [FromBody] UpdateAdminTenantCountryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (result, error, errorCode) = await _tenantService
+            .UpdateCountryAsync(tenantId, request, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (errorCode == AdminTenantCountryErrorCodes.TenantNotFound
+            || errorCode == AdminTenantCountryErrorCodes.CompanySettingsMissing)
+            return NotFound(new { message = error, code = errorCode });
+        if (errorCode == AdminTenantCountryErrorCodes.CountryLockedFiscal
+            || errorCode == AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid)
+            return Conflict(new { message = error, code = errorCode });
+        if (error != null)
+            return BadRequest(new { message = error, code = errorCode });
+        return Ok(result);
+    }
+
+    /// <summary>Super Admin: fiscal-row counts for a proposed country change. Does not mutate.</summary>
+    [HttpGet("{tenantId:guid}/country-impact")]
+    [ProducesResponseType(typeof(CountryChangeImpactDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CountryChangeImpactDto>> GetCountryChangeImpact(
+        Guid tenantId,
+        [FromQuery] string country,
+        CancellationToken cancellationToken = default)
+    {
+        var impact = await _tenantService
+            .GetCountryChangeImpactAsync(tenantId, country, cancellationToken)
+            .ConfigureAwait(false);
+        if (impact is null)
+            return NotFound(new { message = "Tenant not found.", code = AdminTenantCountryErrorCodes.TenantNotFound });
+        return Ok(impact);
     }
 
     /// <summary>Weekly operation-log activity report for a tenant (last 7 days).</summary>
@@ -531,6 +757,19 @@ public sealed class AdminTenantsController : ControllerBase
             return BadRequest(new { message = error });
 
         _logger.LogInformation("Impersonation token issued for tenant {TenantId} by {ActorUserId}", tenantId, actorId);
+
+        var accessExpires = DateTime.UtcNow.AddSeconds(Math.Max(60, result!.ExpiresIn));
+        var cookieAuth = HttpContext.Features
+            .Get<Microsoft.AspNetCore.Http.Features.IServiceProvidersFeature>()
+            ?.RequestServices
+            ?.GetService<IAuthCookieService>();
+        cookieAuth?.AppendAuthCookies(
+            Response,
+            result.Token,
+            result.RefreshToken,
+            accessExpires,
+            result.RefreshTokenExpiresAtUtc,
+            ClientAppPolicy.Admin);
 
         try
         {

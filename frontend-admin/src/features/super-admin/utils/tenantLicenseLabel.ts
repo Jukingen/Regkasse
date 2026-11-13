@@ -1,4 +1,7 @@
-import { formatDate } from '@/lib/dateUtils';
+import {
+  calculateLicenseDaysRemaining,
+  formatLicenseValidUntil,
+} from '@/features/license/utils/licenseValidUntil';
 
 export type TenantLicenseKind = 'none' | 'trial' | 'valid' | 'expired';
 
@@ -20,33 +23,15 @@ export function resolveTenantLicenseLabel(
       ? Math.trunc(serverDaysRemaining)
       : null;
 
-  if (!licenseValidUntilUtc?.trim()) {
-    if (serverDays != null) {
-      if (serverDays < 0) {
-        return { kind: 'expired', label: 'Abgelaufen', daysRemaining: serverDays };
-      }
+  const daysFromValidUntil = calculateLicenseDaysRemaining(licenseValidUntilUtc, now);
+  const daysRemaining = daysFromValidUntil ?? serverDays;
 
-      const isTrial = !licenseKey?.trim() || serverDays <= 31;
-      if (isTrial) {
-        return {
-          kind: 'trial',
-          label: `Demo (${serverDays} T.)`,
-          daysRemaining: serverDays,
-        };
-      }
-
-      return { kind: 'valid', label: '—', daysRemaining: serverDays };
-    }
-
+  if (daysRemaining == null) {
     if (licenseKey?.trim()) {
       return { kind: 'valid', label: '—', daysRemaining: null };
     }
     return { kind: 'none', label: '—', daysRemaining: null };
   }
-
-  const until = new Date(licenseValidUntilUtc);
-  const diffMs = until.getTime() - now;
-  const daysRemaining = serverDays ?? Math.ceil(diffMs / (24 * 60 * 60 * 1000));
 
   if (daysRemaining < 0) {
     return { kind: 'expired', label: 'Abgelaufen', daysRemaining };
@@ -63,7 +48,7 @@ export function resolveTenantLicenseLabel(
 
   return {
     kind: 'valid',
-    label: formatDate(until),
+    label: licenseValidUntilUtc?.trim() ? formatLicenseValidUntil(licenseValidUntilUtc) : '—',
     daysRemaining,
   };
 }

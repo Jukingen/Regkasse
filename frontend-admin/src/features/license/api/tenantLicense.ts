@@ -7,6 +7,10 @@ export type TenantLicenseStatus = {
   daysRemaining?: number | null;
   tier?: string | null;
   features: string[];
+  trialStatus?: string | null;
+  trialEndsAtUtc?: string | null;
+  trialDaysRemaining?: number | null;
+  trialGracePeriodEndsAtUtc?: string | null;
 };
 
 export type TenantLicenseHistoryItem = {
@@ -48,6 +52,9 @@ export type TenantLicensePreviewResult = {
   planName?: string | null;
   errorCode?: string | null;
   errorMessage?: string | null;
+  licenseKind?: string | null;
+  tenantId?: string | null;
+  tenantName?: string | null;
 };
 
 export type PreviewTenantLicenseRequest = {
@@ -83,7 +90,7 @@ export async function putTenantLicense(
   return data;
 }
 
-/** POST /api/admin/license/mandant/preview — validate key without applying (Manager). */
+/** POST /api/admin/license/mandant/preview — unified issued_licenses + license_sales lookup. */
 export async function previewTenantLicense(
   body: PreviewTenantLicenseRequest
 ): Promise<TenantLicensePreviewResult> {
@@ -95,7 +102,7 @@ export async function previewTenantLicense(
 }
 
 /** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key (Manager).
- *  @deprecated Prefer `POST /api/admin/license/extend` (billing, `settings.manage`) — see `docs/BILLING_TENANT_LICENSE.md`. */
+ *  @deprecated Prefer `POST /api/license/activate` (unified server + tenant activation). */
 export async function extendTenantLicense(
   body: ExtendTenantLicenseRequest
 ): Promise<ExtendTenantLicenseResult> {

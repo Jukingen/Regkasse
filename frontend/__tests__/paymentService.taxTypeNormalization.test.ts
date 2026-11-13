@@ -1,11 +1,15 @@
 /**
  * Ensures paymentService.processPayment normalizes item.taxType before HTTP and before offline enqueue.
  */
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 import type { PaymentRequest } from '../services/api/paymentService';
 import paymentService from '../services/api/paymentService';
-import { paymentPayloadContainsVoucherSecrets } from '../services/payment/pendingPaymentQueue';
+import { saveOfflineOrderSnapshot } from '../services/offline/offlineOrderManager';
+import {
+  paymentPayloadContainsVoucherSecrets,
+  shouldBlockVoucherOfflineQueue,
+} from '../services/payment/pendingPaymentQueue';
 
 const mockPost = jest.fn() as jest.MockedFunction<
   (url: string, body?: unknown) => Promise<unknown>
@@ -21,6 +25,10 @@ jest.mock('../services/api/config', () => ({
     post: (url: string, body?: unknown) => mockPost(url, body),
   },
   API_BASE_URL: 'http://localhost',
+  resolveTenantFetchRequest: async (url: string, headers: Record<string, string> = {}) => ({
+    url,
+    headers,
+  }),
 }));
 
 jest.mock('../services/payment/pendingPaymentQueue', () => {
@@ -37,12 +45,25 @@ jest.mock('../services/payment/pendingPaymentQueue', () => {
   };
 });
 
+jest.mock('../services/offline/offlineOrderManager', () => ({
+  saveOfflineOrderSnapshot: jest.fn(async () => ({ id: 'offline-order-1' })),
+}));
+
 jest.mock('../utils/storage', () => ({
   storage: {
     getItem: jest.fn(async () => null),
     setItem: jest.fn(),
     removeItem: jest.fn(),
     multiRemove: jest.fn(),
+  },
+}));
+
+jest.mock('../lib/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
   },
 }));
 
@@ -137,7 +158,15 @@ describe('paymentService.processPayment taxType normalization', () => {
     const res = await paymentService.processPayment(raw);
 
     expect(res.fiscalStatus).toBe('NON_FISCAL_PENDING');
+    expect(jest.mocked(saveOfflineOrderSnapshot)).toHaveBeenCalledTimes(1);
     expect(mockEnqueuePendingPayment).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(saveOfflineOrderSnapshot).mock.invocationCallOrder[0]).toBeLessThan(
+      mockEnqueuePendingPayment.mock.invocationCallOrder[0]
+    );
+    const snapshotArg = jest.mocked(saveOfflineOrderSnapshot).mock.calls[0][0] as {
+      paymentRequest: { items: { taxType: string }[] };
+    };
+    expect(snapshotArg.paymentRequest.items[0].taxType).toBe('special');
     const enqueued = mockEnqueuePendingPayment.mock.calls[0][0] as { items: { taxType: string }[] };
     expect(enqueued.items[0].taxType).toBe('special');
   });
@@ -163,8 +192,23 @@ describe('paymentService.processPayment taxType normalization', () => {
     expect(res.fiscalStatus).toBe('FAILED');
     expect(res.success).toBe(false);
     expect(mockEnqueuePendingPayment).not.toHaveBeenCalled();
+    expect(jest.mocked(saveOfflineOrderSnapshot)).not.toHaveBeenCalled();
     expect(res.error).toBe('VOUCHER_REQUIRES_ONLINE');
     expect(res.message).toMatch(/Gutschein/i);
+  });
+
+  it('does not snapshot an empty cart on transport failure', async () => {
+    mockPost.mockRejectedValue({
+      response: undefined,
+      message: 'Network Error',
+      code: 'ERR_NETWORK',
+    });
+
+    const res = await paymentService.processPayment(baseRequest({ items: [] }));
+
+    expect(res.fiscalStatus).toBe('NON_FISCAL_PENDING');
+    expect(jest.mocked(saveOfflineOrderSnapshot)).not.toHaveBeenCalled();
+    expect(mockEnqueuePendingPayment).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -193,5 +237,35 @@ describe('paymentPayloadContainsVoucherSecrets', () => {
     expect(
       paymentPayloadContainsVoucherSecrets({ method: 'cash', tseRequired: false, amount: 1 })
     ).toBe(false);
+  });
+});
+
+describe('shouldBlockVoucherOfflineQueue', () => {
+  const prev = process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN;
+
+  afterEach(() => {
+    if (prev === undefined) delete process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN;
+    else process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN = prev;
+  });
+
+  it('blocks method=voucher by default even without a code', () => {
+    delete process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN;
+    expect(shouldBlockVoucherOfflineQueue({ method: 'voucher', tseRequired: false })).toBe(true);
+  });
+
+  it('always blocks plaintext voucher codes', () => {
+    process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN = 'true';
+    expect(
+      shouldBlockVoucherOfflineQueue({
+        method: 'voucher',
+        tseRequired: false,
+        voucherCode: 'SECRET',
+      })
+    ).toBe(true);
+  });
+
+  it('allows method=voucher without a code only when EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN is true', () => {
+    process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN = 'true';
+    expect(shouldBlockVoucherOfflineQueue({ method: 'voucher', tseRequired: false })).toBe(false);
   });
 });

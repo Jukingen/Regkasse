@@ -37,7 +37,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             .Where(m => m.UserId == userId
                 && m.IsActive
                 && m.Tenant != null
-                && m.Tenant.Status != TenantStatuses.Deleted
+                && !TenantStatuses.RemovedStatuses.Contains(m.Tenant.Status)
                 && m.Tenant.IsActive)
             .OrderBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)
@@ -68,9 +68,9 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             }
 
             _logger.LogWarning(
-                "Login tenant: user {UserId} has no active membership; using legacy default tenant (configure membership provisioning or enable RequireTenantMembershipForLogin to block).",
+                "Login tenant: user {UserId} has no active membership; using fallback tenant (configure membership provisioning or enable RequireTenantMembershipForLogin to block).",
                 userId);
-            return await ResolveLegacyDefaultSnapshotAsync(cancellationToken).ConfigureAwait(false);
+            return await ResolveFallbackTenantSnapshotAsync(cancellationToken).ConfigureAwait(false);
         }
 
         if (active.Count > 1)
@@ -107,7 +107,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             return dev;
         }
 
-        var nonLegacy = active.FirstOrDefault(m => m.TenantId != LegacyDefaultTenantIds.Primary);
+        var nonLegacy = active.FirstOrDefault(m => m.TenantId != SystemTenantIds.Platform);
         if (nonLegacy != null)
         {
             return nonLegacy;
@@ -156,7 +156,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
                 t => t.Id,
                 (_, t) => t)
             .AnyAsync(
-                t => t.Status != TenantStatuses.Deleted && t.IsActive,
+                t => !TenantStatuses.RemovedStatuses.Contains(t.Status) && t.IsActive,
                 cancellationToken);
 
     private async Task<bool> HasDeletedTenantMembershipOnlyAsync(
@@ -181,20 +181,38 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
         var hasEligible = rows.Any(m =>
             m.IsActive
-            && m.TenantStatus != TenantStatuses.Deleted
+            && !TenantStatuses.IsRemoved(m.TenantStatus)
             && m.TenantIsActive);
 
         return !hasEligible
-            && rows.Any(m => m.TenantStatus == TenantStatuses.Deleted);
+            && rows.Any(m => TenantStatuses.IsRemoved(m.TenantStatus));
     }
 
-    private async Task<AuthTenantSnapshot> ResolveLegacyDefaultSnapshotAsync(CancellationToken cancellationToken)
+    private async Task<AuthTenantSnapshot> ResolveFallbackTenantSnapshotAsync(CancellationToken cancellationToken)
     {
-        var primary = LegacyDefaultTenantIds.Primary;
-        var rowDefault = await _db.Tenants.AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)
+        // Prefer seeded demo `dev` when present (local DX + login without membership).
+        var devRow = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(
+                t => t.Id == DemoTenantIds.Dev
+                    || t.Slug == "dev",
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (devRow != null
+            && !TenantStatuses.IsRemoved(devRow.Status)
+            && devRow.IsActive)
+        {
+            _logger.LogInformation(
+                "Login tenant: fallback bound to seeded preset {TenantId} ({Slug})",
+                devRow.Id,
+                devRow.Slug);
+            return new AuthTenantSnapshot(devRow.Id.ToString("D"), devRow.Name, devRow.Slug, null, null);
+        }
+
+        var platformId = SystemTenantIds.Platform;
+        var platformRow = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == platformId, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, rowDefault?.Slug, null, null);
+        return new AuthTenantSnapshot(platformId.ToString("D"), platformRow?.Name, platformRow?.Slug, null, null);
     }
 }

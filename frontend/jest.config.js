@@ -5,7 +5,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   // Expo unit-testing docs pattern (+ local RN packages that need Babel).
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native-async-storage|zustand)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native-async-storage|zustand|@microsoft/signalr)',
   ],
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
@@ -29,6 +29,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^shared/(.*)$': '<rootDir>/shared/$1',
+    '^expo/virtual/env$': '<rootDir>/__mocks__/expoVirtualEnv.js',
   },
   testPathIgnorePatterns: ['/node_modules/', '/backup/', '<rootDir>/jest.setup.ts'],
 };

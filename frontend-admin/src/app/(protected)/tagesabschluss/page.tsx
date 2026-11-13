@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CalendarOutlined, FilePdfOutlined, ReloadOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -12,10 +12,13 @@ import {
   Empty,
   Form,
   Input,
+  Modal,
   Row,
+  Segmented,
   Select,
   Skeleton,
   Space,
+  Statistic,
   Table,
   Tag,
   Typography,
@@ -34,6 +37,7 @@ import type {
 } from '@/api/generated/model';
 import {
   getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey,
+  postApiTagesabschlussDaily,
   useGetApiTagesabschlussCanCloseCashRegisterId,
   useGetApiTagesabschlussHistory,
   useGetApiTagesabschlussStatistics,
@@ -55,7 +59,22 @@ import {
   triggerReportPdfBlobDownload,
 } from '@/features/reports/api/reportPdfApi';
 import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
+import {
+  useDailyClosingCalendar,
+  type DailyClosingCalendarDay,
+} from '@/features/tagesabschluss/api/dailyClosingCalendar';
+import { summarizeCalendarMonth } from '@/features/tagesabschluss/calendarStatus';
+import { DailyClosingCalendar } from '@/features/tagesabschluss/components/DailyClosingCalendar';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
+import { TagesabschlussDetail } from '@/features/tagesabschluss/TagesabschlussDetail';
+import { AutoTagesabschlussSettingsCard } from '@/features/tagesabschluss/components/AutoTagesabschlussSettingsCard';
+import { fiskalyStatusColor, readTagesabschlussFiskalyFields } from '@/features/tagesabschluss/fiskalyFields';
+import {
+  filterHistoryByDayKind,
+  isEmptyDailyClosing,
+  type HistoryDayKindFilter,
+} from '@/features/tagesabschluss/dayKind';
+import { exportDailyClosingCalendarCsv } from '@/features/tagesabschluss/exportCalendarCsv';
 import { getTagesabschlussUserFacingError } from '@/features/tagesabschluss/tagesabschlussApiErrors';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
@@ -86,10 +105,16 @@ type ExtendedCanCloseResponse = TagesabschlussCanCloseResponse & {
   lastClosingPerformedAt?: string | null;
   lastMonthlyClosingPerformedAt?: string | null;
   lastYearlyClosingPerformedAt?: string | null;
+  transactionCount?: number;
+  isEmptyDay?: boolean;
 };
 
 function viennaTodayDayjs(): Dayjs {
   return dayjs(formatViennaCalendarDate());
+}
+
+function calendarDayToDayjs(date: string): Dayjs {
+  return dayjs(String(date).slice(0, 10));
 }
 
 const BACKDATED_REASON_OTHER = 'other' as const;
@@ -212,6 +237,17 @@ export default function TagesabschlussPage() {
     BackdatedReasonPreset | undefined
   >(undefined);
   const [customBackdatedReason, setCustomBackdatedReason] = useState('');
+  const [historyDayKindFilter, setHistoryDayKindFilter] = useState<HistoryDayKindFilter>('all');
+  const [historyTriggerFilter, setHistoryTriggerFilter] = useState<'all' | 'Manual' | 'Automatic'>(
+    'all'
+  );
+  const [historyView, setHistoryView] = useState<'calendar' | 'list'>('calendar');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = viennaTodayDayjs();
+    return { year: today.year(), month: today.month() + 1 };
+  });
+  const [detailDay, setDetailDay] = useState<DailyClosingCalendarDay | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const viennaToday = useMemo(() => viennaTodayDayjs(), []);
   const isBackdatedClosing = closingDay.isBefore(viennaToday, 'day');
   const closingDayLabel = formatDateTime(closingDay.startOf('day').toDate(), formatLocale, {
@@ -298,6 +334,16 @@ export default function TagesabschlussPage() {
     query: { enabled: registerIdValid },
   });
   const historyRows: TagesabschlussResult[] = historyQuery.data ?? [];
+  const filteredHistoryRows = useMemo(() => {
+    const byKind = filterHistoryByDayKind(historyRows, historyDayKindFilter);
+    if (historyTriggerFilter === 'all') return byKind;
+    return byKind.filter((row) => {
+      const trigger = (row.trigger ?? 'Manual').toLowerCase();
+      return historyTriggerFilter === 'Automatic'
+        ? trigger === 'automatic'
+        : trigger !== 'automatic';
+    });
+  }, [historyRows, historyDayKindFilter, historyTriggerFilter]);
 
   const statsQuery = useGetApiTagesabschlussStatistics(statsParams, {
     query: { enabled: registerIdValid },
@@ -314,6 +360,19 @@ export default function TagesabschlussPage() {
   const canClose: ExtendedCanCloseResponse | undefined = canCloseQuery.data;
   const canCloseMonthly = canClose?.canCloseMonthly === true;
   const canCloseYearly = canClose?.canCloseYearly === true;
+  const isEmptyDay = canClose?.isEmptyDay === true || (canClose?.canClose === true && (canClose?.transactionCount ?? -1) === 0);
+
+  const calendarQuery = useDailyClosingCalendar(
+    calendarMonth.year,
+    calendarMonth.month,
+    registerIdValid ? effectiveRegisterId : undefined,
+    registerIdValid && canView
+  );
+  const calendarDays = useMemo(
+    () => (calendarQuery.data?.days ?? []).filter((day): day is DailyClosingCalendarDay & { date: string } => Boolean(day.date)),
+    [calendarQuery.data?.days]
+  );
+  const calendarSummary = useMemo(() => summarizeCalendarMonth(calendarDays), [calendarDays]);
 
   const downloadPdf = useCallback(
     async (
@@ -353,6 +412,7 @@ export default function TagesabschlussPage() {
   const invalidateTagesabschluss = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/Tagesabschluss/history'] });
     await queryClient.invalidateQueries({ queryKey: ['/api/Tagesabschluss/statistics'] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/admin/daily-closing/calendar'] });
     if (registerIdValid) {
       await queryClient.invalidateQueries({
         queryKey: getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey(effectiveRegisterId),
@@ -369,9 +429,11 @@ export default function TagesabschlussPage() {
           { dateStyle: 'short' }
         );
         message.success(
-          result?.isBackdated
-            ? t('tagesabschluss.messages.successDailyBackdated', { date: dateLabel })
-            : t('tagesabschluss.messages.successDaily')
+          result?.isEmpty
+            ? t('tagesabschluss.emptyDaySuccess')
+            : result?.isBackdated
+              ? t('tagesabschluss.messages.successDailyBackdated', { date: dateLabel })
+              : t('tagesabschluss.normalDaySuccess', { count: result?.transactionCount ?? 0 })
         );
         await invalidateTagesabschluss();
         const closingId = result?.closingId?.trim();
@@ -451,7 +513,7 @@ export default function TagesabschlussPage() {
     },
   });
 
-  const runClosing = (kind: 'daily' | 'monthly' | 'yearly') => {
+  const runClosing = (kind: 'daily' | 'monthly' | 'yearly', options?: { day?: Dayjs; isEmpty?: boolean }) => {
     if (!canExecute) {
       return;
     }
@@ -459,15 +521,30 @@ export default function TagesabschlussPage() {
       message.warning(t('tagesabschluss.messages.warningNoRegister'));
       return;
     }
-    if (kind === 'daily' && isBackdatedClosing && !resolvedBackdatedReason) {
+    const targetDay = options?.day ?? closingDay;
+    const empty = options?.isEmpty ?? isEmptyDay;
+    const backdated = targetDay.isBefore(viennaToday, 'day');
+    const targetDayLabel = formatDateTime(targetDay.startOf('day').toDate(), formatLocale, {
+      dateStyle: 'short',
+    });
+    const targetReason = backdated
+      ? backdatedReasonPreset === BACKDATED_REASON_OTHER
+        ? customBackdatedReason.trim().length >= 10
+          ? customBackdatedReason.trim()
+          : null
+        : backdatedReasonPreset
+          ? t(`tagesabschluss.backdated.reasons.${backdatedReasonPreset}`)
+          : null
+      : null;
+    if (kind === 'daily' && backdated && !targetReason) {
       message.warning(t('tagesabschluss.backdated.reasonRequired'));
       return;
     }
-    if (kind === 'daily' && (canClose?.paymentsWithoutInvoiceCount ?? 0) > 0) {
+    if (kind === 'daily' && options?.day == null && (canClose?.paymentsWithoutInvoiceCount ?? 0) > 0) {
       message.error(t('tagesabschluss.errors.paymentsWithoutInvoice'));
       return;
     }
-    if (kind === 'daily' && canClose && !canClose.canClose) {
+    if (kind === 'daily' && options?.day == null && canClose && !canClose.canClose) {
       const dateTime = formatClosingPerformedAt(
         canClose.lastClosingPerformedAt,
         canClose.lastClosingDate,
@@ -508,18 +585,23 @@ export default function TagesabschlussPage() {
     }
     const modalTitle =
       kind === 'daily'
-        ? isBackdatedClosing
-          ? t('tagesabschluss.actions.modalTitleDailyBackdated', { date: closingDayLabel })
+        ? backdated
+          ? t('tagesabschluss.actions.modalTitleDailyBackdated', { date: targetDayLabel })
           : t('tagesabschluss.actions.modalTitleDaily')
         : kind === 'monthly'
           ? t('tagesabschluss.actions.modalTitleMonthly')
           : t('tagesabschluss.actions.modalTitleYearly');
+    const modalContent =
+      kind === 'daily' && empty && backdated
+        ? `${t('tagesabschluss.emptyDayConfirm')} ${t('tagesabschluss.actions.modalContentBackdated', { date: targetDayLabel })}`
+        : kind === 'daily' && empty
+          ? t('tagesabschluss.emptyDayConfirm')
+          : kind === 'daily' && backdated
+            ? t('tagesabschluss.actions.modalContentBackdated', { date: targetDayLabel })
+            : t('tagesabschluss.actions.modalContent');
     modal.confirm({
       title: modalTitle,
-      content:
-        kind === 'daily' && isBackdatedClosing
-          ? t('tagesabschluss.actions.modalContentBackdated', { date: closingDayLabel })
-          : t('tagesabschluss.actions.modalContent'),
+      content: modalContent,
       okText: t('tagesabschluss.actions.modalOk'),
       cancelText: t('tagesabschluss.actions.modalCancel'),
       okButtonProps: { danger: kind !== 'daily' },
@@ -528,15 +610,20 @@ export default function TagesabschlussPage() {
           // Omit closingDate for Vienna "today" so the server resolves the business day
           // (avoids client/server calendar skew → false BACKDATED_REASON_REQUIRED 400).
           await dailyMu.mutateAsync({
-            data: isBackdatedClosing
+            data: backdated
               ? {
                   cashRegisterId: effectiveRegisterId,
-                  closingDate: closingDay.format('YYYY-MM-DD'),
-                  reason: resolvedBackdatedReason,
+                  closingDate: targetDay.format('YYYY-MM-DD'),
+                  reason: targetReason,
                 }
-              : {
-                  cashRegisterId: effectiveRegisterId,
-                },
+              : targetDay.isSame(viennaToday, 'day')
+                ? {
+                    cashRegisterId: effectiveRegisterId,
+                  }
+                : {
+                    cashRegisterId: effectiveRegisterId,
+                    closingDate: targetDay.format('YYYY-MM-DD'),
+                  },
           });
           return;
         }
@@ -587,11 +674,40 @@ export default function TagesabschlussPage() {
         },
       },
       {
+        title: t('tagesabschluss.history.colTrigger'),
+        dataIndex: 'trigger',
+        key: 'trigger',
+        width: 140,
+        render: (v: string | null | undefined) => {
+          const automatic = (v ?? 'Manual').toLowerCase() === 'automatic';
+          return (
+            <Tag
+              color={automatic ? 'purple' : 'blue'}
+              variant="filled"
+              icon={automatic ? <RobotOutlined /> : <UserOutlined />}
+            >
+              {automatic
+                ? `🤖 ${t('tagesabschluss.history.triggerAutomatic')}`
+                : `👤 ${t('tagesabschluss.history.triggerManual')}`}
+            </Tag>
+          );
+        },
+      },
+      {
         title: t('tagesabschluss.history.colType'),
         dataIndex: 'closingType',
         key: 'closingType',
-        width: 100,
-        render: (v: string | null | undefined) => closingTypeLabel(v),
+        width: 180,
+        render: (v: string | null | undefined, row: TagesabschlussResult) => (
+          <Space size={4} wrap>
+            <span>{closingTypeLabel(v)}</span>
+            {v === 'Daily' || isEmptyDailyClosing(row) ? (
+              <Tag color={isEmptyDailyClosing(row) ? 'purple' : 'success'} variant="filled">
+                {isEmptyDailyClosing(row) ? t('tagesabschluss.typeEmpty') : t('tagesabschluss.typeNormal')}
+              </Tag>
+            ) : null}
+          </Space>
+        ),
       },
       {
         title: t('tagesabschluss.history.colLateReason'),
@@ -639,6 +755,20 @@ export default function TagesabschlussPage() {
         render: (v: string | null | undefined) => historyFinanzOnlineStatusLabel(v),
       },
       {
+        title: t('tagesabschluss.fiskaly.colStatus'),
+        key: 'fiskaly',
+        width: 140,
+        render: (_: unknown, row: TagesabschlussResult) => {
+          const fields = readTagesabschlussFiskalyFields(row);
+          if (!fields.fiskalyStatus) return FORMAT_EMPTY_DISPLAY;
+          return (
+            <Tag color={fiskalyStatusColor(fields.fiskalyStatus)} variant="filled">
+              {fields.fiskalyStatus}
+            </Tag>
+          );
+        },
+      },
+      {
         title: t('tagesabschluss.history.colPdf'),
         key: 'pdf',
         width: 90,
@@ -675,7 +805,133 @@ export default function TagesabschlussPage() {
     ]
   );
 
-  const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
+  const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending || bulkBusy;
+
+  const handleCalendarSelect = useCallback(
+    (day: DailyClosingCalendarDay) => {
+      if (day.date) setClosingDay(calendarDayToDayjs(day.date));
+    },
+    []
+  );
+
+  const handleCalendarClose = (day: DailyClosingCalendarDay) => {
+    if (!day.date) return;
+    const target = calendarDayToDayjs(day.date);
+    setClosingDay(target);
+    runClosing('daily', { day: target, isEmpty: (day.transactionCount ?? 0) === 0 });
+  };
+
+  const handleCalendarExport = useCallback(
+    (day: DailyClosingCalendarDay) => {
+      const closingId = day.closingId?.trim();
+      if (!closingId) {
+        message.warning(t('tagesabschluss.messages.pdfUnavailable'));
+        return;
+      }
+      void downloadPdf('tagesabschluss', closingId, { businessDate: day.date });
+    },
+    [downloadPdf, message, t]
+  );
+
+  const handleExportMonth = useCallback(() => {
+    if (calendarDays.length === 0) return;
+    const monthPad = String(calendarMonth.month).padStart(2, '0');
+    exportDailyClosingCalendarCsv(
+      calendarDays,
+      `tagesabschluss-${calendarMonth.year}-${monthPad}.csv`,
+      {
+        date: t('tagesabschluss.calendar.csv.date'),
+        status: t('tagesabschluss.calendar.csv.status'),
+        transactionCount: t('tagesabschluss.calendar.csv.transactionCount'),
+        canClose: t('tagesabschluss.calendar.csv.canClose'),
+        closed: t('tagesabschluss.calendar.legend.closed'),
+        empty: t('tagesabschluss.calendar.legend.empty'),
+        open: t('tagesabschluss.calendar.legend.open'),
+        noTransactions: t('tagesabschluss.calendar.legend.noTransactions'),
+        future: t('tagesabschluss.calendar.legend.future'),
+      }
+    );
+  }, [calendarDays, calendarMonth.month, calendarMonth.year, t]);
+
+  const handleBulkClose = useCallback(() => {
+    if (!canExecute || !registerIdValid) {
+      message.warning(t('tagesabschluss.messages.warningNoRegister'));
+      return;
+    }
+    const openDays = calendarDays.filter((day) => day.canClose);
+    if (openDays.length === 0) {
+      message.info(t('tagesabschluss.calendar.bulkCloseNone'));
+      return;
+    }
+    const hasPast = openDays.some((day) => calendarDayToDayjs(day.date).isBefore(viennaToday, 'day'));
+    if (hasPast && !resolvedBackdatedReason) {
+      message.warning(t('tagesabschluss.backdated.reasonRequired'));
+      return;
+    }
+    modal.confirm({
+      title: t('tagesabschluss.calendar.bulkCloseConfirmTitle'),
+      content: t('tagesabschluss.calendar.bulkCloseConfirm', { count: openDays.length }),
+      okText: t('tagesabschluss.actions.modalOk'),
+      cancelText: t('tagesabschluss.actions.modalCancel'),
+      onOk: async () => {
+        setBulkBusy(true);
+        let done = 0;
+        let failed = 0;
+        try {
+          for (const day of openDays) {
+            const target = calendarDayToDayjs(day.date);
+            const backdated = target.isBefore(viennaToday, 'day');
+            try {
+              await postApiTagesabschlussDaily(
+                backdated
+                  ? {
+                      cashRegisterId: effectiveRegisterId,
+                      closingDate: target.format('YYYY-MM-DD'),
+                      reason: resolvedBackdatedReason,
+                    }
+                  : target.isSame(viennaToday, 'day')
+                    ? { cashRegisterId: effectiveRegisterId }
+                    : {
+                        cashRegisterId: effectiveRegisterId,
+                        closingDate: target.format('YYYY-MM-DD'),
+                      }
+              );
+              done += 1;
+            } catch {
+              failed += 1;
+            }
+          }
+          await invalidateTagesabschluss();
+          if (failed === 0) {
+            message.success(
+              t('tagesabschluss.calendar.bulkCloseSuccess', { done, total: openDays.length })
+            );
+          } else {
+            message.warning(
+              t('tagesabschluss.calendar.bulkClosePartial', {
+                done,
+                total: openDays.length,
+                failed,
+              })
+            );
+          }
+        } finally {
+          setBulkBusy(false);
+        }
+      },
+    });
+  }, [
+    calendarDays,
+    canExecute,
+    effectiveRegisterId,
+    invalidateTagesabschluss,
+    message,
+    modal,
+    registerIdValid,
+    resolvedBackdatedReason,
+    t,
+    viennaToday,
+  ]);
 
   const tagesabschlussScopeSummary = useMemo(() => {
     const fromStr = formatDateTime(range[0].startOf('day').toDate(), formatLocale, {
@@ -742,6 +998,7 @@ export default function TagesabschlussPage() {
             onClick={() => {
               void historyQuery.refetch();
               void statsQuery.refetch();
+              void calendarQuery.refetch();
               if (registerIdValid) void canCloseQuery.refetch();
             }}
             disabled={!registerIdValid}
@@ -822,6 +1079,11 @@ export default function TagesabschlussPage() {
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.paymentsWithoutInvoice')}>
                 {formatNumber(canClose?.paymentsWithoutInvoiceCount ?? 0, formatLocale, {
+                  maximumFractionDigits: 0,
+                })}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.transactionCount')}>
+                {formatNumber(canClose?.transactionCount ?? 0, formatLocale, {
                   maximumFractionDigits: 0,
                 })}
               </Descriptions.Item>
@@ -946,6 +1208,9 @@ export default function TagesabschlussPage() {
                   />
                 </>
               ) : null}
+              {canClose?.canClose && isEmptyDay ? (
+                <Alert type="info" showIcon title={t('tagesabschluss.emptyDayWarning')} />
+              ) : null}
               <Space wrap>
                 <Button
                   type="primary"
@@ -978,20 +1243,51 @@ export default function TagesabschlussPage() {
         </Space>
       </Card>
 
+      <AutoTagesabschlussSettingsCard />
+
       <Card
-        title={t('tagesabschluss.card.stats')}
-        extra={
-          <Space>
-            <RangePicker
-              format={DAYJS_DATE_FORMAT}
-              value={range}
-              onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])}
+        title={
+          <Space wrap>
+            <span>{t('tagesabschluss.card.stats')}</span>
+            <Segmented<'calendar' | 'list'>
+              value={historyView}
+              onChange={(next) => setHistoryView(next)}
+              options={[
+                { value: 'calendar', label: t('tagesabschluss.calendar.viewCalendar') },
+                { value: 'list', label: t('tagesabschluss.calendar.viewList') },
+              ]}
             />
+          </Space>
+        }
+        extra={
+          <Space wrap>
+            {historyView === 'list' ? (
+              <RangePicker
+                format={DAYJS_DATE_FORMAT}
+                value={range}
+                onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])}
+              />
+            ) : null}
+            {historyView === 'calendar' ? (
+              <>
+                <Button
+                  onClick={handleBulkClose}
+                  disabled={!registerIdValid || !canExecute || bulkBusy}
+                  loading={bulkBusy}
+                >
+                  {t('tagesabschluss.calendar.bulkClose')}
+                </Button>
+                <Button onClick={handleExportMonth} disabled={calendarDays.length === 0}>
+                  {t('tagesabschluss.calendar.exportMonth')}
+                </Button>
+              </>
+            ) : null}
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {
                 void historyQuery.refetch();
                 void statsQuery.refetch();
+                void calendarQuery.refetch();
                 if (registerIdValid) void canCloseQuery.refetch();
               }}
               disabled={!registerIdValid}
@@ -1001,6 +1297,69 @@ export default function TagesabschlussPage() {
           </Space>
         }
       >
+        {historyView === 'calendar' ? (
+          dataBlockedHint ? (
+            <Empty description={dataBlockedHint} />
+          ) : (
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={12} sm={8} md={4}>
+                  <Statistic
+                    title={t('tagesabschluss.calendar.summaryTotal')}
+                    value={calendarSummary.totalDays}
+                  />
+                </Col>
+                <Col xs={12} sm={8} md={5}>
+                  <Statistic
+                    title={t('tagesabschluss.calendar.summaryClosed')}
+                    value={calendarSummary.closedDays}
+                  />
+                </Col>
+                <Col xs={12} sm={8} md={5}>
+                  <Statistic
+                    title={t('tagesabschluss.calendar.summaryEmpty')}
+                    value={calendarSummary.emptyClosedDays}
+                  />
+                </Col>
+                <Col xs={12} sm={8} md={5}>
+                  <Statistic
+                    title={t('tagesabschluss.calendar.summaryOpen')}
+                    value={calendarSummary.openDays}
+                  />
+                </Col>
+                <Col xs={12} sm={8} md={5}>
+                  <Statistic
+                    title={t('tagesabschluss.calendar.summaryNoTx')}
+                    value={calendarSummary.noTransactionDays}
+                  />
+                </Col>
+              </Row>
+              <DailyClosingCalendar
+                year={calendarMonth.year}
+                month={calendarMonth.month}
+                days={calendarDays}
+                loading={calendarQuery.isLoading}
+                errorMessage={
+                  calendarQuery.isError
+                    ? getTagesabschlussUserFacingError(t, calendarQuery.error, {
+                        logContext: 'TagesabschlussCalendar',
+                        fallbackKey: 'tagesabschluss.errors.loadCalendarTitle',
+                        skipLog: true,
+                      })
+                    : null
+                }
+                selectedDate={closingDay.format('YYYY-MM-DD')}
+                canExecute={canExecute}
+                canDownloadPdf={canDownloadPdf}
+                onMonthChange={(year, month) => setCalendarMonth({ year, month })}
+                onSelectDay={handleCalendarSelect}
+                onCloseDay={handleCalendarClose}
+                onViewDetails={setDetailDay}
+                onExportSummary={handleCalendarExport}
+              />
+            </Space>
+          )
+        ) : (
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Title level={5}>{t('tagesabschluss.stats.sectionTitle')}</Title>
@@ -1049,7 +1408,35 @@ export default function TagesabschlussPage() {
             )}
           </Col>
           <Col xs={24} lg={24}>
-            <Title level={5}>{t('tagesabschluss.history.sectionTitle')}</Title>
+            <Space wrap style={{ marginBottom: 12, justifyContent: 'space-between', width: '100%' }}>
+              <Title level={5} style={{ margin: 0 }}>
+                {t('tagesabschluss.history.sectionTitle')}
+              </Title>
+              <Space wrap>
+              <Select
+                size="small"
+                style={{ minWidth: 140 }}
+                value={historyDayKindFilter}
+                onChange={(next: HistoryDayKindFilter) => setHistoryDayKindFilter(next)}
+                options={[
+                  { value: 'all', label: t('tagesabschluss.history.filterAll') },
+                  { value: 'normal', label: t('tagesabschluss.history.filterNormal') },
+                  { value: 'empty', label: t('tagesabschluss.history.filterEmpty') },
+                ]}
+              />
+              <Select
+                size="small"
+                style={{ minWidth: 160 }}
+                value={historyTriggerFilter}
+                onChange={(next: 'all' | 'Manual' | 'Automatic') => setHistoryTriggerFilter(next)}
+                options={[
+                  { value: 'all', label: t('tagesabschluss.history.filterAll') },
+                  { value: 'Automatic', label: t('tagesabschluss.history.filterAutomatic') },
+                  { value: 'Manual', label: t('tagesabschluss.history.filterManual') },
+                ]}
+              />
+              </Space>
+            </Space>
             {dataBlockedHint ? (
               <Empty description={dataBlockedHint} />
             ) : historyQuery.isLoading ? (
@@ -1072,12 +1459,49 @@ export default function TagesabschlussPage() {
                 size="small"
                 pagination={{ pageSize: 10 }}
                 columns={historyColumns}
-                dataSource={historyRows}
+                dataSource={filteredHistoryRows}
               />
             )}
           </Col>
         </Row>
+        )}
       </Card>
+      <Modal
+        destroyOnHidden
+        open={detailDay != null}
+        title={t('tagesabschluss.calendar.detailsTitle', {
+          date: detailDay ? formatDateTime(detailDay.date, formatLocale, { dateStyle: 'short' }) : '',
+        })}
+        onCancel={() => setDetailDay(null)}
+        footer={
+          detailDay?.closingId && canDownloadPdf ? (
+            <Button
+              icon={<FilePdfOutlined />}
+              onClick={() => {
+                if (detailDay) handleCalendarExport(detailDay);
+              }}
+            >
+              {t('tagesabschluss.calendar.menu.export')}
+            </Button>
+          ) : null
+        }
+      >
+        {detailDay ? (
+          <TagesabschlussDetail
+            closingId={detailDay.closingId}
+            dateLabel={formatDateTime(detailDay.date, formatLocale, { dateStyle: 'short' })}
+            typeLabel={
+              detailDay.dayKind === 'empty' || detailDay.closingType === 'empty'
+                ? t('tagesabschluss.typeEmpty')
+                : t('tagesabschluss.typeNormal')
+            }
+            transactionLabel={formatNumber(detailDay.transactionCount ?? 0, formatLocale, {
+              maximumFractionDigits: 0,
+            })}
+            historyRow={historyRows.find((row) => row.closingId === detailDay.closingId)}
+          />
+        ) : null}
+      </Modal>
     </AdminPageShell>
   );
 }

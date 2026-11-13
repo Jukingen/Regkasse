@@ -24,7 +24,7 @@ public sealed class DepExportValidationServiceTests
             .UseInMemoryDatabase($"DepExportValidation_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
@@ -94,10 +94,10 @@ public sealed class DepExportValidationServiceTests
         int signatureCount = 1,
         string? storagePath = null)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var row = new DepExportHistory
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = Guid.NewGuid(),
             FromUtc = DateTime.UtcNow.AddDays(-30),
             ToUtc = DateTime.UtcNow,
@@ -251,11 +251,11 @@ public sealed class DepExportValidationServiceTests
     public async Task GetValidationReportAsync_AggregatesStatuses()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.DepExportHistories.AddRange(
             new DepExportHistory
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 CashRegisterId = Guid.NewGuid(),
                 FromUtc = DateTime.UtcNow.AddDays(-10),
                 ToUtc = DateTime.UtcNow.AddDays(-5),
@@ -270,7 +270,7 @@ public sealed class DepExportValidationServiceTests
             },
             new DepExportHistory
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 CashRegisterId = Guid.NewGuid(),
                 FromUtc = DateTime.UtcNow.AddDays(-3),
                 ToUtc = DateTime.UtcNow,
@@ -285,7 +285,7 @@ public sealed class DepExportValidationServiceTests
             });
         await db.SaveChangesAsync();
 
-        var report = await CreateService(db).GetValidationReportAsync(LegacyDefaultTenantIds.Primary);
+        var report = await CreateService(db).GetValidationReportAsync(SystemTenantIds.Platform);
 
         Assert.Equal(2, report.TotalExports);
         Assert.Equal(1, report.PassedCount);

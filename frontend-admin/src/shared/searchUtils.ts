@@ -53,6 +53,12 @@ function catalogBreadcrumbMap(t: (key: string) => string): Map<SidebarCatalogId,
         for (const id of block.catalogIds) {
           map.set(id, trail);
         }
+        for (const child of block.childGroups ?? []) {
+          const childTrail = `${trail} › ${t(child.labelKey)}`;
+          for (const id of child.catalogIds) {
+            map.set(id, childTrail);
+          }
+        }
       }
     }
   };
@@ -102,6 +108,11 @@ function collectSidebarGroupLabels(t: (key: string) => string): string[] {
   const walkBlock = (block: SidebarLayoutBlock) => {
     if (block.kind === 'nested' || block.kind === 'fiscalRksvClosing' || block.kind === 'rksvHub') {
       labels.add(t(block.labelKey));
+      if (block.kind === 'nested') {
+        for (const child of block.childGroups ?? []) {
+          labels.add(t(child.labelKey));
+        }
+      }
     }
   };
 

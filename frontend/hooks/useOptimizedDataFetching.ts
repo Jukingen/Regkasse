@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu hook, sürekli API çağrıları yerine sadece gerekli durumlarda fetch yapmak için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve akıllı cache yönetimi sağlar
 
@@ -6,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
-import { resolveTenantFetchHeaders } from '../services/api/config';
+import { resolveTenantFetchRequest } from '../services/api/config';
 import { normalizeToPosPaymentMethods } from '../services/api/normalizePosPaymentMethods';
 import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 import { isNetworkOnline } from '../utils/isNetworkOnline';
@@ -124,7 +125,7 @@ export function useOptimizedDataFetching<T>(
 
       // Force değilse ve fetch gerekmiyorsa cache'den döndür
       if (!force && !shouldFetch()) {
-        console.log('🔄 Data already fresh, returning cached data');
+        safeLog('🔄 Data already fresh, returning cached data');
         return state.data;
       }
 
@@ -144,7 +145,7 @@ export function useOptimizedDataFetching<T>(
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
 
-        console.log('🔄 Fetching fresh data...');
+        safeLog('🔄 Fetching fresh data...');
 
         const result = await fetchFn();
 
@@ -181,7 +182,7 @@ export function useOptimizedDataFetching<T>(
 
   // Manuel refresh fonksiyonu
   const refresh = useCallback(async () => {
-    console.log('🔄 Manual refresh requested...');
+    safeLog('🔄 Manual refresh requested...');
     return await fetchData(true);
   }, [fetchData]);
 
@@ -195,7 +196,7 @@ export function useOptimizedDataFetching<T>(
   // Network durumu değiştiğinde kontrol et
   useEffect(() => {
     if (networkOnline && enabled && user && shouldFetch()) {
-      console.log('🔄 Network restored, fetching fresh data...');
+      safeLog('🔄 Network restored, fetching fresh data...');
       fetchData();
     }
   }, [networkOnline, enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini ekledik
@@ -262,12 +263,14 @@ export function useOptimizedPaymentMethods() {
     if (!user?.token) return null;
 
     try {
-      const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
-        headers: await resolveTenantFetchHeaders({
+      const { url, headers } = await resolveTenantFetchRequest(
+        `${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`,
+        {
           Authorization: `Bearer ${user.token}`,
           'Content-Type': 'application/json',
-        }),
-      });
+        }
+      );
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -37,7 +37,7 @@ import {
   useGetApiAdminRestoreVerificationReadiness,
   useGetApiAdminRestoreVerificationRunsLatest,
 } from '@/api/generated/admin-restore-verification/admin-restore-verification';
-import { BackupRunResponseDto, BackupRunResponseDtoStatus } from '@/api/generated/model';
+import { BackupRunResponseDto, BackupRunStatus } from '@/api/generated/model';
 import { CardSkeleton, PageSkeleton } from '@/components/Skeleton';
 import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
 import { BackupDrDataFreshnessStrip } from '@/features/backup-dr/components/BackupDrDataFreshnessStrip';
@@ -48,9 +48,11 @@ import { BackupDrSection } from '@/features/backup-dr/components/BackupDrSection
 import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 import { BackupManualActionsPanel } from '@/features/backup-dr/components/BackupManualActionsPanel';
 import { BackupMonitoringSection } from '@/features/backup-dr/components/BackupMonitoringSection';
+import { BackupKnownGapSummary } from '@/features/backup/components/BackupKnownGapSummary';
 import { BackupRecentRestoreDrillsTable } from '@/features/backup-dr/components/BackupRecentRestoreDrillsTable';
 import { BackupRecentRunsTable } from '@/features/backup-dr/components/BackupRecentRunsTable';
 import { BackupRecoverabilityCard } from '@/features/backup-dr/components/BackupRecoverabilityCard';
+import { RecoverabilityVerifySection } from '@/features/backup-dr/components/RecoverabilityVerifySection';
 import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 import { BackupScheduleSettings } from '@/features/backup-dr/components/BackupScheduleSettings';
 import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
@@ -245,10 +247,10 @@ export function BackupDrDashboard({
     if (statusChanged && st !== undefined) {
       const wasActive = isBackupLatestRunActiveStatus(prev.status);
       const nowTerminal =
-        st === BackupRunResponseDtoStatus.NUMBER_3 ||
-        st === BackupRunResponseDtoStatus.NUMBER_4 ||
-        st === BackupRunResponseDtoStatus.NUMBER_5 ||
-        st === BackupRunResponseDtoStatus.NUMBER_6;
+        st === BackupRunStatus.Succeeded ||
+        st === BackupRunStatus.Failed ||
+        st === BackupRunStatus.VerificationFailed ||
+        st === BackupRunStatus.Cancelled;
       if (nowTerminal && (wasActive || idChanged)) {
         void queryClient.invalidateQueries({
           queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
@@ -528,6 +530,8 @@ export function BackupDrDashboard({
             />
           </Space>
 
+          <BackupKnownGapSummary />
+
           <BackupMonitoringSection
             statusPayload={statusQuery.data}
             latest={latest}
@@ -778,6 +782,8 @@ export function BackupDrDashboard({
                 t={t}
               />
 
+              <RecoverabilityVerifySection />
+
               <Card
                 id="backup-dr-nondb-checklist"
                 size="small"
@@ -835,7 +841,7 @@ export function BackupDrDashboard({
                   }}
                   t={t}
                 />
-                {latest?.id && latest.status === BackupRunResponseDtoStatus.NUMBER_3 ? (
+                {latest?.id && latest.status === BackupRunStatus.Succeeded ? (
                   <BackupArtifactsDownloadCard
                     variant="latest_success"
                     runId={latest.id}

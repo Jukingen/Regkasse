@@ -143,4 +143,22 @@ describe('pickOperationalCashRegisterId', () => {
       )
     ).toBe('reg-1');
   });
+
+  it('falls back to first non-decommissioned register when nothing is open', () => {
+    expect(
+      pickOperationalCashRegisterId(
+        [
+          {
+            id: 'reg-dead',
+            tenantId: tenantA,
+            isDefaultForTenant: true,
+            status: REGISTER_STATUS.decommissioned,
+          },
+          { id: 'reg-1', tenantId: tenantA, isDefaultForTenant: false, status: closed },
+        ],
+        null,
+        tenantA
+      )
+    ).toBe('reg-1');
+  });
 });

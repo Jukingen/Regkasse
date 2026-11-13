@@ -1,4 +1,5 @@
 import {
+  DEV_TENANT_BOOTSTRAP_EVENT,
   DEV_TENANT_CHANGED_EVENT,
   getDevTenant,
   getEffectiveTenantSlug,
@@ -84,5 +85,22 @@ describe('devTenant', () => {
     expect(writeDevTenantSlug('dev')).toBe(false);
     expect(handler).toHaveBeenCalledTimes(1);
     window.removeEventListener(DEV_TENANT_CHANGED_EVENT, handler);
+  });
+
+  it('silent write emits bootstrap event but not tenant-changed (login must keep JWT)', () => {
+    process.env.NODE_ENV = 'development';
+    const changed = vi.fn();
+    const bootstrap = vi.fn();
+    window.addEventListener(DEV_TENANT_CHANGED_EVENT, changed);
+    window.addEventListener(DEV_TENANT_BOOTSTRAP_EVENT, bootstrap);
+
+    expect(writeDevTenantSlug('dev', undefined, { silent: true })).toBe(true);
+    expect(changed).not.toHaveBeenCalled();
+    expect(bootstrap).toHaveBeenCalledTimes(1);
+    expect(bootstrap.mock.calls[0][0].detail).toEqual({ slug: 'dev' });
+    expect(window.localStorage.getItem('dev_tenant_id')).toBe('dev');
+
+    window.removeEventListener(DEV_TENANT_CHANGED_EVENT, changed);
+    window.removeEventListener(DEV_TENANT_BOOTSTRAP_EVENT, bootstrap);
   });
 });

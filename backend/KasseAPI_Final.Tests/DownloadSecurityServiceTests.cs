@@ -3,9 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.TwoFactor;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -35,8 +33,7 @@ public sealed class DownloadSecurityServiceTests
 
     private static DownloadSecurityService CreateService(
         AppDbContext db,
-        DownloadSecurityOptions? opts = null,
-        ITwoFactorService? twoFactor = null)
+        DownloadSecurityOptions? opts = null)
     {
         var options = Options.Create(opts ?? new DownloadSecurityOptions
         {
@@ -44,18 +41,12 @@ public sealed class DownloadSecurityServiceTests
             MaxFileSizeBytes = 1024,
             DownloadLinkTtlHours = 24,
             RequireApprovalForSensitiveExports = true,
-            RequireTwoFactorForCriticalExports = true,
+            RequireTwoFactorForCriticalExports = false,
             SuperAdminMaySelfApprove = true,
         });
-        var tf = twoFactor ?? Mock.Of<ITwoFactorService>();
-        var users = new Mock<UserManager<ApplicationUser>>(
-            Mock.Of<IUserStore<ApplicationUser>>(),
-            null!, null!, null!, null!, null!, null!, null!, null!);
         return new DownloadSecurityService(
             db,
             options,
-            tf,
-            users.Object,
             Mock.Of<IAuditLogService>(),
             NullLogger<DownloadSecurityService>.Instance);
     }
@@ -172,7 +163,7 @@ public sealed class DownloadSecurityServiceTests
     }
 
     [Fact]
-    public async Task Evaluate_requires_2fa_for_system_backup()
+    public async Task Evaluate_allows_system_backup_without_2fa()
     {
         await using var db = CreateDb();
         var svc = CreateService(db);
@@ -185,7 +176,8 @@ public sealed class DownloadSecurityServiceTests
             IsSuperAdmin = true,
         });
 
-        Assert.False(result.Allowed);
-        Assert.Equal("SENSITIVE_EXPORT_2FA_REQUIRED", result.Code);
+        Assert.True(result.Allowed);
+        Assert.False(string.IsNullOrWhiteSpace(result.DownloadTicket));
+        Assert.NotNull(result.TicketExpiresAtUtc);
     }
 }

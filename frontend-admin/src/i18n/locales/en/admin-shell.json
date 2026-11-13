@@ -7,7 +7,20 @@
   },
   "sidebar": {
     "noAccessibleMenus": "No menu items available.",
-    "lockdownFooter": "Restricted mode — license expired"
+    "lockdownFooter": "Restricted mode — license expired",
+    "filterPlaceholder": "Filter menu…",
+    "filterAria": "Filter sidebar menu",
+    "filterNoResults": "No menu items match this search.",
+    "recentTitle": "Recently used",
+    "favorites": {
+      "title": "Favorites",
+      "empty": "No favorite menus yet. Click the star next to a menu item to add it.",
+      "maxReached": "You can add at most 7 favorites.",
+      "pin": "Add to favorites",
+      "unpin": "Remove from favorites",
+      "remove": "Remove",
+      "reorderHandle": "Reorder favorite"
+    }
   },
   "menuPermission": {
     "popoverTitle": "What permission controls this menu?",
@@ -46,6 +59,7 @@
     "payments": "Payments",
     "paymentTrends": "Payment trends",
     "cardTransactions": "Card transactions",
+    "onlinePayments": "Online payments",
     "cancellations": "Storno & refunds",
     "vouchers": "Vouchers",
     "invoices": "Invoices",
@@ -87,6 +101,9 @@
     "taxHistory": "Tax change history",
     "backupRestore": "Backup & Restore",
     "administration": "Administration",
+    "securityTse": "Security & TSE",
+    "deploymentSystem": "Deployment & System",
+    "monitoringLogs": "Monitoring & Logs",
     "accessRoles": "Access & roles",
     "overview": "Overview",
     "users": "Users",
@@ -146,7 +163,10 @@
     "cashRegisterQuickSwitchHint": "Pick a register and open cash register management",
     "cashRegisterQuickSwitchManage": "Open cash register management",
     "monatsbelegBadgeLabel": "Monthly receipt ({count})",
-    "monatsbelegBadgeAria": "Monthly receipt warnings: {count}"
+    "monatsbelegBadgeAria": "Monthly receipt warnings: {count}",
+    "profileSimulationAria": "Simulate a POS profile for navigation",
+    "profileSimulationAll": "All profiles",
+    "profileSimulationActual": "Current tenant profile"
   },
   "tenant": {
     "badge": {
@@ -170,8 +190,10 @@
     "badgeImpersonatingTooltip": "Support impersonation active",
     "badgeSupportModeTag": "Support mode",
     "badgeDevOverrideTooltip": "Development: tenant overridden via header dropdown",
-    "badgeDevModeTag": "Development",
+    "badgeDevModeTag": "DEV",
     "badgeDevModeTooltip": "Development mode – for testing only",
+    "badgeDevTenantName": "Development",
+    "badgeDevAutoSelectedTooltip": "Development tenant (auto-selected)",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Current company",
     "infoCardEyebrow": "Company info",
@@ -234,7 +256,8 @@
       "title": "Select tenant",
       "body": "Please select a tenant to continue. The context applies to all pages.",
       "confirm": "Apply tenant",
-      "applyFailed": "Could not set tenant context."
+      "applyFailed": "Could not set tenant context.",
+      "devAutoSelecting": "Selecting development tenant…"
     },
     "tseLayout": {
       "title": "No tenant selected",
@@ -277,6 +300,9 @@
     "reportingAnalytics": "Reports & analytics",
     "settings": "Settings",
     "administration": "Administration",
+    "securityTse": "Security & TSE",
+    "deploymentSystem": "Deployment & System",
+    "monitoringLogs": "Monitoring & Logs",
     "accessRoles": "Access & roles",
     "fiscalCompliance": "RKSV & FinanzOnline",
     "verwaltung": "Administration"

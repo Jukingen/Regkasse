@@ -8,11 +8,13 @@ using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Validators;
@@ -48,6 +50,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IUsernameChangeEmailService _usernameChangeEmail;
         private readonly ActivityEventRecorder? _activityEvents;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public UserManagementController(
             AppDbContext context,
@@ -67,7 +70,8 @@ namespace KasseAPI_Final.Controllers
             PasswordErrorTranslator passwordErrors,
             IUserUsernameHistoryService usernameHistory,
             IUsernameChangeEmailService usernameChangeEmail,
-            ActivityEventRecorder? activityEvents = null)
+            ActivityEventRecorder? activityEvents = null,
+            ITenantLimitGuard? tenantLimitGuard = null)
         {
             _context = context;
             _userManager = userManager;
@@ -87,6 +91,7 @@ namespace KasseAPI_Final.Controllers
             _usernameHistory = usernameHistory;
             _usernameChangeEmail = usernameChangeEmail;
             _activityEvents = activityEvents;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
@@ -95,7 +100,7 @@ namespace KasseAPI_Final.Controllers
         private Guid ResolveActivityTenantId() =>
             _tenantAccessor.TenantId is Guid tid && tid != Guid.Empty
                 ? tid
-                : LegacyDefaultTenantIds.Primary;
+                : SystemTenantIds.Platform;
 
         private async Task PublishPermissionActivityAsync(
             ActivityEventType type,
@@ -487,10 +492,28 @@ namespace KasseAPI_Final.Controllers
                         });
                     }
 
+                    if (scopedTenantId == SystemTenantIds.Platform)
+                    {
+                        return Ok(new UsersListResponse
+                        {
+                            Items = [],
+                            Pagination = new UsersListPagination
+                            {
+                                Page = page,
+                                PageSize = pageSize,
+                                TotalCount = 0,
+                                TotalPages = 0,
+                            },
+                        });
+                    }
+
+                    var superAdmin = Roles.SuperAdmin.ToLowerInvariant();
+                    var platformAdmin = RoleHierarchy.PlatformAdmin.ToLowerInvariant();
                     q = q.Where(u =>
                         _context.UserTenantMemberships.Any(m =>
                             m.UserId == u.Id && m.TenantId == scopedTenantId && m.IsActive)
-                        && u.Role != Roles.SuperAdmin);
+                        && (u.Role == null
+                            || (u.Role.ToLower() != superAdmin && u.Role.ToLower() != platformAdmin)));
                 }
 
                 if (isActive.HasValue)
@@ -660,6 +683,27 @@ namespace KasseAPI_Final.Controllers
                 if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null))
                     return BadRequest(new { message = "Tax number already exists" });
 
+                if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+                    && _tenantLimitGuard != null)
+                {
+                    Guid? limitTenantId = _tenantAccessor.TenantId is Guid currentTenant && currentTenant != Guid.Empty
+                        ? currentTenant
+                        : IsCurrentUserSuperAdmin() ? SystemTenantIds.Platform : null;
+                    if (limitTenantId is Guid membershipTenantForLimit)
+                    {
+                        try
+                        {
+                            await _tenantLimitGuard.EnsureCanCreateUserAsync(
+                                membershipTenantForLimit,
+                                HttpContext?.RequestAborted ?? default);
+                        }
+                        catch (LimitExceededException ex)
+                        {
+                            return Conflict(ex.ToConflictBody());
+                        }
+                    }
+                }
+
                 var user = new ApplicationUser
                 {
                     UserName = request.UserName,
@@ -703,7 +747,7 @@ namespace KasseAPI_Final.Controllers
                         }
                         else if (IsCurrentUserSuperAdmin())
                         {
-                            membershipTenantId = LegacyDefaultTenantIds.Primary;
+                            membershipTenantId = SystemTenantIds.Platform;
                         }
                         else
                         {
@@ -867,6 +911,16 @@ namespace KasseAPI_Final.Controllers
 
                     if (roleError != null)
                     {
+                        if (string.Equals(roleError, RoleHierarchy.ElevatedTargetError, StringComparison.Ordinal))
+                        {
+                            _logger.LogWarning(
+                                "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to modify a user outside their hierarchy",
+                                actorId,
+                                actorRole,
+                                ResolveActorTenantScope());
+                            return NotFound(new { message = "User not found.", code = "USER_NOT_FOUND" });
+                        }
+
                         return BadRequest(new { message = roleError, code = "ROLE_ASSIGN_FAILED" });
                     }
                 }
@@ -1714,6 +1768,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+                if (!IsCurrentUserSuperAdmin())
+                    roles = roles.Where(name => !RoleHierarchy.IsPlatformOperatorRole(name)).ToList();
                 return Ok(roles);
             }
             catch (Exception ex)

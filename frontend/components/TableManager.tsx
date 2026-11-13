@@ -12,6 +12,7 @@ import {
   Vibration,
   TextInput,
 } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { useTableOrdersRecoveryOptimized } from '../hooks/useTableOrdersRecoveryOptimized';
@@ -113,7 +114,7 @@ const TableManager: React.FC<TableManagerProps> = ({
           return sum + price * item.quantity;
         }, 0);
 
-        console.log(
+        safeLog(
           `Masa ${table.number} - Toplam: €${total.toFixed(2)}, Ürün sayısı: ${currentTableOrders.length}`
         );
 
@@ -145,7 +146,7 @@ const TableManager: React.FC<TableManagerProps> = ({
       if (isRecoveryCompleted && recoveryData) {
         const recoveryOrder = getOrderForTable(tableNum);
         if (recoveryOrder && recoveryOrder.itemCount > 0) {
-          console.log(
+          safeLog(
             `🔄 Recovery: Masa ${table.number} - Toplam: €${recoveryOrder.totalAmount.toFixed(2)}, Ürün sayısı: ${recoveryOrder.itemCount}`
           );
 
@@ -195,7 +196,7 @@ const TableManager: React.FC<TableManagerProps> = ({
 
     // Recovery tamamlandığında kullanıcıya bildirim göster
     if (isRecoveryCompleted && hasActiveOrders) {
-      console.log(
+      safeLog(
         `✅ Recovery completed: ${recoveryData?.totalActiveTables} active table orders restored`
       );
     }

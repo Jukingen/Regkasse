@@ -1,0 +1,100 @@
+# Manual EAS build for the POS app. Queues a cloud build only.
+# Does not submit to App Store / Play, and does not upload binaries to GitHub.
+name: Frontend EAS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Native target
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+        default: android
+      profile:
+        description: Universal binary, or the optional Gastronomie store listing
+        required: true
+        type: choice
+        options:
+          - universal
+          - gastronomy
+        default: universal
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-eas-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.profile }}
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+  NODE_VERSION: '22'
+
+jobs:
+  eas-build:
+    name: EAS ${{ inputs.profile }} (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --workspaces=false
+
+      - name: Resolve EAS profile and platform
+        id: eas
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ inputs.profile }}" in
+            universal) profile="production" ;;
+            gastronomy) profile="gastronomy-production" ;;
+            *) echo "Unsupported profile: ${{ inputs.profile }}" >&2; exit 1 ;;
+          esac
+          case "${{ inputs.platform }}" in
+            android) platform="android" ;;
+            ios) platform="ios" ;;
+            both) platform="all" ;;
+            *) echo "Unsupported platform: ${{ inputs.platform }}" >&2; exit 1 ;;
+          esac
+          echo "profile=${profile}" >> "$GITHUB_OUTPUT"
+          echo "platform=${platform}" >> "$GITHUB_OUTPUT"
+          echo "EAS profile ${profile}, platform ${platform}"
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build on EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
+          EAS_PROJECT_ID_GASTRONOMY: ${{ secrets.EAS_PROJECT_ID_GASTRONOMY }}
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "Missing repository secret EXPO_TOKEN." >&2
+            exit 1
+          fi
+          eas build \
+            --platform "${{ steps.eas.outputs.platform }}" \
+            --profile "${{ steps.eas.outputs.profile }}" \
+            --non-interactive

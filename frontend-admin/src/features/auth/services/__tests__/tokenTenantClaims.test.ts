@@ -24,7 +24,7 @@ describe('readTokenTenantClaims', () => {
     expect(claims.tenantId).toBe('11111111-1111-1111-1111-111111111111');
   });
 
-  it('returns empty claims for missing token', () => {
+  it('returns tenant bootstrap + impersonation flag when no JWT is passed', () => {
     expect(readTokenTenantClaims(null)).toEqual({
       tenantId: null,
       tenantSlug: null,

@@ -95,13 +95,16 @@ public sealed class AutomaticCleanupService : BackgroundService
 
         var tenantRetention = await ResolveTenantRetentionDaysAsync(db, ct).ConfigureAwait(false);
         var systemRetention = await ResolveSystemRetentionDaysAsync(db, ct).ConfigureAwait(false);
+        var policy = scope.ServiceProvider.GetRequiredService<IBackupRetentionPolicyService>();
+        var legalPolicy = await policy.GetSnapshotAsync(ct).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Automatic backup cleanup starting: smartRetention={Smart}, storageTiers={Tiers}, tenantWindow={TenantDays}d, systemWindow={SystemDays}d",
+            "Automatic backup cleanup starting: smartRetention={Smart}, storageTiers={Tiers}, tenantWindow={TenantDays}d, systemWindow={SystemDays}d, legalYears={LegalYears}",
             opts.SmartRetentionEnabled,
             opts.StorageTierManagementEnabled,
             tenantRetention,
-            systemRetention);
+            systemRetention,
+            legalPolicy.ColdRetentionYears);
 
         var removed = await BackupSucceededRunRetentionCleaner.DeleteExpiredSucceededRunsAsync(
             db,
@@ -111,7 +114,8 @@ public sealed class AutomaticCleanupService : BackgroundService
             tenantRetentionDays: tenantRetention,
             systemRetentionDays: systemRetention,
             ct,
-            _smartRetention).ConfigureAwait(false);
+            _smartRetention,
+            legalPolicy).ConfigureAwait(false);
 
         if (removed > 0)
         {
@@ -140,7 +144,8 @@ public sealed class AutomaticCleanupService : BackgroundService
         var tiersUpdated = 0;
         if (opts.StorageTierManagementEnabled)
         {
-            tiersUpdated = await _storageTier.ApplyOptimalTiersForSucceededRunsAsync(db, ct)
+            tiersUpdated = await _storageTier.ApplyOptimalTiersForSucceededRunsAsync(
+                    db, ct, windows: legalPolicy.Windows)
                 .ConfigureAwait(false);
             if (tiersUpdated > 0)
             {
@@ -148,6 +153,18 @@ public sealed class AutomaticCleanupService : BackgroundService
                 _logger.LogInformation(
                     "Automatic backup cleanup retagged storage tiers on {Count} run(s)",
                     tiersUpdated);
+            }
+        }
+
+        if (legalPolicy.ColdStorageEnabled)
+        {
+            var cold = scope.ServiceProvider.GetRequiredService<IBackupColdArchiveService>();
+            var archived = await cold.ArchiveAgedSucceededRunsAsync(ct).ConfigureAwait(false);
+            if (archived > 0)
+            {
+                _logger.LogInformation(
+                    "Automatic backup cleanup archived {Count} aged run(s) to cold storage",
+                    archived);
             }
         }
 

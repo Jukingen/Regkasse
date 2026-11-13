@@ -59,6 +59,86 @@ public sealed class AppDbContextTenantModelTests
     }
 
     [Fact]
+    public void Unfiltered_required_navigations_to_filtered_principals_match_documented_set()
+    {
+        // Expected EF PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning pairs.
+        // Dependents are intentionally not ITenantEntity (or use a different isolation path).
+        // Customer / LicenseSale mismatches are mitigated with Navigation.IsRequired(false).
+        // See docs/ENVIRONMENT_CONFIGURATION.md § Common Warnings.
+        var expected = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ActivityEventRead.ActivityEvent -> ActivityEvent",
+            "CashRegisterTransaction.CashRegister -> CashRegister",
+            "ChReceiptSequence.CashRegister -> CashRegister",
+            "DeReceiptSequence.CashRegister -> CashRegister",
+            "EuReceiptSequence.CashRegister -> CashRegister",
+            "OnlineOrderItem.OnlineOrder -> OnlineOrder",
+            "PaymentDetails.CashRegister -> CashRegister",
+            "RksvSpecialReceiptFinanzOnlineSubmission.(no-nav) -> CashRegister",
+            "SplitItem.Product -> Product",
+            "SplitItem.SplitSession -> SplitSession",
+            "TagesberichtReport.CashRegister -> CashRegister",
+        };
+
+        using var db = CreateContext();
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var entityType in db.Model.GetEntityTypes())
+        {
+            foreach (var fk in entityType.GetForeignKeys())
+            {
+                if (!fk.IsRequired)
+                    continue;
+                if (fk.PrincipalEntityType.GetQueryFilter() is null)
+                    continue;
+                if (entityType.GetQueryFilter() is not null)
+                    continue;
+
+                var nav = fk.DependentToPrincipal?.Name ?? "(no-nav)";
+                var dependentName = entityType.ClrType?.Name ?? entityType.Name;
+                var principalName = fk.PrincipalEntityType.ClrType?.Name ?? fk.PrincipalEntityType.Name;
+                actual.Add($"{dependentName}.{nav} -> {principalName}");
+            }
+        }
+
+        var unexpected = actual.Except(expected).OrderBy(x => x).ToList();
+        var missing = expected.Except(actual).OrderBy(x => x).ToList();
+        Assert.True(
+            unexpected.Count == 0 && missing.Count == 0,
+            "Unexpected new filter-interaction pairs (add optional navigation or update the documented set): "
+            + string.Join("; ", unexpected)
+            + " | Documented pairs that disappeared: "
+            + string.Join("; ", missing));
+    }
+
+    /// <summary>
+    /// Operating country stays on <c>company_settings.country</c>. A second <c>CountryCode</c> column is forbidden.
+    /// Issue-time <c>country_code_at_issue</c> snapshots are a different column and stay allowed.
+    /// </summary>
+    [Fact]
+    public void Model_has_no_CountryCode_column()
+    {
+        using var db = CreateContext();
+        var hits = new List<string>();
+
+        foreach (var entityType in db.Model.GetEntityTypes())
+        {
+            var entityName = entityType.ClrType?.Name ?? entityType.Name;
+            foreach (var property in entityType.GetProperties())
+            {
+                if (string.Equals(property.Name, "CountryCode", StringComparison.Ordinal))
+                    hits.Add($"{entityName}.{property.Name}");
+
+                var column = property.GetColumnName();
+                if (string.Equals(column, "country_code", StringComparison.OrdinalIgnoreCase))
+                    hits.Add($"{entityName}.{column}");
+            }
+        }
+
+        Assert.True(hits.Count == 0, "CountryCode column is forbidden: " + string.Join(", ", hits));
+    }
+
+    [Fact]
     public void Tenant_query_filter_is_fail_closed_when_ambient_tenant_is_null()
     {
         var tenantA = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");

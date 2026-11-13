@@ -92,7 +92,7 @@ public sealed class AuditExportService : IAuditExportService
     }
 
     private IQueryable<AuditLog> BuildQuery(AuditLogQueryFilters filters) =>
-        _context.AuditLogs.AsNoTracking().ApplyFilters(filters).OrderByDescending(a => a.Timestamp);
+        _context.AuditLogs.AsNoTracking().ApplyFilters(filters, _context).OrderByDescending(a => a.Timestamp);
 
     private async IAsyncEnumerable<AuditLog> StreamRowsAsync(
         AuditLogQueryFilters filters,

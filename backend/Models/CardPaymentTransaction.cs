@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Models;
 /// Card acquirer transaction (Mock or Stripe). Intent rows may exist before fiscal <see cref="PaymentDetails"/> commit;
 /// <see cref="PaymentId"/> is set when linked to the canonical payment row.
 /// </summary>
-[Table("card_payment_transactions")]
+[Table("gateway_payment_intents")]
 public class CardPaymentTransaction : BaseTenantEntity
 {
     [ForeignKey(nameof(TenantId))]
@@ -85,6 +85,37 @@ public class CardPaymentTransaction : BaseTenantEntity
 
     [Column("metadata_json", TypeName = "jsonb")]
     public string MetadataJson { get; set; } = "{}";
+
+    /// <summary>Client Idempotency-Key for intent create. Unique per tenant when set.</summary>
+    [MaxLength(64)]
+    [Column("idempotency_key")]
+    public string? IdempotencyKey { get; set; }
+
+    [MaxLength(500)]
+    [Column("redirect_url")]
+    public string? RedirectUrl { get; set; }
+
+    [MaxLength(500)]
+    [Column("return_url")]
+    public string? ReturnUrl { get; set; }
+
+    [MaxLength(32)]
+    [Column("method_code")]
+    public string? MethodCode { get; set; }
+
+    [MaxLength(128)]
+    [Column("last_webhook_event_id")]
+    public string? LastWebhookEventId { get; set; }
+
+    [Column("expires_at_utc")]
+    public DateTime? ExpiresAtUtc { get; set; }
+
+    [MaxLength(32)]
+    [Column("capture_mode")]
+    public string CaptureMode { get; set; } = "automatic";
+
+    [Column("cart_snapshot_id")]
+    public Guid? CartSnapshotId { get; set; }
 }
 
 public static class CardPaymentTransactionStatuses
@@ -95,6 +126,29 @@ public static class CardPaymentTransactionStatuses
     public const string Failed = "Failed";
     public const string Cancelled = "Cancelled";
     public const string Refunded = "Refunded";
+    public const string Expired = "Expired";
+
+    /// <summary>Monotonic gateway transitions. Fiscal COMPLETED is PaymentId, not a status here.</summary>
+    public static bool CanTransition(string from, string to)
+    {
+        if (string.Equals(from, to, StringComparison.Ordinal))
+            return true;
+
+        return (from, to) switch
+        {
+            (Created, Pending) => true,
+            (Created, Succeeded) => true,
+            (Created, Failed) => true,
+            (Created, Cancelled) => true,
+            (Created, Expired) => true,
+            (Pending, Succeeded) => true,
+            (Pending, Failed) => true,
+            (Pending, Cancelled) => true,
+            (Pending, Expired) => true,
+            (Succeeded, Refunded) => true,
+            _ => false
+        };
+    }
 
     public static PaymentIntentStatus ToPaymentIntentStatus(string status) =>
         status switch

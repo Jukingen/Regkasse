@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -17,7 +18,44 @@ public sealed record AdminTenantListItemDto(
     DateTime? UpdatedAt,
     int? LicenseDaysRemaining = null,
     string? OwnerAdminEmail = null,
-    bool IsDemoPreset = false);
+    bool IsDemoPreset = false,
+    LicenseType? LicenseType = null,
+    int RegisterCount = 0,
+    int UserCount = 0,
+    DateTime? LastActivityAtUtc = null,
+    string? TrialStatus = null,
+    DateTime? TrialEndsAtUtc = null,
+    int? TrialDaysRemaining = null,
+    string? VerticalProfileId = null,
+    string? VerticalProfileName = null);
+
+/// <summary>Query for Super Admin tenant list (filter / sort / page).</summary>
+public sealed class AdminTenantListQuery
+{
+    public bool IncludeDeleted { get; init; }
+
+    /// <summary>
+    /// Lifecycle filter: lead, in_onboarding, active, suspended, cancelled, archived
+    /// (also accepts enum names; legacy deleted → archived).
+    /// </summary>
+    public string? Status { get; init; }
+
+    /// <summary>Filter by package tier (Trial / Starter / Business / Plus).</summary>
+    public LicenseType? LicenseType { get; init; }
+
+    /// <summary>Case-insensitive partial match on name or slug.</summary>
+    public string? Search { get; init; }
+
+    /// <summary>Name | CreatedAt | LicenseDaysLeft | RegisterCount | UserCount | LastActivity. Default: CreatedAt.</summary>
+    public string? SortBy { get; init; }
+
+    /// <summary>Asc | Desc. Default: Desc.</summary>
+    public string? SortOrder { get; init; }
+
+    public int Page { get; init; } = 1;
+
+    public int PageSize { get; init; } = 20;
+}
 
 public sealed record AdminTenantDetailDto(
     Guid Id,
@@ -41,7 +79,20 @@ public sealed record AdminTenantDetailDto(
     string OperationMode = TenantOperationModes.Active,
     string? MaintenanceMessage = null,
     DateTime? MaintenanceStartedAt = null,
-    DateTime? MaintenanceEndsAt = null);
+    DateTime? MaintenanceEndsAt = null,
+    string? TrialStatus = null,
+    DateTime? TrialStartedAtUtc = null,
+    DateTime? TrialEndsAtUtc = null,
+    DateTime? TrialGracePeriodEndsAtUtc = null,
+    DateTime? TrialConvertedAtUtc = null,
+    bool TrialReminder7dSent = false,
+    bool TrialReminder3dSent = false,
+    bool TrialReminder1dSent = false,
+    string Country = "AT",
+    VatRegime VatRegime = VatRegime.AT_RKSV_STANDARD,
+    string? VatId = null,
+    string? BillingCountry = null,
+    bool TaxExempt = false);
 
 public sealed record AdminTenantCashRegisterDto(
     Guid Id,
@@ -113,6 +164,18 @@ public sealed class CreateAdminTenantRequest
     [MaxLength(64)]
     public string Slug { get; set; } = string.Empty;
 
+    /// <summary>
+    /// ISO 3166-1 alpha-2 from <c>GET /api/admin/countries</c>.
+    /// <c>EU_DEFAULT</c> is rejected as not tenant-selectable (not a 2-letter code).
+    /// </summary>
+    [Required]
+    [RegularExpression(Iso3166CountryCode.RequiredPattern, ErrorMessage = Iso3166CountryCode.ValidationMessage)]
+    public string CountryCode { get; set; } = string.Empty;
+
+    /// <summary>Must be in the selected country's <c>AllowedVatRegimes</c>.</summary>
+    [Required]
+    public VatRegime VatRegime { get; set; }
+
     [MaxLength(200)]
     [EmailAddress]
     public string? Email { get; set; }
@@ -136,8 +199,13 @@ public sealed class CreateAdminTenantRequest
     [MaxLength(100)]
     public string? AdminPassword { get; set; }
 
-    /// <summary>When true and no license end date is set, grants a 30-day trial on the tenant row.</summary>
+    /// <summary>When true and no license end date is set, grants a managed trial on the tenant row.</summary>
     public bool GrantTrialLicense { get; set; } = true;
+
+    /// <summary>
+    /// Optional trial length override (14 / 30 / 60 / 90). When null, uses <c>Trial:DefaultDurationDays</c>.
+    /// </summary>
+    public int? TrialDurationDays { get; set; }
 
     /// <summary>When true, imports the full demo menu (Salate, Pizzas, Pasta, …) instead of three generic demo products.</summary>
     public bool ImportDemoMenu { get; set; }
@@ -152,6 +220,12 @@ public sealed class CreateAdminTenantRequest
 
     /// <summary>When true and an industry template is set, seed deactivated starter users for template slots.</summary>
     public bool SeedIndustryStarterUsers { get; set; } = true;
+
+    /// <summary>
+    /// When true, Super Admin create also applies the vertical demo catalog (products, customers, open KASSE-001).
+    /// Regular create leaves this false. A non-SuperAdmin caller that sets it is rejected with HTTP 403.
+    /// </summary>
+    public bool SeedDemo { get; set; }
 }
 
 public sealed class HardDeleteAdminTenantRequest
@@ -185,6 +259,37 @@ public sealed class UpdateAdminTenantRequest
     public DateTime? LicenseValidUntilUtc { get; set; }
 
     public bool? IsActive { get; set; }
+}
+
+public sealed class UpdateAdminTenantCountryRequest
+{
+    /// <summary>ISO 3166-1 alpha-2 from <c>GET /api/admin/countries</c>. <c>EU_DEFAULT</c> is rejected.</summary>
+    [Required]
+    [MaxLength(32)]
+    public string Country { get; set; } = string.Empty;
+
+    /// <summary>Must be in the selected country's <c>AllowedVatRegimes</c>.</summary>
+    [Required]
+    public VatRegime VatRegime { get; set; }
+}
+
+public static class AdminTenantCountryErrorCodes
+{
+    public const string TenantNotFound = "TENANT_NOT_FOUND";
+    public const string CompanySettingsMissing = "COMPANY_SETTINGS_MISSING";
+    public const string CountryLockedFiscal = "COUNTRY_LOCKED_FISCAL";
+    public const string FiscalCountryChangeInvalid = "FISCAL_COUNTRY_CHANGE_INVALID";
+    public const string UnknownCountry = "UNKNOWN_COUNTRY_CODE";
+    public const string CountryNotSelectable = "COUNTRY_NOT_SELECTABLE";
+    public const string VatRegimeNotAllowed = "VAT_REGIME_NOT_ALLOWED";
+    public const string AtEuOssNotSupported = "AT_EU_OSS_NOT_SUPPORTED";
+}
+
+public sealed class CountryChangeImpactDto
+{
+    public int AffectedRowCount { get; set; }
+
+    public int IncompatibleRowCount { get; set; }
 }
 
 public sealed class UpdateTenantOperationModeRequest

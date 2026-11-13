@@ -8,7 +8,7 @@ import { isFiscalSimulationMode } from '../services/api/rksvEnvironmentTypes';
 import {
   getReleaseStageBannerKind,
   getReleaseStageBannerLabel,
-} from '../../shared/constants/environment';
+} from '../shared/constants/environment';
 
 type Props = {
   settings: DevelopmentModeSettings | null;

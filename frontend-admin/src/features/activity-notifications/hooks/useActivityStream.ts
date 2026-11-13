@@ -3,7 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
-import { type ActivityDto, connectActivityStream } from '@/api/manual/activityEvents';
+import { type ActivityDto, subscribeActivityStream } from '@/api/manual/activityEvents';
 
 const unreadKey = ['admin', 'activities', 'unread-count'] as const;
 const listKey = ['admin', 'activities', 'list'] as const;
@@ -11,6 +11,7 @@ const listKey = ['admin', 'activities', 'list'] as const;
 /**
  * Subscribes to GET /api/admin/activities/stream while enabled.
  * Prepends live activities to local state and refreshes unread count.
+ * Aborts the fetch stream on disable/unmount; reconnects with backoff on drop.
  */
 export function useActivityStream(enabled: boolean) {
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export function useActivityStream(enabled: boolean) {
 
     const abort = new AbortController();
 
-    void connectActivityStream(
+    void subscribeActivityStream(
       {
         onActivity: (activity) => {
           if (seenIds.current.has(activity.id)) {
@@ -38,9 +39,9 @@ export function useActivityStream(enabled: boolean) {
           void queryClient.invalidateQueries({ queryKey: listKey });
         },
       },
-      abort.signal
+      { signal: abort.signal }
     ).catch(() => {
-      // Stream errors are non-fatal; polling fallback remains active.
+      // Stream errors are non-fatal; list polling / manual refresh remain available.
     });
 
     return () => {

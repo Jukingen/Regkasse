@@ -1,4 +1,5 @@
 using System.Text.Json;
+using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Token;
 
 namespace KasseAPI_Final.Middleware;
@@ -22,9 +23,13 @@ public sealed class TokenValidationMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ITokenBlacklistService blacklistService)
+    public async Task InvokeAsync(
+        HttpContext context,
+        ITokenBlacklistService blacklistService,
+        IAuthCookieService cookieAuth)
     {
-        var token = ExtractBearerToken(context.Request.Headers.Authorization.ToString());
+        var token = ExtractBearerToken(context.Request.Headers.Authorization.ToString())
+            ?? cookieAuth.ReadAccessToken(context.Request);
         if (!string.IsNullOrEmpty(token) && blacklistService.IsTokenBlacklisted(token))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;

@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace KasseAPI_Final.Services
 {
     /// <summary>
-    /// Allocates sequential BelegNr per (CashRegisterId, date). Format: AT-{RegisterNumber}-{yyyyMMdd}-{seq}.
+    /// Allocates sequential BelegNr per (CashRegisterId, date).
+    /// Format: AT-{RegisterNumber}-{tenantId:N}-{yyyyMMdd}-{seq}.
     /// </summary>
     public interface IReceiptSequenceService
     {

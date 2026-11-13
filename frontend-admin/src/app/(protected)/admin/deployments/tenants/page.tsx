@@ -17,7 +17,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const QUERY_KEY = ['admin', 'deployments', 'tenants'] as const;
@@ -47,12 +47,10 @@ export default function DeploymentTenantsPage() {
   const canView = isSuperAdmin || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', [
     { title: t('nav.deployments'), href: '/admin/deployments' },
     { title: t('nav.deploymentTenants') },
-  ];
+  ]);
 
   const statusQuery = useQuery({
     queryKey: QUERY_KEY,

@@ -92,6 +92,27 @@ public sealed class StorageAlertService : BackgroundService
 
         var maxBytes = BackupService.MaxStorageBytes;
         var budgetAlertBytes = maxBytes * AlertThresholdPercent / 100L;
+        var costAlert = opts.StorageCostAlertEurPerMonth;
+        if (costAlert is decimal threshold && threshold > 0)
+        {
+            var estimatedMonthly = (decimal)(usedBytes / BackupStorageCostService.BytesPerGiB) * opts.StorageCostHotEurPerGbMonth;
+            if (estimatedMonthly >= threshold)
+            {
+                _alerts.Publish(new BackupAlertEvent(
+                    BackupAlertKind.StorageCostHigh,
+                    BackupRunId: null,
+                    CorrelationId: null,
+                    Message:
+                    $"Indicative backup storage cost {estimatedMonthly:F2} EUR/month meets alert threshold {threshold:F2} EUR/month.",
+                    Data: new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["reason"] = "storage_cost",
+                        ["estimatedMonthlyEur"] = estimatedMonthly.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["thresholdEur"] = threshold.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    }));
+            }
+        }
+
         if (usedBytes >= budgetAlertBytes)
         {
             var usedPercent = maxBytes <= 0

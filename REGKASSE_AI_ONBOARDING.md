@@ -198,6 +198,16 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 2. **`TenantContextMiddleware`** (after auth) — may override accessor from JWT `tenant_id` claim.
 3. **`AppDbContext`** — global query filters on all `ITenantEntity` types: `e.TenantId == ambient TenantId` when set.
 
+### Tenant resolution order
+
+| Environment | Order (first match wins) |
+|-------------|--------------------------|
+| **Development** | `X-Tenant-Id` header → `?tenant=` query → Host slug → DX default (`dev` when Host is loopback / `admin`) |
+| **Production** (shared `api`/`pos`/`admin`/`www`) | JWT `tenant_id` after auth (pre-auth ambient unset; header/query ignored) |
+| **Production** (mandant subdomain / custom domain) | Host slug (pre-auth) → JWT `tenant_id` rebind after auth |
+
+Prefer **header** over query in Development (REST-friendly, less cacheable). FA sends `X-Tenant-Id` only; `?tenant=` remains a backend fallback. Production `?tenant=` presence is logged as **Warning** for ops alerting and never applied.
+
 ### Data Isolation
 
 - Tenant-scoped domain tables implement `ITenantEntity` with non-null `tenant_id uuid` (see **Database Schema** above).
@@ -207,8 +217,8 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 ### Development Mode
 
-- **Localhost:** `X-Tenant-Id` header (tenant **slug**) or `?tenant=` query parameter — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
-- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`.
+- **Localhost:** Prefer `X-Tenant-Id` header (tenant **slug**); `?tenant=` query remains a fallback — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
+- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`. FA axios sets `X-Tenant-Id` only (does not auto-inject `?tenant=`).
 - **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `dev.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
 
 ### Development Setup for Multi-Tenant Testing
@@ -230,7 +240,7 @@ curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 # Tenant-scoped payments (requires JWT); canonical routes:
 curl -H "X-Tenant-Id: dev" -H "Authorization: Bearer <token>" \
   "http://localhost:5184/api/admin/payments?page=1&pageSize=5"
-# POS: /api/pos/payment*  (legacy alias families may still answer on /api/Payment*)
+# POS: /api/pos/payment*  (do not call removed /api/Payment*)
 ```
 
 #### Option 2: Query string
@@ -313,7 +323,7 @@ Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`
 
 ### Super Admin
 
-Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use legacy default tenant until impersonation).
+Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use platform sentinel / Development `dev` until impersonation).
 
 #### Super Admin capabilities
 
@@ -323,7 +333,7 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Create tenant | `POST /api/admin/tenants` | Unique `slug`; seeds `status=active` |
 | Edit tenant | `PUT /api/admin/tenants/{id}` | Name, contact, license fields on tenant row |
 | Suspend / reactivate | `PUT` with `status` | `suspended` sets `isActive=false`; `active` re-enables |
-| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
+| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; platform sentinel cannot be deleted |
 | Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
 | Record billing license sales | `POST /api/admin/billing/license-sales` | Creates `license_sales` + billing key; see **`docs/BILLING_TENANT_LICENSE.md`** |
 | Billing audit / reminders | `GET /api/admin/billing/audit`, `POST …/reminders/check` | Super Admin; `billing_audit_log`, `license_reminders` |
@@ -428,7 +438,7 @@ For existing single-tenant PostgreSQL databases, apply the **existing migration 
 | Fiscal / audit / offline | `20260516101549_AddTenantIdToFiscalAndAuditTables` |
 | Super Admin tenant columns | `20260516104349_ExtendTenantsForSuperAdmin` |
 
-**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: LegacyDefaultTenantIds.Primary` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
+**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: SystemTenantIds.Platform` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
 
 ```bash
 dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
@@ -546,7 +556,7 @@ Hub: [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md). Always-applied: [`AGENTS.
 - Storage usage alerts at **80%** staging disk (`Backup:StagingDiskUsageAlertPercent`); FA dashboard warning + periodic `StorageAlertService` (default every 6h).
 - Automatic cleanup of expired succeeded backups (`BackupSucceededRunRetentionCleaner`).
 - Optional smart GFS retention (`Backup:SmartRetentionEnabled` → `SmartRetentionService`: 7 daily / 4 weekly / 12 monthly / 7 yearly).
-- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤7d / Warm ≤30d / Cold &gt;30d; Cold prefers `ExternalArchiveRoot`).
+- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤30d / Warm ≤90d / Cold &gt;90d; Super Admin FA `/backup/retention`; Cold upload via `ICloudStorageService`). System backups keep a 7-year Legal Hold (BAO §132).
 - Enqueue storage budget guard (~**10 GB** summed succeeded dumps via `BackupService.MaxStorageBytes`); `StorageAlertService` also alerts at **80%** of that budget.
 
 ### FA (role-aware)
@@ -584,6 +594,17 @@ Whenever backend API changes affect FA: refresh `backend/swagger.json`, run `npm
 ---
 
 ## 5. Core Domain Model
+
+### Country & Fiscal Regime
+
+Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany, Switzerland, and a generic EU e-invoicing default are **shape-only** (not production-ready).
+
+- **Binding (shipped):** `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`), alongside `VatRegime`, `BillingCountry`, and `TaxExempt`. There is **no** `CountryCode` column and none will be added — a regression test enforces this. In-code `CountryProfile` registry: AT, DE, CH, registry-only `EU_DEFAULT`.
+- **Strategies (shipped, wired):** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime` in `PaymentService` / `InvoiceService`. Do not fork `PaymentService` or `TseService` internals. TSE tax-sets and RKSV special receipts stay Austria-only.
+- **Flags:** `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are live; AT RKSV is **locked on**.
+- **FA:** create-tenant wizard country step; tenant-detail Country & Fiscal Regime card. Historical invoices keep `CountryCodeAtIssue` on country change.
+- **Remaining (NOT STARTED):** Paket 20 DE TSE provider, 21 CH QR bank, 22 EU Peppol — [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16. Paket 30-d (OSS destination rates) is done.
+- **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](docs/COUNTRY_LAYER_CUTOVER.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
 
 ### Payment / `PaymentDetails`
 
@@ -1043,13 +1064,14 @@ The authoritative API contract is `backend/swagger.json`.
 
 #### Tenant Identification
 
-- **Production:** Tenant derived from request `Host` subdomain automatically (`{slug}.regkasse.at` → `tenants.slug`).
-- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
-- **Development:** `?tenant={slug}` query parameter (same slug semantics as the header).
+- **Production (shared hosts):** JWT `tenant_id` after auth; do not send `X-Tenant-Id` / `?tenant=`.
+- **Production (mandant Host / custom domain):** Host slug for pre-auth public APIs; JWT rebinds after auth.
+- **Development (preferred):** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
+- **Development (fallback):** `?tenant={slug}` query parameter (same slug semantics; prefer header). Production presence → Warning log, ignored.
 
 After resolution, the backend sets `ICurrentTenantAccessor.TenantId` (Guid). Authenticated requests may also carry JWT claim `tenant_id` (Guid), applied by `TenantContextMiddleware`.
 
-Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` dev presets).
+Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` header switcher).
 
 #### Super Admin Endpoints
 
@@ -1065,7 +1087,7 @@ Key endpoint groups:
 - `/api/pos/payment/methods`
 - `/api/pos/payment/{id}`
 
-Legacy `/api/Payment` may exist, but prefer `/api/pos/*` for POS behavior.
+Use `/api/pos/*` for POS behavior. Removed aliases `/api/Payment|/api/Cart|/api/Product` return 404.
 
 ### Receipts
 
@@ -1317,8 +1339,8 @@ Local development alternative: hosts-file entries such as `dev.regkasse.local` (
 
 **Tenant resolution mode (backend):**
 
-- **`Development`:** `X-Tenant-Id` header and `?tenant=` query overrides are allowed (`SubdomainTenantProvider`).
-- **`Production`** (and other non-Development values such as `Staging`): **only** subdomain / `Host`-based resolution; header and query overrides are ignored.
+- **`Development`:** `X-Tenant-Id` header (preferred) then `?tenant=` query overrides are allowed (`SubdomainTenantProvider`); then Host → DX default `dev`.
+- **`Production`** (and other non-Development values such as `Staging`): shared hosts use JWT `tenant_id`; mandant Host may bind pre-auth; header and query overrides are ignored (`?tenant=` → Warning log).
 
 Ensure production deployments set `ASPNETCORE_ENVIRONMENT=Production` (not `Development`) so tenant cannot be spoofed via headers.
 

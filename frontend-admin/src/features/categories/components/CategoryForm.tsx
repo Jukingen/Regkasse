@@ -1,6 +1,7 @@
 'use client';
 
-import { Form, Input, InputNumber, Modal, Switch } from 'antd';
+import { ColorPicker, Form, Input, InputNumber, Modal, Switch } from 'antd';
+import type { Color } from 'antd/es/color-picker';
 import React, { useEffect } from 'react';
 
 import { useI18n } from '@/i18n';
@@ -8,6 +9,7 @@ import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import type { AdminCategory, CreateCategoryFormValues, UpdateCategoryFormValues } from '../types';
 import { categoryTaxRate } from '../types';
+import CategoryIconInput from './CategoryIconInput';
 
 export type CategoryFormSubmitValues = CreateCategoryFormValues | UpdateCategoryFormValues;
 
@@ -17,6 +19,20 @@ interface CategoryFormProps {
   onCancel: () => void;
   onSubmit: (values: CategoryFormSubmitValues) => Promise<void>;
   loading?: boolean;
+}
+
+function colorToHex(value: string | Color | undefined | null): string | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string') {
+    const hex = value.trim();
+    if (hex.length === 9 && hex.startsWith('#')) return hex.slice(0, 7);
+    return hex;
+  }
+  if (typeof value.toHexString === 'function') {
+    const hex = value.toHexString();
+    return hex.length === 9 ? hex.slice(0, 7) : hex;
+  }
+  return null;
 }
 
 export default function CategoryForm(props: CategoryFormProps) {
@@ -44,6 +60,8 @@ function CategoryFormContent({
           defaultTaxRate: categoryTaxRate(initialValues),
           sortOrder: initialValues.sortOrder ?? 0,
           isActive: initialValues.isActive ?? true,
+          icon: initialValues.icon ?? undefined,
+          color: initialValues.color ?? undefined,
         });
       } else {
         form.resetFields();
@@ -52,6 +70,8 @@ function CategoryFormContent({
           defaultTaxRate: 20,
           sortOrder: 0,
           isActive: true,
+          icon: undefined,
+          color: undefined,
         });
       }
     }
@@ -65,6 +85,8 @@ function CategoryFormContent({
         defaultTaxRate: values.defaultTaxRate ?? 20,
         sortOrder: values.sortOrder ?? 0,
         isActive: values.isActive ?? true,
+        icon: values.icon?.trim() || null,
+        color: colorToHex(values.color as string | Color | null | undefined),
       });
       form.resetFields();
     } catch (error) {
@@ -124,6 +146,23 @@ function CategoryFormContent({
             addonAfter="%"
             placeholder={t('common.categories.form.vatPlaceholder')}
           />
+        </Form.Item>
+
+        <Form.Item
+          name="icon"
+          label={t('common.categories.form.iconLabel')}
+          extra={t('common.categories.form.iconHelp')}
+        >
+          <CategoryIconInput placeholder={t('common.categories.form.iconPlaceholder')} />
+        </Form.Item>
+
+        <Form.Item
+          name="color"
+          label={t('common.categories.form.colorLabel')}
+          extra={t('common.categories.form.colorHelp')}
+          getValueFromEvent={(color: Color | string) => colorToHex(color)}
+        >
+          <ColorPicker format="hex" showText allowClear />
         </Form.Item>
 
         <Form.Item name="sortOrder" label={t('common.categories.form.sortOrderLabel')}>

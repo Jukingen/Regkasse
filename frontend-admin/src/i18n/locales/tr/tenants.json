@@ -45,6 +45,197 @@
     "title": "Erişim reddedildi",
     "body": "Bu sayfayı yalnızca süper yöneticiler açabilir."
   },
+  "limits": {
+    "title": "Kiracı limitleri",
+    "maxActiveRegistersPerUser": "Kullanıcı başına maks. aktif kasa",
+    "maxProductsPerTenant": "Kiracı başına maks. ürün",
+    "maxUsersPerTenant": "Kiracı başına maks. kullanıcı",
+    "dailyMaxTransactions": "Günlük maks. işlem sayısı",
+    "maxTransactionAmount": "İşlem başına maks. tutar",
+    "dailyMaxRevenue": "Maks. günlük ciro",
+    "maxBackupsPerTenant": "Kiracı başına maks. yedek",
+    "maxBackupSizeMB": "Maks. yedek boyutu (kümülatif, MB)",
+    "maxOfflineTransactions": "Maks. çevrimdışı işlem (kiracı)",
+    "save": "Limitleri kaydet",
+    "reset": "Varsayılana sıfırla",
+    "resetConfirm": "Emin misiniz? Tüm limitler varsayılana sıfırlanacak.",
+    "saved": "Limitler kaydedildi",
+    "error": "Limitler kaydedilemedi",
+    "required": "Lütfen bir değer girin.",
+    "overrideNote": "Yalnızca SuperAdmin kasa atamasını (kullanıcı başına maks. aktif kasa) force=true ile aşabilir. Diğer limitlerde override yoktur.",
+    "warningUsage": "{{current}} / {{limit}} — {{name}}",
+    "warningReached": "Limit doldu. Yeni kayıt eklenemez.",
+    "warningRemaining": "{{remaining}} kalan.",
+    "dashboard": {
+      "title": "Limit panosu",
+      "pageTitle": "Limit panosu",
+      "subtitle": "Güncel kullanım, kritik kullanıcılar ve limit uyarıları.",
+      "lastUpdated": "Son güncelleme",
+      "allTenants": "Tüm kiracılar",
+      "context": {
+        "tenant": "Kiracı",
+        "register": "Kasa",
+        "cashier": "Kasiyer",
+        "allRegisters": "Tüm kasalar",
+        "noTenant": "Kiracı seçilmedi",
+        "tenantValue": "{{name}} ({{slug}})",
+        "mandantLine": "Kiracı: {{name}} ({{slug}})",
+        "signedIn": "Oturum: {{name}} ({{userName}})",
+        "roleTenant": "Rol: {{role}} | Kiracı: {{slug}}"
+      },
+      "refresh": "Yenile",
+      "exportCsv": "CSV olarak dışa aktar",
+      "exportEmpty": "Dışa aktarılacak satır yok.",
+      "exported": "{{count}} limit dışa aktarıldı.",
+      "approaching": "Limite yaklaşan",
+      "violations": "Limit aşıldı",
+      "newAlerts": "Yeni uyarılar",
+      "limitsTitle": "Limitler",
+      "criticalUsersTitle": "Kritik kullanıcılar",
+      "recentLogsTitle": "Son limit olayları",
+      "limit": "Limit",
+      "usage": "Kullanım",
+      "status": {
+        "Healthy": "Sağlıklı",
+        "Warning": "Uyarı",
+        "Critical": "Kritik",
+        "Approaching": "Yaklaşıyor",
+        "Full": "Dolu",
+        "Exceeded": "Aşıldı"
+      },
+      "statusOk": "Tamam",
+      "statusApproaching": "Uyarı (≥80%)",
+      "statusExceeded": "Aşıldı",
+      "tenant": "Kiracı",
+      "user": "Kullanıcı",
+      "tenantWide": "Kiracı geneli",
+      "when": "Zaman",
+      "event": "Olay",
+      "message": "Mesaj",
+      "emptyLimits": "Bu filtrede limit yok.",
+      "emptyUsers": "Limite yaklaşan veya aşan kullanıcı yok.",
+      "emptyLogs": "Limit olayı yok.",
+      "loadFailed": "Limit verileri yüklenemedi",
+      "loadFailedHint": "Lütfen daha sonra tekrar deneyin.",
+      "filter": {
+        "all": "Tümü",
+        "healthy": "Sağlıklı",
+        "warning": "Uyarı",
+        "critical": "Kritik"
+      },
+      "summary": {
+        "healthy": "Sağlıklı",
+        "warning": "Uyarı",
+        "critical": "Kritik",
+        "total": "Toplam"
+      },
+      "alerts": {
+        "criticalLimit": "{{name}} kritik ({{percent}}%).",
+        "warningLimit": "{{name}} limite yaklaşıyor ({{percent}}%).",
+        "criticalUser": "{{user}} — {{name}} ({{percent}}%)."
+      },
+      "trend": {
+        "Increasing": "Artıyor",
+        "Stable": "Stabil",
+        "Decreasing": "Azalıyor"
+      },
+      "csv": {
+        "current": "Güncel",
+        "cap": "Limit",
+        "percentage": "Yüzde"
+      },
+      "limits": {
+        "title": "Limitler",
+        "trend": "Trend",
+        "change": "Değişim (7 gün)",
+        "changeUnit": "Birim",
+        "openDetail": "Detayı aç",
+        "maxProductsPerTenant": "Kiracı başına maks. ürün",
+        "maxUsersPerTenant": "Kiracı başına maks. kullanıcı",
+        "dailyMaxTransactions": "Günlük maks. işlem",
+        "maxTransactionAmount": "İşlem başına maks. tutar",
+        "dailyMaxRevenue": "Maks. günlük ciro",
+        "maxActiveRegistersPerUser": "Kasiyer başına maks. kasa",
+        "maxBackupsPerTenant": "Kiracı başına maks. yedek",
+        "maxBackupSizeMB": "Maks. yedek boyutu",
+        "maxOfflineTransactions": "Maks. çevrimdışı işlem"
+      },
+      "users": {
+        "title": "Limite yaklaşan kullanıcılar",
+        "user": "Kullanıcı",
+        "limit": "Limit",
+        "usage": "Kullanım",
+        "status": "Durum",
+        "action": "Aksiyon"
+      },
+      "activity": {
+        "title": "Limit aktivite günlüğü",
+        "time": "Zaman",
+        "limit": "Limit",
+        "status": "Durum",
+        "description": "Açıklama"
+      }
+    },
+    "errors": {
+      "generic": "Kiracı limiti doldu ({{current}}/{{limit}}). Lütfen yöneticinize başvurun.",
+      "maxProductsPerTenant": "Maksimum ürün sayısı ({{limit}}) doldu. Mevcut: {{current}}. Lütfen kullanılmayan ürünleri silin veya yöneticinize başvurun.",
+      "maxUsersPerTenant": "Maksimum kullanıcı sayısı ({{limit}}) doldu. Mevcut: {{current}}. Lütfen kullanılmayan kullanıcıları pasifleştirin veya yöneticinize başvurun.",
+      "maxActiveRegistersPerUser": "Kasiyer başına maksimum kasa sayısı ({{limit}}) doldu. Mevcut: {{current}}. Lütfen kullanılmayan atamaları kaldırın.",
+      "maxBackupsPerTenant": "Maksimum yedek sayısı ({{limit}}) doldu. Mevcut: {{current}}. Lütfen eski yedekleri silin.",
+      "maxBackupSizeMB": "Maksimum yedek boyutu ({{limit}} MB) doldu. Mevcut: {{current}} MB. Lütfen eski yedekleri silin.",
+      "dailyMaxTransactions": "Günlük işlem limiti ({{limit}}) doldu. Mevcut: {{current}}. Lütfen yarına kadar bekleyin.",
+      "maxTransactionAmount": "Maksimum işlem tutarı ({{limit}} €) aşıldı. Lütfen tutarı düşürün.",
+      "dailyMaxRevenue": "Günlük ciro limiti ({{limit}} €) doldu. Mevcut: {{current}} €. Lütfen yarına kadar bekleyin.",
+      "maxOfflineTransactions": "Çevrimdışı kuyruk dolu ({{current}}/{{limit}}). Lütfen kuyruğu senkronize edin."
+    },
+    "devPanel": {
+      "title": "Limit testi",
+      "alertTitle": "🧪 Development Limit Test Panel",
+      "alertDescription": "Yalnızca Development ortamında (Super Admin). Limitler mevcut kullanıma göre kaydırılır — mali test verisi oluşturulmaz.",
+      "productionBlocked": "Limit test paneli Production'da kapalıdır.",
+      "selectTenant": "Kiracı",
+      "selectTenantPlaceholder": "Kiracı seçin…",
+      "noTenantSelected": "Lütfen önce bir kiracı seçin.",
+      "contextTenantHint": "Geçerli bağlam: {{name}} ({{slug}})",
+      "statusTitle": "Kullanım vs limitler",
+      "quickEditTitle": "Hızlı limit değişikliği",
+      "scenariosTitle": "Tek tık senaryolar",
+      "scenariosHint": "Senaryolar limitleri kaydırır (near ≈ %80, at = mevcut kullanım, tiny = 1). Sonraki gerçek işlem limit hatasını tetikler.",
+      "eventLogTitle": "Limit olayları",
+      "usage": "{{current}} / {{limit}}",
+      "limit": "Limit",
+      "value": "Değer",
+      "apply": "Uygula",
+      "resetAll": "Tümünü sıfırla",
+      "resetConfirm": "Bu kiracının tüm limitleri varsayılana sıfırlansın mı?",
+      "clearCache": "Önbelleği temizle",
+      "cacheCleared": "Limit önbelleği temizlendi.",
+      "saved": "Limit güncellendi.",
+      "error": "Limit güncellenemedi.",
+      "loadFailed": "Test verileri yüklenemedi",
+      "loadFailedHint": "Lütfen daha sonra tekrar deneyin.",
+      "scenarioSuccess": "Senaryo uygulandı.",
+      "refresh": "Yenile",
+      "allKeys": "Tüm limitler",
+      "logEmpty": "Bu oturumda henüz olay yok.",
+      "logClear": "Günlüğü temizle",
+      "logTime": "Zaman",
+      "logAction": "İşlem",
+      "logDetail": "Ayrıntı",
+      "scenario": {
+        "near": "Limite yakın (~%80)",
+        "at": "Limitte (sonraki işlem engellenir)",
+        "tiny": "Minimum (1)",
+        "reset": "Varsayılanlar"
+      },
+      "logActions": {
+        "set": "Ayarla",
+        "reset": "Sıfırla",
+        "scenario": "Senaryo",
+        "cache": "Önbellek"
+      }
+    }
+  },
   "domainManagement": {
     "pageTitle": "Özel domain",
     "openAction": "Domain",
@@ -371,19 +562,80 @@
     "pendingBody": "İncelemede olan bir web sitesi talebi zaten var.",
     "pendingBodyWithNote": "İncelemede olan bir web sitesi talebi zaten var ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS profili",
+    "subtitle": "Bu kiracı için POS özelliklerini ve isteğe bağlı veri alanlarını yapılandırın.",
+    "accessDenied": "POS profillerini yalnızca Super Admin yönetebilir.",
+    "selectorTitle": "Profil seçimi",
+    "selectorHelp": "Profil, varsayılan özellikleri ve POS yerleşimini sağlar.",
+    "profileLabel": "POS profili",
+    "profilePlaceholder": "Profil seçin",
+    "overrideTitle": "Kiracı override ayarları",
+    "posFeaturesTitle": "POS özellikleri",
+    "customFieldsTitle": "İsteğe bağlı veri alanları",
+    "customerFields": "Müşteri alanları",
+    "productFields": "Ürün alanları",
+    "customerFieldPlaceholder": "Müşteri alanı ekle",
+    "productFieldPlaceholder": "Ürün alanı ekle",
+    "addField": "Ekle",
+    "noCustomFields": "Ek alan yok.",
+    "noFeatures": "Bu profil POS özelliği içermiyor.",
+    "save": "Profili kaydet",
+    "saveSuccess": "POS profili kaydedildi.",
+    "saveError": "POS profili kaydedilemedi.",
+    "impactTitle": "Geçmiş veriler durur",
+    "impactIntro": "Profil değişince bu kayıtlar gizlenir. Faturalar, fişler ve kayıtlı satırlar silinmez ve değiştirilmez.",
+    "impactConfirmTitle": "Profil yine de değişsin mi?",
+    "impactConfirmBody": "Geçmiş veriler durur, yalnızca gizlenir.",
+    "impactConfirmOk": "Yine de kaydet",
+    "impactConfirmCancel": "Vazgeç",
+    "impactCustomersWithPetData": "{{count}} hayvan verili müşteri",
+    "impactPaymentsWithPrescriptionReference": "{{count}} reçete referanslı ödeme",
+    "impactPaymentsWithRouteFrom": "{{count}} taksi güzergâhlı ödeme",
+    "impactSoldImeis": "{{count}} satılmış IMEI",
+    "impactAppointments": "{{count}} randevu",
+    "impactRooms": "{{count}} oda",
+    "impactFolios": "{{count}} folyo",
+    "impactTickets": "{{count}} bilet",
+    "loadError": "POS profili yüklenemedi.",
+    "features": {
+      "tables": "Masalar",
+      "kitchenDisplay": "Mutfak ekranı",
+      "patientRecord": "Hasta kaydı",
+      "serviceDuration": "Hizmet süresi",
+      "appointment": "Randevular",
+      "imeiTracking": "IMEI takibi",
+      "routeTracking": "Rota takibi",
+      "roomTracking": "Salon/koltuk takibi",
+      "ticketScan": "Bilet tarama",
+      "prescription": "Reçete zorunlu"
+    },
+    "taxiTariffTitle": "Taksi tarife",
+    "taxiTariffHelp": "POS ücret önerisi için kilometre tarifesi. Mali fiş tutarı sepet hizmet satırında kalır.",
+    "taxiTariffLabel": "Kilometre başına tarife (EUR)"
+  },
   "columns": {
     "name": "Kiracı",
     "slug": "Alt alan",
+    "profile": "Profil",
     "email": "İletişim e-postası",
     "status": "Durum",
     "adminUser": "Yönetici",
     "license": "Lisans",
+    "licenseType": "Paket",
+    "registers": "Kasalar",
+    "users": "Kullanıcılar",
+    "lastActivity": "Son aktivite",
     "created": "Oluşturulma",
     "actions": "İşlemler"
   },
   "status": {
+    "lead": "Aday",
+    "in_onboarding": "Onboarding",
     "active": "Aktif",
     "suspended": "Askıda",
+    "cancelled": "İptal",
+    "archived": "Arşivlendi",
     "deleted": "Arşivlendi"
   },
   "fields": {
@@ -426,6 +678,24 @@
     "title": "Yeni müşteri (kiracı) ekle",
     "subtitle": "Teknik adımlar (kasa, demo veriler, yönetici) otomatik yapılır.",
     "submit": "Müşteri oluştur",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Avusturya için kilitli ve açık. Bu anahtar kapatılamaz."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "Almanya kasa modülü. Anahtar kiracı bazında değiştirilebilir."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "İsviçre QR faturası. Anahtar kiracı bazında değiştirilebilir."
+      },
+      "en16931": {
+        "title": "E-fatura (EN 16931)",
+        "helper": "AB varsayılan profili için UBL taslağı. Ağ gönderimi yok."
+      }
+    },
     "wizard": {
       "next": "İleri",
       "back": "Geri",
@@ -523,7 +793,7 @@
         "placeholder": "ör. Café Örnek GmbH",
         "hint": "Bu ad fiş ve faturalarınızda görünür.",
         "errors": {
-          "required": "Lütfen bir şirket adı girin.",
+          "required": "Lütfen bir şirket adı girin",
           "tooShort": "Şirket adı en az 2 karakter olmalıdır.",
           "tooLong": "Şirket adı en fazla 200 karakter olabilir."
         }
@@ -533,14 +803,16 @@
         "tooltip": "Müşterinin kasa ve yönetim adresi",
         "placeholder": "cafe-ornek",
         "hint": "Şirket adından otomatik önerilir",
+        "subdomainHint": "Subdomain için kullanılır: {{slug}}.{{domain}}",
         "availableShort": "Uygun",
-        "takenShort": "Zaten alınmış",
+        "takenShort": "Uygun değil",
         "checkingShort": "Uygunluk kontrol ediliyor …",
+        "suggestionsLabel": "Öneriler:",
         "success": "Bu adres kullanılabilir.",
         "errors": {
-          "required": "Lütfen bir subdomain girin (ör. cafe-example).",
-          "pattern": "Yalnızca küçük harf, rakam ve tire kullanılabilir",
-          "invalid": "Yalnızca küçük harf, rakam ve tire; tam domain yapıştırmayın.",
+          "required": "Lütfen bir subdomain girin (ör. cafe-ornek).",
+          "pattern": "Slug yalnızca küçük harf, rakam ve tire içerebilir",
+          "invalid": "Slug yalnızca küçük harf, rakam ve tire içerebilir; tam domain yapıştırmayın.",
           "reserved": "Bu subdomain rezerve (ör. admin, www).",
           "taken": "Bu subdomain zaten kullanılıyor.",
           "checking": "Uygunluk kontrol ediliyor …",
@@ -551,10 +823,10 @@
         "label": "E-posta (iletişim)",
         "tooltip": "Bildirimler ve destek talepleri için",
         "placeholder": "iletisim@cafe-example.at",
-        "hint": "Önemli sistem bildirimlerini bu adrese göndeririz.",
+        "hint": "Bu e-posta admin kullanıcısı için kullanılır",
         "errors": {
-          "required": "Lütfen geçerli bir e-posta adresi girin.",
-          "invalid": "Lütfen geçerli bir e-posta adresi girin."
+          "required": "Lütfen geçerli bir e-posta adresi girin",
+          "invalid": "Lütfen geçerli bir e-posta adresi girin"
         }
       },
       "phone": {
@@ -584,12 +856,16 @@
         "copy": "E-postayı kopyala"
       },
       "grantTrialLicense": {
-        "label": "30 günlük demo lisansını etkinleştir (ücretsiz)",
-        "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün"
+        "label": "Demo lisansini (deneme) etkinlestir",
+        "tooltip": "Yapilandirilabilir deneme suresi (varsayilan 14 gun); sonra uzatma veya ucretli gecis mumkun"
       },
-      "autoDemoSetup": {
-        "label": "Demo ürünler ve kasayı otomatik oluştur",
-        "tooltip": "Ana kasa ve üç demo ürün oluşturur (önerilir)"
+      "trialDuration": {
+        "label": "Deneme suresi",
+        "tooltip": "Super Admin deneme uzunlugunu secer",
+        "days_14": "14 gun",
+        "days_30": "30 gun",
+        "days_60": "60 gun",
+        "days_90": "90 gun"
       },
       "importDemoProducts": {
         "label": "Demo ürünleri otomatik içe aktar",
@@ -608,10 +884,14 @@
     "successTitle": "Kiracı oluşturuldu",
     "successHeadline": "“{{name}}” müşterisi başarıyla oluşturuldu!",
     "demoMenuImported": "Demo menü içe aktarıldı: demo kategorilerinde {{count}} ürün oluşturuldu.",
+    "demoReady": "46 ürün, 22 müşteri, KASSE-001 açık. Demo hazır.",
     "missingWarning": "Otomatik kurulum doğrulanamadı. Kiracıyı elle kontrol edin veya destekle iletişime geçin.",
     "passwordWarning": "Bu şifre yalnızca ŞİMDİ, bir kez gösterilir!",
     "credentialsTitle": "Erişim bilgileri (tek seferlik!)",
     "adminEmailLabel": "Admin e-posta",
+    "usernameLabel": "Kullanıcı adı",
+    "loginUrlLabel": "Giriş URL’si",
+    "tenantPortalLabel": "Mandant portalı",
     "password": "Şifre",
     "showPassword": "Şifreyi göster",
     "hidePassword": "Şifreyi gizle",
@@ -623,14 +903,20 @@
       "good": "İyi",
       "strong": "Çok güçlü"
     },
-    "firstStepsTitle": "İlk adımlar",
+    "firstStepsTitle": "Sonraki adımlar",
     "firstStepLogin": "Müşteri girişi:",
     "firstStepChangePassword": "Şifreyi değiştir",
     "firstStepProducts": "Ürünleri uyarla",
     "firstStepPrinter": "Kasayı yazıcıya bağla",
     "firstStepTestSale": "Test satışı yap",
+    "firstStepLoginAdmin": "Admin paneline giriş yapın",
+    "firstStepCompanySettings": "Firma ayarlarını yapılandırın (vergi numarası, adres)",
+    "firstStepCashRegister": "Kasayı kurun ve bağlayın",
+    "firstStepStartPos": "POS’u kullanmaya başlayın ve test satışı yapın",
     "emailSent": "Erişim bilgileri içeren e-posta {{email}} adresine gönderildi.",
     "emailNotSent": "SMTP yapılandırılmadı veya gönderim başarısız. Erişim bilgilerini {{email}} ile manuel paylaşın.",
+    "emailCredentials": "Kimlik bilgilerini e-posta ile gönder",
+    "emailCredentialsDisabled": "Hoş geldiniz e-postası oluşturma sırasında otomatik denenir (SMTP).",
     "forcePasswordChange": "Müşteri ilk girişte şifreyi değiştirmelidir.",
     "createAnother": "Yeni müşteri ekle",
     "switchToTenant": "Müşteriye geç",
@@ -641,11 +927,27 @@
     "copyFailed": "Kopyalama başarısız"
   },
   "filters": {
-    "includeDeleted": "Silinenleri göster"
+    "includeDeleted": "Silinenleri göster",
+    "searchPlaceholder": "Ad veya alt alan ara",
+    "statusPlaceholder": "Durum",
+    "licenseTypePlaceholder": "Lisans tipi",
+    "sortByPlaceholder": "Sıralama",
+    "allStatuses": "Tüm durumlar",
+    "allLicenseTypes": "Tüm lisans tipleri",
+    "sortName": "Ad",
+    "sortCreated": "Oluşturma",
+    "sortLicenseDays": "Kalan lisans günü",
+    "sortRegisters": "Kasa sayısı",
+    "sortUsers": "Kullanıcı sayısı",
+    "sortLastActivity": "Son aktivite"
   },
   "actions": {
     "create": "Kiracı oluştur",
+    "createDemo": "Demo kiracı oluştur",
     "edit": "Düzenle",
+    "exportCsv": "CSV dışa aktar",
+    "exportSuccess": "Dışa aktarma başladı.",
+    "exportFailed": "CSV dışa aktarma başarısız.",
     "decommission": "Kiracıyı decommission et",
     "delete": "Sil",
     "archive": "Arşivle",
@@ -657,7 +959,26 @@
     "manageLicense": "Lisans",
     "suspend": "Askıya al",
     "reactivate": "Yeniden etkinleştir",
-    "view": "Detay"
+    "view": "Detay",
+    "changeStatus": "Durumu değiştir"
+  },
+  "analytics": {
+    "title": "Müşteri özeti",
+    "totalTenants": "Toplam kiracı",
+    "activeTenants": "Aktif",
+    "expiringSoon": "Yakında bitiyor",
+    "mrr": "MRR",
+    "loadFailed": "İstatistikler yüklenemedi.",
+    "churnRate": "Aylık churn",
+    "arpu": "ARPU",
+    "paidTenants": "Ücretli",
+    "trialTenants": "Deneme",
+    "ltv": "LTV",
+    "planDistribution": "Paket dağılımı",
+    "planTrial": "Deneme",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo kiracı",
@@ -666,6 +987,10 @@
       "users": "Kullanıcılar",
       "registers": "Kasalar",
       "license": "Lisans",
+      "verticalProfile": "POS profili",
+      "limits": "Limitler",
+      "kitchen": "Mutfak",
+      "rooms": "Odalar",
       "settings": "Ayarlar"
     },
     "overview": {
@@ -1424,5 +1749,70 @@
   },
   "list": {
     "pageTitle": "Müşteriler"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung baskı eksikleri",
+    "description": "Bu kiracı için hangi açık baskı eksiklerinin kabul edilebilir olduğunu kaydeder. Kayıt PDF'yi değiştirmez ve banka gönderimini açmaz.",
+    "save": "Kaydet",
+    "saved": "Eksik kabulü kaydedildi.",
+    "invalidGaps": "Bir veya daha fazla eksik kimliği bilinen katalogda yok.",
+    "loadFailed": "Baskı eksiklerinin kabul kaydı yüklenemedi.",
+    "outstandingWarning": "Bu baskı özellikleri mevcut QR-Rechnung çıktısının parçası değildir. Operatör, bu kiracı için kabul edilebilir olduklarını onaylamalıdır.",
+    "gap": {
+      "officialSwissCross": "Beyaz kenarlıklı resmi 7 mm İsviçre haçı",
+      "fontEmbeddingLiberationArial": "Gömülü Liberation Sans veya Arial yazı tipi",
+      "pain001": "pain.001 kredi transfer dosyası",
+      "bankScan": "Basılı faturanın banka taraması",
+      "perforationLine": "Makbuz ile ödeme bölümü arasındaki perforasyon işareti"
+    }
+  },
+  "kitchen": {
+    "title": "Mutfak",
+    "subtitle": "Bu kiracı için mutfak siparişleri ve ekran ayarları.",
+    "unavailable": "Geçerli POS profilinde mutfak ekranı yok.",
+    "settingsTitle": "Ayarlar",
+    "autoClear": "Otomatik gizleme (dakika)",
+    "autoClearHelp": "Hazır biletlerin gizlenebileceği süre.",
+    "sound": "Yeni siparişte ses",
+    "soundHelp": "Cihaz izin verirse KDS bir uyarı sesi çalabilir.",
+    "save": "Kaydet",
+    "saved": "Mutfak ayarları kaydedildi.",
+    "saveFailed": "Mutfak ayarları kaydedilemedi.",
+    "readOnly": "Salt okunur — kaydetmek için settings.manage gerekir.",
+    "liveTitle": "Açık mutfak siparişleri",
+    "empty": "Mutfak siparişi yok.",
+    "colTable": "Masa",
+    "colStatus": "Durum",
+    "colNotes": "Notlar",
+    "colItems": "Kalemler",
+    "takeAway": "Paket",
+    "analyticsTitle": "Analiz",
+    "avgPrep": "Ortalama hazırlık süresi",
+    "avgPrepValue": "{{minutes}} dk",
+    "ordersPerHour": "Saatlik sipariş (24s)",
+    "lastHour": "Son saatteki siparişler",
+    "status": {
+      "Pending": "Bekliyor",
+      "InPreparation": "Hazırlanıyor",
+      "Ready": "Hazır",
+      "Served": "Servis edildi",
+      "Cancelled": "İptal"
+    }
+  },
+  "demoRequests": {
+    "title": "Demo talepleri",
+    "empty": "Demo talebi yok.",
+    "loadError": "Demo talepleri yüklenemedi.",
+    "statusNew": "Yeni",
+    "statusContacted": "İletişime geçildi",
+    "statusClosed": "Kapalı",
+    "columns": {
+      "name": "Ad",
+      "email": "E-posta",
+      "company": "Firma",
+      "industry": "Sektör",
+      "status": "Durum",
+      "created": "Alındı"
+    }
   }
 }

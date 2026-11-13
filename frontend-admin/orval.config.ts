@@ -27,5 +27,13 @@ export default defineConfig({
         },
       },
     },
+    // Orval emits indented blank lines. prettier:true does not strip them.
+    // Generated files are Orval-owned; this hook is the cleanup, not a hand edit.
+    hooks: {
+      afterAllFilesWrite: {
+        command: 'node ./scripts/strip-generated-trailing-whitespace.mjs',
+        injectGeneratedDirsAndFiles: false,
+      },
+    },
   },
 });

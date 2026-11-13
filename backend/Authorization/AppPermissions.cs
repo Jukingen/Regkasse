@@ -213,6 +213,12 @@ public static class AppPermissions
     /// </summary>
     public const string DigitalOrdersApprove = "digital.orders.approve";
 
+    /// <summary>
+    /// Super Admin FA console for website/app online-checkout payments (list + synthetic webhook tests).
+    /// Not fiscal POS. SuperAdmin-only via catalog; never granted to Manager.
+    /// </summary>
+    public const string OnlinePaymentsManage = "online-payments.manage";
+
     public const string LocalizationView = "localization.view";
     public const string LocalizationManage = "localization.manage";
     public const string ReceiptTemplateView = "receipttemplate.view";
@@ -245,9 +251,15 @@ public static class AppPermissions
     public const string FinanzOnlineManage = "finanzonline.manage";
     public const string FinanzOnlineSubmit = "finanzonline.submit";
 
-    // --- Kitchen (order display / status updates; GRANT_ONLY until KDS endpoints gate these) ---
+    // --- Kitchen display (KDS). List uses view; status patches use update. ---
     public const string KitchenView = "kitchen.view";
     public const string KitchenUpdate = "kitchen.update";
+
+    /// <summary>
+    /// Read POS offline queue health and capacity (<c>GET /api/pos/offline/health</c>,
+    /// <c>GET /api/pos/offline-limit</c>). Does not grant payment or sync writes.
+    /// </summary>
+    public const string OfflineRead = "offline.read";
 
     // --- TSE (fiscal signing) ---
     public const string TseSign = "tse.sign";
@@ -281,6 +293,46 @@ public static class AppPermissions
 
     /// <summary>Reset the TSE simulation state from the RKSV demo helper. SuperAdmin-only via catalog; never granted to Manager.</summary>
     public const string RksvTseSimulation = "rksv.tse-simulation";
+
+    // --- Fiskaly operations (receipt/batch APIs; tenant-scoped for Manager) ---
+    /// <summary>Authorize Fiskaly receipt/batch operations (own tenant for Manager; any ambient tenant for SuperAdmin).</summary>
+    public const string FiskalyOperationsView = "fiskaly.operations.view";
+
+    /// <summary>Create a synthetic TEST Normal receipt (LIVE blocked). Own tenant for Manager.</summary>
+    public const string FiskalyOperationsNormal = "fiskaly.operations.normal";
+
+    /// <summary>Cancel (storno) a local payment as Fiskaly CANCELLATION. Own tenant for Manager.</summary>
+    public const string FiskalyOperationsCancel = "fiskaly.operations.cancel";
+
+    /// <summary>Create RKSV Nullbeleg via the canonical special-receipt service.</summary>
+    public const string FiskalyOperationsNullbeleg = "fiskaly.operations.nullbeleg";
+
+    /// <summary>Create RKSV Startbeleg via the canonical special-receipt service.</summary>
+    public const string FiskalyOperationsStartbeleg = "fiskaly.operations.startbeleg";
+
+    /// <summary>Create RKSV Monatsbeleg via the canonical special-receipt service.</summary>
+    public const string FiskalyOperationsMonatsbeleg = "fiskaly.operations.monatsbeleg";
+
+    /// <summary>Create RKSV Jahresbeleg via the canonical special-receipt service.</summary>
+    public const string FiskalyOperationsJahresbeleg = "fiskaly.operations.jahresbeleg";
+
+    /// <summary>Create RKSV Schlussbeleg via the canonical special-receipt service.</summary>
+    public const string FiskalyOperationsSchlussbeleg = "fiskaly.operations.schlussbeleg";
+
+    /// <summary>Submit an existing Tagesabschluss (Daily closing) to Fiskaly SIGN AT as a marker receipt.</summary>
+    public const string FiskalyOperationsTagesabschluss = "fiskaly.operations.tagesabschluss";
+
+    /// <summary>Open DEP §7 export from Fiskaly operations (existing DEP API still also requires report.export + audit.view).</summary>
+    public const string FiskalyOperationsDepExport = "fiskaly.operations.dep-export";
+
+    /// <summary>Configure TSE/Fiskaly FON/SCU/cash-register initialization. SuperAdmin-only via catalog.</summary>
+    public const string FiskalyOperationsConfig = "fiskaly.operations.config";
+
+    /// <summary>View Fiskaly operation history (own tenant for Manager; all tenants for SuperAdmin).</summary>
+    public const string FiskalyHistoryView = "fiskaly.history.view";
+
+    /// <summary>Retry a failed Fiskaly operation from history. Own tenant for Manager.</summary>
+    public const string FiskalyHistoryRetry = "fiskaly.history.retry";
 
     // --- Risk scoring / anomaly detection ---
     /// <summary>View risk scores and anomaly dashboard (Super Admin cross-tenant inbox uses SystemCritical).</summary>
@@ -318,4 +370,18 @@ public static class AppPermissions
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";
     public const string ReceiptReprint = "receipt.reprint";
+
+    // --- Vertical profile actions (granted to Manager; Cashier only via override) ---
+    public const string RoomView = "room.view";
+    public const string RoomManage = "room.manage";
+    public const string TicketView = "ticket.view";
+    public const string TicketManage = "ticket.manage";
+    public const string AppointmentView = "appointment.view";
+    public const string AppointmentManage = "appointment.manage";
+    public const string PatientView = "patient.view";
+    public const string PatientManage = "patient.manage";
+    public const string ImeiView = "imei.view";
+    public const string ImeiManage = "imei.manage";
+    public const string TaxiTripView = "taxi.trip.view";
+    public const string TaxiTripManage = "taxi.trip.manage";
 }

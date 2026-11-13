@@ -1,0 +1,11 @@
+.rowSuccess {
+  background: #f6ffed;
+}
+
+.rowPending {
+  background: #fffbe6;
+}
+
+.rowFailed {
+  background: #fff1f0;
+}

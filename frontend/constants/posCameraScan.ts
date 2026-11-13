@@ -9,5 +9,8 @@
 /** Customer QR + Gutschein QR payloads. */
 export const POS_QR_BARCODE_TYPES = ['qr'] as const;
 
-/** Generic POS scanner (product EAN etc. when needed). */
+/** Generic POS scanner (product EAN etc. when needed). Ticket mode keeps this list. */
 export const POS_PRODUCT_BARCODE_TYPES = ['qr', 'ean13', 'ean8', 'code128', 'code39'] as const;
+
+/** Retail product lookup. expo-camera symbologies only; no extra detector package. */
+export const POS_RETAIL_BARCODE_TYPES = ['ean13', 'ean8', 'code128', 'qr'] as const;

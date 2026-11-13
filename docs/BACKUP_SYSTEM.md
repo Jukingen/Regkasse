@@ -43,7 +43,7 @@ Related docs:
 | **Artifact** | `*.tenant.zip` (tenant-filtered JSON tables) |
 | **Retention** | **30** days default (admin API / FA clamp **7–90**) |
 | **Size (estimate)** | Roughly **~100–500 MB** per tenant (volume-dependent; ZIP-compressed) |
-| **Access** | Mandanten-Admin: own tenant list / download / import only. Super Admin can see all. |
+| **Access** | Mandanten-Admin: own tenant list / download / import only. Super Admin can see all. Downloads use JWT + RBAC + tenant isolation (no step-up 2FA). |
 | **Restore** | Tenant ZIP is **not** `pg_restore`-compatible. Mandanten-Admin **cannot** restore via API. |
 
 ### System Backup
@@ -57,7 +57,7 @@ Related docs:
 | **Artifact** | `pg_dump -Fc` (PostgreSQL custom format, zlib **`-Z6`**) **+** `*.system.zip` |
 | **Retention** | **90** days default |
 | **Size (estimate)** | Roughly **~1–5 GB** per instance dump (deployment-dependent) |
-| **Access** | **Super Admin only** for list/download of System rows. Mandanten-Admin never sees System dumps (Identity / all-tenants risk). |
+| **Access** | **Super Admin only** for list/download of System rows. Mandanten-Admin never sees System dumps (Identity / all-tenants risk). Downloads use JWT + RBAC + tenant isolation; sensitive system downloads may require privacy ack / approval — **not** step-up 2FA. |
 | **Recovery capability** | Validation restore / restore drills use System `pg_dump` into isolated `restore_validation_*` DB. Live production recovery is **operator/DBA-led** outside the API. |
 
 ---
@@ -188,12 +188,66 @@ StagingDiskUsageAlertPercent: 80
 # AutomaticCleanupEnabled: false     # retention delete + BACKUP_AUTO_DELETED audit
 ```
 
+Canonical config keys use `Backup:ExecutionAdapterKind` (not a separate `executionMode` JSON property).  
+Tracked templates: `backend/appsettings.Production.example.json`, `backend/appsettings.Development.example.json`.  
+Local Development real dumps: `backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`, `scripts/test-real-backup.ps1`.
+
+### Production Backup Configuration
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `ExecutionAdapterKind` | `PgDump` | Real PostgreSQL logical dumps |
+| `VerifyLogicalDumpFileOnDisk` | `true` | SHA-256 integrity of dump files |
+| `PgDumpExecutablePath` | Full path to `pg_dump` | Avoid PATH surprises on the host |
+| `LogicalDumpConnectionStringName` | `DefaultConnection` (or dedicated backup role) | Least-privilege recommended |
+| `ArtifactStagingRoot` / `ExternalArchiveRoot` | Absolute writable dirs | Staging + secondary archive |
+| `AcknowledgePhase1NoRealBackup` | `false` | Must not acknowledge “no real backup” in production |
+| `AcknowledgeFakeBackupAdapterOutsideDevelopment` | `false` | Fake outside Development requires explicit ops ack or startup fails |
+
+Linux example paths: `/usr/bin/pg_dump`, `/var/backups/regkasse/{staging,archive}`.  
+Windows example paths: `C:\Program Files\PostgreSQL\18\bin\pg_dump.exe`, `C:\Regkasse\Backups\{Staging,Archive}`.
+
+---
+
+## Understanding "no real pg_dump"
+
+If a backup **manifest** contains a note like `"no real pg_dump"` / phase-1 Fake metadata, the run used the **Fake** execution adapter.
+
+### When is this expected?
+
+- **Development** — `appsettings.Development.json` / example defaults to `ExecutionAdapterKind=Fake`
+- **Pipeline / UX tests** — when you intentionally avoid creating PostgreSQL dumps
+
+### When is this a problem?
+
+- **Production** (`ASPNETCORE_ENVIRONMENT=Production`) — must **not** use Fake
+- Any production-like host with `Backup:ExecutionAdapterKind=Fake` without `AcknowledgeFakeBackupAdapterOutsideDevelopment=true` (startup / readiness should fail or degrade)
+
+### How to fix (production)
+
+1. Confirm `ASPNETCORE_ENVIRONMENT=Production`
+2. Confirm `appsettings.Production.json` (or env) has `ExecutionAdapterKind: "PgDump"`
+3. Install PostgreSQL client tools and set `PgDumpExecutablePath` correctly for the OS
+4. Ensure staging/archive directories exist and are writable
+5. Restart the API and trigger a manual System backup; confirm the manifest no longer says Fake / “no real pg_dump”
+
+### Local testing with PgDump
+
+```powershell
+.\scripts\test-real-backup.ps1
+# restart backend, trigger backup from FA / API
+.\scripts\revert-backup-fake.ps1
+```
+
+Also see `backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`.
+
 ---
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
+| Manifest shows `"no real pg_dump"` | Expected in Development Fake mode. In Production: set `ExecutionAdapterKind=PgDump` and restart (see section above). |
 | Backup fails / stays `Failed` | Check staging disk space and `ArtifactStagingRoot`; review worker logs for `pg_dump` / ZIP exporter errors; confirm `ExecutionAdapterKind` and connection string for System dumps. |
 | Backup stays `Queued` | Ensure `Backup:WorkerEnabled` is true and orchestrator is running. |
 | Restore request fails | Use a **System** `pg_dump` artifact (not Tenant ZIP). Confirm Super Admin role, dual approval, and same-tenant gate. Validate artifact on disk / hash. |
@@ -202,6 +256,7 @@ StagingDiskUsageAlertPercent: 80
 | Manager cannot see scheduled dump | Expected — scheduled runs are **System**; Managers only see own Tenant packages. |
 | Download URL null | Artifact missing on disk (`Fake` / moved archive) or permission (`settings.manage` / `backup.manage` rules). |
 | Enqueue rejected (storage budget) | Sum of succeeded dumps exceeded ~10 GB — clean up or raise operational capacity after review. |
+| `pg_dump` not found | Install PostgreSQL tools or fix `Backup:PgDumpExecutablePath` (Windows PG 18 example under `C:\Program Files\PostgreSQL\18\bin\`). |
 
 ---
 
@@ -214,5 +269,7 @@ StagingDiskUsageAlertPercent: 80
 | Access | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | Tenant export | `TenantScopedLogicalBackupExecutionAdapter`, `TenantScopedBackupExporter` |
 | System export | `CompositeSystemBackupExecutionAdapter`, `SystemScopedBackupExporter` |
+| Config gate | `BackupOptionsValidator`, `BackupConfigurationEvaluation` |
 | API | `AdminBackupController`, `AdminRestoreController` |
 | FA hub | `frontend-admin/src/app/(protected)/backup/page.tsx` |
+| Local PgDump scripts | `scripts/test-real-backup.ps1`, `scripts/revert-backup-fake.ps1` |

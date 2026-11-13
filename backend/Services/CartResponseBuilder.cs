@@ -1,5 +1,6 @@
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Lodging;
 using PosCartItemResponse = KasseAPI_Final.Controllers.CartItemResponse;
 using PosCartResponse = KasseAPI_Final.Controllers.CartResponse;
 using PosCartTaxSummaryLine = KasseAPI_Final.Controllers.CartTaxSummaryLine;
@@ -39,7 +40,9 @@ public static class CartResponseBuilder
             {
                 Id = ci.Id,
                 ProductId = ci.ProductId,
-                ProductName = prod?.Name ?? "Unknown Product",
+                ProductName = LodgingStayLine.IsStayLabel(ci.Notes)
+                    ? ci.Notes!
+                    : prod?.Name ?? "Unknown Product",
                 ProductImage = prod?.ImageUrl,
                 Quantity = ci.Quantity,
                 UnitPrice = ci.UnitPrice,

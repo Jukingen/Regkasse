@@ -12,6 +12,11 @@
     "description": "Einige Aktionen sind vorübergehend deaktiviert. Sie können Daten einsehen, aber nicht ändern.",
     "disabledTooltip": "Während der Wartung deaktiviert"
   },
+  "superAdmin": {
+    "bannerTitle": "Wartungsmodus ist aktiv",
+    "bannerDescription": "System wird gewartet. Sie können als Super-Administrator weiterarbeiten."
+  },
+
   "manage": {
     "pageTitle": "Systemwartung",
     "pageSubtitle": "Plattformweite Wartungsfenster starten und beenden. Während der Wartung läuft das System im eingeschränkten (read-mostly) Modus: POS-Zahlungen und Schreib-APIs sind für Nicht-SuperAdmins gesperrt.",
@@ -34,6 +39,12 @@
     "formMessage": "Nachricht (optional)",
     "formEnd": "Geplantes Ende",
     "emptyNotifications": "Keine Benachrichtigungen",
+    "cacheCardTitle": "Anwendungs-Cache",
+    "cacheCardHint": "Lizenz-/Produkt-Caches manuell leeren (Troubleshooting). Startet die Anwendung nicht neu.",
+    "clearCacheAction": "Cache leeren",
+    "clearCacheConfirmTitle": "Gesamten Anwendungs-Cache leeren?",
+    "clearCacheConfirmBody": "Alle getrackten Cache-Einträge (Lizenzstatus, Produktlisten u. a.) werden entfernt. Nächste Anfragen laden Daten neu aus der Datenbank.",
+    "clearCacheSuccess": "Cache wurde geleert",
     "columns": {
       "title": "Titel",
       "status": "Status",

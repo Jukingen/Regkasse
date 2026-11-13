@@ -1,0 +1,298 @@
+using System.Globalization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries.Vat;
+using KasseAPI_Final.Services.FeatureFlags;
+using KasseAPI_Final.Tse;
+
+namespace KasseAPI_Final.Services.Countries.Strategies.Germany;
+
+/// <summary>
+/// German VAT shape: rates from <see cref="ICountryTaxTypeRegistry"/> (19/7), line math from
+/// <see cref="CartMoneyHelper.ComputeLine(decimal, int, decimal)"/>, summary from
+/// <see cref="CountryRateTaxSummary"/> (not AT <c>TaxTypes</c> buckets).
+/// </summary>
+public sealed class GermanyTaxStrategy : ITaxStrategy
+{
+    private readonly ICountryTaxTypeRegistry _taxTypes;
+    private readonly IVatIdValidator _vatIdValidator;
+    private readonly IFeatureFlagService? _featureFlags;
+
+    public GermanyTaxStrategy()
+        : this(new CountryTaxTypeRegistry(), new VatIdValidator(new DisabledViesClient()), featureFlags: null)
+    {
+    }
+
+    public GermanyTaxStrategy(
+        ICountryTaxTypeRegistry taxTypes,
+        IVatIdValidator vatIdValidator,
+        IFeatureFlagService? featureFlags = null)
+    {
+        _taxTypes = taxTypes ?? throw new ArgumentNullException(nameof(taxTypes));
+        _vatIdValidator = vatIdValidator ?? throw new ArgumentNullException(nameof(vatIdValidator));
+        _featureFlags = featureFlags;
+    }
+
+    public string CountryCode => CountryProfileCodes.Germany;
+
+    public TaxCalculationResult CalculateTax(
+        IReadOnlyList<TaxLineItemInput> lineItems,
+        TaxCalculationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(lineItems);
+        ArgumentNullException.ThrowIfNull(context);
+        EnsureEnabled();
+
+        var catalog = _taxTypes.Get(CountryProfileCodes.Germany);
+        var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
+        var taxDetails = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in lineItems)
+        {
+            if (item.VatRatePercent is not decimal percent)
+            {
+                throw new ArgumentException(
+                    "DE line items must use VAT percent from CountryTaxType (19 or 7), not RKSV tax types.",
+                    nameof(lineItems));
+            }
+
+            var taxType = catalog.FirstOrDefault(t => t.Rate == percent)
+                ?? throw new ArgumentException(
+                    $"VAT rate {percent} is not a seeded DE CountryTaxType.",
+                    nameof(lineItems));
+
+            var line = CartMoneyHelper.ComputeLine(item.UnitPriceGross, item.Quantity, percent);
+            lines.Add(line);
+            taxDetails[taxType.Code] = taxDetails.TryGetValue(taxType.Code, out var current)
+                ? current + line.LineTax
+                : line.LineTax;
+        }
+
+        return new TaxCalculationResult
+        {
+            Lines = lines,
+            TaxSummary = CountryRateTaxSummary.FromLineRates(lines),
+            Totals = CountryRateTaxSummary.Totals(lines),
+            TaxDetails = taxDetails,
+        };
+    }
+
+    public VatIdValidationResult ValidateVatId(string? vatId, CountryProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        EnsureEnabled();
+        return _vatIdValidator.Validate(vatId, profile);
+    }
+
+    public InvoiceFieldRequirements DetermineInvoiceFields(CompanySettings company, Customer? customer)
+    {
+        ArgumentNullException.ThrowIfNull(company);
+        EnsureEnabled();
+
+        return new InvoiceFieldRequirements
+        {
+            SellerVatId = company.VatId,
+            SellerCountry = company.Country,
+            BillingCountry = company.BillingCountry,
+            VatRegime = company.VatRegime,
+            TaxExempt = company.TaxExempt,
+            CustomerVatId = string.IsNullOrWhiteSpace(customer?.TaxNumber) ? null : customer.TaxNumber.Trim(),
+            RequiresCustomerVatId = false,
+        };
+    }
+
+    /// <summary>
+    /// Projects persisted <c>tax_details</c> using DE rates from <see cref="ICountryTaxTypeRegistry"/>.
+    /// The RKSV bucket shape is the interface contract; percents are not written in this method.
+    /// </summary>
+    public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount)
+    {
+        EnsureEnabled();
+        var catalog = _taxTypes.Get(CountryProfileCodes.Germany);
+        var projection = DeTaxSetMapper.MapFromTaxDetailsJson(taxDetailsJson, totalAmount, catalog);
+        decimal normal = 0m;
+        decimal reduced = 0m;
+        decimal zero = 0m;
+        foreach (var row in projection.AmountsPerVatRate)
+        {
+            var amount = decimal.Parse(row.Amount, CultureInfo.InvariantCulture);
+            if (row.VatRate == DeVatRateNames.Normal)
+                normal = amount;
+            else if (row.VatRate == DeVatRateNames.Reduced1)
+                reduced = amount;
+            else if (row.VatRate == DeVatRateNames.Null)
+                zero = amount;
+        }
+
+        return new RksvTaxSetAmounts
+        {
+            Normal = normal,
+            Ermaessigt1 = reduced,
+            Null = zero,
+        };
+    }
+
+    /// <summary>
+    /// Maps DE CalculateTax tax_details to SIGN DE <c>amounts_per_vat_rate</c> (Paket 72).
+    /// Not part of <see cref="ITaxStrategy"/> — DE schema must not contaminate AT.
+    /// </summary>
+    public DeFiscalTaxProjection ProjectDeFiscalTaxSets(string? taxDetailsJson, decimal totalGross)
+    {
+        EnsureEnabled();
+        return DeTaxSetMapper.MapFromTaxDetailsJson(taxDetailsJson, totalGross);
+    }
+
+    private void EnsureEnabled()
+    {
+        if (_featureFlags is not null
+            && !_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe))
+        {
+            throw new FeatureDisabledException(FeatureFlagNames.FiscalKassenSicherheitDe);
+        }
+    }
+}
+
+/// <summary>
+/// German invoicing shape (UStG §14 disclosures + document). Receipt numbers come from
+/// <see cref="DeReceiptSequenceService"/> (<c>de_receipt_sequences</c>), not the Austrian sequence table.
+/// </summary>
+public sealed class GermanyInvoiceStrategy : IInvoiceStrategy
+{
+    private static readonly IReadOnlyList<DisclosureRequirement> UstgDisclosures =
+    [
+        new("seller.taxNumber", "UStG §14", nameof(CompanySettings.CompanyTaxNumber)),
+        new("seller.vatId", "UStG §14", nameof(CompanySettings.VatId)),
+        new("invoice.number", "UStG §14", nameof(PaymentDetails.ReceiptNumber)),
+        new("invoice.date", "UStG §14", nameof(PaymentDetails.CreatedAt)),
+        new("invoice.performanceDescription", "UStG §14", "Leistungsbeschreibung"),
+        new("invoice.net", "UStG §14", nameof(PaymentDetails.TotalAmount)),
+        new("invoice.tax", "UStG §14", nameof(PaymentDetails.TaxAmount)),
+        new("invoice.gross", "UStG §14", nameof(PaymentDetails.TotalAmount)),
+    ];
+
+    private readonly IFeatureFlagService? _featureFlags;
+    private readonly IDeReceiptSequenceService? _sequences;
+    private readonly AppDbContext? _db;
+
+    public GermanyInvoiceStrategy(
+        IFeatureFlagService? featureFlags = null,
+        IDeReceiptSequenceService? sequences = null,
+        AppDbContext? db = null)
+    {
+        _featureFlags = featureFlags;
+        _sequences = sequences;
+        _db = db;
+    }
+
+    public string CountryCode => CountryProfileCodes.Germany;
+
+    public async Task<string> AllocateReceiptNumberAsync(
+        ReceiptNumberAllocationContext context,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureEnabled();
+        if (_sequences is null || _db is null)
+            throw new InvalidOperationException("DE receipt sequence service is not configured.");
+
+        var register = await _db.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == context.CashRegisterId && r.IsActive)
+            .Select(r => new { r.TenantId, r.RegisterNumber })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (register is null || string.IsNullOrWhiteSpace(register.RegisterNumber))
+            throw new KeyNotFoundException($"Active cash register '{context.CashRegisterId}' was not found.");
+
+        var slug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == register.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new InvalidOperationException($"Tenant slug missing for '{register.TenantId}'.");
+
+        var attempts = Math.Clamp(context.MaxAttempts, 1, 10);
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            var sequence = await _sequences.AllocateNextAsync(register.TenantId, context.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            var number = DeReceiptSequenceService.FormatDeBelegNr(slug, register.RegisterNumber, sequence);
+            var taken = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == context.CashRegisterId && p.IsActive && p.ReceiptNumber == number,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!taken)
+                return number;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not reserve a DE receipt number for cash register '{context.CashRegisterId}' after {attempts} attempt(s).");
+    }
+
+    public Task<InvoiceDocument> BuildInvoiceDocumentAsync(
+        PaymentDetails payment,
+        CompanySettings company,
+        Customer? customer,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(payment);
+        ArgumentNullException.ThrowIfNull(company);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureEnabled();
+
+        var net = payment.TotalAmount - payment.TaxAmount;
+        var structured = new InvoiceDocumentDto
+        {
+            CountryCode = CountryCode,
+            SellerTaxNumber = company.CompanyTaxNumber,
+            SellerVatId = company.VatId,
+            InvoiceNumber = payment.ReceiptNumber,
+            InvoiceDate = payment.CreatedAt,
+            PerformanceDescription = payment.Notes,
+            NetAmount = net,
+            TaxAmount = payment.TaxAmount,
+            GrossAmount = payment.TotalAmount,
+            Currency = "EUR",
+        };
+
+        var receipt = new ReceiptDTO
+        {
+            ReceiptNumber = payment.ReceiptNumber,
+            Date = payment.CreatedAt,
+            SubTotal = net,
+            TaxAmount = payment.TaxAmount,
+            GrandTotal = payment.TotalAmount,
+            Company = new ReceiptCompanyDTO
+            {
+                Name = company.CompanyName,
+                Address = company.CompanyAddress,
+                TaxNumber = company.CompanyTaxNumber,
+            },
+        };
+
+        return Task.FromResult(new InvoiceDocument(CountryCode, receipt, structured));
+    }
+
+    public IReadOnlyList<DisclosureRequirement> GetMandatoryDisclosures(
+        CompanySettings company,
+        Customer? customer)
+    {
+        ArgumentNullException.ThrowIfNull(company);
+        EnsureEnabled();
+        return UstgDisclosures;
+    }
+
+    private void EnsureEnabled()
+    {
+        if (_featureFlags is not null
+            && !_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe))
+        {
+            throw new FeatureDisabledException(FeatureFlagNames.FiscalKassenSicherheitDe);
+        }
+    }
+}

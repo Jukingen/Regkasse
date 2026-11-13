@@ -1,4 +1,5 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Time;
@@ -8,7 +9,10 @@ namespace KasseAPI_Final.Services;
 
 internal static class AuditLogQueryExtensions
 {
-    public static IQueryable<AuditLog> ApplyFilters(this IQueryable<AuditLog> query, AuditLogQueryFilters filters)
+    public static IQueryable<AuditLog> ApplyFilters(
+        this IQueryable<AuditLog> query,
+        AuditLogQueryFilters filters,
+        AppDbContext? db = null)
     {
         var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(filters.StartDate, filters.EndDate);
         if (lo.HasValue)
@@ -77,32 +81,69 @@ internal static class AuditLogQueryExtensions
         if (filters.ExcludePlatformOperatorActors)
         {
             query = query.Where(a =>
-                a.UserRole != Roles.SuperAdmin
+                a.UserRole.ToLower() != Roles.SuperAdmin.ToLower()
+                && a.UserRole.ToLower() != RoleHierarchy.PlatformAdmin.ToLower()
                 && a.Action != AuditLogActions.TENANT_IMPERSONATION_STARTED
                 && a.Action != AuditLogActions.SUPER_ADMIN_VIEWED_PASSWORD
                 && a.Action != AuditLogActions.TENANT_SOFT_DELETED
                 && a.Action != AuditLogActions.TENANT_HARD_DELETED
                 && a.Action != AuditLogActions.TENANT_RESTORED);
+            if (db != null)
+                query = ApplyTenantStaffActorScope(query, db);
         }
 
         if (!string.IsNullOrWhiteSpace(filters.Search))
         {
             var term = $"%{filters.Search.Trim()}%";
-            query = query.Where(a =>
-                EF.Functions.ILike(a.Action, term)
-                || (a.Description != null && EF.Functions.ILike(a.Description, term))
-                || EF.Functions.ILike(a.EntityType, term)
-                || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
-                || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
-                || EF.Functions.ILike(a.UserId, term)
-                || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
-                || (a.User != null && a.User.UserName != null && EF.Functions.ILike(a.User.UserName, term))
-                || (a.User != null && a.User.Email != null && EF.Functions.ILike(a.User.Email, term))
-                || (a.User != null && a.User.FirstName != null && EF.Functions.ILike(a.User.FirstName, term))
-                || (a.User != null && a.User.LastName != null && EF.Functions.ILike(a.User.LastName, term)));
+            // AuditLog.User is Ignore()'d. Email lives on AspNetUsers, so match it with a subquery.
+            if (db == null)
+            {
+                query = query.Where(a =>
+                    EF.Functions.ILike(a.Action, term)
+                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
+                    || EF.Functions.ILike(a.EntityType, term)
+                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
+                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
+                    || EF.Functions.ILike(a.UserId, term)
+                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term)));
+            }
+            else
+            {
+                query = query.Where(a =>
+                    EF.Functions.ILike(a.Action, term)
+                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
+                    || EF.Functions.ILike(a.EntityType, term)
+                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
+                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
+                    || EF.Functions.ILike(a.UserId, term)
+                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
+                    || db.Users.Any(u =>
+                        u.Id == a.UserId
+                        && u.Email != null
+                        && EF.Functions.ILike(u.Email, term)));
+            }
         }
 
         return query;
+    }
+
+    /// <summary>
+    /// Tenant-admin view: drop platform operators and users who have an account but no active membership on the row's tenant.
+    /// Rows whose user id is not in AspNetUsers stay (system / deleted actors) when the stored role is not a platform role.
+    /// </summary>
+    private static IQueryable<AuditLog> ApplyTenantStaffActorScope(IQueryable<AuditLog> query, AppDbContext db)
+    {
+        var superAdmin = Roles.SuperAdmin.ToLowerInvariant();
+        var platformAdmin = RoleHierarchy.PlatformAdmin.ToLowerInvariant();
+        return query.Where(a =>
+            !db.Users.Any(u =>
+                u.Id == a.UserId
+                && u.Role != null
+                && (u.Role.ToLower() == superAdmin || u.Role.ToLower() == platformAdmin))
+            && (
+                !db.Users.Any(u => u.Id == a.UserId)
+                || db.UserTenantMemberships.Any(m =>
+                    m.UserId == a.UserId && m.TenantId == a.TenantId && m.IsActive)));
     }
 
     public static AuditLogQueryFilters ToFilters(

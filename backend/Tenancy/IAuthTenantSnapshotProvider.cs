@@ -4,8 +4,8 @@ namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
 /// Resolves the effective tenant (and optional branch placeholders) for auth JSON and JWT emission.
-/// Wave 0–1: uses <c>tenant_id</c> claim when present and valid; otherwise the seeded legacy default tenant.
-/// Password login tenant selection is <see cref="ILoginTenantResolver"/> (membership first).
+/// Wave 0–1: uses <c>tenant_id</c> claim when present and valid; otherwise <see cref="SystemTenantIds.Platform"/>.
+/// Password login tenant selection is <see cref="ILoginTenantResolver"/> (membership first; DX fallback <c>dev</c>).
 /// Branch fields stay null until branch rollout.
 /// </summary>
 public interface IAuthTenantSnapshotProvider
@@ -14,7 +14,7 @@ public interface IAuthTenantSnapshotProvider
     Task<AuthTenantSnapshot> GetSnapshotAsync(ClaimsPrincipal? user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Source-of-truth ordering for access-token issuance: valid persisted session tenant → valid JWT tenant claim → legacy default.
+    /// Source-of-truth ordering for access-token issuance: valid persisted session tenant → valid JWT tenant claim → platform sentinel.
     /// </summary>
     Task<AuthTenantSnapshot> ResolveForTokenIssuanceAsync(
         string? persistedSessionTenantId,

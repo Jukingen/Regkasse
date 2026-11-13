@@ -54,9 +54,42 @@ namespace KasseAPI_Final.Models
         [Column("late_creation_reason")]
         public string? LateCreationReason { get; set; }
 
+        /// <summary><see cref="DailyClosingTriggers"/> — Manual (cashier/admin) or Automatic (fallback worker).</summary>
+        [Required]
+        [MaxLength(20)]
+        [Column("trigger")]
+        public string Trigger { get; set; } = DailyClosingTriggers.Manual;
+
+        /// <summary>Optional cash-count note (e.g. "Kein Kassensturz" when auto-closed without a count).</summary>
+        [MaxLength(200)]
+        [Column("cash_count_note")]
+        public string? CashCountNote { get; set; }
+
+        [Column("cash_count", TypeName = "decimal(18,2)")]
+        public decimal? CashCount { get; set; }
+
+        [Column("cash_difference", TypeName = "decimal(18,2)")]
+        public decimal? CashDifference { get; set; }
+
+        [Column("open_orders_count")]
+        public int OpenOrdersCount { get; set; }
+
+        [Column("open_orders_forced")]
+        public bool OpenOrdersForced { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string ClosingType { get; set; } = string.Empty; // Daily, Monthly, Yearly
+
+        /// <summary>
+        /// Empty vs normal daily closing. Not the period type (<see cref="ClosingType"/>).
+        /// Stored lowercase: <c>normal</c> or <c>empty</c>. Backdated empty days still use
+        /// <see cref="IsBackdated"/> separately.
+        /// </summary>
+        [Required]
+        [MaxLength(20)]
+        [Column("day_kind")]
+        public string DayKind { get; set; } = DailyClosingDayKinds.Normal;
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -131,6 +164,23 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? FinanzOnlineReferenceId { get; set; }
 
+        /// <summary>Fiskaly SIGN AT receipt UUID for this closing (PUT /receipt). Does not replace <see cref="TseSignature"/>.</summary>
+        [MaxLength(80)]
+        [Column("fiskaly_receipt_id")]
+        public string? FiskalyReceiptId { get; set; }
+
+        /// <summary><see cref="DailyClosingFiskalyStatuses"/> — Pending, Submitted, Failed, or Skipped.</summary>
+        [MaxLength(20)]
+        [Column("fiskaly_status")]
+        public string? FiskalyStatus { get; set; }
+
+        [MaxLength(500)]
+        [Column("fiskaly_error")]
+        public string? FiskalyError { get; set; }
+
+        [Column("fiskaly_submitted_at_utc")]
+        public DateTime? FiskalySubmittedAtUtc { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -141,5 +191,17 @@ namespace KasseAPI_Final.Models
 
         [ForeignKey("CashRegisterId")]
         public virtual CashRegister? CashRegister { get; set; }
+    }
+
+    /// <summary>Fiskaly SIGN AT submission state for a persisted <see cref="DailyClosing"/>.</summary>
+    public static class DailyClosingFiskalyStatuses
+    {
+        public const string Pending = "Pending";
+        public const string Submitted = "Submitted";
+        public const string Failed = "Failed";
+        public const string Skipped = "Skipped";
+
+        public static bool IsSubmitted(string? status) =>
+            string.Equals(status, Submitted, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -13,6 +13,7 @@ import {
   SoftState,
   SoftTypography,
 } from '../constants/SoftTheme';
+import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 
 interface TableSelectorProps {
   selectedTable: number;
@@ -21,6 +22,8 @@ interface TableSelectorProps {
   recoveryData: any;
   tableSelectionLoading: number | null;
   onClearAllTables: () => void;
+  /** scroll: phone strip. wrap: tiles flow in the desktop order column. */
+  layout?: 'scroll' | 'wrap';
 }
 
 export const TableSelector: React.FC<TableSelectorProps> = ({
@@ -30,10 +33,16 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   recoveryData,
   tableSelectionLoading,
   onClearAllTables,
+  layout = 'scroll',
 }) => {
   const { t } = useTranslation(['checkout']);
+  const { posFeatures, profileId, posLayout } = useVerticalFeatures();
   const insets = useSafeAreaInsets();
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const tablesEnabled =
+    posFeatures.tables === true ||
+    profileId === 'gastronomy-tables' ||
+    posLayout === 'tables';
 
   const handleTablePress = (tableNumber: number) => {
     if (selectedTable === tableNumber) return;
@@ -52,9 +61,50 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
     return recoveryOrder?.itemCount ?? 0;
   };
 
+  if (!tablesEnabled) return null;
+
+  const tableTiles = (
+    <>
+      {tableNumbers.map((tableNumber) => {
+        const itemCount = getTableItemCount(tableNumber);
+        const isSelected = selectedTable === tableNumber;
+        const isLoading = tableSelectionLoading === tableNumber;
+
+        return (
+          <TableSelectorTile
+            key={tableNumber}
+            tableNumber={tableNumber}
+            itemCount={itemCount}
+            isSelected={isSelected}
+            isLoading={isLoading}
+            compact={layout === 'wrap'}
+            onPress={() => {
+              handleTablePress(tableNumber);
+            }}
+          />
+        );
+      })}
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.clearAllButton,
+          layout === 'wrap' && styles.clearAllButtonWrap,
+          webTablePressableOutlineOff,
+          pressed && styles.clearAllButtonPressed,
+        ]}
+        onPress={onClearAllTables}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        accessibilityLabel={t('checkout:posFlow.tableSelector.a11yClearAll')}
+        accessibilityRole="button">
+        <Text style={styles.clearAllEmoji}>🧹</Text>
+        <Text style={styles.clearAllText}>{t('checkout:posFlow.tableSelector.clearAll')}</Text>
+      </Pressable>
+    </>
+  );
+
   return (
     <View
-      style={styles.tableSection}
+      style={[styles.tableSection, layout === 'wrap' && styles.tableSectionCompact]}
       pointerEvents="box-none"
       accessibilityRole="none"
       collapsable={false}>
@@ -64,47 +114,20 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
           {t('checkout:posFlow.section.table')}
         </Text>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tableScroll}
-        contentContainerStyle={[
-          styles.tableScrollContent,
-          { paddingRight: Math.max(SoftSpacing.lg, insets.right) },
-        ]}>
-        {tableNumbers.map((tableNumber) => {
-          const itemCount = getTableItemCount(tableNumber);
-          const isSelected = selectedTable === tableNumber;
-          const isLoading = tableSelectionLoading === tableNumber;
-
-          return (
-            <TableSelectorTile
-              key={tableNumber}
-              tableNumber={tableNumber}
-              itemCount={itemCount}
-              isSelected={isSelected}
-              isLoading={isLoading}
-              onPress={() => {
-                handleTablePress(tableNumber);
-              }}
-            />
-          );
-        })}
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.clearAllButton,
-            webTablePressableOutlineOff,
-            pressed && styles.clearAllButtonPressed,
-          ]}
-          onPress={onClearAllTables}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityLabel={t('checkout:posFlow.tableSelector.a11yClearAll')}
-          accessibilityRole="button">
-          <Text style={styles.clearAllEmoji}>🧹</Text>
-          <Text style={styles.clearAllText}>{t('checkout:posFlow.tableSelector.clearAll')}</Text>
-        </Pressable>
-      </ScrollView>
+      {layout === 'wrap' ? (
+        <View style={styles.tableWrap}>{tableTiles}</View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tableScroll}
+          contentContainerStyle={[
+            styles.tableScrollContent,
+            { paddingRight: Math.max(SoftSpacing.lg, insets.right) },
+          ]}>
+          {tableTiles}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -119,6 +142,10 @@ const styles = StyleSheet.create({
     borderBottomColor: SoftColors.borderLight,
     zIndex: 1,
     elevation: 1,
+  },
+  tableSectionCompact: {
+    paddingVertical: SoftSpacing.sm,
+    marginBottom: 0,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -138,11 +165,18 @@ const styles = StyleSheet.create({
   },
   tableScroll: {
     flexDirection: 'row',
+    minHeight: 100,
   },
   tableScrollContent: {
     alignItems: 'flex-end',
     paddingBottom: 2,
     paddingRight: SoftSpacing.lg,
+  },
+  tableWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    gap: SoftSpacing.sm,
   },
   clearAllButton: {
     paddingHorizontal: SoftSpacing.md,
@@ -157,6 +191,12 @@ const styles = StyleSheet.create({
     minHeight: 92,
     minWidth: 72,
     ...SoftShadows.sm,
+  },
+  clearAllButtonWrap: {
+    marginLeft: 0,
+    minHeight: 56,
+    minWidth: 56,
+    paddingHorizontal: SoftSpacing.xs,
   },
   clearAllButtonPressed: SoftState.pressed,
   clearAllEmoji: {

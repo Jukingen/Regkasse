@@ -1,175 +1,175 @@
-# RKSV Uygulama Hazırlığı — Go / No-Go (Simulation-first)
+# RKSV Implementation Readiness — Go / No-Go (Simulation-first)
 
-**Tarih:** 2026-07-29  
-**Faz:** **Simulation-first**  
-**Ortam varsayımı:** Soft TSE / `TseMode=Demo` · `RKSV:Mode=Demo` · `FinanzOnline:UseSimulation=true` (bilinçli)
+**Date:** 2026-07-29  
+**Phase:** **Simulation-first**  
+**Environment assumption:** Soft TSE / `TseMode=Demo` · `RKSV:Mode=Demo` · `FinanzOnline:UseSimulation=true` (intentional)
 
 **Plan:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md)  
 **Cutover:** [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md)  
-**Üretim sign-off:** [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md)  
+**Production sign-off:** [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md)  
 **Assessment:** [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md)
 
-> Bu belge karar desteğidir; BMF sertifikası veya yasal onay yerine geçmez.  
-> Simülasyonda Soft TSE **kabul edilir**; Production Soft TSE **cutover’da yasaklanır**.
+> This document is decision support. It is not a BMF certificate or legal approval.  
+> Soft TSE is **accepted** in simulation; Production Soft TSE is **banned at cutover**.
 
 ---
 
 ## Executive decision
 
-### **Karar: GO — Simulation phase** · **NO-GO — Production / BMF live**
+### **Decision: GO — Simulation phase** · **NO-GO — Production / BMF live**
 
-| Paket (yeni ID) | Go/No-Go | Gerekçe |
+| Package (new ID) | Go/No-Go | Rationale |
 |-----------------|----------|---------|
-| **P0-S1** Simulation indicator | **GO — hemen** | Operatör false confidence riskini keser; Soft TSE ile uyumlu |
-| **P0-S2** Production Cutover Checklist | **GO — hemen** | Soft TSE kapatma + Real SOAP + Ausfall açma tek kapıda toplanır |
-| **P1-3** Mayıs 2027 | **GO — paralel** | Simülasyondan bağımsız; zaman baskılı |
-| **P1-A** Ausfall episode + FA (no send) | **GO — simülasyonda** | Mekanik öğrenilir; canlı FON cutover’da |
-| **P1-F** Mock/simüle FON Sonderbeleg | **GO — simülasyonda** | Gerçek SOAP cutover’a |
-| **P2-1** DEP Prüftool CI | **GO — simülasyonda** | DEP Soft TSE ile test edilebilir |
-| **P2-L** TSE Production Lock | **GO — tasarım; NO-GO zorla prod şimdi** | Soft TSE bu fazda kasıtlı; kilitleme cutover adımı |
-| **P2-S / Cutover Real SOAP** | **GO — tasarım; NO-GO canlı gönderim şimdi** | `UseSimulation=true` iken gerçek BMF zorunlu değil |
-| **Canlı Ausfall SOAP** | **NO-GO ta ki cutover** | Episode OK; send = cutover |
+| **P0-S1** Simulation indicator | **GO — now** | Cuts operator false-confidence risk; compatible with Soft TSE |
+| **P0-S2** Production Cutover Checklist | **GO — now** | Collects Soft TSE shutdown + Real SOAP + Ausfall enablement behind one gate |
+| **P1-3** May 2027 | **GO — parallel** | Independent of simulation; time-critical |
+| **P1-A** Ausfall episode + FA (no send) | **GO — in simulation** | Learn the mechanics; live FON at cutover |
+| **P1-F** Mock/simulated FON Sonderbeleg | **GO — in simulation** | Real SOAP at cutover |
+| **P2-1** DEP Prüftool CI | **GO — in simulation** | DEP can be tested with Soft TSE |
+| **P2-L** TSE Production Lock | **GO — design; NO-GO force prod now** | Soft TSE is intentional in this phase; lock is a cutover step |
+| **P2-S / Cutover Real SOAP** | **GO — design; NO-GO live send now** | Real BMF is not required while `UseSimulation=true` |
+| **Live Ausfall SOAP** | **NO-GO until cutover** | Episode OK; send = cutover |
 
-**Tek seferde “Production fiscal ready” ilanı:** **No-Go** — ortam bilinçli simülasyon.
+**One-shot “Production fiscal ready” announcement:** **No-Go** — the environment is intentionally simulation.
 
-**Minimum bu hafta:** P0-S1 kickoff + P0-S2 checklist sahipliği (Ops) + P1-3 devam.
+**Minimum this week:** P0-S1 kickoff + P0-S2 checklist ownership (Ops) + continue P1-3.
 
 ---
 
-## 1. Teknik fizibilite
+## 1. Technical feasibility
 
-### 1.1 Simulation-first prensipleri
+### 1.1 Simulation-first principles
 
-1. **Görünürlük > erken prod kilidi** — Soft TSE açıkken net “Simülasyon” bandı zorunlu.  
-2. **Mekanik simülasyonda, wire cutover’da** — outbox/episode/UI evet; gerçek BMF ağ çağrısı hayır (gate).  
-3. **DEP kalitesi simülasyonda** — Prüftool CI Soft TSE fixture ile anlamlı.  
-4. **Tek cutover kapısı** — Soft TSE kapat + Real SCU + `UseSimulation=false` + Real SOAP + Ausfall send.
+1. **Visibility over early prod lock** — A clear “Simulation” banner is mandatory while Soft TSE is on.  
+2. **Mechanics in simulation, wire at cutover** — outbox/episode/UI yes; real BMF network call no (gate).  
+3. **DEP quality in simulation** — Prüftool CI is meaningful with Soft TSE fixtures.  
+4. **Single cutover gate** — Turn Soft TSE off + Real SCU + `UseSimulation=false` + Real SOAP + Ausfall send.
 
-### 1.2 Paket fizibilitesi
+### 1.2 Package feasibility
 
-| Paket | Fizibilite | Zorluk | Not |
+| Package | Feasibility | Difficulty | Note |
 |-------|------------|--------|-----|
-| P0-S1 Indicator | Yüksek | Düşük–Orta | `RKSV:Mode` / `TseMode` / `UseSimulation` birleşik bayrak; FA + POS i18n |
-| P0-S2 Cutover doc | Yüksek | Düşük | Mevcut FON cutover + TSE lock docs birleştirilir |
-| P1-3 Mai 2027 | Yüksek | Düşük–Orta | Bağımsız |
-| P1-A Ausfall (no send) | Yüksek | Orta | Episode + FA; `AutoEnqueue`/send gate |
-| P1-F Mock FON | Yüksek | Düşük–Orta | Fake client zaten var; yapılandırılabilir fail path netleştir |
-| P2-1 DEP CI | Yüksek | Orta | JDK 17 + JAR ensure |
-| P2-L Prod lock | Yüksek | Düşük | Kod/docs mevcut; **Production ValidateOnStart** cutover’da |
-| Real SOAP (cutover) | Orta–Yüksek | Yüksek | BMF TEST credentials dış bağımlılık |
+| P0-S1 Indicator | High | Low–Medium | Combined `RKSV:Mode` / `TseMode` / `UseSimulation` flag; FA + POS i18n |
+| P0-S2 Cutover doc | High | Low | Merge existing FON cutover + TSE lock docs |
+| P1-3 Mai 2027 | High | Low–Medium | Independent |
+| P1-A Ausfall (no send) | High | Medium | Episode + FA; `AutoEnqueue`/send gate |
+| P1-F Mock FON | High | Low–Medium | Fake client already exists; clarify configurable fail path |
+| P2-1 DEP CI | High | Medium | JDK 17 + JAR ensure |
+| P2-L Prod lock | High | Low | Code/docs exist; **Production ValidateOnStart** at cutover |
+| Real SOAP (cutover) | Medium–High | High | External dependency: BMF TEST credentials |
 
-### 1.3 Bilinen uyum notları (repo)
+### 1.3 Known alignment notes (repo)
 
-- Soft TSE / Demo / `UseSimulation=true` **şu an bilinçli** — P0-S1 ile her yüzeyde işaretlenmeli.  
-- Real SOAP istemci / TSE prod validator / Ausfall episodes **kodda bulunabilir**; bu fazda “canlı production fiscal” anlamına gelmez.  
-- Cutover’da P2-L + Real SOAP + Ausfall send + Soft TSE kapatma birlikte doğrulanır.
+- Soft TSE / Demo / `UseSimulation=true` is **currently intentional** — mark it on every surface via P0-S1.  
+- Real SOAP client / TSE prod validator / Ausfall episodes **exist in code**; they do not mean “live production fiscal” in this phase.  
+- At cutover, verify P2-L + Real SOAP + Ausfall send + Soft TSE shutdown together.
 
 ---
 
-## 2. Zaman ve kaynak
+## 2. Time and staffing
 
-### 2.1 İş günü (simulation fazı odaklı)
+### 2.1 Person-days (simulation-phase focused)
 
-| ID | İG (yaklaşık) |
+| ID | PD (approx.) |
 |----|----------------|
 | P0-S1 Simulation indicator | 3–5 |
-| P0-S2 Cutover checklist (doküman + Ops walkthrough) | 2–3 |
-| P1-3 Mayıs 2027 | 5–8 |
+| P0-S2 Cutover checklist (document + Ops walkthrough) | 2–3 |
+| P1-3 May 2027 | 5–8 |
 | P1-A Ausfall (no send) | 8–12 |
 | P1-F Mock FON | 4–8 |
 | P2-1 DEP CI | 3–5 |
 | P2-2 / P2-3 | 3–6 |
-| P2-S Real SOAP tasarım | 6–10 |
-| **Simülasyon fazı ara toplam** | **~34–57 İG** |
+| P2-S Real SOAP design | 6–10 |
+| **Simulation-phase subtotal** | **~34–57 PD** |
 
-**Cutover paketi** (ayrı; BMF credentials sonrası): Soft TSE kapatma + Real SOAP E2E + Ausfall send + prod lock — kabaca **+15–30 İG** (Ops/Compliance yoğun).
+**Cutover package** (separate; after BMF credentials): Soft TSE shutdown + Real SOAP E2E + Ausfall send + prod lock — roughly **+15–30 PD** (Ops/Compliance heavy).
 
-### 2.2 Kadro
+### 2.2 Staffing
 
-| Rol | Simülasyon fazı |
+| Role | Simulation phase |
 |-----|-----------------|
 | Backend 1 | Indicator, mock FON, Ausfall episode, DEP CI |
 | FA 0.5 + POS 0.25 | Simulation banner |
-| Ops 0.25 | Cutover checklist sahiplik |
-| Compliance 0.25 | 2027 + “gönderim kapalı” politikası |
+| Ops 0.25 | Cutover checklist ownership |
+| Compliance 0.25 | 2027 + “send closed” policy |
 
-Takvim (paralel): **~6–10 hafta** simülasyon fazı; cutover ayrı pencere.
+Calendar (parallel): **~6–10 weeks** simulation phase; cutover is a separate window.
 
 ---
 
-## 3. Riskler
+## 3. Risks
 
-| Risk | Etki | Azaltma |
+| Risk | Impact | Mitigation |
 |------|------|---------|
-| Soft TSE “üretim gibi” algısı | Yasal / müşteri yanlış güven | **P0-S1** zorunlu banner + API `isSimulation` |
-| Erken Real SOAP / Fake Verified | False confidence | Cutover’a kadar simülasyon client; Fake prod ban cutover’da |
-| Auto-Ausfall simülasyonda bile yanlış gönderim | FON kirliliği | Send gate / `UseSimulation` / `AutoEnqueue=false` |
-| Cutover checklist eksik | Soft TSE prod’da unutulur | **P0-S2** + Ops imza |
-| 2027 gecikmesi | Operasyonel kriz | P1-3 paralel, simülasyondan bağımsız |
-| DEP CI yok | Format regresyonu | P2-1 |
+| Soft TSE perceived as “production-like” | Legal / customer false confidence | **P0-S1** mandatory banner + API `isSimulation` |
+| Early Real SOAP / Fake Verified | False confidence | Simulation client until cutover; Fake prod ban at cutover |
+| Accidental send even in simulation Auto-Ausfall | FON pollution | Send gate / `UseSimulation` / `AutoEnqueue=false` |
+| Incomplete cutover checklist | Soft TSE forgotten in prod | **P0-S2** + Ops signature |
+| 2027 delay | Operational crisis | P1-3 in parallel, independent of simulation |
+| No DEP CI | Format regression | P2-1 |
 
-**En büyük üç risk (bu faz):** (1) görünür simülasyon sinyali eksikliği, (2) cutover’suz Soft TSE prod sızıntısı, (3) yanlış canlı FON gönderimi.
+**Top three risks (this phase):** (1) missing visible simulation signal, (2) Soft TSE leaking into prod without cutover, (3) accidental live FON send.
 
 ---
 
-## 4. Öncelik sırası
+## 4. Priority order
 
 ```text
-Faz S0:  P0-S1 (banner) + P0-S2 (cutover doc)
-Faz S1:  P1-3 ∥ P1-A ∥ P1-F
-Faz S2:  P2-1 ∥ P2-2 ∥ P2-3 ∥ P2-S (tasarım)
-Faz C:   Production Cutover Checklist imzası
+Phase S0:  P0-S1 (banner) + P0-S2 (cutover doc)
+Phase S1:  P1-3 ∥ P1-A ∥ P1-F
+Phase S2:  P2-1 ∥ P2-2 ∥ P2-3 ∥ P2-S (design)
+Phase C:   Production Cutover Checklist signature
          → Soft TSE off, Real SCU, UseSimulation=false,
            Real SOAP, Ausfall send, P2-L ValidateOnStart
 ```
 
-### Bilinçli No-Go
+### Intentional No-Go
 
-| Koşul | Etki |
+| Condition | Effect |
 |-------|------|
-| Simulation banner olmadan Soft TSE’yi “prod ready” ilan | **No-Go üretim iddiası** |
-| `UseSimulation=true` iken “BMF Verified production” pazarlama | **No-Go** |
-| Cutover’suz Soft TSE Production deploy | **No-Go P2-L zorla açık bırakma** — ya Demo env ya kilitle |
-| Compliance Ausfall send onaylamadan auto-send | **No-Go Ausfall send** |
+| Declare Soft TSE “prod ready” without a simulation banner | **No-Go production claim** |
+| Market “BMF Verified production” while `UseSimulation=true` | **No-Go** |
+| Deploy Soft TSE to Production without cutover | **No-Go leave P2-L forced open** — either Demo env or lock |
+| Auto-send Ausfall before Compliance approves send | **No-Go Ausfall send** |
 
 ---
 
-## 5. Go / No-Go özeti (karar formu)
+## 5. Go / No-Go summary (decision form)
 
-| Soru | Cevap |
+| Question | Answer |
 |------|--------|
-| Simülasyon fazı başlatılsın mı? | **GO** |
-| Soft TSE bu fazda OK mi? | **Evet (bilinçli)** + **P0-S1 zorunlu** |
-| Real BMF SOAP şimdi mi? | **Hayır — cutover** |
-| Canlı Ausfall şimdi mi? | **Hayır — episode/UI evet, send cutover** |
-| Mayıs 2027 şimdi mi? | **GO (P1-3)** |
-| DEP CI şimdi mi? | **GO (P2-1)** |
-| Production fiscal ready mi? | **NO-GO** ta ki cutover imzalı |
+| Start the simulation phase? | **GO** |
+| Is Soft TSE OK in this phase? | **Yes (intentional)** + **P0-S1 mandatory** |
+| Real BMF SOAP now? | **No — cutover** |
+| Live Ausfall now? | **No — episode/UI yes, send at cutover** |
+| May 2027 now? | **GO (P1-3)** |
+| DEP CI now? | **GO (P2-1)** |
+| Production fiscal ready? | **NO-GO** until cutover is signed |
 
-### İmza / onay
+### Sign-off / approval
 
-| Rol | Ad | Tarih | Karar |
+| Role | Name | Date | Decision |
 |-----|-----|-------|-------|
 | Engineering lead | | | Simulation GO / NO-GO |
-| Ops | | | Cutover checklist sahibi: E / H |
-| Compliance | | | Simülasyon politikası + 2027: E / H |
-| Product | | | Kaynak: E / H |
+| Ops | | | Cutover checklist owner: Y / N |
+| Compliance | | | Simulation policy + 2027: Y / N |
+| Product | | | Staffing: Y / N |
 
 ---
 
-## 6. İlk 10 iş günü (simulation backlog)
+## 6. First 10 working days (simulation backlog)
 
-1. Birleşik `isSimulation` / demo bayrağı sözleşmesi (Backend)  
-2. FA Simulation Mode banner (tüm korumalı yüzeyler)  
-3. POS Simulation Mode indicator (kasa UI)  
-4. API/health veya `/me` benzeri yanıtta `simulationMode` (opsiyonel ama tercih)  
+1. Unified `isSimulation` / demo flag contract (Backend)  
+2. FA Simulation Mode banner (all protected surfaces)  
+3. POS Simulation Mode indicator (cash register UI)  
+4. `simulationMode` on API/health or `/me`-like response (optional but preferred)  
 5. Structured log: `FiscalMode=Simulation`  
 6. Ops: [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) walkthrough  
-7. P1-3 Mayıs 2027 MVP doğrulama / boşluk  
+7. P1-3 May 2027 MVP validation / gap  
 8. P1-A Ausfall episode list + FA, send disabled  
 9. P1-F mock FON success/fail config  
-10. P2-1 DEP Prüftool CI iskeleti (JDK 17 + `-UseFixtures`)
+10. P2-1 DEP Prüftool CI skeleton (JDK 17 + `-UseFixtures`)
 
 ---
 
-**Son güncelleme:** 2026-07-29 — **simulation-first** Go/No-Go; üretim kilidi ve canlı FON **cutover gate**.
+**Last updated:** 2026-07-29 — **simulation-first** Go/No-Go; production lock and live FON are **cutover gates**.

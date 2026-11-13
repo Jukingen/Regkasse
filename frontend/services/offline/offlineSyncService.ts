@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { OfflineOrderManager } from './offlineOrderManager';
 import { OfflineSyncHistory } from './offlineSyncHistory';
 
-import { apiClient } from '@/services/api/config';
+import { apiClient, isForbiddenApiError } from '@/services/api/config';
 import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
 import { OfflineConfigService } from '@/services/config/offlineConfigService';
 import { sessionManager } from '@/services/session/sessionManager';
@@ -79,6 +79,8 @@ export class OfflineSyncService {
   private pendingOrdersCount = 0;
   private lastKnownOnline: boolean | null = null;
   private lastServerHealthStatus: ServerSyncHealth['status'] | null = null;
+  /** Kitchen and other roles may lack offline.read; polling must not block the shell. */
+  private serverHealthForbidden = false;
 
   private constructor() {
     this.config = OfflineConfigService.getInstance();
@@ -120,20 +122,24 @@ export class OfflineSyncService {
   }
 
   private async pollSyncStatus(): Promise<void> {
-    await this.refreshPendingCounts();
+    try {
+      await this.refreshPendingCounts();
 
-    const online = await this.isOnline();
-    if (this.lastKnownOnline === false && online) {
-      this.scheduleReconnectSync();
+      const online = await this.isOnline();
+      if (this.lastKnownOnline === false && online) {
+        this.scheduleReconnectSync();
+      }
+      this.lastKnownOnline = online;
+
+      if (online) {
+        await this.pollServerSyncHealth();
+      }
+
+      const status = this.getSyncStatus();
+      this.emitStatusChange(status);
+    } catch {
+      // Polling is best-effort. A 403 or network error must not reject the interval.
     }
-    this.lastKnownOnline = online;
-
-    if (online) {
-      await this.pollServerSyncHealth();
-    }
-
-    const status = this.getSyncStatus();
-    this.emitStatusChange(status);
   }
 
   private async hasValidAccessToken(): Promise<boolean> {
@@ -143,8 +149,8 @@ export class OfflineSyncService {
   }
 
   private async pollServerSyncHealth(): Promise<void> {
-    // Requires PaymentTake — never call from login / unauthenticated bootstrap.
-    if (!(await this.hasValidAccessToken())) {
+    // Requires offline.read — never call from login / unauthenticated bootstrap.
+    if (this.serverHealthForbidden || !(await this.hasValidAccessToken())) {
       return;
     }
 
@@ -161,8 +167,11 @@ export class OfflineSyncService {
       }
 
       this.lastServerHealthStatus = health.status;
-    } catch {
-      // Non-blocking — local sync continues when health endpoint is unavailable.
+    } catch (error) {
+      if (isForbiddenApiError(error)) {
+        this.serverHealthForbidden = true;
+      }
+      // Non-blocking — local sync and KDS continue when health is forbidden or unavailable.
     }
   }
 

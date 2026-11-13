@@ -23,6 +23,8 @@ public sealed class RateLimitingMiddlewareTests
     [InlineData("/swagger")]
     [InlineData("/swagger/v1/swagger.json")]
     [InlineData("/metrics")]
+    [InlineData("/api/webhooks")]
+    [InlineData("/api/webhooks/payment/stripe")]
     public void IsExemptPath_skips_ops_endpoints(string path)
     {
         Assert.True(RateLimitingMiddleware.IsExemptPath(path));

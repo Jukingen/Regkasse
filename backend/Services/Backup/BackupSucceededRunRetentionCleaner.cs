@@ -20,7 +20,8 @@ public static class BackupSucceededRunRetentionCleaner
         ILogger logger,
         int retentionDays,
         CancellationToken cancellationToken = default,
-        ISmartRetentionService? smartRetention = null)
+        ISmartRetentionService? smartRetention = null,
+        BackupRetentionPolicySnapshot? legalPolicy = null)
     {
         // Legacy single-window callers: treat as System retention when strategy-aware path not used.
         return await DeleteExpiredSucceededRunsAsync(
@@ -31,7 +32,8 @@ public static class BackupSucceededRunRetentionCleaner
             tenantRetentionDays: Math.Min(retentionDays, BackupStrategyPolicy.TenantRetentionDays),
             systemRetentionDays: retentionDays,
             cancellationToken,
-            smartRetention);
+            smartRetention,
+            legalPolicy);
     }
 
     public static async Task<int> DeleteExpiredSucceededRunsAsync(
@@ -42,7 +44,8 @@ public static class BackupSucceededRunRetentionCleaner
         int tenantRetentionDays,
         int systemRetentionDays,
         CancellationToken cancellationToken = default,
-        ISmartRetentionService? smartRetention = null)
+        ISmartRetentionService? smartRetention = null,
+        BackupRetentionPolicySnapshot? legalPolicy = null)
     {
         List<BackupRun> candidates;
         string policyLabel;
@@ -106,6 +109,22 @@ public static class BackupSucceededRunRetentionCleaner
                 .ToListAsync(cancellationToken);
 
             policyLabel = $"flat-tenant-{tenantDays}d/system-{systemDays}d";
+        }
+
+        if (legalPolicy != null)
+        {
+            var now = DateTime.UtcNow;
+            var blocked = candidates.Count;
+            candidates = candidates
+                .Where(r => BackupRetentionGuard.CanDeleteSucceededRun(r, legalPolicy, now))
+                .ToList();
+            var skipped = blocked - candidates.Count;
+            if (skipped > 0)
+            {
+                logger.LogInformation(
+                    "Backup retention skipped {Skipped} run(s) under legal hold / 7-year System retention",
+                    skipped);
+            }
         }
 
         if (candidates.Count == 0)

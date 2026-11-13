@@ -136,7 +136,7 @@ describe('CashRegisterSelector', () => {
 
     expect(mockUseTenantList).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
-    expect(screen.getByText('Cafe (cafe)')).toBeInTheDocument();
+    expect(screen.getByText('Cafe (dev)')).toBeInTheDocument();
   });
 
   it('auto-selects default register and persists to session storage', async () => {
@@ -173,7 +173,10 @@ describe('CashRegisterSelector', () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith('reg-default', 'K1', 'tenant-a');
     });
-    expect(sessionStorage.getItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY)).toBe('reg-default');
+    // Persisted under the tenant-scoped key so a mandant switch cannot restore a foreign register.
+    expect(sessionStorage.getItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`)).toBe(
+      'reg-default'
+    );
   });
 
   it('auto-selects the sole register when tenant has only one', async () => {
@@ -240,12 +243,12 @@ describe('CashRegisterSelector', () => {
       expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
     expect(onChange).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`)).toBeNull();
   });
 
   it('restores saved register from session storage when still valid', async () => {
     const onChange = vi.fn();
-    sessionStorage.setItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY, 'reg-saved');
+    sessionStorage.setItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`, 'reg-saved');
     mockUseCurrentTenant.mockReturnValue({
       tenantId: 'tenant-a',
       isSuperAdminUser: false,

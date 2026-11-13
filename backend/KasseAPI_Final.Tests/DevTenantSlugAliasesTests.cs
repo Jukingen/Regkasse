@@ -14,6 +14,8 @@ public sealed class DevTenantSlugAliasesTests
     [InlineData("test-bar", "prod")]
     [InlineData("bar", "prod")]
     [InlineData("prod", "prod")]
+    [InlineData("default", "default")]
+    [InlineData("platform", "platform")]
     public void ResolveCanonical_maps_legacy_dev_slugs(string input, string expected)
     {
         Assert.Equal(expected, DevTenantSlugAliases.ResolveCanonical(input));

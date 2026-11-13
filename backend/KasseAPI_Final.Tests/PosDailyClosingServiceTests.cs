@@ -42,7 +42,7 @@ public class PosDailyClosingServiceTests
             .UseInMemoryDatabase($"PosDailyClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class PosDailyClosingServiceTests
 
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -91,7 +91,7 @@ public class PosDailyClosingServiceTests
         });
         ctx.DailyClosings.Add(new DailyClosing
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             UserId = userId,
             ClosingDate = today,
@@ -129,7 +129,7 @@ public class PosDailyClosingServiceTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "Front",
@@ -144,7 +144,7 @@ public class PosDailyClosingServiceTests
         ctx.CashierShifts.Add(new CashierShift
         {
             Id = shiftId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -167,7 +167,7 @@ public class PosDailyClosingServiceTests
         ctx.DailyClosings.Add(new DailyClosing
         {
             Id = closingId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             UserId = userId,
             ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(
@@ -199,7 +199,7 @@ public class PosDailyClosingServiceTests
 
         var dailySummary = new Mock<IDailyClosingService>();
         dailySummary.Setup(d => d.GenerateClosingSummaryAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 regId,
                 It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
@@ -269,7 +269,7 @@ public class PosDailyClosingServiceTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "Front",
@@ -282,7 +282,7 @@ public class PosDailyClosingServiceTests
         });
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -294,7 +294,7 @@ public class PosDailyClosingServiceTests
         });
         ctx.DailyClosings.Add(new DailyClosing
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             UserId = userId,
             ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),

@@ -14,6 +14,7 @@ import { customInstance } from '@/lib/axios';
 export type ActivityLogFilters = {
   dateRange: [Dayjs | null, Dayjs | null] | null;
   userId?: string;
+  userRole?: string;
   actionType: string;
   search: string;
   page: number;
@@ -67,7 +68,7 @@ function mapAuditRow(row: AuditLogEntryDto): ActivityLogRow {
     details,
   };
 }
-function buildQueryParams(
+export function buildActivityLogQueryParams(
   filters: ActivityLogFilters
 ): Record<string, string | number | boolean | undefined> {
   const [from, to] = filters.dateRange ?? [null, null];
@@ -76,6 +77,7 @@ function buildQueryParams(
     pageSize: filters.pageSize,
     includeTotalCount: true,
     userId: filters.userId,
+    userRole: filters.userRole || undefined,
     action: filters.actionType || undefined,
     startDate: from ? from.startOf('day').toISOString() : undefined,
     endDate: to ? to.endOf('day').toISOString() : undefined,
@@ -94,7 +96,7 @@ async function fetchActivityAuditLogs(
   return customInstance<AuditLogsListResponse>({
     url: '/api/AuditLog',
     method: 'GET',
-    params: buildQueryParams(filters),
+    params: buildActivityLogQueryParams(filters),
     signal,
   });
 }
@@ -112,7 +114,7 @@ export function useActivityLog(filters: ActivityLogFilters) {
   });
 
   const rows = (query.data?.auditLogs ?? [])
-    .filter((row) => !isPlatformUserRole(row.userRole))
+    .filter((row) => !isPlatformUserRole(row.userRole) && !isPlatformUserRole(row.user?.role))
     .map(mapAuditRow);
 
   return {

@@ -190,7 +190,7 @@ namespace KasseAPI_Final.Controllers
 
             try
             {
-                // TODO: scope – tenant/branch if multi-tenant; submit is typically tenant-scoped.
+                // Submit is tenant-scoped via EF global query filters (ambient ICurrentTenantAccessor).
                 // Find invoice to link if possible (optional, but good for tracking)
                 var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == request.InvoiceNumber);
                 if (invoice != null)

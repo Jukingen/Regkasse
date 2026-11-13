@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -16,7 +17,7 @@ public sealed class TseOfflineQueueService : ITseOfflineQueueService
     private readonly AppDbContext _db;
     private readonly IActivityEventPublisher _activity;
     private readonly IAuditLogService _auditLog;
-    private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly ITenantLimitService _tenantLimits;
     private readonly IOptionsMonitor<OfflineMonitoringOptions> _monitoringOptions;
     private readonly ILogger<TseOfflineQueueService> _logger;
 
@@ -24,14 +25,14 @@ public sealed class TseOfflineQueueService : ITseOfflineQueueService
         AppDbContext db,
         IActivityEventPublisher activity,
         IAuditLogService auditLog,
-        IOptionsMonitor<TseOptions> tseOptions,
+        ITenantLimitService tenantLimits,
         IOptionsMonitor<OfflineMonitoringOptions> monitoringOptions,
         ILogger<TseOfflineQueueService> logger)
     {
         _db = db;
         _activity = activity;
         _auditLog = auditLog;
-        _tseOptions = tseOptions;
+        _tenantLimits = tenantLimits;
         _monitoringOptions = monitoringOptions;
         _logger = logger;
     }
@@ -43,15 +44,19 @@ public sealed class TseOfflineQueueService : ITseOfflineQueueService
         if (tenantId == Guid.Empty)
             throw new ArgumentException("tenantId is required.", nameof(tenantId));
 
-        var maxPerRegister = Math.Max(1, _tseOptions.CurrentValue.MaxOfflineTransactionsPerCashRegister);
+        var maxQueued = Math.Max(
+            1,
+            await _tenantLimits
+                .GetLimitValueAsync(tenantId, TenantLimitKeys.MaxOfflineTransactions, cancellationToken)
+                .ConfigureAwait(false));
         var warning = Math.Clamp(
             _monitoringOptions.CurrentValue.TseOfflineQueueWarningThreshold,
             1,
-            maxPerRegister);
+            maxQueued);
         var critical = Math.Clamp(
             _monitoringOptions.CurrentValue.TseOfflineQueueCriticalThreshold,
             warning,
-            Math.Max(warning, maxPerRegister));
+            Math.Max(warning, maxQueued));
 
         var queued = await QueuedQuery(tenantId)
             .AsNoTracking()
@@ -81,9 +86,9 @@ public sealed class TseOfflineQueueService : ITseOfflineQueueService
                     CashRegisterId = g.Key,
                     RegisterNumber = reg?.RegisterNumber,
                     QueuedCount = count,
-                    MaxPerRegister = maxPerRegister,
-                    IsAtCap = count >= maxPerRegister,
-                    IsNearCap = count >= (int)Math.Floor(maxPerRegister * (_monitoringOptions.CurrentValue.TseOfflineCapWarningPercent / 100.0)),
+                    MaxPerRegister = maxQueued,
+                    IsAtCap = count >= maxQueued,
+                    IsNearCap = count >= (int)Math.Floor(maxQueued * (_monitoringOptions.CurrentValue.TseOfflineCapWarningPercent / 100.0)),
                 };
             })
             .OrderByDescending(r => r.QueuedCount)
@@ -95,7 +100,7 @@ public sealed class TseOfflineQueueService : ITseOfflineQueueService
             TotalQueued = total,
             CriticalThreshold = critical,
             WarningThreshold = warning,
-            MaxPerRegister = maxPerRegister,
+            MaxPerRegister = maxQueued,
             IsCritical = total >= critical || byRegister.Any(r => r.IsAtCap),
             IsWarning = total >= warning || byRegister.Any(r => r.IsNearCap),
             OldestTransaction = oldest,

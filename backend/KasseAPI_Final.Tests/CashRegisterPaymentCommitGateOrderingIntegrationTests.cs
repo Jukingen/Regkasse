@@ -24,7 +24,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
             .UseInMemoryDatabase($"PayCommitOrder_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
@@ -37,7 +37,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K01",
             Location = "T",
@@ -80,7 +80,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K01",
             Location = "T",

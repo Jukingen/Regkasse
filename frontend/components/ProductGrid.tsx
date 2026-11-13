@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Ürün grid komponenti - Kategorilere göre ürünleri filtreler ve görsel olarak sunar
 // Backend'den gelen ürün verilerini kullanarak kategori bazlı filtreleme yapar
 
@@ -55,7 +56,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
     // Backend'den gelen category field'larını öncelikle kullan
     const productCategory = product.productCategory || product.category || product.Category;
-    console.log(
+    safeLog(
       `🔍 Filtering product: ${product.name || product.Name}, category: ${productCategory}, selected: ${selectedCategory}`
     );
     return productCategory === selectedCategory;
@@ -79,7 +80,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   };
 
   // Debug bilgisi
-  console.log(
+  safeLog(
     `🔍 ProductGrid: ${products.length} total products, ${filteredProducts.length} filtered for category: ${selectedCategory}`
   );
 
@@ -143,7 +144,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           const productPrice = product.price || product.Price || 0;
           const productStock = product.stockQuantity || product.StockQuantity || 0;
 
-          console.log(`📦 Rendering product: ${productName}, category: ${productCategory}`);
+          safeLog(`📦 Rendering product: ${productName}, category: ${productCategory}`);
 
           return (
             <TouchableOpacity

@@ -39,6 +39,16 @@
     "noRegisterMessage": "Bitte wählen Sie zuerst unter „Kasse“ eine Registrierkasse aus oder starten Sie eine Schicht.",
     "noRegisterHint": "Zuerst eine Kasse zuweisen (Abschnitt „Kasse“ oben)."
   },
+  "receiptList": {
+    "title": "Belegliste",
+    "description": "Letzte Belege dieser Kasse anzeigen und Nachdruck auslösen.",
+    "open": "Belegliste öffnen"
+  },
+  "fiskalyOps": {
+    "title": "Fiskaly / Sonderbelege",
+    "description": "Startbeleg, Nullbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg und Storno.",
+    "open": "Operationen öffnen"
+  },
   "appUpdate": {
     "title": "App-Aktualisierung",
     "description": "Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.",
@@ -169,7 +179,8 @@
       "deadlineWorkingHoursGeneric": "bis zur Schließzeit",
       "deadlineMidnight": "bis 00:00 Europe/Vienna",
       "cta": "Jetzt durchführen",
-      "countdownA11y": "Countdown {{countdown}}"
+      "countdownA11y": "Countdown {{countdown}}",
+      "cashCountHint": "Bitte Kasse zählen. Ohne Abschluss erfolgt um {{time}} ein automatischer Tagesabschluss."
     }
   },
   "registerAssignment": {
@@ -184,6 +195,55 @@
     "savedMessage": "Kasse wurde zugewiesen.",
     "saveErrorTitle": "Fehler",
     "saveErrorMessage": "Zuweisung wurde vom Server abgelehnt (ungültige Kasse, keine Berechtigung oder Kasse nicht geöffnet)."
+  },
+  "registerSelect": {
+    "title": "Kasse wählen",
+    "intro": "Bitte wählen Sie eine Registrierkasse. Eine geschlossene Kasse wird beim Auswählen automatisch geöffnet.",
+    "introNoPermission": "Bitte wählen Sie eine geöffnete Kasse. Geschlossene Kassen müssen von Ihrem Mandanten-Admin geöffnet werden.",
+    "select": "Auswählen",
+    "openingShift": "Schicht wird geöffnet…",
+    "noDescription": "Keine Beschreibung",
+    "statusAvailable": "Verfügbar",
+    "statusOpen": "Offen",
+    "onlyMine": "Nur meine Kassen",
+    "statusClosed": "Geschlossen",
+    "statusClosedOpensOnSelect": "Geschlossen — wird beim Auswählen geöffnet",
+    "statusUnavailable": "Nicht verfügbar",
+    "mustBeOpenedByManager": "Kasse muss von Ihrem Mandanten-Admin geöffnet werden.",
+    "requestOpen": "Kassenöffnung anfordern",
+    "requestSent": "Anfrage gesendet",
+    "requestDenied": "Anfrage abgelehnt. Sie können erneut anfordern.",
+    "requestFailed": "Anfrage fehlgeschlagen. Bitte erneut versuchen.",
+    "listLoadFailed": "Kassenliste konnte nicht geladen werden. Bitte erneut versuchen.",
+    "needRegisterTitle": "Kasse auswählen",
+    "needRegisterSelection": "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.",
+    "registerUnavailableTitle": "Kasse nicht verfügbar",
+    "registerUnavailable": "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie Ihren Mandanten-Admin.",
+    "registerDecommissionedTitle": "Kasse stillgelegt",
+    "registerDecommissioned": "Diese Kasse wurde stillgelegt und kann nicht mehr verwendet werden.",
+    "noActiveRegistersTitle": "Keine Kassen",
+    "noActiveRegisters": "Keine aktiven Kassen gefunden. Bitte kontaktieren Sie Ihren Mandanten-Admin.",
+    "openShiftErrorTitle": "Fehler beim Öffnen der Schicht",
+    "openShiftError": "Bitte versuchen Sie es erneut oder kontaktieren Sie Ihren Mandanten-Admin.",
+    "emptyNoneOpen": "Alle Kassen sind geschlossen. Wählen Sie eine Kasse — die Schicht wird beim Auswählen geöffnet.",
+    "emptyNoneAssigned": "Sie haben keine Kasse zugewiesen. Bitte kontaktieren Sie Ihren Administrator.",
+    "emptyNoneSelectable": "Keine Kasse ist für Sie freigegeben. Bitte kontaktieren Sie Ihren Mandanten-Admin.",
+    "inUse": "In Benutzung",
+    "inUseHint": "Bitte fordern Sie den Administrator auf, die Kasse zu schließen.",
+    "registerMaintenance": "Die Kasse ist im Wartungsmodus. Bitte kontaktieren Sie den Administrator.",
+    "registerDisabled": "Die Kasse ist deaktiviert. Bitte kontaktieren Sie den Administrator.",
+    "registerInactive": "Die Kasse ist inaktiv. Bitte kontaktieren Sie den Administrator.",
+    "registerAssignedToOtherUser": "Die Kasse ist einem anderen Kassierer zugewiesen. Bitte kontaktieren Sie den Administrator.",
+    "registerConflictOtherUser": "Die Kasse ist bereits von einem anderen Kassierer geöffnet.",
+    "registerAlreadyOpenTitle": "Bereits geöffnet",
+    "registerActorHasOtherOpen": "Sie haben bereits eine andere Kasse geöffnet. Bitte schließen Sie diese zuerst.",
+    "closeOtherRegister": "Andere Kasse schließen",
+    "registerStartbelegRequired": "Startbeleg fehlt. Bitte kontaktieren Sie den Administrator.",
+    "registerMonatsbelegRequired": "Monatsbeleg fehlt. Bitte kontaktieren Sie den Administrator.",
+    "contactManager": "Manager kontaktieren",
+    "registerInvalidState": "Die Kasse kann in diesem Zustand nicht geöffnet werden. Bitte kontaktieren Sie den Administrator.",
+    "requestOpenShort": "Öffnung anfordern",
+    "reload": "Erneut laden"
   },
   "cashRegister": {
     "sectionTitle": "Kasse",
@@ -307,6 +367,18 @@
     "copiedMessage": "{{label}} wurde in die Zwischenablage kopiert.",
     "offlineQueueIdLabel": "Offline-Queue-ID",
     "supportHandoffLabel": "Support-Handoff",
-    "shareReplayTitle": "Support: Replay-Batch"
+    "shareReplayTitle": "Support: Replay-Batch",
+    "retryAll": "Alle erneut versuchen",
+    "deleteItem": "Löschen",
+    "deleteConfirmTitle": "Eintrag löschen?",
+    "deleteConfirmMessage": "Nur nicht-fiskalische lokale Einträge können gelöscht werden.",
+    "deleteFiscalBlockedTitle": "Löschen nicht möglich",
+    "deleteFiscalBlocked": "Fiskalische Offline-Einträge können nicht gelöscht werden.",
+    "lastSuccessfulSync": "Letzte erfolgreiche Sync: {{time}}",
+    "lastSuccessfulSyncNever": "noch keine",
+    "nextRetry": "Nächster Auto-Versuch in {{time}}",
+    "nextRetryNone": "Kein Auto-Versuch geplant.",
+    "sourceOrder": "Bestell-Snapshot",
+    "sourceTransaction": "Zahlungs-Intent"
   }
 }

@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "needRegisterSelection": "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.",
+    "registerNotFound": "Die ausgewählte Kasse wurde nicht gefunden.",
+    "registerUnavailable": "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.",
+    "registerDecommissioned": "Diese Kasse wurde stillgelegt und kann nicht mehr verwendet werden.",
+    "noActiveRegisters": "Keine aktiven Kassen gefunden. Bitte kontaktieren Sie den Administrator.",
+    "shiftAlreadyOpen": "Die Schicht ist bereits geöffnet.",
+    "unknown": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+  },
+  "success": {
+    "shiftOpened": "Schicht erfolgreich geöffnet.",
+    "shiftAlreadyOpen": "Die Schicht ist bereits geöffnet."
+  },
+  "alerts": {
+    "needRegisterTitle": "Kasse auswählen",
+    "registerNotFoundTitle": "Kasse nicht gefunden",
+    "registerUnavailableTitle": "Kasse nicht verfügbar",
+    "registerDecommissionedTitle": "Kasse stillgelegt",
+    "noActiveRegistersTitle": "Keine Kassen",
+    "shiftAlreadyOpenTitle": "Schicht bereits geöffnet",
+    "unknownTitle": "Fehler beim Öffnen der Schicht"
+  }
+}

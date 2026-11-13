@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Tenancy;
 public static class OperationalTenantMembershipPolicy
 {
     public static bool IsOperationalTenant(Tenant tenant) =>
-        tenant.IsActive && tenant.Status != TenantStatuses.Deleted;
+        tenant.IsActive && !TenantStatuses.IsRemoved(tenant.Status);
 
     public static bool IsSuperAdmin(ApplicationUser user) =>
         string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);

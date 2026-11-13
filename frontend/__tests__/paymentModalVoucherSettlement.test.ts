@@ -5,45 +5,8 @@
  */
 import { describe, expect, it } from '@jest/globals';
 
+import { PAYMENT_COVERAGE_TOLERANCE_EUR, computeVoucherPlusCashCoversTotal } from '../utils/posPaymentCoverage';
 import { validateAmount } from '../utils/validation';
-
-const PAYMENT_COVERAGE_TOLERANCE_EUR = 0.02;
-
-function parseLocaleDecimal(input: string): number {
-  const s = input.trim().replace(',', '.');
-  if (!s) return NaN;
-  return parseFloat(s);
-}
-
-/** Same logic as PaymentModal `computeVoucherPlusCashCoversTotal`. */
-function computeVoucherPlusCashCoversTotal(input: {
-  voucherEnabled: boolean;
-  appliedVoucherAmount: number;
-  totalCartAmount: number;
-  settlementAmountDue: number;
-  requiresCashAmount: boolean;
-  amountReceivedStr: string;
-}): { sumPaid: number; coversTotal: boolean } {
-  const v = input.voucherEnabled ? Math.max(0, input.appliedVoucherAmount) : 0;
-  const cashParsed = parseLocaleDecimal(input.amountReceivedStr);
-  const cashReceived = Number.isFinite(cashParsed) ? Math.max(0, cashParsed) : 0;
-
-  let sumPaid: number;
-  if (!input.voucherEnabled) {
-    sumPaid = input.requiresCashAmount ? cashReceived : input.totalCartAmount;
-  } else if (input.settlementAmountDue <= PAYMENT_COVERAGE_TOLERANCE_EUR) {
-    sumPaid = v;
-  } else if (input.requiresCashAmount) {
-    sumPaid = v + cashReceived;
-  } else {
-    sumPaid = v + Math.max(0, input.settlementAmountDue);
-  }
-
-  return {
-    sumPaid,
-    coversTotal: sumPaid >= input.totalCartAmount - PAYMENT_COVERAGE_TOLERANCE_EUR,
-  };
-}
 
 /** Same logic as PaymentModal `totalAmount` IIFE (grandTotalGross + cartLineSumGross). */
 function resolveTotalAmountLikePaymentModal(

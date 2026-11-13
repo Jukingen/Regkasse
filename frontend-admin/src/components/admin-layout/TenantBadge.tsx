@@ -1,7 +1,7 @@
 'use client';
 
 import { BankOutlined, DownOutlined } from '@ant-design/icons';
-import { Tag } from 'antd';
+import { Tag, Tooltip } from 'antd';
 import { useRouter } from 'next/navigation';
 import { type KeyboardEvent, useCallback, useMemo } from 'react';
 
@@ -19,6 +19,8 @@ type TenantBadgeViewModel = {
   displayName: string;
   navigatesToTenants: boolean;
   iconClassName: string;
+  /** Development + active `dev` mandant — show compact DEV chip. */
+  showDevAutoSelectedBadge: boolean;
 };
 
 function buildTenantBadgeViewModel(input: {
@@ -41,6 +43,9 @@ function buildTenantBadgeViewModel(input: {
   let displayName: string;
   let iconClassName = 'tenant-badge-icon';
   let navigatesToTenants = false;
+  const isDevSlug = tenantSlug?.trim().toLowerCase() === 'dev';
+  // In development, we always use 'dev' tenant. Tenant switcher stays for Super Admin overrides.
+  const showDevAutoSelectedBadge = isDevelopment() && isDevSlug && !isSuperAdminPlatformMode;
 
   if (isSuperAdminPlatformMode) {
     displayName = t('adminShell.tenant.badgeSuperAdminMode');
@@ -50,6 +55,9 @@ function buildTenantBadgeViewModel(input: {
     displayName = t('adminShell.tenant.badgePlatformAdmin');
     iconClassName = 'tenant-badge-icon tenant-badge-icon-platform';
     navigatesToTenants = !isImpersonating;
+  } else if (showDevAutoSelectedBadge) {
+    // Production shows the actual tenant name; development highlights auto-selected `dev`.
+    displayName = t('adminShell.tenant.badgeDevTenantName');
   } else {
     const slugForLabel = tenantSlug ?? '—';
     const resolvedName = tenantName?.trim();
@@ -64,6 +72,7 @@ function buildTenantBadgeViewModel(input: {
     displayName,
     navigatesToTenants,
     iconClassName,
+    showDevAutoSelectedBadge,
   };
 }
 
@@ -152,7 +161,13 @@ export function TenantBadge({ compact = false }: TenantBadgeProps) {
             {t('adminShell.tenant.badgeSupportModeTag')}
           </Tag>
         ) : null}
-        {isDevelopment() ? (
+        {view.showDevAutoSelectedBadge ? (
+          <Tooltip title={t('adminShell.tenant.badgeDevAutoSelectedTooltip')}>
+            <Tag color="orange" className="tenant-badge-dev-mode-tag">
+              {t('adminShell.tenant.badgeDevModeTag')}
+            </Tag>
+          </Tooltip>
+        ) : isDevelopment() ? (
           <Tag color="orange" className="tenant-badge-dev-mode-tag">
             {t('adminShell.tenant.badgeDevModeTag')}
           </Tag>

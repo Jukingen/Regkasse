@@ -35,6 +35,8 @@ public sealed class StripeCardGateway : IPaymentGateway
         {
             ["internal_intent_id"] = request.InternalIntentId.ToString("D")
         };
+        if (!string.IsNullOrWhiteSpace(request.ReturnUrl))
+            metadata["return_url"] = request.ReturnUrl.Trim();
 
         var options = new PaymentIntentCreateOptions
         {
@@ -44,6 +46,9 @@ public sealed class StripeCardGateway : IPaymentGateway
             Description = request.Description,
             Metadata = metadata
         };
+
+        if (!string.IsNullOrWhiteSpace(request.ReturnUrl))
+            options.ReturnUrl = request.ReturnUrl.Trim();
 
         if (!string.IsNullOrWhiteSpace(request.CustomerId))
             options.Customer = request.CustomerId;
@@ -85,10 +90,19 @@ public sealed class StripeCardGateway : IPaymentGateway
 
             if (!string.IsNullOrWhiteSpace(paymentMethodId))
             {
+                var existing = await service.GetAsync(gatewayPaymentIntentId, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
                 var confirmOptions = new PaymentIntentConfirmOptions
                 {
                     PaymentMethod = paymentMethodId
                 };
+                if (existing.Metadata != null
+                    && existing.Metadata.TryGetValue("return_url", out var returnUrl)
+                    && !string.IsNullOrWhiteSpace(returnUrl))
+                {
+                    confirmOptions.ReturnUrl = returnUrl;
+                }
+
                 intent = await service.ConfirmAsync(
                     gatewayPaymentIntentId,
                     confirmOptions,

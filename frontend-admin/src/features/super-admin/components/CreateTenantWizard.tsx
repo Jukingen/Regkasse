@@ -1,19 +1,21 @@
 'use client';
 
 /**
- * Super-admin tenant onboarding wizard: form → progress → success or structured error.
+ * Two-step tenant creation wizard: Country → Tenant Form → processing → success.
  */
 import { useMutation } from '@tanstack/react-query';
-import { Button, Form, Modal } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Button, Form, Modal, Steps } from 'antd';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   type AdminTenantDetail,
   type CreateAdminTenantRequest,
   createAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
+import { CreateTenantCountryDrivenFields } from '@/features/super-admin/components/CreateTenantCountryDrivenFields';
+import { CreateTenantCountryStep } from '@/features/super-admin/components/CreateTenantCountryStep';
 import { CreateTenantProcessingView } from '@/features/super-admin/components/CreateTenantProcessingView';
-import { type CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
+import { type CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { OnboardingErrorModal } from '@/features/super-admin/components/OnboardingErrorModal';
 import {
   OnboardingSuccessModal,
@@ -24,7 +26,9 @@ import { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenan
 import { useTenantOnboardingProgress } from '@/features/super-admin/hooks/useTenantOnboardingProgress';
 import type { TenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
 import { parseTenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
+import { buildDemoTenantDefaults } from '@/features/super-admin/lib/demoTenantDefaults';
 import { normalizeTenantSlugInput } from '@/features/super-admin/lib/tenantSlug';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import { useI18n } from '@/i18n';
 import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
 
@@ -37,9 +41,27 @@ export type CreateTenantWizardProps = {
   onCreateAnother?: () => void;
   onSwitchToTenant?: (tenantId: string) => void;
   switchToTenantLoading?: boolean;
+  /** Prefills an Austrian 14-day demo and sends `seedDemo: true`. */
+  demoSeed?: boolean;
 };
 
-type WizardPhase = 'form' | 'processing' | 'processingDone';
+type WizardPhase = 'country' | 'form' | 'processing' | 'processingDone';
+
+const FORM_DEFAULTS = {
+  grantTrialLicense: true,
+  trialDurationDays: 14,
+  importDemoProducts: true,
+} as const;
+
+/** First catalog row from `GET /api/admin/countries`. No local country code. */
+export function initialCountryFromCatalog(
+  countries: ReadonlyArray<{ code?: string | null; allowedVatRegimes?: readonly (string | null)[] | null }>
+): { countryCode?: string; vatRegime?: string } {
+  const first = countries.find((country) => country.code);
+  if (!first?.code) return {};
+  const regime = first.allowedVatRegimes?.find((value): value is string => Boolean(value));
+  return { countryCode: first.code, vatRegime: regime };
+}
 
 export function CreateTenantWizard(props: CreateTenantWizardProps) {
   if (!props.open) {
@@ -55,12 +77,15 @@ function CreateTenantWizardContent({
   onCreateAnother,
   onSwitchToTenant,
   switchToTenantLoading,
+  demoSeed = false,
 }: CreateTenantWizardProps) {
   const { t } = useI18n();
   const baseDomain = getTenantAppBaseDomain();
+  const countriesQuery = useCountries();
+  const countries = countriesQuery.data ?? [];
   const [form] = Form.useForm<CreateTenantFormValues & { formError?: string }>();
   const [success, setSuccess] = useState<TenantOnboardingSuccessState | null>(null);
-  const [phase, setPhase] = useState<WizardPhase>('form');
+  const [phase, setPhase] = useState<WizardPhase>('country');
   const [onboardingError, setOnboardingError] = useState<TenantOnboardingError | null>(null);
   const [errorContext, setErrorContext] = useState<{ companyName: string; slug: string } | null>(
     null
@@ -72,7 +97,7 @@ function CreateTenantWizardContent({
     grantTrialLicense: boolean;
   } | null>(null);
 
-  const formFields = useTenantCreateFormFields(form, open);
+  const formFields = useTenantCreateFormFields(form, open && phase === 'form');
   const { canSubmit } = formFields;
 
   const grantTrialLicense = processingContext?.grantTrialLicense ?? true;
@@ -81,7 +106,7 @@ function CreateTenantWizardContent({
   const { definitions, statuses } = useTenantOnboardingProgress(grantTrialLicense, progressPhase);
 
   const resetFlow = useCallback(() => {
-    setPhase('form');
+    setPhase('country');
     setProcessingContext(null);
     setOnboardingError(null);
     setErrorContext(null);
@@ -103,6 +128,7 @@ function CreateTenantWizardContent({
           slug: created.slug,
           contactEmail,
           provisioning: created.provisioning ?? null,
+          demoSeeded: demoSeed,
         });
       }, 500);
     },
@@ -124,14 +150,37 @@ function CreateTenantWizardContent({
       if (phase !== 'processing' && phase !== 'processingDone') {
         resetFlow();
       }
-    } else if (phase === 'form') {
-      form.setFieldsValue({
-        grantTrialLicense: true,
-        autoDemoSetup: true,
-        importDemoProducts: true,
-      });
     }
   }, [open, form, resetFlow, phase]);
+
+  const demoDefaultsApplied = useRef(false);
+
+  useEffect(() => {
+    if (!open || !demoSeed || demoDefaultsApplied.current) return;
+    const catalog = countriesQuery.data ?? [];
+    const austria = catalog.find((country) => country.code === 'AT');
+    const regime = austria?.allowedVatRegimes?.find((value) => Boolean(value));
+    const defaults = buildDemoTenantDefaults();
+    form.setFieldsValue({
+      countryCode: 'AT',
+      vatRegime: regime ? String(regime) : 'AT_RKSV_STANDARD',
+      name: defaults.name,
+      slug: defaults.slug,
+      grantTrialLicense: true,
+      trialDurationDays: 14,
+      importDemoProducts: false,
+    });
+    demoDefaultsApplied.current = true;
+  }, [open, demoSeed, form, countriesQuery.data]);
+
+  useEffect(() => {
+    if (!open || demoSeed) return;
+    if (form.getFieldValue('countryCode')) return;
+    const seeded = initialCountryFromCatalog(countriesQuery.data ?? []);
+    if (seeded.countryCode) {
+      form.setFieldsValue(seeded);
+    }
+  }, [open, demoSeed, form, countriesQuery.data]);
 
   const isProcessing =
     phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
@@ -141,6 +190,13 @@ function CreateTenantWizardContent({
       return;
     }
     onClose();
+  };
+
+  const goToFormStep = () => {
+    void form.validateFields(['countryCode', 'vatRegime']).then(
+      () => setPhase('form'),
+      () => undefined
+    );
   };
 
   const submitFromForm = (values: CreateTenantFormValues) => {
@@ -157,13 +213,25 @@ function CreateTenantWizardContent({
     createMutation.mutate({
       name: values.name.trim(),
       slug,
+      countryCode: values.countryCode,
+      vatRegime: values.vatRegime,
       email: values.email.trim(),
       adminEmail: values.email.trim(),
       phone: values.phone?.trim() || undefined,
       address: values.address?.trim() || undefined,
       grantTrialLicense: grantTrial,
-      importDemoMenu: values.importDemoProducts ?? true,
+      trialDurationDays: grantTrial ? (values.trialDurationDays ?? 14) : undefined,
+      importDemoMenu: demoSeed ? (values.importDemoProducts ?? false) : (values.importDemoProducts ?? true),
+      ...(demoSeed ? { seedDemo: true } : { seedDemo: false }),
     });
+  };
+
+  const handleFinish = (values: CreateTenantFormValues) => {
+    if (phase === 'country') {
+      setPhase('form');
+      return;
+    }
+    submitFromForm(values);
   };
 
   const handleDismissError = useCallback(() => {
@@ -191,11 +259,18 @@ function CreateTenantWizardContent({
       ? t('tenants.create.processing.title')
       : t('tenants.create.title');
 
+  const stepItems = [
+    { title: t('superadmin.tenantCreate.countryStep.title') },
+    { title: t('superadmin.tenantCreate.countryStep.tenantFormTitle') },
+  ];
+  const stepCurrent = phase === 'country' ? 0 : 1;
+  const formOpen = open && !success && (phase === 'country' || phase === 'form');
+
   return (
     <>
       <Modal
         title={modalTitle}
-        open={open && !success && phase !== 'form' && isProcessing}
+        open={open && !success && phase !== 'country' && phase !== 'form' && isProcessing}
         onCancel={handleWizardClose}
         width={640}
         destroyOnHidden
@@ -217,27 +292,63 @@ function CreateTenantWizardContent({
 
       <Modal
         title={modalTitle}
-        open={open && !success && phase === 'form'}
+        open={formOpen}
         onCancel={handleWizardClose}
         width={640}
         destroyOnHidden
-        footer={[
-          <Button key="cancel" onClick={handleWizardClose}>
-            {t('common.buttons.cancel')}
-          </Button>,
-          <Button key="submit" type="primary" disabled={!canSubmit} onClick={() => form.submit()}>
-            {t('tenants.create.submit')}
-          </Button>,
-        ]}
+        footer={
+          phase === 'country'
+            ? [
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button key="next" type="primary" htmlType="button" onClick={goToFormStep}>
+                  {t('superadmin.tenantCreate.countryStep.next')}
+                </Button>,
+              ]
+            : [
+                <Button key="back" htmlType="button" onClick={() => setPhase('country')}>
+                  {t('superadmin.tenantCreate.countryStep.back')}
+                </Button>,
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button
+                  key="submit"
+                  type="primary"
+                  htmlType="button"
+                  disabled={!canSubmit}
+                  onClick={() => form.submit()}
+                >
+                  {t('tenants.create.submit')}
+                </Button>,
+              ]
+        }
       >
+        <Steps current={stepCurrent} items={stepItems} style={{ marginBottom: 24 }} />
         <Form
           form={form}
           layout="vertical"
           requiredMark="optional"
-          initialValues={{ grantTrialLicense: true, autoDemoSetup: true, importDemoProducts: true }}
-          onFinish={submitFromForm}
+          initialValues={FORM_DEFAULTS}
+          onFinish={handleFinish}
         >
-          <TenantFormFields form={form} open={open} fieldState={formFields} />
+          <div
+            data-testid="create-tenant-country-panel"
+            style={{ display: phase === 'country' ? 'block' : 'none' }}
+          >
+            <CreateTenantCountryStep
+              countries={countries}
+              loading={Boolean(countriesQuery.isLoading)}
+            />
+          </div>
+          <div
+            data-testid="create-tenant-form-panel"
+            style={{ display: phase === 'form' ? 'block' : 'none' }}
+          >
+            <TenantFormFields form={form} open={open} fieldState={formFields} />
+            <CreateTenantCountryDrivenFields countries={countries} />
+          </div>
         </Form>
       </Modal>
 

@@ -5,10 +5,36 @@ Implication rules: `PermissionImplication` (composites + manage→view + digital
 
 **Source of truth:** `backend/Authorization/AppPermissions.cs`, `RolePermissionMatrix.cs`, `PermissionImplication.cs`  
 **FA mirror:** `frontend-admin/src/shared/auth/permissionImplication.ts` (+ `hasPermission` uses implication)  
-**Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
-**Last updated:** 2026-07-21
+**Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
+**Last updated:** 2026-10-03
 
 Legend: ✅ granted by default · ❌ not granted · *(via implication)* satisfied without an explicit matrix row.
+
+---
+
+## Fiskaly operations
+
+FA signing test UI: `/admin/tse/fiskaly/test` (`system.critical`). Receipt/batch APIs: `POST /api/admin/fiskaly/receipt/*`. Tenant isolation: Manager uses ambient JWT tenant (other tenant’s cash register → HTTP **404**). Missing permission → HTTP **403**. SuperAdmin compact JWT (`system.critical`) satisfies every key.
+
+FON/SCU/cash-register **initialize** stays SuperAdmin (`fiskaly.operations.config`). The tenant Fiskaly enable overlay (`POST /api/admin/fiskaly/settings`) remains `cash_register.manage`.
+
+No EF migration: keys are catalog/JWT (`RolePermissionMatrix`). Existing sessions pick up new Manager claims on the next login.
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `fiskaly.operations.view` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.normal` | ✅ | ✅ (own tenant; TEST only) | ❌ |
+| `fiskaly.operations.cancel` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.nullbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.startbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.monatsbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.jahresbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.schlussbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.tagesabschluss` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.dep-export` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.config` | ✅ | ❌ | ❌ |
+
+Each operation key (and `dep-export` / `config`) implies `fiskaly.operations.view`.
 
 ---
 
@@ -36,6 +62,18 @@ Notes:
 - Explicit Manager matrix rows for `digital.view` / `preview` / `request` / `digital.orders.view` were removed (2026-07-21); authorization still succeeds via implication.
 - Legacy keys (`digital.web.*`, `digital.app.*`) remain in the catalog; prefer the simplified `digital.*` surface. Super Admin gets them via the full catalog / `digital.manage`.
 - **Cashier / Waiter / Kitchen / Accountant / ReportViewer:** no `digital.*` / `digital.orders.*` by default.
+
+---
+
+## Online payments (POS gateway intents)
+
+Not website **online orders**. Super Admin FA console for `gateway_payment_intents` and synthetic test webhooks. See [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md).
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `online-payments.manage` | ✅ | ❌ | ❌ |
+
+POS cashiers use `payment.take` / `payment.view` on `/api/pos/payment/initiate*` — not this admin key.
 
 ---
 
@@ -114,6 +152,23 @@ Live gate is **`backup.manage`**. `settings.backup` is a composite child of `set
 | `settings.manage` | `settings.backup`, `backup.manage`, `website.manage` (+ `settings.view`) |
 
 `PermissionClaimHelper` and `RolePermissionMatrix.RoleHasPermission` use `PermissionImplication.IsSatisfied` (aligned with `PermissionAuthorizationHandler`).
+
+---
+
+## Vertical profile actions
+
+Profile-specific back-office keys. SuperAdmin receives them through the full catalog (`PermissionCatalog.All`); `system.critical` still satisfies every key. Manager holds view and manage explicitly. Cashier, Waiter, Kitchen, Accountant, and ReportViewer do not. A Cashier can receive a key only through a user or custom-role override.
+
+`*.manage` implies the matching `*.view`.
+
+| Permission | Profile | SuperAdmin | Manager | Cashier |
+|------------|---------|------------|---------|---------|
+| `room.view` / `room.manage` | beherbergung | ✅ | ✅ | ❌ |
+| `ticket.view` / `ticket.manage` | ticket-sales | ✅ | ✅ | ❌ |
+| `appointment.view` / `appointment.manage` | hair-salon | ✅ | ✅ | ❌ |
+| `patient.view` / `patient.manage` | vet | ✅ | ✅ | ❌ |
+| `imei.view` / `imei.manage` | handy-shop | ✅ | ✅ | ❌ |
+| `taxi.trip.view` / `taxi.trip.manage` | taxi | ✅ | ✅ | ❌ |
 
 ---
 

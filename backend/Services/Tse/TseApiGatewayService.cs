@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -17,6 +18,7 @@ public sealed class TseApiGatewayService : ITseApiGatewayService
     private readonly ITseProviderFactory _providers;
     private readonly ITseGatewayMetricsStore _metrics;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly IOptions<FiskalyOptions> _fiskalyOptions;
     private readonly ILogger<TseApiGatewayService> _logger;
 
     public TseApiGatewayService(
@@ -24,12 +26,14 @@ public sealed class TseApiGatewayService : ITseApiGatewayService
         ITseProviderFactory providers,
         ITseGatewayMetricsStore metrics,
         IOptionsMonitor<TseOptions> tseOptions,
+        IOptions<FiskalyOptions> fiskalyOptions,
         ILogger<TseApiGatewayService> logger)
     {
         _db = db;
         _providers = providers;
         _metrics = metrics;
         _tseOptions = tseOptions;
+        _fiskalyOptions = fiskalyOptions;
         _logger = logger;
     }
 
@@ -381,7 +385,11 @@ public sealed class TseApiGatewayService : ITseApiGatewayService
 
         return provider switch
         {
-            TseOptions.ProviderFiskaly => "https://kassensichv.io/api/v1",
+            // Legacy SIGN DE v1 address removed. This gateway is for AT RKSV
+            // health probes only; DE health uses KassenSicherheitOptions.
+            TseOptions.ProviderFiskaly => string.IsNullOrWhiteSpace(_fiskalyOptions.Value.BaseUrl)
+                ? new FiskalyOptions().BaseUrl
+                : _fiskalyOptions.Value.BaseUrl.Trim(),
             TseOptions.ProviderEpson => "https://epson-tse.local/",
             TseOptions.ProviderSwissbit => "https://swissbit-tse.local/",
             TseOptions.ProviderFake => "local://fake-tse",

@@ -14,19 +14,19 @@ export type BackupRunStatusUiKey =
 
 export function resolveBackupRunStatusUiKey(status: number | undefined): BackupRunStatusUiKey {
   switch (status) {
-    case BackupRunStatus.NUMBER_0:
+    case BackupRunStatus.Queued:
       return 'queued';
-    case BackupRunStatus.NUMBER_1:
+    case BackupRunStatus.Running:
       return 'running';
-    case BackupRunStatus.NUMBER_2:
+    case BackupRunStatus.AwaitingVerification:
       return 'awaitingVerification';
-    case BackupRunStatus.NUMBER_3:
+    case BackupRunStatus.Succeeded:
       return 'succeeded';
-    case BackupRunStatus.NUMBER_4:
+    case BackupRunStatus.Failed:
       return 'failed';
-    case BackupRunStatus.NUMBER_5:
+    case BackupRunStatus.VerificationFailed:
       return 'verificationFailed';
-    case BackupRunStatus.NUMBER_6:
+    case BackupRunStatus.Cancelled:
       return 'cancelled';
     default:
       return 'unknown';
@@ -75,7 +75,7 @@ export function resolveBackupRunSizeLabel(
 }
 
 export function isBackupRunFailed(status: number | undefined): boolean {
-  return status === BackupRunStatus.NUMBER_4 || status === BackupRunStatus.NUMBER_5;
+  return status === BackupRunStatus.Failed || status === BackupRunStatus.VerificationFailed;
 }
 
 export function compareBackupRunsByRequestedAtDesc(

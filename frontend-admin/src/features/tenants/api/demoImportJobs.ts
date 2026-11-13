@@ -2,11 +2,11 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  type IRetryPolicy,
   LogLevel,
 } from '@microsoft/signalr';
 
 import type { DemoImportRequest, DemoProductImportResult } from '@/api/admin/products';
-import { authStorage } from '@/features/auth/services/authStorage';
 import { customInstance } from '@/lib/axios';
 
 export type DemoImportJobStatus = 'Queued' | 'Running' | 'Completed' | 'Failed' | 'Cancelled';
@@ -129,6 +129,20 @@ export type DemoImportProgressCallbacks = {
 
 const POLL_INTERVAL_MS = 400;
 const TERMINAL: DemoImportJobStatus[] = ['Completed', 'Failed', 'Cancelled'];
+const DEMO_IMPORT_RECONNECT_DELAYS_MS = [0, 2000, 5000, 10_000, 20_000, 30_000];
+const DEMO_IMPORT_RECONNECT_MAX_ELAPSED_MS = 120_000;
+
+export const demoImportReconnectPolicy: IRetryPolicy = {
+  nextRetryDelayInMilliseconds(retryContext) {
+    if (retryContext.elapsedMilliseconds >= DEMO_IMPORT_RECONNECT_MAX_ELAPSED_MS) {
+      return null;
+    }
+    if (retryContext.previousRetryCount >= DEMO_IMPORT_RECONNECT_DELAYS_MS.length) {
+      return null;
+    }
+    return DEMO_IMPORT_RECONNECT_DELAYS_MS[retryContext.previousRetryCount] ?? null;
+  },
+};
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -181,31 +195,28 @@ export async function runDemoImportWithProgress(
 ): Promise<DemoImportProgress> {
   const started = await startDemoImportJob(request, tenantId);
   const jobId = started.jobId;
-  const token = authStorage.getToken();
 
   let connection: HubConnection | null = null;
 
-  if (token) {
-    try {
-      const hubUrl = `${getApiBaseUrl()}/hubs/demo-import-progress`;
-      connection = new HubConnectionBuilder()
-        .withUrl(hubUrl, { accessTokenFactory: () => token })
-        .withAutomaticReconnect()
-        .configureLogging(LogLevel.Warning)
-        .build();
+  try {
+    const hubUrl = `${getApiBaseUrl()}/hubs/demo-import-progress`;
+    connection = new HubConnectionBuilder()
+      .withUrl(hubUrl, { withCredentials: true })
+      .withAutomaticReconnect(demoImportReconnectPolicy)
+      .configureLogging(LogLevel.Warning)
+      .build();
 
-      await connection.start();
-      await connection.invoke('SubscribeToJob', jobId);
-    } catch {
-      if (connection) {
-        try {
-          await connection.stop();
-        } catch {
-          // ignore
-        }
+    await connection.start();
+    await connection.invoke('SubscribeToJob', jobId);
+  } catch {
+    if (connection) {
+      try {
+        await connection.stop();
+      } catch {
+        // ignore
       }
-      connection = null;
     }
+    connection = null;
   }
 
   try {

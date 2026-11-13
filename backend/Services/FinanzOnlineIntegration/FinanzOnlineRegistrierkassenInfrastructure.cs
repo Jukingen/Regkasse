@@ -32,15 +32,18 @@ public sealed class TestModeFinanzOnlineRegistrierkassenClient : IFinanzOnlineRe
     private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _options;
     private readonly IFinanzOnlineRegistrierkassenTransport _transport;
     private readonly ILogger<TestModeFinanzOnlineRegistrierkassenClient> _logger;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public TestModeFinanzOnlineRegistrierkassenClient(
         IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> options,
         IFinanzOnlineRegistrierkassenTransport transport,
-        ILogger<TestModeFinanzOnlineRegistrierkassenClient> logger)
+        ILogger<TestModeFinanzOnlineRegistrierkassenClient> logger,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _options = options;
         _transport = transport;
         _logger = logger;
+        _runtime = runtime;
     }
 
     public async Task<FinanzOnlineRegisterSubmissionResponse> SubmitAsync(
@@ -61,7 +64,7 @@ public sealed class TestModeFinanzOnlineRegistrierkassenClient : IFinanzOnlineRe
             };
         }
 
-        var options = _options.CurrentValue;
+        var options = _runtime?.Registrierkassen ?? _options.CurrentValue;
         if (!options.EnableRealTestSubmission)
         {
             return new FinanzOnlineRegisterSubmissionResponse

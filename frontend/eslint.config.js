@@ -21,6 +21,9 @@ module.exports = defineConfig([
     '**/ios/**',
     '**/backup/**',
     '**/coverage/**',
+    'e2e/**',
+    'playwright-report/**',
+    'test-results/**',
     '**/*.tsbuildinfo',
     // Intentionally excluded from tsconfig — typed lint cannot project-service them
     'examples/**',
@@ -32,6 +35,7 @@ module.exports = defineConfig([
     'hooks/useEnhancedTaskMaster.ts',
     'services/EnhancedTaskMasterService.ts',
     'services/TaskMasterService.ts',
+    'services/SimpleTaskMasterService.ts',
   ]),
 
   universeNative,
@@ -56,6 +60,7 @@ module.exports = defineConfig([
       'metro.config.js',
       'jest.config.js',
       'jest.setup.ts',
+      'app.config.js',
       'prettier.config.*',
       'scripts/**/*.{js,cjs,mjs,ts}',
     ],
@@ -93,6 +98,19 @@ module.exports = defineConfig([
           ],
         },
       ],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    files: ['utils/loggingUtils.ts', 'utils/debugPosPaymentTrace.ts', 'lib/logger.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    files: ['scripts/**/*.{js,cjs,mjs,ts}'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ]);

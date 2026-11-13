@@ -12,6 +12,11 @@
     "description": "Bazı işlemler geçici olarak devre dışı. Verileri görüntüleyebilirsiniz ancak değiştiremezsiniz.",
     "disabledTooltip": "Bakım sırasında devre dışı"
   },
+  "superAdmin": {
+    "bannerTitle": "Bakım modu aktif",
+    "bannerDescription": "Sistem bakımda. Süper Yönetici olarak çalışmaya devam edebilirsiniz."
+  },
+
   "manage": {
     "pageTitle": "Sistem bakımı",
     "pageSubtitle": "Platform genelinde bakım pencerelerini başlatın ve bitirin. Aktifken sistem sınırlı (çoğunlukla salt okunur) modda çalışır: Süper Admin dışındaki kullanıcılar için POS ödemeleri ve yazma API’leri engellenir.",
@@ -34,6 +39,12 @@
     "formMessage": "Mesaj (isteğe bağlı)",
     "formEnd": "Planlanan bitiş",
     "emptyNotifications": "Bildirim yok",
+    "cacheCardTitle": "Uygulama önbelleği",
+    "cacheCardHint": "Sorun giderme için lisans/ürün önbelleğini manuel temizleyin. Uygulamayı yeniden başlatmaz.",
+    "clearCacheAction": "Önbelleği temizle",
+    "clearCacheConfirmTitle": "Tüm uygulama önbelleği temizlensin mi?",
+    "clearCacheConfirmBody": "İzlenen tüm önbellek kayıtları (lisans durumu, ürün listeleri vb.) silinir. Sonraki istekler veritabanından yeniden yükler.",
+    "clearCacheSuccess": "Önbellek temizlendi",
     "columns": {
       "title": "Başlık",
       "status": "Durum",

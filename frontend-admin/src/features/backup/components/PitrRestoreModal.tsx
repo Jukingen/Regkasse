@@ -150,6 +150,7 @@ export function PitrRestoreModal({
   const recoveryMethodLabel = (method: string | null | undefined) => {
     if (method === 'PITR') return t('backupDr.pitr.recoveryMethodPitr');
     if (method === 'FullBackupOnly') return t('backupDr.pitr.recoveryMethodFullBackup');
+    if (method === 'FullPlusIncremental') return t('backupDr.pitr.recoveryMethodFullPlusIncremental');
     return '—';
   };
 

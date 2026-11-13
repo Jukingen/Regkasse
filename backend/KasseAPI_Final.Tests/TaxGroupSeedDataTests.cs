@@ -13,7 +13,7 @@ public sealed class TaxGroupSeedDataTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"tax_group_seed_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class TaxGroupSeedDataTests
     public async Task SeedSystemTaxGroupsAsync_CreatesFiveGroupsOnEmptyDatabase()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         await db.SaveChangesAsync();
 
@@ -58,7 +58,7 @@ public sealed class TaxGroupSeedDataTests
     public async Task SeedSystemTaxGroupsAsync_IsIdempotentWhenGroupsAlreadyExist()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         await db.SaveChangesAsync();
 

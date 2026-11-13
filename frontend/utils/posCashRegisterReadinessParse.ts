@@ -9,6 +9,12 @@ export type PosCashRegisterContextDto = {
   autoOpened?: boolean;
   nextAction?: string;
   messageCode?: string;
+  monatsbelegBlockingMode?: string | null;
+  monatsbelegWarningLevel?: string | null;
+  monatsbelegSalesBlocked?: boolean;
+  monatsbelegCanContinueWithWarning?: boolean;
+  monatsbelegViennaDayOfMonth?: number | null;
+  monatsbelegWarningMessageDe?: string | null;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -38,5 +44,35 @@ export function parsePosCashRegisterContextDto(body: unknown): PosCashRegisterCo
     autoOpened: Boolean(body.autoOpened ?? body.AutoOpened),
     nextAction: pickString(body, 'nextAction', 'NextAction') ?? 'none',
     messageCode: pickString(body, 'messageCode', 'MessageCode') ?? '',
+    monatsbelegBlockingMode: pickString(body, 'monatsbelegBlockingMode', 'MonatsbelegBlockingMode'),
+    monatsbelegWarningLevel: pickString(body, 'monatsbelegWarningLevel', 'MonatsbelegWarningLevel'),
+    monatsbelegSalesBlocked: Boolean(body.monatsbelegSalesBlocked ?? body.MonatsbelegSalesBlocked),
+    monatsbelegCanContinueWithWarning: Boolean(
+      body.monatsbelegCanContinueWithWarning ?? body.MonatsbelegCanContinueWithWarning
+    ),
+    monatsbelegViennaDayOfMonth: pickNumber(
+      body,
+      'monatsbelegViennaDayOfMonth',
+      'MonatsbelegViennaDayOfMonth'
+    ),
+    monatsbelegWarningMessageDe: pickString(
+      body,
+      'monatsbelegWarningMessageDe',
+      'MonatsbelegWarningMessageDe'
+    ),
   };
+}
+
+function pickNumber(
+  r: Record<string, unknown>,
+  camel: string,
+  pascal: string
+): number | null {
+  const v = r[camel] ?? r[pascal];
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim()) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }

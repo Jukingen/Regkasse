@@ -116,7 +116,7 @@ function buildSecurityHeaders() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local'],
+  allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local', '127.0.0.1', 'localhost'],
   transpilePackages: [
     'antd',
     '@ant-design/icons',
@@ -145,12 +145,51 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.regkasse.at', pathname: '/**' },
     ],
   },
-  turbopack: {
-    root: path.join(__dirname, '..'),
+  // Bundler: webpack only (package.json `dev`/`build` use `--webpack`).
+  // Next.js 16 defaults to Turbopack; we opt out — monorepo + Turbopack caused
+  // Windows RAM exhaustion (thousands of `.next/dev/build` workers). Do not
+  // re-add a `turbopack` config block unless intentionally re-enabling Turbopack
+  // (`npm run dev:turbo` is the opt-in escape hatch).
+  // Silence multi-lockfile root inference (repo root + frontend-admin lockfile).
+  outputFileTracingRoot: path.join(__dirname, '..'),
+  // Dev RAM: drop unused pages quickly on high-core Windows hosts.
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
   experimental: {
     // Tree-shake heavy icon/component barrels.
     optimizePackageImports: ['antd', '@ant-design/icons'],
+    // Cap webpack workers. Default scales with CPU count (e.g. 24 threads on
+    // i7-13700K) and can exhaust 32 GB RAM during `next dev`. Production
+    // `next build` stays correct; compile is slightly slower locally.
+    cpus: 2,
+    webpackMemoryOptimizations: true,
+    // Keep compilation off the main process if a custom webpack() hook is set.
+    webpackBuildWorker: true,
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.parallelism = 2;
+      // Persist webpack's module graph across restarts. A 2 GB heap OOM or a
+      // wiped `.next/dev` cache forces a full recompile; browsers then see
+      // HMR/chunk timeouts as "network errors". Merge so Next's cache
+      // versioning / maxMemoryGenerations stay intact.
+      const prevCache = config.cache && typeof config.cache === 'object' ? config.cache : {};
+      const prevBuildDeps =
+        prevCache.buildDependencies && typeof prevCache.buildDependencies === 'object'
+          ? prevCache.buildDependencies
+          : {};
+      config.cache = {
+        ...prevCache,
+        type: 'filesystem',
+        buildDependencies: {
+          ...prevBuildDeps,
+          config: [fileURLToPath(import.meta.url)],
+        },
+      };
+    }
+    return config;
   },
   async headers() {
     return [
@@ -231,6 +270,11 @@ const nextConfig = {
         destination: '/rksv/sonderbelege?focus=test-helper',
         permanent: false,
       },
+      {
+        source: '/admin/fiskaly/operations',
+        destination: '/admin/tse/fiskaly/test',
+        permanent: false,
+      },
     ];
   },
 };
@@ -238,10 +282,12 @@ const nextConfig = {
 const analyzedConfig = withBundleAnalyzer(nextConfig);
 
 /**
- * Wrap with Sentry build tooling when a DSN is present.
+ * Wrap with Sentry build tooling only for production builds.
+ * `next dev` skips the webpack plugin (source-map upload / extra workers).
+ * Runtime SDK (`instrumentation.ts`) is unchanged.
  * Source-map upload runs only when `SENTRY_AUTH_TOKEN` (+ org/project) is set.
  */
-export default withSentryConfig(analyzedConfig, {
+const sentryBuildOptions = {
   org: process.env.SENTRY_ORG || undefined,
   project: process.env.SENTRY_PROJECT || undefined,
   authToken: process.env.SENTRY_AUTH_TOKEN || undefined,
@@ -254,4 +300,8 @@ export default withSentryConfig(analyzedConfig, {
   },
   // Same-origin tunnel reduces ad-blocker drops for event ingest.
   tunnelRoute: sentryDsnConfigured ? '/monitoring-tunnel' : undefined,
-});
+};
+
+export default isProd
+  ? withSentryConfig(analyzedConfig, sentryBuildOptions)
+  : analyzedConfig;

@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu hook, sayfa yenileme (F5) sonrası masa siparişlerini geri yüklemek için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve kullanıcı bazlı veri erişimi sağlar
 // OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
@@ -81,20 +82,20 @@ export const useTableOrdersRecovery = () => {
 
       // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
       if (recoveryState.isInitialized && recoveryState.recoveryData) {
-        console.log('🔄 Table orders already fetched, returning cached data');
+        safeLog('🔄 Table orders already fetched, returning cached data');
         return recoveryState.recoveryData;
       }
 
       // OPTIMIZATION: Eğer fetch işlemi devam ediyorsa, duplicate call'ı önle
       if (recoveryState.isLoading) {
-        console.log('🔄 Table orders fetch already in progress, preventing duplicate call');
+        safeLog('🔄 Table orders fetch already in progress, preventing duplicate call');
         return null;
       }
 
       setRecoveryState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        console.log('🔄 Fetching table orders for recovery...');
+        safeLog('🔄 Fetching table orders for recovery...');
 
         const response = await apiClient.get('/pos/cart/table-orders-recovery');
 
@@ -106,7 +107,7 @@ export const useTableOrdersRecovery = () => {
         const recoveryData = response as TableOrdersRecoveryData;
 
         if (recoveryData.success) {
-          console.log(
+          safeLog(
             `✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`
           );
 
@@ -145,7 +146,7 @@ export const useTableOrdersRecovery = () => {
   const refreshTableOrders = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
     if (!user) return null;
 
-    console.log('🔄 Manual refresh of table orders...');
+    safeLog('🔄 Manual refresh of table orders...');
 
     // Reset initialization flag to force fresh fetch
     setRecoveryState((prev) => ({ ...prev, isInitialized: false }));
@@ -200,14 +201,14 @@ export const useTableOrdersRecovery = () => {
     const performRecovery = async () => {
       // Sadece user varsa ve henüz initialize edilmemişse çalış
       if (!user || recoveryState.isInitialized) {
-        console.log('🔄 Recovery skipped:', {
+        safeLog('🔄 Recovery skipped:', {
           hasUser: !!user,
           isInitialized: recoveryState.isInitialized,
         });
         return;
       }
 
-      console.log('🔄 Starting table orders recovery from backend...');
+      safeLog('🔄 Starting table orders recovery from backend...');
       // Direkt backend'den en güncel data'yı al
       await fetchTableOrdersRecovery();
     };

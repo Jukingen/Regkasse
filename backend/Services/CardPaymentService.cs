@@ -7,6 +7,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -46,6 +47,14 @@ public interface ICardPaymentService
         CancellationToken cancellationToken = default);
 
     Task LinkToPaymentAsync(Guid intentId, Guid paymentDetailsId, CancellationToken cancellationToken = default);
+
+    /// <summary>Refunds the linked acquirer intent before a fiscal refund/storno row is written.</summary>
+    Task<(bool Ok, string? ErrorCode, string? ErrorMessage)> RefundForFiscalPaymentAsync(
+        Guid paymentDetailsId,
+        decimal amount,
+        CancellationToken cancellationToken = default);
+
+    Task<int> VoidExpiredOrphanIntentsAsync(TimeSpan olderThan, CancellationToken cancellationToken = default);
 }
 
 public sealed class CardPaymentService : ICardPaymentService
@@ -94,6 +103,22 @@ public sealed class CardPaymentService : ICardPaymentService
             return (null, registerValidation.Code ?? "CARD_INTENT_INVALID_REGISTER", registerValidation.Message);
 
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var idempotencyKey = ResolveIdempotencyKey(request.IdempotencyKey);
+        var returnUrl = string.IsNullOrWhiteSpace(request.ReturnUrl)
+            ? PaymentReturnUrls.ResolveDefault(_httpContextAccessor.HttpContext)
+            : request.ReturnUrl.Trim();
+        if (idempotencyKey != null)
+        {
+            var existing = await _context.CardPaymentTransactions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    c => c.TenantId == tenantId && c.IdempotencyKey == idempotencyKey,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (existing != null)
+                return (MapResponse(existing), null, null);
+        }
+
         var intentId = Guid.NewGuid();
 
         var gatewayRequest = new CreatePaymentIntentRequest
@@ -102,6 +127,7 @@ public sealed class CardPaymentService : ICardPaymentService
             Amount = request.Amount,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "EUR" : request.Currency.Trim().ToUpperInvariant(),
             Description = request.Description,
+            ReturnUrl = returnUrl,
             Metadata = request.Metadata ?? new Dictionary<string, string>()
         };
 
@@ -133,11 +159,34 @@ public sealed class CardPaymentService : ICardPaymentService
             Status = CardPaymentTransactionStatuses.FromPaymentIntentStatus(gatewayResult.Status),
             CreatedByUserId = userId,
             Description = request.Description,
+            IdempotencyKey = idempotencyKey,
+            ReturnUrl = returnUrl,
+            RedirectUrl = gatewayResult.RedirectUrl,
+            MethodCode = string.IsNullOrWhiteSpace(request.MethodCode)
+                ? OnlinePaymentMethods.Card
+                : request.MethodCode.Trim(),
+            CaptureMode = string.IsNullOrWhiteSpace(request.CaptureMode) ? "automatic" : request.CaptureMode.Trim(),
+            CartSnapshotId = request.CartSnapshotId,
+            ExpiresAtUtc = DateTime.UtcNow.AddHours(24),
             MetadataJson = JsonSerializer.Serialize(request.Metadata ?? new Dictionary<string, string>())
         };
 
         _context.CardPaymentTransactions.Add(row);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex) when (IsIdempotencyKeyViolation(ex) && idempotencyKey != null)
+        {
+            var raced = await _context.CardPaymentTransactions.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    c => c.TenantId == tenantId && c.IdempotencyKey == idempotencyKey,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (raced != null)
+                return (MapResponse(raced), null, null);
+            throw;
+        }
 
         return (MapResponse(row), null, null);
     }
@@ -167,7 +216,9 @@ public sealed class CardPaymentService : ICardPaymentService
                 Currency = "EUR",
                 CashRegisterId = request.CashRegisterId,
                 Description = description,
-                Metadata = metadata
+                Metadata = metadata,
+                IdempotencyKey = request.IdempotencyKey,
+                ReturnUrl = request.ReturnUrl
             },
             userId,
             cancellationToken).ConfigureAwait(false);
@@ -292,26 +343,29 @@ public sealed class CardPaymentService : ICardPaymentService
             .FirstOrDefaultAsync(c => c.Id == intentId, cancellationToken)
             .ConfigureAwait(false);
 
-        if (row == null)
-            return (false, null, "CARD_INTENT_NOT_FOUND", "Card payment intent not found.");
+        if (row != null)
+        {
+            if (row.Status != CardPaymentTransactionStatuses.Succeeded)
+                return (false, row, "CARD_INTENT_NOT_CONFIRMED", "Card payment intent is not confirmed.");
 
-        if (row.Status != CardPaymentTransactionStatuses.Succeeded)
-            return (false, row, "CARD_INTENT_NOT_CONFIRMED", "Card payment intent is not confirmed.");
+            if (row.PaymentId.HasValue)
+                return (false, row, "CARD_INTENT_ALREADY_USED", "Card payment intent was already linked to a fiscal payment.");
 
-        if (row.PaymentId.HasValue)
-            return (false, row, "CARD_INTENT_ALREADY_USED", "Card payment intent was already linked to a fiscal payment.");
+            if (row.CashRegisterId != cashRegisterId)
+                return (false, row, "CARD_INTENT_REGISTER_MISMATCH", "Card payment intent cash register mismatch.");
 
-        if (row.CashRegisterId != cashRegisterId)
-            return (false, row, "CARD_INTENT_REGISTER_MISMATCH", "Card payment intent cash register mismatch.");
+            if (Math.Abs(row.Amount - expectedAmount) > 0.01m)
+                return (false, row, "CARD_INTENT_AMOUNT_MISMATCH", "Card payment intent amount does not match the settlement remainder.");
 
-        if (Math.Abs(row.Amount - expectedAmount) > 0.01m)
-            return (false, row, "CARD_INTENT_AMOUNT_MISMATCH", "Card payment intent amount does not match sale total.");
+            return (true, row, null, null);
+        }
 
-        return (true, row, null, null);
+        return (false, null, "CARD_INTENT_NOT_FOUND", "Card payment intent not found.");
     }
 
     public async Task LinkToPaymentAsync(Guid intentId, Guid paymentDetailsId, CancellationToken cancellationToken = default)
     {
+        var now = DateTime.UtcNow;
         var row = await _context.CardPaymentTransactions
             .FirstOrDefaultAsync(c => c.Id == intentId, cancellationToken)
             .ConfigureAwait(false);
@@ -319,8 +373,131 @@ public sealed class CardPaymentService : ICardPaymentService
             return;
 
         row.PaymentId = paymentDetailsId;
+        row.UpdatedAt = now;
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<(bool Ok, string? ErrorCode, string? ErrorMessage)> RefundForFiscalPaymentAsync(
+        Guid paymentDetailsId,
+        decimal amount,
+        CancellationToken cancellationToken = default)
+    {
+        var row = await _context.CardPaymentTransactions
+            .FirstOrDefaultAsync(c => c.PaymentId == paymentDetailsId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (row == null)
+            return (true, null, null);
+
+        if (row.Status == CardPaymentTransactionStatuses.Refunded)
+            return (true, null, null);
+
+        if (string.IsNullOrWhiteSpace(row.GatewayPaymentIntentId))
+            return (false, "GATEWAY_REFUND_FAILED", "Linked gateway intent has no provider payment id.");
+
+        var alreadyRefunded = row.RefundedAmount ?? 0m;
+        var remaining = decimal.Round(row.Amount - alreadyRefunded, 2, MidpointRounding.AwayFromZero);
+        var refundAmount = decimal.Round(Math.Min(amount, remaining), 2, MidpointRounding.AwayFromZero);
+        if (refundAmount <= 0m)
+            return (true, null, null);
+
+        RefundResult gatewayResult;
+        try
+        {
+            gatewayResult = await _gateway.RefundTransactionAsync(row.GatewayPaymentIntentId, refundAmount, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Card gateway refund failed for payment {PaymentId}", paymentDetailsId);
+            return (false, "GATEWAY_REFUND_FAILED", "Card payment gateway refund is unavailable.");
+        }
+
+        if (!gatewayResult.Success)
+            return (false, "GATEWAY_REFUND_FAILED", gatewayResult.ErrorMessage ?? "Gateway refund failed.");
+
+        row.Status = CardPaymentTransactionStatuses.Refunded;
+        row.RefundedAmount = alreadyRefunded + refundAmount;
+        row.RefundedAtUtc = DateTime.UtcNow;
         row.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return (true, null, null);
+    }
+
+    public async Task<int> VoidExpiredOrphanIntentsAsync(TimeSpan olderThan, CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateTime.UtcNow - olderThan;
+        var orphans = await _context.CardPaymentTransactions
+            .IgnoreQueryFilters()
+            .Where(c =>
+                c.Status == CardPaymentTransactionStatuses.Succeeded
+                && c.PaymentId == null
+                && c.CreatedAt <= cutoff)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var voided = 0;
+        foreach (var row in orphans)
+        {
+            if (string.IsNullOrWhiteSpace(row.GatewayPaymentIntentId))
+                continue;
+
+            try
+            {
+                var refund = await _gateway.RefundTransactionAsync(row.GatewayPaymentIntentId, row.Amount, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!refund.Success)
+                {
+                    _logger.LogWarning(
+                        "Orphan intent {IntentId} gateway void failed: {Error}",
+                        row.Id,
+                        refund.ErrorMessage);
+                    continue;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Orphan intent {IntentId} gateway void threw", row.Id);
+                continue;
+            }
+
+            row.Status = CardPaymentTransactionStatuses.Refunded;
+            row.RefundedAmount = row.Amount;
+            row.RefundedAtUtc = DateTime.UtcNow;
+            row.UpdatedAt = DateTime.UtcNow;
+            voided++;
+        }
+
+        if (voided > 0)
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return voided;
+    }
+
+    private string? ResolveIdempotencyKey(string? requestKey)
+    {
+        var fromRequest = string.IsNullOrWhiteSpace(requestKey) ? null : requestKey.Trim();
+        if (fromRequest != null)
+            return fromRequest.Length > 64 ? fromRequest[..64] : fromRequest;
+
+        var header = _httpContextAccessor.HttpContext?.Request.Headers["Idempotency-Key"].ToString();
+        if (string.IsNullOrWhiteSpace(header))
+            header = _httpContextAccessor.HttpContext?.Request.Headers["Request-Id"].ToString();
+        if (string.IsNullOrWhiteSpace(header))
+            return null;
+        var trimmed = header.Trim();
+        return trimmed.Length > 64 ? trimmed[..64] : trimmed;
+    }
+
+    private static bool IsIdempotencyKeyViolation(DbUpdateException ex)
+    {
+        for (Exception? e = ex; e != null; e = e.InnerException)
+        {
+            if (e is PostgresException pg && pg.SqlState == "23505" &&
+                (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
+                return true;
+        }
+        return false;
     }
 
     private async Task<Guid?> ResolveIntentIdAsync(string paymentIntentId, CancellationToken cancellationToken)

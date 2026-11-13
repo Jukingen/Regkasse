@@ -36,7 +36,7 @@ import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import { copyTextToClipboard } from '@/lib/clipboard';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 
 export type MonatsbelegTimelineMonth = {
   month: number;
@@ -75,6 +75,7 @@ export function MonatsbelegTimeline({
   onCreateLate,
 }: MonatsbelegTimelineProps) {
   const { t, textLocale } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
   const { modal } = useAntdApp();
   const notify = useNotify();
   const router = useRouter();
@@ -288,7 +289,7 @@ export function MonatsbelegTimeline({
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t('rksvHub.monatsbelegTimeline.summaryRevenue')}>
-                {receiptsQuery.isError ? '—' : formatEUR(revenue)}
+                {receiptsQuery.isError ? '—' : formatCurrency(revenue)}
                 {revenueIncomplete ? (
                   <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
                     {t('rksvHub.monatsbelegTimeline.summaryRevenuePartial')}
@@ -400,7 +401,7 @@ export function MonatsbelegTimeline({
                             {receipt.issuedAt ? formatDateTime(receipt.issuedAt, '') : '—'}
                             {kind ? ` · ${rksvSpecialReceiptKindLabelDe(kind)}` : ''}
                           </Typography.Text>
-                          <Typography.Text>{formatEUR(receipt.grandTotal ?? 0)}</Typography.Text>
+                          <Typography.Text>{formatCurrency(receipt.grandTotal ?? 0)}</Typography.Text>
                         </Space>
                       }
                     />

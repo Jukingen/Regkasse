@@ -5,6 +5,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Options;
 
@@ -13,6 +14,11 @@ namespace KasseAPI_Final.Middleware
     /// <summary>
     /// Adds license visibility headers and enforces deployment + mandant license policy for authenticated traffic.
     /// Runs after <c>UseAuthentication</c> so JWT <c>app_context</c> is available.
+    /// <list type="bullet">
+    /// <item>Super Admin: an active <b>system</b> license is sufficient (either layer unlocks FA).</item>
+    /// <item>Mandanten-Admin (Manager), Cashier, and POS: an active <b>tenant</b> license is required.
+    /// A system/deployment key never unlocks the mandant.</item>
+    /// </list>
     /// Mandant lockdown blocks POS operations (<c>LICENSE_LOCKED</c>); FA renewal paths stay available.
     /// Grace period allows POS with <c>X-License-Grace</c> warning headers.
     /// </summary>
@@ -35,6 +41,7 @@ namespace KasseAPI_Final.Middleware
         public async Task InvokeAsync(
             HttpContext context,
             ILicenseService licenseService,
+            IUnifiedLicenseService unifiedLicenseService,
             DeploymentLicenseValidator deploymentLicenseValidator,
             ICurrentTenantAccessor tenantAccessor,
             IHostEnvironment environment,
@@ -66,96 +73,77 @@ namespace KasseAPI_Final.Middleware
                 return Task.CompletedTask;
             });
 
-            if (!await TryEnforceDeploymentAccessAsync(
-                    context,
-                    deploymentSnapshot,
-                    deploymentLicenseValidator)
-                .ConfigureAwait(false))
+            var path = context.Request.Path.Value ?? string.Empty;
+            var skipTenantLookup = IsTenantLicensePublicPath(path);
+            var tenantId = tenantAccessor.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+            UnifiedLicenseStatusDto? unified = null;
+            if (!skipTenantLookup)
+            {
+                unified = await unifiedLicenseService
+                    .GetUnifiedStatusAsync(tenantId, context.RequestAborted)
+                    .ConfigureAwait(false);
+
+                if (!IsSuperAdmin(context)
+                    && tenantId is not null
+                    && IsPosOperation(context)
+                    && !unified.IsTenantLicense)
+                {
+                    await WriteTenantLockedAsync(context, unified.MandantSnapshot, unified).ConfigureAwait(false);
+                    return;
+                }
+            }
+
+            var skipDeploymentLock = unified is not null && unified.IsTenantLicense;
+            if (!skipDeploymentLock)
+            {
+                if (!await TryEnforceDeploymentAccessAsync(
+                        context,
+                        deploymentSnapshot,
+                        deploymentLicenseValidator)
+                    .ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+
+            if ((unified is null || unified.IsSystemLicense)
+                && !await TryEnforceLicensedFeaturesAsync(context, deploymentSnapshot).ConfigureAwait(false))
             {
                 return;
             }
 
-            if (!await TryEnforceLicensedFeaturesAsync(context, deploymentSnapshot).ConfigureAwait(false))
-                return;
-
-            if (!await TryEnforceTenantMandantAccessAsync(context, licenseService, tenantAccessor)
-                    .ConfigureAwait(false))
+            if (unified?.MandantSnapshot is LicenseStatusInfo mandant)
             {
-                return;
+                var isLocked = mandant.IsLocked || (!mandant.CanAccess && mandant.RequiresRenewal);
+                ApplyMandantLicenseHeaders(context, mandant, mandant.IsInGracePeriod && !isLocked);
             }
 
             await _next(context);
         }
 
-        private static async Task<bool> TryEnforceTenantMandantAccessAsync(
+        /// <summary>
+        /// Combined gate:
+        /// Super Admin may operate when either layer is active (system license is enough);
+        /// Mandanten-Admin / Cashier / POS with a tenant context need an active tenant license
+        /// (a system key does not unlock the mandant);
+        /// platform requests without tenant context need an active system license.
+        /// POS lockdown for an expired mandant is handled separately.
+        /// </summary>
+        public static bool IsLicenseValidForRequest(
             HttpContext context,
-            ILicenseService licenseService,
-            ICurrentTenantAccessor tenantAccessor)
+            UnifiedLicenseStatusDto status,
+            Guid? tenantId)
         {
-            if (OpenApiExportMode.IsEnabled)
-                return true;
-
-            if (tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
-                return true;
-
-            var path = context.Request.Path.Value ?? string.Empty;
-            if (IsTenantLicensePublicPath(path))
-                return true;
-
-            var licenseStatus = await licenseService
-                .GetLicenseStatusAsync(tenantId, context.RequestAborted)
-                .ConfigureAwait(false);
-
-            var isLocked = licenseStatus.IsLocked || (!licenseStatus.CanAccess && licenseStatus.RequiresRenewal);
-            var isGrace = licenseStatus.IsInGracePeriod && !isLocked;
-
-            // SuperAdmin may always operate (unlock / renew / support).
-            if (IsSuperAdmin(context))
-            {
-                ApplyMandantLicenseHeaders(context, licenseStatus, isGrace);
-                return true;
-            }
-
-            // POS operations blocked when mandant license is past grace.
-            if (isLocked && IsPosOperation(context))
-            {
-                var language = context.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
-                    && langObj is string lang
-                    ? lang
-                    : LanguageMiddleware.DefaultLanguage;
-                var message = !string.IsNullOrWhiteSpace(licenseStatus.StatusMessage)
-                    ? licenseStatus.StatusMessage
-                    : ApiMessageCatalog.Get(ApiMessageKeys.LicenseStatusLocked, language);
-
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsJsonAsync(
-                    new
-                    {
-                        success = false,
-                        code = LicenseLockedCode,
-                        message,
-                        messageKey = string.IsNullOrWhiteSpace(licenseStatus.StatusMessageKey)
-                            ? ApiMessageKeys.LicenseStatusLocked
-                            : licenseStatus.StatusMessageKey,
-                        status = StatusCodes.Status403Forbidden,
-                        licenseStatus = new
-                        {
-                            expired = true,
-                            isLocked = true,
-                            isGracePeriod = false,
-                            validUntil = licenseStatus.ValidUntil,
-                            daysOverdue = licenseStatus.DaysOverdue,
-                            lockDate = licenseStatus.LockDate,
-                            restrictions = licenseStatus.Restrictions,
-                        },
-                    },
-                    context.RequestAborted).ConfigureAwait(false);
+            if (status is null || !status.AnyLicenseActive)
                 return false;
-            }
 
-            // Grace period (and FA during lockdown): allow, surface warning headers.
-            ApplyMandantLicenseHeaders(context, licenseStatus, isGrace);
-            return true;
+            if (IsSuperAdmin(context))
+                return true;
+
+            if (tenantId is Guid id && id != Guid.Empty)
+                return status.IsTenantLicense;
+
+            return status.IsSystemLicense;
         }
 
         private static void ApplyMandantLicenseHeaders(
@@ -173,7 +161,6 @@ namespace KasseAPI_Final.Middleware
             if (isGrace)
             {
                 context.Response.Headers[LicenseGraceHeaderName] = "true";
-                // During grace, Days-Remaining means remaining grace days (POS lock countdown).
                 context.Response.Headers[LicenseDaysRemainingHeaderName] =
                     licenseStatus.GracePeriodRemaining.ToString();
             }
@@ -182,6 +169,55 @@ namespace KasseAPI_Final.Middleware
                 context.Response.Headers[LicenseDaysRemainingHeaderName] =
                     licenseStatus.DaysRemaining.ToString();
             }
+        }
+
+        private static async Task WriteTenantLockedAsync(
+            HttpContext context,
+            LicenseStatusInfo? licenseStatus,
+            UnifiedLicenseStatusDto? unified)
+        {
+            var language = context.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
+                && langObj is string lang
+                ? lang
+                : LanguageMiddleware.DefaultLanguage;
+
+            var systemActive = unified?.IsSystemLicense == true;
+            var tenantLocked = unified is null || !unified.IsTenantLicense;
+            var combinedKey = systemActive && tenantLocked
+                ? ApiMessageKeys.LicenseStatusSystemActiveTenantLocked
+                : ApiMessageKeys.LicenseStatusLocked;
+            var message = systemActive && tenantLocked
+                ? ApiMessageCatalog.Get(combinedKey, language)
+                : licenseStatus is not null && !string.IsNullOrWhiteSpace(licenseStatus.StatusMessage)
+                    ? licenseStatus.StatusMessage
+                    : ApiMessageCatalog.Get(ApiMessageKeys.LicenseStatusLocked, language);
+
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(
+                new
+                {
+                    success = false,
+                    code = LicenseLockedCode,
+                    message,
+                    messageKey = combinedKey,
+                    status = StatusCodes.Status403Forbidden,
+                    systemLicense = unified?.SystemLicense,
+                    tenantLicense = unified?.TenantLicense,
+                    combinedStatus = systemActive && tenantLocked
+                        ? "system_active_tenant_locked"
+                        : "tenant_locked",
+                    licenseStatus = new
+                    {
+                        expired = true,
+                        isLocked = true,
+                        isGracePeriod = false,
+                        validUntil = licenseStatus?.ValidUntil,
+                        daysOverdue = licenseStatus?.DaysOverdue ?? 0,
+                        lockDate = licenseStatus?.LockDate,
+                        restrictions = licenseStatus?.Restrictions ?? Array.Empty<string>(),
+                    },
+                },
+                context.RequestAborted).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -360,14 +396,17 @@ namespace KasseAPI_Final.Middleware
         {
             var value = path.Value ?? string.Empty;
             return value.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/validate", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsDeploymentLockdownAllowedPath(PathString path)
         {
             var value = path.Value ?? string.Empty;
             return value.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/validate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/info", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Maps snapshot to the public header token (Valid / Trial / Expired / None).</summary>

@@ -185,18 +185,21 @@ public sealed class AdminExportEmailController : ControllerBase
         var kind = request.SourceKind?.Trim().ToLowerInvariant();
         if ((kind is "dep-export" or "dep-export-live") && request.SourceId is Guid sourceId)
         {
-            var opened = await _depHistory.TryOpenDownloadAsync(sourceId, cancellationToken).ConfigureAwait(false);
-            if (opened is null)
+            var attempt = await _depHistory
+                .TryOpenDownloadAsync(sourceId, tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (attempt.Open is null)
                 throw new FileNotFoundException("DEP export not found.");
 
-            await using var stream = opened.Value.Stream;
+            var open = attempt.Open;
+            await using var stream = open.Stream;
             await using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
             var meta = await _depHistory.GetByIdAsync(sourceId, cancellationToken).ConfigureAwait(false);
             if (meta is null)
                 throw new FileNotFoundException("DEP export not found.");
 
-            return (ms.ToArray(), opened.Value.FileName, opened.Value.ContentType);
+            return (ms.ToArray(), open.FileName, open.ContentType);
         }
 
         throw new ArgumentException(

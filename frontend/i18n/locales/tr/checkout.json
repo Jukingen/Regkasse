@@ -37,7 +37,8 @@
       "clearAll": "Tümünü temizle",
       "a11ySelect": "Masa {{number}}, seç",
       "a11ySelected": "Masa {{number}}, seçili",
-      "a11yClearAll": "Tüm masaları temizle"
+      "a11yClearAll": "Tüm masaları temizle",
+      "loadFailed": "Masalar yüklenemedi. Seçim kullanılabilir kalır."
     },
     "summaryStrip": "Masa {{table}} · {{itemCount}} ürün · TOPLAM {{total}}",
     "personal": {
@@ -76,14 +77,27 @@
       "tableClearFailed": "{{table}} numaralı masa temizlenemedi",
       "tableCleared": "{{table}} numaralı masa temizlendi",
       "tableClearGenericFailed": "Masa temizlenemedi",
-      "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin."
+      "noOpenTables": "Açık masa yok.",
+      "clearAllConfirmTitle": "Tüm masalar temizlensin mi?",
+      "clearAllConfirmMessage": "{{count}} açık masa temizlenecek.",
+      "tablesCleared": "{{count}} masa temizlendi",
+      "tablesClearedPartial": "{{total}} masadan {{cleared}} tanesi temizlendi",
+      "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin.",
+      "noOrderPermission": "Sipariş alma yetkiniz yok"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg {{days}} gün içinde",
       "red": "Monatsbeleg GECİKTİ! Lütfen hemen oluşturun",
       "createNow": "Şimdi oluştur",
       "dismissA11y": "Uyarıyı kapat",
-      "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…"
+      "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…",
+      "missingTitle": "Monatsbeleg eksik",
+      "contactManager": "Yöneticiyi bilgilendir",
+      "continueWithWarning": "Uyarıyla satışı sürdür",
+      "notifySuccess": "Mandanten-Admin bilgilendirildi.",
+      "notifyAlready": "Mandanten-Admin bugün zaten bilgilendirildi.",
+      "notifyFailed": "Bildirim başarısız. Lütfen tekrar deneyin.",
+      "allowedWithWarning": "Lütfen Mandanten-Admin ile iletişime geçin. Satış uyarıyla mümkün. Eksik Monatsbeleg ay başında otomatik oluşturulur."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Cari ay için Monatsbeleg gecikti!",
@@ -145,14 +159,28 @@
       "cash": {
         "receivedLabel": "Alinan tutar",
         "receivedA11y": "Euro cinsinden alinan tutar",
-        "changeLabel": "Para ustu",
-        "placeholder": "0,00"
+        "changeLabel": "Para üstü:",
+        "placeholder": "0,00",
+        "optionalHint": "Istege bagli — tam tutar icin bos birakin",
+        "belowTotalTitle": "Tutar yetersiz",
+        "belowTotalMessage": "Alinan tutar en az {{amount}} olmalidir."
       },
       "remainingAmount": "Kalan tutar",
       "notes": {
         "title": "Notlar",
         "placeholder": "Istege bagli notlar…",
         "a11y": "Istege bagli odeme notlari"
+      },
+      "preorder": {
+        "checkbox": "On siparis (sonra teslim)",
+        "hint": "Musteri simdi oder. Teslim ikinci fis olusturmaz. Acik tutar sonra ayri mali fisle odenir.",
+        "remainingLabel": "Acik tutar (istege bagli)",
+        "remainingHint": "0,00 = tam odeme. Acik tutar sonra ayri mali fis olarak odenir.",
+        "balanceLabel": "Kalan odeme (Besorgerzettel)",
+        "balancePlaceholder": "BS numarasi veya fis numarasi",
+        "balanceFound": "{{number}} — acik {{amount}}",
+        "balanceNotFound": "On siparis bulunamadi.",
+        "balanceZero": "Acik tutar kalmadi."
       },
       "benefits": {
         "previewTitle": "Avantajlar (onizleme)",
@@ -168,13 +196,20 @@
         "scanA11y": "Kupon tara"
       },
       "blockedHints": {
+        "noPaymentPermission": "Ödeme yetkiniz yok",
         "timeSyncCritical": "Sistem saati hatali — odemeler engellendi. Yoneticiye basvurun.",
         "methodsLoading": "Odeme yontemleri yukleniyor…",
         "selectMethod": "Lutfen bir odeme yontemi secin (adim 2).",
         "coverageMissing": "Yetersiz kapsam: kupon + nakit toplama ulasmiyor.",
         "voucherInvalid": "Gecersiz kupon — lutfen kontrol edin ve dogrulayin.",
-        "tseNotReady": "TSE hazir degil — mali odeme mumkun degil.",
-        "voucherOffline": "Kupon cevrimdisi kullanilamaz."
+        "tseNotReady": "TSE kullanılamıyor. Ödeme mümkün değil.",
+        "voucherOffline": "Kupon cevrimdisi kullanilamaz.",
+        "onlinePaymentOffline": "Cevrimici odeme cevrimdisi kullanilamaz."
+      },
+      "tseGate": {
+        "disabled": "TSE devre disi. Odeme yapilamaz.",
+        "notInitialized": "TSE baslatilmadi. Lutfen yoneticinize basvurun.",
+        "unavailable": "TSE kullanılamıyor. Ödeme mümkün değil."
       },
       "timeSync": {
         "banner": "SISTEM SAATI HATALI – odemeler engellendi! Lutfen yoneticiye basvurun",
@@ -209,12 +244,19 @@
       },
       "registerAssignA11y": "Kasa {{register}} ata",
       "methodSelectedA11ySuffix": ", secildi",
-      "offlineQueued": "Odeme cevrimdisi kaydedildi — TSE tekrar cevrimici oldugunda otomatik imzalanir",
-      "tseSimulation": {
-        "title": "TSE simulasyonu",
-        "enabled": "ACIK (bypass)",
-        "disabled": "KAPALI (gercek TSE)"
+      "onlinePayment": {
+        "kreditkarte": "Kredi karti",
+        "paypal": "PayPal",
+        "offlineDisabled": "Cevrimici odeme cevrimdisi kullanilamaz.",
+        "offlineAlertTitle": "Cevrimdisi",
+        "offlineA11ySuffix": ", cevrimdisi kullanilamaz",
+        "awaitingGateway": "Odemeyi tarayicide tamamlayin…",
+        "failed": "Cevrimici odeme basarisiz.",
+        "cancelled": "Cevrimici odeme iptal edildi.",
+        "timeout": "Cevrimici odeme zaman asimina ugradi.",
+        "openFailed": "Odeme sayfasi acilamadi."
       },
+      "offlineQueued": "Odeme cevrimdisi kaydedildi — TSE tekrar cevrimici oldugunda otomatik imzalanir",
       "operatorWarnings": {
         "largeCashTitle": "Uyari",
         "largeCashMessage": "{{threshold}} € ve uzeri nakit — devam etmeden tutari dogrulayin.",
@@ -338,6 +380,17 @@
         "selectOneLine": "En az bir satır seçin.",
         "submitFailed": "İşlem başarısız."
       }
+    }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg eksik",
+      "bodyStrict": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Belge oluşturulana kadar satışlar kapalı.",
+      "bodyGrace": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Satışlar geçici olarak uyarıyla mümkün.",
+      "bodyWarning": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Satışlar uyarıyla mümkün.",
+      "createNow": "Monatsbeleg oluştur",
+      "contactManager": "Yöneticiye bildir",
+      "dismiss": "Kapat"
     }
   }
 }

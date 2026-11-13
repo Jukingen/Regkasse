@@ -78,12 +78,12 @@ public sealed class InvoiceEmailService : IInvoiceEmailService
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Invoice {InvoiceNumber} emailed to {Recipient}.", invoice.InvoiceNumber, to);
+            _logger.LogInformation("Invoice {InvoiceNumber} emailed to {RecipientMasked}.", invoice.InvoiceNumber, EmailLogMask.Mask(to));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Invoice {InvoiceNumber} could not be emailed to {Recipient}.", invoice.InvoiceNumber, to);
+            _logger.LogWarning(ex, "Invoice {InvoiceNumber} could not be emailed to {RecipientMasked}.", invoice.InvoiceNumber, EmailLogMask.Mask(to));
             return false;
         }
 #pragma warning restore SYSLIB0014

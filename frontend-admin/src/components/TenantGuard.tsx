@@ -3,9 +3,10 @@
 import { Alert, Button, Modal, Select, Space, Spin, Typography } from 'antd';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isDevelopment } from '@/features/auth/services/devTenant';
 import {
   isPathAllowedWithoutTenant,
   useSuperAdminTenantMode,
@@ -24,6 +25,9 @@ export type TenantGuardProps = {
  * Blocks mandant-scoped pages until Super Admin selects a tenant.
  * Selection rebinds JWT `tenant_id`, persists slug/id, and reloads so all pages share the context.
  * Platform routes (`/admin/tenants`, `/admin/digital`, …) stay reachable without a mandant.
+ *
+ * Development: auto-selects seeded `dev` (no picker modal) — tenant switcher remains for Super Admin overrides.
+ * Production/Staging: JWT tenant after login; picker only when Super Admin has no mandant context.
  */
 export function TenantGuard({ children }: TenantGuardProps) {
   const pathname = usePathname();
@@ -39,6 +43,8 @@ export function TenantGuard({ children }: TenantGuardProps) {
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [devAutoSelectFailed, setDevAutoSelectFailed] = useState(false);
+  const autoSelectAttemptedRef = useRef(false);
 
   const selectOptions = useMemo(
     () =>
@@ -49,39 +55,78 @@ export function TenantGuard({ children }: TenantGuardProps) {
     [tenants, t]
   );
 
+  const applyTenant = useCallback(
+    async (row: (typeof tenants)[number], options?: { fromDevAutoSelect?: boolean }) => {
+      setSubmitting(true);
+      try {
+        const licenseValidUntilUtc = row.licenseValidUntilUtc ?? null;
+        const licenseValid = Boolean(
+          licenseValidUntilUtc && new Date(licenseValidUntilUtc).getTime() > Date.now()
+        );
+        setTenant({
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+          licenseValid,
+          licenseValidUntilUtc,
+        });
+
+        const tokenOk = await refreshToken(row.id);
+        if (!tokenOk) {
+          message.error(t('adminShell.tenant.devSwitcher.refreshFailed'));
+          setSubmitting(false);
+          if (options?.fromDevAutoSelect) {
+            setDevAutoSelectFailed(true);
+          }
+          return;
+        }
+
+        refresh();
+        await switchDevTenantContext({ slug: row.slug, id: row.id });
+      } catch {
+        message.error(t('adminShell.tenant.guard.applyFailed'));
+        setSubmitting(false);
+        if (options?.fromDevAutoSelect) {
+          setDevAutoSelectFailed(true);
+        }
+      }
+    },
+    [message, refresh, refreshToken, setTenant, t]
+  );
+
   const applySelectedTenant = useCallback(async () => {
     const row = tenants.find((tenant) => tenant.id === selectedTenantId);
     if (!row) {
       return;
     }
+    await applyTenant(row);
+  }, [applyTenant, selectedTenantId, tenants]);
 
-    setSubmitting(true);
-    try {
-      const licenseValidUntilUtc = row.licenseValidUntilUtc ?? null;
-      const licenseValid = Boolean(
-        licenseValidUntilUtc && new Date(licenseValidUntilUtc).getTime() > Date.now()
-      );
-      setTenant({
-        id: row.id,
-        slug: row.slug,
-        name: row.name,
-        licenseValid,
-        licenseValidUntilUtc,
-      });
-
-      const tokenOk = await refreshToken(row.id);
-      if (!tokenOk) {
-        message.error(t('adminShell.tenant.devSwitcher.refreshFailed'));
-        return;
-      }
-
-      refresh();
-      await switchDevTenantContext({ slug: row.slug, id: row.id });
-    } catch {
-      message.error(t('adminShell.tenant.guard.applyFailed'));
-      setSubmitting(false);
+  // In development, auto-select `dev` tenant (skip picker modal).
+  useEffect(() => {
+    if (!isDevelopment() || !needsTenantPicker) {
+      return;
     }
-  }, [message, refresh, refreshToken, selectedTenantId, setTenant, t, tenants]);
+    if (autoSelectAttemptedRef.current || tenantsLoading) {
+      return;
+    }
+    if (tenants.length === 0) {
+      setDevAutoSelectFailed(true);
+      return;
+    }
+
+    const preferred =
+      tenants.find((row) => row.slug === 'dev' && row.isActive) ??
+      tenants.find((row) => row.isActive) ??
+      tenants[0];
+    if (!preferred) {
+      setDevAutoSelectFailed(true);
+      return;
+    }
+
+    autoSelectAttemptedRef.current = true;
+    void applyTenant(preferred, { fromDevAutoSelect: true });
+  }, [applyTenant, needsTenantPicker, tenants, tenantsLoading]);
 
   if (!requiresTenantSelection) {
     return <>{children}</>;
@@ -89,6 +134,16 @@ export function TenantGuard({ children }: TenantGuardProps) {
 
   if (isPathAllowedWithoutTenant(pathname)) {
     return <>{children}</>;
+  }
+
+  // Development: auto-select in flight — show a light spinner instead of the picker.
+  // Fall back to the picker if the list is empty or auto-select failed.
+  if (isDevelopment() && !devAutoSelectFailed && (tenantsLoading || tenants.length > 0)) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+        <Spin description={t('adminShell.tenant.guard.devAutoSelecting')} />
+      </div>
+    );
   }
 
   return (

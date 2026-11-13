@@ -71,6 +71,11 @@ public sealed class PaymentCreateSuccessData
     /// <summary>Offline intent row id when NonFiscalOfflineQueued is true.</summary>
     [JsonPropertyName("offlineTransactionId")]
     public Guid? OfflineTransactionId { get; set; }
+
+    /// <summary>Plaintext ticket codes for print only. Not part of the RKSV QR payload.</summary>
+    [JsonPropertyName("issuedTickets")]
+    public IReadOnlyList<KasseAPI_Final.Services.Tickets.IssuedTicketDto> IssuedTickets { get; set; } =
+        Array.Empty<KasseAPI_Final.Services.Tickets.IssuedTicketDto>();
 }
 
 public sealed class PaymentCreateTseData
@@ -80,6 +85,10 @@ public sealed class PaymentCreateTseData
 
     [JsonPropertyName("isDemoFiscal")]
     public bool IsDemoFiscal { get; set; }
+
+    /// <summary>True when POS should show the DEMO / NICHT FISKAL disclaimer (<c>RKSV:ShowDemoLabel</c>). Independent of <see cref="IsDemoFiscal"/> (TSE simulation).</summary>
+    [JsonPropertyName("showDemoLabel")]
+    public bool ShowDemoLabel { get; set; }
 
     [JsonPropertyName("qrPayload")]
     public string? QrPayload { get; set; }
@@ -119,6 +128,10 @@ public sealed class PaymentApiErrorBody
     /// <summary>Non-sensitive diagnostics: legacy diagnosticCode, HTTP hints, etc.</summary>
     [JsonPropertyName("context")]
     public PaymentApiErrorContext? Context { get; set; }
+
+    /// <summary>Present when <see cref="Code"/> is <c>LIMIT_EXCEEDED</c> (same shape as HTTP 409 classic body).</summary>
+    [JsonPropertyName("limitError")]
+    public LimitErrorDto? LimitError { get; set; }
 
     [JsonPropertyName("timestamp")]
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;

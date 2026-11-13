@@ -17,6 +17,8 @@ public class PermissionImplicationSystemCriticalTests
 
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserView, effective));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.ReportExport, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterManage, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.ShiftOpen, effective));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.SystemCritical, effective));
     }
 
@@ -34,7 +36,43 @@ public class PermissionImplicationSystemCriticalTests
 
         Assert.True(principal.HasPermissionClaim(AppPermissions.PaymentCancel));
         Assert.True(principal.HasPermissionClaim(AppPermissions.SystemCritical));
+        Assert.True(principal.HasPermissionClaim(AppPermissions.CashRegisterManage));
         Assert.True(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.AuditView));
+        Assert.True(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterManage));
+    }
+
+    [Fact]
+    public void HasPermissionClaim_CompactManagerAdminJwt_Uses_Matrix_Without_PosWrites()
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim("role", Roles.Manager),
+                new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin),
+            },
+            authenticationType: "Test");
+        var principal = new ClaimsPrincipal(identity);
+
+        Assert.True(principal.HasPermissionClaim(AppPermissions.UserView));
+        Assert.True(principal.HasPermissionClaim(AppPermissions.CashRegisterManage));
+        Assert.False(principal.HasPermissionClaim(AppPermissions.PaymentTake));
+        Assert.False(principal.HasPermissionClaim(AppPermissions.ShiftOpen));
+        Assert.False(principal.HasPermissionClaim(AppPermissions.SystemCritical));
+    }
+
+    [Fact]
+    public void HasPermissionClaim_CompactCashierPosJwt_Allows_PaymentTake()
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim("role", Roles.Cashier),
+                new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Pos),
+            },
+            authenticationType: "Test");
+        var principal = new ClaimsPrincipal(identity);
+
+        Assert.True(principal.HasPermissionClaim(AppPermissions.PaymentTake));
     }
 
     [Fact]

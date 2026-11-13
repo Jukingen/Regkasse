@@ -2,7 +2,7 @@
 
 How automated build, test, image publish, deploy, smoke, and rollback fit together.
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-09-29
 
 | Related | Link |
 |---------|------|
@@ -61,18 +61,32 @@ How automated build, test, image publish, deploy, smoke, and rollback fit togeth
 
 ---
 
+## Dependabot (monorepo)
+
+The root npm entry (`directory: /` in `.github/dependabot.yml`) updates the monorepo `package-lock.json` used by admin CI (`npm ci` at the repository root).
+
+- Do not re-add an npm entry for `/frontend-admin`. That directory’s lockfile is not used by root `npm ci`.
+- POS (`/frontend`) and Sites (`/frontend-sites`) keep their own npm entries. Their CI runs `npm ci` in those directories against `frontend/package-lock.json` and `frontend-sites/package-lock.json`.
+- `scripts/` has `package.json` and no `package-lock.json`. It is not a workspace and not a Dependabot target. Add a `/scripts` npm entry only if `scripts/package-lock.json` appears later.
+- Product thumbnails use SkiaSharp (MIT) with `SkiaSharp.NativeAssets.Linux.NoDependencies`, because the slim API image has no libfontconfig.
+- Expo and React Native pinned packages (`expo`, `expo-*`, `react-native`, `react-native-*`, `react`, `react-dom`) are excluded from POS auto-bumps. Sites excludes `next`, `react`, and `react-dom`. Expo SDK 56 stays on `react-native` 0.85.3.
+- POS `react` and `react-dom` stay pinned together at `19.2.3`. Expo SDK 56 requires that exact pair. A Dependabot pull request that bumps only POS `react-dom` past `19.2.3` is blocked by that pin and should be closed. Admin and Sites keep a matching runtime pair on `19.3.1`. The workspace root depends on the `19.2.3` pair, on `react-native` `0.85.3`, and on `@react-native/jest-preset` `0.85.3` so the hoisted copies match. `jest-expo` loads that preset from the repository root. `react-native` resolves `react` from the repository root. `overrides` place `19.3.1` on `registrierkasse-admin` and `regkasse-sites`, nested beside each package, and keep `cash-register` on `19.2.3`. `@types/react` stays on one hoisted `19.2.x` copy. A second `19.3` copy makes TypeScript load both and treat `React.Key` as two different types.
+- The root minor/patch group excludes `react`, `react-dom`, `react-native`, `react-native-*`, `@react-native/*`, `expo`, `expo-*`, `next`, `antd`, and `@ant-design/*`. The workspace root lock includes POS, so a root-group bump can rewrite `frontend/package.json`. That path moved POS `react-native` from `0.85.3` to `0.88.0` (pull request #116). Expo SDK 56 does not accept that bump.
+
+---
+
 ## Local / CI scripts
 
 | Script | Purpose |
 |--------|---------|
-| [`scripts/ci-build.ps1`](../scripts/ci-build.ps1) | Release build and/or Compose prod image build (+ optional GHCR push) |
-| [`scripts/ci-test.ps1`](../scripts/ci-test.ps1) | Backend / Admin / POS test gates |
-| [`scripts/ci-deploy.ps1`](../scripts/ci-deploy.ps1) | Webhook deploy + `smoke-test.sh` + optional rollback |
+| [`scripts/ci/ci-build.ps1`](../scripts/ci/ci-build.ps1) | Release build and/or Compose prod image build (+ optional GHCR push) |
+| [`scripts/ci/ci-test.ps1`](../scripts/ci/ci-test.ps1) | Backend / Admin / POS test gates |
+| [`scripts/ci/ci-deploy.ps1`](../scripts/ci/ci-deploy.ps1) | Webhook deploy + `smoke-test.sh` + optional rollback |
 
 ```powershell
-.\scripts\ci-test.ps1 -Backend
-.\scripts\ci-build.ps1 -Docker -Profiles admin -NoPush
-.\scripts\ci-deploy.ps1 -Stage staging -Image ghcr.io/org/regkasse-api:sha-abc1234 `
+.\scripts\ci\ci-test.ps1 -Backend
+.\scripts\ci\ci-build.ps1 -Docker -Profiles admin -NoPush
+.\scripts\ci\ci-deploy.ps1 -Stage staging -Image ghcr.io/org/regkasse-api:sha-abc1234 `
   -ApiBase https://api.staging.regkasse.at -DryRun
 ```
 
@@ -87,7 +101,105 @@ How automated build, test, image publish, deploy, smoke, and rollback fit togeth
 3. **Deploy** workflow builds/pushes API + Admin + Sites + POS images to GHCR; optional FA webhook.
 4. To also run Staging API deploy from `deploy.yml`, set variable `DEPLOY_YML_RUN_STAGING_API=true` or use Actions → Deploy → `staging`.
 
-Secrets: see [`.github/environments/staging.yml`](../.github/environments/staging.yml).
+Secrets: see [`.github/environments/staging.yml`](../.github/environments/staging.yml). Soft TSE and FinanzOnline simulation are not allowed on that host when `Tse:EnforceProductionLockInStaging=true` (the Staging example default). The environment-file note matches [`STAGING_SETUP.md`](STAGING_SETUP.md).
+
+### Deploy.yml job graph (why "Resolve deploy target" is Skipped)
+
+Workflow: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml). This is **not** `frontend-admin-deploy.yml`.
+
+| Job | When it runs | When it is Skipped |
+|-----|--------------|--------------------|
+| **Build & push images** | Always on push `main`/`master` and on `workflow_dispatch` | Never skipped |
+| **Resolve deploy target** | After a **successful** image job | **Always skipped if Build & push fails** (`needs: build-and-push`, no `if: always()`). Not gated on Variables/Secrets. |
+| **Deploy Staging (API)** | `workflow_dispatch` target=`staging`, **or** repo variable `DEPLOY_YML_RUN_STAGING_API=true` | Ordinary push (Backend CI owns Staging API). Missing webhooks do **not** skip this job — they fail inside the reusable stage. |
+| **Frontend staging webhooks** | After image success | Optional; empty `FA_STAGING_DEPLOY_WEBHOOK_URL` logs "not set" and exits 0 |
+| **Deploy Production (API)** | Dispatch target=`production` and `confirm=deploy-production` | Push to `main`; wrong confirm phrase |
+
+A 40–60s **Build & push** failure is almost always GHCR login/push (not a missing `FA_STAGING_API_BASE_URL`). Those public build-args already have YAML defaults.
+
+#### Required GitHub configuration (do not put secrets in YAML)
+
+**Permissions (repo or org)**
+
+| Setting | Why |
+|---------|-----|
+| Actions → General → Workflow permissions → **Read and write** | `GITHUB_TOKEN` can `packages: write` |
+| GHCR package **Actions** access for `regkasse-api` / `regkasse-frontend-*` | Token may push to an existing package |
+| Org **Package creation** allowed for GITHUB_TOKEN | First push of a new image name |
+| Org SAML/SSO authorized for `GITHUB_TOKEN` if the org requires it | Otherwise login/push **403** in ~30–50s |
+
+**Repository Variables (optional — defaults in the workflow)**
+
+| Variable | Used for | Default if unset |
+|----------|----------|------------------|
+| `FA_STAGING_API_BASE_URL` | Admin + Sites `NEXT_PUBLIC_API_BASE_URL` | `https://api.staging.regkasse.at` |
+| `FA_STAGING_RKSV_ENVIRONMENT` | Admin `NEXT_PUBLIC_RKSV_ENVIRONMENT` | `TEST` |
+| `POS_STAGING_API_URL` | POS `EXPO_PUBLIC_API_BASE_URL` | `https://api.staging.regkasse.at/api` |
+| `BACKEND_FA_BASE_URL` | POS `EXPO_PUBLIC_ADMIN_BASE_URL` | `https://admin.staging.regkasse.at` |
+| `BACKEND_STAGING_API_BASE_URL` | Staging smoke URL | `https://api.staging.regkasse.at` |
+| `DEPLOY_YML_RUN_STAGING_API` | Also deploy Staging API from this workflow | unset = image publish only |
+
+**Repository Secrets (never commit; never hardcode in YAML)**
+
+| Secret | Required for |
+|--------|----------------|
+| `GITHUB_TOKEN` | Provided by Actions — GHCR login |
+| `BACKEND_STAGING_DEPLOY_WEBHOOK_URL` | Staging host pull/restart (only if Staging API job runs) |
+| `BACKEND_STAGING_ROLLBACK_WEBHOOK_URL` | Staging auto-rollback |
+| `BACKEND_STAGING_MIGRATE_WEBHOOK_URL` | Host EF migrate |
+| `FA_STAGING_DEPLOY_WEBHOOK_URL` | Optional FA image hook |
+| `DEPLOYMENT_STATUS_URL` / `DEPLOYMENT_STATUS_TOKEN` | FA `/admin/deployments` ingest |
+| `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD` | Authenticated smoke |
+| `ONCALL_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` | Alerts |
+
+Full checklists: [`.github/environments/staging.yml`](../.github/environments/staging.yml) · [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md).
+
+#### Country-layer bypass gate
+
+Workflow: [`backend-unit-tests.yml`](../.github/workflows/backend-unit-tests.yml).  
+Step name: **Country layer bypass gate**.
+
+The job runs on every PR that touches `backend/**`. The same step also runs when any of these paths change:
+
+- `backend/Models/Countries/**`
+- `backend/Services/Countries/**`
+- `backend/Services/Countries/KassenSicherheit/**`
+- `backend/Services/Countries/QrRechnung/**`
+- `backend/Services/Countries/EInvoicing/**`
+- `backend/Data/AppDbContext.cs`
+
+`backend/Services/Countries/KassenSicherheit/**`, `QrRechnung/**`, and `EInvoicing/**` sit under `backend/Services/Countries/**`. `backend/Fiscal/**` is covered by `backend/**`. No new country-layer directory was added outside those globs.
+
+Filter (same string as the workflow step). Each `FullyQualifiedName~` token is a class, except the two OpenAPI method names, which live on `CountryLayerBypassGateTests` and are listed so a rename of those facts still fails the step.
+
+```text
+FullyQualifiedName~CountryLayerBypassGateTests|FullyQualifiedName~GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames|FullyQualifiedName~AuditEventType_And_ActivityEventType_Are_In_OpenApi|FullyQualifiedName~CountryLayerNewPackagesGateTests|FullyQualifiedName~FeatureFlagNamesTests|FullyQualifiedName~SwitzerlandTaxStrategyTests|FullyQualifiedName~SwitzerlandInvoiceStrategyTests|FullyQualifiedName~FiscalSignatureRouterAtDeTests|FullyQualifiedName~FiscalSignatureRouterChTests|FullyQualifiedName~FiscalSignatureRouterEuTests|FullyQualifiedName~ChMwstEffectiveRatesTests|FullyQualifiedName~En16931XmlBuilderTests|FullyQualifiedName~QrRechnungBuilderTests|FullyQualifiedName~GermanyTaxStrategyTests|FullyQualifiedName~GermanyInvoiceStrategyTests|FullyQualifiedName~KassenSicherheitHostOptionsValidatorTests|FullyQualifiedName~DeTseSignaturePersistenceTests|FullyQualifiedName~PeppolReservedFlagGuardTests|FullyQualifiedName~ChQrKnownGapsTests|FullyQualifiedName~PeppolReservedExitTests|FullyQualifiedName~ChQrGapAcceptanceTests|FullyQualifiedName~PeppolParticipantSchemaTests|FullyQualifiedName~PeppolSubmissionTests|FullyQualifiedName~EnumVarnamesSchemaFilterTests|FullyQualifiedName~EnumVarnamesOpenApiDocumentTests|FullyQualifiedName~SoftKassenSicherheitServiceTests|FullyQualifiedName~ActivityDtoTypeWireFormatTests|FullyQualifiedName~OssVatRateIsolationTests|FullyQualifiedName~StorecovePeppolAccessPointClientTests
+```
+
+| Group | Why it is in this step | Classes |
+|-------|------------------------|---------|
+| Bypass and package gates | One country column, no second VAT-ID literal, bank submit and Peppol HTTP stay off the default path | `CountryLayerBypassGateTests`, `CountryLayerNewPackagesGateTests` |
+| OpenAPI enum names | Integer enums keep `x-enum-varnames`; `ActivityEventType` stays a string schema | `GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames`, `AuditEventType_And_ActivityEventType_Are_In_OpenApi` (facts on the bypass class), `EnumVarnamesSchemaFilterTests`, `EnumVarnamesOpenApiDocumentTests`, `ActivityDtoTypeWireFormatTests` |
+| Flags | Reserved Peppol stays out of `All`; country defaults stay pinned | `FeatureFlagNamesTests`, `PeppolReservedFlagGuardTests`, `PeppolReservedExitTests` |
+| CH | MWST rates, QR payload/PDF, known-gap fixture, per-tenant gap acceptance | `SwitzerlandTaxStrategyTests`, `SwitzerlandInvoiceStrategyTests`, `ChMwstEffectiveRatesTests`, `QrRechnungBuilderTests`, `ChQrKnownGapsTests`, `ChQrGapAcceptanceTests` |
+| DE | Tax and receipt strategies, pilot host pin, signature table, Development soft signer | `GermanyTaxStrategyTests`, `GermanyInvoiceStrategyTests`, `KassenSicherheitHostOptionsValidatorTests`, `DeTseSignaturePersistenceTests`, `SoftKassenSicherheitServiceTests`, `FiscalSignatureRouterAtDeTests` |
+| Router | CH and EU branches of the same router | `FiscalSignatureRouterChTests`, `FiscalSignatureRouterEuTests` |
+| EU / Peppol / OSS | UBL sketch, participant registry, reserved submit path, Storecove client (not wired), OSS rate isolation | `En16931XmlBuilderTests`, `PeppolParticipantSchemaTests`, `PeppolSubmissionTests`, `StorecovePeppolAccessPointClientTests`, `OssVatRateIsolationTests` |
+
+Older country-layer classes stay on **Test with coverage** only (`Category!=PostgreSql`). They are not in this step: `CountryCallSiteMigrationTests`, `CountryFiscalLockEvaluatorTests`, `CountryPaymentStrategyContractTests`, `CountryProfileRegistryTests`, `CountryProfileSourcesTests`, `CountryStrategyCallSiteTests`, `CountryStrategyResolverTests`, `CountryTaxTypeRegistryTests`, `CompanySettingsCountryFieldsTests`, `CompanySettingsCountryValidationTests`, `FiscalDocumentCountryStampTests`, `TenantOnboardingCountryValidationTests`, `AddCompanySettingsCountryBillingMigrationTests`, `AddFiscalDocumentCountryAtIssueSnapshotsMigrationTests`, `EuDefaultTaxStrategyTests`, `EuDefaultInvoiceStrategyTests`, `OssVatRateRegistryTests`, `FiskalyDeKassenSicherheitHttpClientTests`, `FiskalyDeKassenSicherheitServiceTests`, `AdminKassenSicherheitControllerTests`, `KassenSicherheitServiceTests`. None of those names carry `Category=PostgreSql`.
+
+None of the classes in the step carry `Category=PostgreSql`, so the **Test with coverage** step (`Category!=PostgreSql`) runs them too. `CountryBaseline` (`AtFiscalChainBaselineTests`, `AtReceiptDisclosureBaselineTests`) is not in this filter. It stays on the coverage step only.
+
+#### Country-layer migrations (Paket 16)
+
+`deploy.yml` Staging API (when that job runs) already sets `run_migrations: true` on [`deploy-backend-stage.yml`](../.github/workflows/deploy-backend-stage.yml). Production uses the dedicated migrate Environment, not this workflow.
+
+Additive migrations (do **not** skip migrate on first country-layer cutover):
+
+- `20260916110000_AddCompanySettingsCountryBilling`
+- `20260921180000_AddFiscalDocumentCountryAtIssueSnapshots` (issue-time snapshots)
+
+Order, windows, and rollback: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) §2. Confirm `GET /health/migrations` → `pendingCount=0` after the migrate job.
 
 ### Production (gated)
 
@@ -109,6 +221,8 @@ After every stage deploy (`deploy-backend-stage.yml`):
 - `scripts/smoke-test.sh` with `REQUIRE_READY`, `REQUIRE_MIGRATIONS`, `REQUIRE_DEP_EXPORT`
 - Optional auth: `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD`
 - Detail: [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md)
+
+Staging smoke runs when `BACKEND_STAGING_API_BASE_URL` is set, or when `BACKEND_STAGING_SMOKE_ENABLED` is `true`. If neither is set, the Deploy Staging job still succeeds and the smoke and rollback steps are skipped. Canary and production smoke are unchanged.
 
 ---
 
@@ -132,7 +246,7 @@ Host Compose rollback ≠ `rollback.bat` (git). See [`DOCKER_PRODUCTION.md`](DOC
 | `deploy-docker.bat` / `docker-compose.prod.yml` | Single Docker host / staging VM without webhook CD |
 | GitHub Actions + webhooks | Multi-stage Staging → Canary → Production with GHCR |
 
-Do not merge Soft TSE override with prod Compose.
+Do not merge a Soft TSE override into Staging or Production Compose. `Tse:EnforceProductionLockInStaging=true` rejects Fake TSE and FinanzOnline simulation on Staging. See [`STAGING_SETUP.md`](STAGING_SETUP.md) and [`.github/environments/staging.yml`](../.github/environments/staging.yml).
 
 ---
 
@@ -144,4 +258,5 @@ Do not merge Soft TSE override with prod Compose.
 - [ ] Set smoke login secrets  
 - [ ] Optional `SLACK_WEBHOOK_URL` / `ONCALL_WEBHOOK_URL`  
 - [ ] Packages:write for GHCR (default `GITHUB_TOKEN` on public/private as configured)  
+- [ ] Org/package GHCR **Actions** access + SSO so **Deploy → Build & push** can login  
 - [ ] Run umbrella **CI** on a PR once; **Deploy** dry-run to staging once  

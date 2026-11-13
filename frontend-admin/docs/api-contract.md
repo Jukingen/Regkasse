@@ -56,6 +56,7 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
   - `POST /api/admin/dashboard/preferences` — persist order, visibility, settings
 - **Widget data** (client-side, existing APIs): `GET /api/Reports/sales|products`, `GET /api/admin/cash-registers`, `GET /api/Inventory`, `GET /api/admin/users`, tenant license via switcher, `GET /api/admin/finanzonline-reconciliation`
 - **UI**: drag-and-drop (`@dnd-kit`), auto-refresh 30s, manual refresh per widget — `frontend-admin/src/features/dashboard/`
+- **Inventory / customization roadmap**: [`DASHBOARD_WIDGET_CUSTOMIZATION.md`](./DASHBOARD_WIDGET_CUSTOMIZATION.md)
 - **Current source of truth**: `frontend-admin/src/app/(protected)/dashboard/page.tsx`.
 
 ### Invoices (`/invoices`)

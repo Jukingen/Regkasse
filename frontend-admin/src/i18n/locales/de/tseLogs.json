@@ -1,26 +1,28 @@
 {
   "title": "TSE-Logs",
   "subtitle": "Zentrale TSE-Betriebs-Log-Aggregation aus Activity, Failover, Incidents und Health-Probes.",
-  "tenantLabel": "Mandant",
-  "cardTitle": "TSE Log Viewer",
-  "searchPlaceholder": "Logs suchen...",
-  "providerPlaceholder": "Provider",
-  "levelPlaceholder": "Level",
-  "sourcePlaceholder": "Quelle",
-  "all": "Alle",
-  "analyze": "Analysieren",
+  "emptySelect": "Mandant auswählen, um TSE-Logs zu sehen.",
+  "forbidden": "Keine Berechtigung für diese Seite.",
   "refresh": "Aktualisieren",
-  "total": "Gesamt",
   "errors": "Fehler",
   "warnings": "Warnungen",
   "info": "Info",
-  "analysisTitle": "Analyse",
-  "patternsTitle": "Häufige Muster",
-  "anomaliesTitle": "Anomalien",
-  "emptySelect": "Mandant auswählen, um TSE-Logs zu sehen.",
-  "forbidden": "Keine Berechtigung für diese Seite.",
-  "loadError": "Logs konnten nicht geladen werden.",
-  "noLogs": "Keine Logs für die aktuellen Filter.",
-  "analyzeSuccess": "Log-Analyse abgeschlossen",
-  "recommendationsTitle": "Empfehlungen"
+  "filters": {
+    "dateRange": "Zeitraum",
+    "level": "Level",
+    "source": "Quelle"
+  },
+  "table": {
+    "time": "Zeit",
+    "level": "Level",
+    "source": "Quelle",
+    "message": "Meldung"
+  },
+  "aggregate": {
+    "title": "Zusammenfassung",
+    "count": "Anzahl",
+    "errorRate": "Fehlerquote"
+  },
+  "empty": "Keine Logs für die aktuellen Filter.",
+  "error": "Logs konnten nicht geladen werden."
 }

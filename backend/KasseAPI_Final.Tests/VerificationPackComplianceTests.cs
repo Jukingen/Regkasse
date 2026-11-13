@@ -49,7 +49,7 @@ public sealed class VerificationPackComplianceTests
             .UseInMemoryDatabase($"VerifyPack_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     /// <summary>VERIFICATION: daily closing succeeds with more than ten reconciled (invoiced) payments for Vienna “today”.</summary>
@@ -57,7 +57,7 @@ public sealed class VerificationPackComplianceTests
     public async Task DailyClosing_WithElevenInvoicedPaymentsToday_Succeeds()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -74,7 +74,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-VERIFY",
             Location = "T",
@@ -184,7 +184,7 @@ public sealed class VerificationPackComplianceTests
     public async Task MonatsbelegStatus_AfterSeventhViennaDay_WhenPriorMonthMissing_ReturnsYellow()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -201,7 +201,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-MB",
             Location = "T",
@@ -236,7 +236,7 @@ public sealed class VerificationPackComplianceTests
 
         // Vienna local 10 May 2026 → prior April Monatsbeleg missing; April deadline end May → not overdue on 10 May.
         var time = new FixedUtcTimeProvider(new DateTime(2026, 5, 10, 14, 0, 0, DateTimeKind.Utc));
-        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()));
+        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()), time);
         var sut = new MonatsbelegReminderService(ctx, TenantTestDoubles.PrimaryTenantResolver, time, policy);
 
         var status = await sut.GetMonatsbelegStatusAsync(regId, CancellationToken.None);

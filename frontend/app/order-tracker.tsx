@@ -88,9 +88,10 @@ export default function OrderTrackerPage() {
     if (autoFetched.current) return;
     const tSlug = normalizeCustomerTenantSlug(firstParam(params.tenant));
     const oNum = firstParam(params.order) || firstParam(params.orderNumber);
-    if (!tSlug || !oNum) return;
+    const fromPhone = firstParam(params.phone);
+    if (!tSlug || !oNum || !fromPhone) return;
     autoFetched.current = true;
-    void fetchOrder(tSlug, oNum, firstParam(params.phone) || undefined);
+    void fetchOrder(tSlug, oNum, fromPhone);
   }, [params.tenant, params.order, params.orderNumber, params.phone, fetchOrder]);
 
   const currentStep = useMemo(() => (order ? stepIndex(order.orderStatus) : -1), [order]);

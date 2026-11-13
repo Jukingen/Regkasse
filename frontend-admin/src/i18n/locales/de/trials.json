@@ -1,0 +1,84 @@
+{
+  "title": "Trial-Verwaltung",
+  "subtitle": "Aktive, ablaufende und abgelaufene Mandanten-Trials",
+  "stats": {
+    "active": "Aktive Trials",
+    "expiringSoon": "Läuft bald ab (≤7 Tage)",
+    "expired": "Abgelaufen (Grace)",
+    "converted": "Konvertiert",
+    "conversionRate": "Conversion-Rate",
+    "created30d": "Trials (letzte 30 Tage)",
+    "avgDaysToConvert": "Ø Tage bis Conversion",
+    "topPlan": "Häufigstes Lizenzpaket"
+  },
+  "columns": {
+    "tenant": "Mandant",
+    "status": "Trial-Status",
+    "daysLeft": "Tage übrig",
+    "endsAt": "Endet am",
+    "graceEnds": "Grace bis",
+    "reminders": "Erinnerungen"
+  },
+  "status": {
+    "active": "Aktiv",
+    "expired": "Abgelaufen",
+    "converted": "Konvertiert",
+    "deleted": "Gelöscht"
+  },
+  "actions": {
+    "extend": "Trial verlängern",
+    "convert": "Zu Paid konvertieren",
+    "delete": "Trial löschen",
+    "openTenant": "Mandant öffnen"
+  },
+  "extend": {
+    "title": "Trial verlängern",
+    "daysLabel": "Zusätzliche Tage",
+    "ok": "Verlängern"
+  },
+  "convert": {
+    "title": "Zu Paid konvertieren",
+    "saleIdLabel": "License-Sale-ID",
+    "saleIdRequired": "License-Sale-ID ist erforderlich",
+    "ok": "Konvertieren",
+    "notes": "Notiz (optional)",
+    "addRemainingDays": "Verbleibende Trial-Tage hinzufügen ({{count}} Tage)",
+    "successTitle": "Conversion erfolgreich",
+    "successMessage": "Trial wurde in eine bezahlte Lizenz umgewandelt.",
+    "successValidUntil": "Neue Gültigkeit: {{date}} UTC",
+    "daysAddedSuffix": "Trial-Tage addiert"
+  },
+  "deleteConfirm": "Trial-Mandant soft-archivieren? Fiskal-/RKSV-Daten bleiben erhalten.",
+  "empty": "Keine Trial-Mandanten gefunden.",
+  "loadError": "Trial-Dashboard konnte nicht geladen werden.",
+  "badge": {
+    "label": "Trial",
+    "days": "{{count}} Tage"
+  },
+  "detail": {
+    "title": "Trial-Informationen",
+    "started": "Gestartet",
+    "ends": "Endet",
+    "grace": "Grace-Ende",
+    "convertedAt": "Konvertiert am",
+    "reminders": "Erinnerungen gesendet",
+    "reminder7": "7 Tage",
+    "reminder3": "3 Tage",
+    "reminder1": "1 Tag"
+  },
+  "banner": {
+    "info": "Trial endet in {{days}} Tagen.",
+    "warning": "Trial endet in {{days}} Tagen! Jetzt upgraden.",
+    "expired": "Trial abgelaufen! Bitte upgraden, um das System weiter zu nutzen.",
+    "expiredGrace": "Trial abgelaufen. Jetzt upgraden — Daten werden nach der Grace-Frist archiviert.",
+    "upgradeNow": "Jetzt upgraden",
+    "limitExceeded": "Trial-Limit erreicht (max. {{max}}). Bitte auf Paid upgraden."
+  },
+  "analytics": {
+    "monthlyTrend": "Monatlicher Trend",
+    "byDuration": "Conversion nach Trial-Dauer",
+    "byPlan": "Conversion nach Lizenzplan",
+    "started": "Gestartet",
+    "converted": "Konvertiert"
+  }
+}

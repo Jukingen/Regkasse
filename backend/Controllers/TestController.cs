@@ -168,6 +168,7 @@ namespace KasseAPI_Final.Controllers
                     {
                         provider = result.TseProvider,
                         isDemoFiscal = result.IsDemoFiscal,
+                        showDemoLabel = false,
                         qrPayload = result.QrPayload,
                         receiptNumber = result.Payment.ReceiptNumber
                     }

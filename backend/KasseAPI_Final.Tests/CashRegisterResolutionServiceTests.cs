@@ -20,7 +20,7 @@ public class CashRegisterResolutionServiceTests
             .UseInMemoryDatabase($"CashRegRes_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
@@ -48,7 +48,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -61,7 +61,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "ARCH",
             Location = "L",
@@ -96,7 +96,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -109,7 +109,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -144,7 +144,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -157,7 +157,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "OLD",
             Location = "L",
@@ -192,7 +192,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -227,7 +227,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -262,7 +262,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -299,7 +299,7 @@ public class CashRegisterResolutionServiceTests
         {
             ctx.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = Guid.NewGuid(),
                 RegisterNumber = $"K{i}",
                 Location = "L",
@@ -338,7 +338,7 @@ public class CashRegisterResolutionServiceTests
         var otherId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = otherId,
             RegisterNumber = "K-OTHER",
             Location = "Bar",
@@ -352,7 +352,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = defaultId,
             RegisterNumber = "KASSE-001",
             Location = "Haupt",
@@ -389,7 +389,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -416,7 +416,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -449,7 +449,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -476,13 +476,77 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
+    public async Task ValidatePaymentRegister_MonatsbelegMissing_WarningOnly_Allows()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnMissingAllowSales());
+
+        var r = await sut.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+        Assert.True(r.Ok);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_MonatsbelegGateOn_WithPreviousMonthOnly_Allows()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnHasPreviousMonthOnly());
+
+        var r = await sut.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+        Assert.True(r.Ok);
+    }
+
+    [Fact]
     public async Task ValidatePaymentRegister_SingleOperationalOpen_AllowsWithoutSettings_WhenSecondRowIsDisabled()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -496,7 +560,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "X",
             Location = "L",
@@ -523,7 +587,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -537,7 +601,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -565,7 +629,7 @@ public class CashRegisterResolutionServiceTests
         var rOther = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rDefault,
             RegisterNumber = "K1",
             Location = "L",
@@ -579,7 +643,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rOther,
             RegisterNumber = "K2",
             Location = "L",
@@ -592,7 +656,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "OLD",
             Location = "L",
@@ -628,7 +692,7 @@ public class CashRegisterResolutionServiceTests
         var r2 = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = r1,
             RegisterNumber = r1.ToString()[..8],
             Location = "L",
@@ -642,7 +706,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = r2,
             RegisterNumber = r2.ToString()[..8],
             Location = "L",
@@ -679,7 +743,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -708,7 +772,7 @@ public class CashRegisterResolutionServiceTests
         var other = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = owned,
             RegisterNumber = "K1",
             Location = "A",
@@ -717,12 +781,13 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = other,
             RegisterNumber = "K2",
             Location = "B",
@@ -745,14 +810,17 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal("K1", list[0].RegisterNumber);
     }
 
+    /// <summary>
+    /// Operational cardinality decides membership now: Open and Closed rows are listed, Maintenance / Disabled are not.
+    /// </summary>
     [Fact]
-    public async Task ListSelectableRegisters_WithCashRegisterView_ReturnsOnlyOpenRegisters()
+    public async Task ListSelectableRegisters_ReturnsOpenAndClosed_ButNotMaintenanceOrDisabled()
     {
         await using var ctx = CreateContext();
         var openId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = openId,
             RegisterNumber = "K-OPEN",
             Location = "A",
@@ -761,12 +829,13 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-CLOSED",
             Location = "B",
@@ -774,12 +843,13 @@ public class CashRegisterResolutionServiceTests
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-MNT",
             Location = "C",
@@ -792,7 +862,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-DIS",
             Location = "D",
@@ -809,9 +879,10 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var list = await svc.ListSelectableRegistersAsync("u1", principal);
 
-        Assert.Single(list);
-        Assert.Equal(openId, list[0].Id);
-        Assert.Equal("K-OPEN", list[0].RegisterNumber);
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, r => r.Id == openId && r.RegisterNumber == "K-OPEN" && r.Status == RegisterStatus.Open);
+        Assert.Contains(list, r => r.RegisterNumber == "K-CLOSED" && r.Status == RegisterStatus.Closed);
+        Assert.DoesNotContain(list, r => r.RegisterNumber is "K-MNT" or "K-DIS");
     }
 
     [Fact]
@@ -822,7 +893,7 @@ public class CashRegisterResolutionServiceTests
         var theirs = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = mine,
             RegisterNumber = "K1",
             Location = "A",
@@ -831,12 +902,13 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = theirs,
             RegisterNumber = "K2",
             Location = "B",
@@ -865,7 +937,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -887,13 +959,21 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
-    public async Task ListSelectableForPosPicker_SoleRowOpenByOtherUser_ReturnsEmpty_WithNoneSelectableReason()
+    public async Task ListSelectableForPosPicker_AssignedRowOpenByOtherUser_StaysVisible_NotSelectable()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u2",
+            UserName = "manager1",
+            Email = "manager1@test",
+            FirstName = "Mia",
+            LastName = "Hofer",
+        });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -902,6 +982,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u2",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -911,8 +992,11 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
 
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_selectable_for_user", result.EmptyReason);
+        var row = Assert.Single(result.Registers);
+        Assert.Equal(regId, row.Id);
+        Assert.False(row.IsSelectable);
+        Assert.Equal("In Benutzung von Mia Hofer", row.StatusText);
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
@@ -921,7 +1005,7 @@ public class CashRegisterResolutionServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K1",
             Location = "A",
@@ -935,7 +1019,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K2",
             Location = "B",
@@ -963,7 +1047,7 @@ public class CashRegisterResolutionServiceTests
         var onlyId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = onlyId,
             RegisterNumber = "K1",
             Location = "A",
@@ -972,6 +1056,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -992,7 +1077,7 @@ public class CashRegisterResolutionServiceTests
         var onlyId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = onlyId,
             RegisterNumber = "K1",
             Location = "A",
@@ -1001,12 +1086,13 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "X",
             Location = "B",
@@ -1033,7 +1119,7 @@ public class CashRegisterResolutionServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "D1",
             Location = "A",
@@ -1046,7 +1132,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "M1",
             Location = "B",
@@ -1068,19 +1154,21 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
-    public async Task ListSelectableRegisters_AllClosed_ReturnsEmpty()
+    public async Task ListSelectableRegisters_AllClosed_ReturnsClosedRowsWithStatus()
     {
         await using var ctx = CreateContext();
+        var closedId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
-            Id = Guid.NewGuid(),
+            TenantId = SystemTenantIds.Platform,
+            Id = closedId,
             RegisterNumber = "K1",
             Location = "A",
             StartingBalance = 0,
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1090,7 +1178,9 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var list = await svc.ListSelectableRegistersAsync("u1", principal);
 
-        Assert.Empty(list);
+        Assert.Single(list);
+        Assert.Equal(closedId, list[0].Id);
+        Assert.Equal(RegisterStatus.Closed, list[0].Status);
     }
 
     [Fact]
@@ -1104,20 +1194,26 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal("no_registers", result.EmptyReason);
     }
 
+    /// <summary>
+    /// A closed register is a valid pick: POS opens it via shift auto-open on selection, so the picker must list it
+    /// instead of reporting an empty list.
+    /// </summary>
     [Fact]
-    public async Task ListSelectableForPosPicker_AllClosed_EmptyReasonNoneOpen()
+    public async Task ListSelectableForPosPicker_AllClosed_ReturnsClosedRow_WithoutEmptyReason()
     {
         await using var db = CreateContext();
+        var closedId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
-            Id = Guid.NewGuid(),
+            TenantId = SystemTenantIds.Platform,
+            Id = closedId,
             RegisterNumber = "K1",
             Location = "A",
             StartingBalance = 0,
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1126,19 +1222,22 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(db);
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_open", result.EmptyReason);
+
+        Assert.Single(result.Registers);
+        Assert.Equal(closedId, result.Registers[0].Id);
+        Assert.Equal(RegisterStatus.Closed, result.Registers[0].Status);
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
-    public async Task ListSelectableForPosPicker_OpenButNotSelectable_EmptyReasonNoneSelectableForUser()
+    public async Task ListSelectableForPosPicker_AssignedRowsOpenByOthers_StayVisible_WithoutEmptyReason()
     {
         await using var db = CreateContext();
         foreach (var uid in new[] { "other", "other2" })
         {
             db.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = Guid.NewGuid(),
                 RegisterNumber = uid,
                 Location = "A",
@@ -1147,6 +1246,7 @@ public class CashRegisterResolutionServiceTests
                 LastBalanceUpdate = DateTime.UtcNow,
                 Status = RegisterStatus.Open,
                 CurrentUserId = uid,
+                AssignedUserId = "u1",
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             });
@@ -1157,8 +1257,9 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(db);
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_selectable_for_user", result.EmptyReason);
+        Assert.Equal(2, result.Registers.Count);
+        Assert.All(result.Registers, row => Assert.False(row.IsSelectable));
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
@@ -1171,7 +1272,7 @@ public class CashRegisterResolutionServiceTests
         {
             ctx.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = id,
                 RegisterNumber = id.ToString()[..8],
                 Location = "L",
@@ -1208,7 +1309,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1238,7 +1339,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1283,7 +1384,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1311,14 +1412,18 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal(CashRegisterResolutionCodes.Forbidden, second.Code);
     }
 
+    /// <summary>
+    /// Assignment now turns on <see cref="CashRegister.AssignedUserId"/> rather than shift occupancy: an unassigned register
+    /// may be stored as a preference even while another user holds the shift. Payment and the picker still block it.
+    /// </summary>
     [Fact]
-    public async Task ValidateAssignmentChange_SoleRegister_OpenByOtherUser_ReturnsForbidden_WithoutCashRegisterView()
+    public async Task ValidateAssignmentChange_UnassignedRegister_OpenByOtherUser_Succeeds()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1336,8 +1441,8 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), principal);
 
-        Assert.False(r.Ok);
-        Assert.Equal(CashRegisterResolutionCodes.Forbidden, r.Code);
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
     }
 
     /// <summary>
@@ -1351,7 +1456,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1384,7 +1489,7 @@ public class CashRegisterResolutionServiceTests
         var theirs = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = mine,
             RegisterNumber = "K1",
             Location = "A",
@@ -1398,7 +1503,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = theirs,
             RegisterNumber = "K2",
             Location = "B",
@@ -1431,7 +1536,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1471,7 +1576,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1491,6 +1596,218 @@ public class CashRegisterResolutionServiceTests
 
         Assert.Empty(list);
     }
+
+    [Fact]
+    public async Task ListSelectableRegisters_HidesRegistersAssignedToOtherUsers()
+    {
+        await using var ctx = CreateContext();
+        var mine = Guid.NewGuid();
+        var shared = Guid.NewGuid();
+        var theirs = Guid.NewGuid();
+        AddRegister(ctx, mine, "K1", RegisterStatus.Closed, assignedUserId: "u1");
+        AddRegister(ctx, shared, "K2", RegisterStatus.Open);
+        AddRegister(ctx, theirs, "K3", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.Single(list);
+        Assert.Contains(list, r => r.Id == mine);
+        Assert.DoesNotContain(list, r => r.Id == shared);
+        Assert.DoesNotContain(list, r => r.Id == theirs);
+    }
+
+    [Fact]
+    public async Task ListSelectableRegisters_UnassignedRegisters_AreHidden_EmptyReasonNoneAssigned()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Closed);
+        AddRegister(ctx, Guid.NewGuid(), "K2", RegisterStatus.Open);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var result = await svc.ListSelectableForPosPickerAsync(
+            "u1",
+            PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.Empty(result.Registers);
+        Assert.Equal("none_assigned", result.EmptyReason);
+    }
+
+    [Fact]
+    public async Task ListSelectableRegisters_AssignedClosed_StaleCurrentUserId_IsStillListed()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Closed, assignedUserId: "u1", currentUserId: "someone-else");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync(
+            "u1",
+            PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.Single(list);
+        Assert.Equal(regId, list[0].Id);
+        Assert.Equal(RegisterStatus.Closed, list[0].Status);
+    }
+
+    /// <summary>Only Super Admin bypasses the assignment filter; <c>cash_register.view</c> no longer does (Cashier and Waiter both hold it).</summary>
+    [Fact]
+    public async Task ListSelectableRegisters_SuperAdmin_SeesRegistersAssignedToOtherUsers()
+    {
+        await using var ctx = CreateContext();
+        var theirs = Guid.NewGuid();
+        AddRegister(ctx, theirs, "K1", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("sa", PrincipalWithRole(Roles.SuperAdmin));
+
+        Assert.Single(list);
+        Assert.Equal(theirs, list[0].Id);
+    }
+
+    /// <summary>Assignment does not grant the shift: the row stays visible but cannot be picked while someone else holds it.</summary>
+    [Fact]
+    public async Task ListSelectableRegisters_AssignedToCallerButHeldByOtherShift_IsVisibleButNotSelectable()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Open, assignedUserId: "u1", currentUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        var row = Assert.Single(list);
+        Assert.Equal(regId, row.Id);
+        Assert.False(row.IsSelectable);
+        Assert.Equal("In Benutzung von u2", row.StatusText);
+    }
+
+    [Fact]
+    public async Task ListSelectableForPosPicker_AllRegistersAssignedToOthers_EmptyReasonNoneAssigned()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Open, assignedUserId: "u2");
+        AddRegister(ctx, Guid.NewGuid(), "K2", RegisterStatus.Closed, assignedUserId: "u3");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var result = await svc.ListSelectableForPosPickerAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.Empty(result.Registers);
+        Assert.Equal("none_assigned", result.EmptyReason);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_ClosedRegister_Succeeds()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Closed);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_RegisterAssignedToOtherUser_ReturnsForbidden()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Forbidden, r.Code);
+    }
+
+    [Theory]
+    [InlineData(RegisterStatus.Maintenance)]
+    [InlineData(RegisterStatus.Disabled)]
+    public async Task ValidateAssignmentChange_NonOperationalStatus_ReturnsClosed(RegisterStatus status)
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", status);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Closed, r.Code);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_DecommissionedRegister_ReturnsDecommissioned()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Decommissioned);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Decommissioned, r.Code);
+    }
+
+    [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_SkipsRegisterAssignedToAnotherUser()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Open, assignedUserId: "u2");
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Null(us.CashRegisterId);
+    }
+
+    private static void AddRegister(
+        AppDbContext ctx,
+        Guid id,
+        string registerNumber,
+        RegisterStatus status,
+        string? assignedUserId = null,
+        string? currentUserId = null) =>
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = id,
+            RegisterNumber = registerNumber,
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = status,
+            AssignedUserId = assignedUserId,
+            CurrentUserId = currentUserId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
 
     [Fact]
     public async Task ValidateAssignmentChange_InvalidGuid_ReturnsInvalid()

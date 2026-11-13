@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState, useEffect } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { apiClient } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
@@ -29,16 +30,16 @@ export function useProductOperations() {
       // Token kontrolü
       const token = await sessionManager.getAccessToken();
       if (!token) {
-        console.log('❌ Token bulunamadı, login sayfasına yönlendiriliyor...');
+        safeLog('❌ Token bulunamadı, login sayfasına yönlendiriliyor...');
         router.replace('/(auth)/login');
         return;
       }
 
-      console.log('🔄 Ürünler yükleniyor...');
-      console.log('🔧 API URL:', apiClient.get.toString());
+      safeLog('🔄 Ürünler yükleniyor...');
+      safeLog('🔧 API URL:', apiClient.get.toString());
 
       const response = await apiClient.get('/products');
-      console.log('✅ API Response:', response);
+      safeLog('✅ API Response:', response);
 
       // Response format kontrolü
       if (response) {
@@ -60,7 +61,7 @@ export function useProductOperations() {
           throw new Error('Unexpected API response format');
         }
 
-        console.log(`✅ ${productsData.length} ürün başarıyla yüklendi`);
+        safeLog(`✅ ${productsData.length} ürün başarıyla yüklendi`);
         setProducts(productsData);
       } else {
         throw new Error('API response is empty or invalid');
@@ -89,19 +90,19 @@ export function useProductOperations() {
 
   // Component mount olduğunda ürünleri yükle
   useEffect(() => {
-    console.log('🚀 useProductOperations mount - ürünler yükleniyor');
+    safeLog('🚀 useProductOperations mount - ürünler yükleniyor');
     loadProducts();
   }, []);
 
   // Manuel refresh için
   const refreshProducts = () => {
-    console.log('🔄 Manuel refresh - ürünler yenileniyor...');
+    safeLog('🔄 Manuel refresh - ürünler yenileniyor...');
     loadProducts();
   };
 
   // Force refresh için
   const forceRefreshProducts = () => {
-    console.log('🔄 Force refresh - ürünler zorla yenileniyor...');
+    safeLog('🔄 Force refresh - ürünler zorla yenileniyor...');
     setError(null);
     loadProducts();
   };

@@ -24,7 +24,7 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import { type CreateQuickUserResult, createQuickUser } from '@/features/super-admin/api/quickUser';
@@ -66,6 +66,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
 const TENANT_USERS_QUERY_KEY = ['admin', 'tenant-users'] as const;
@@ -99,6 +100,8 @@ export function TenantUsersTabCore({
   const [tenantIdFilter, setTenantIdFilter] = useState<string | undefined>();
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
   const [search, setSearch] = useState('');
+  const [userPage, setUserPage] = useState(1);
+  const userPageSize = 50;
   const debouncedSearch = useDebounce(search, 300);
   const searchParam = debouncedSearch.trim() || undefined;
   const { data: roleCatalog } = useRoles({ enabled: isFixedTenant && policy.canEdit });
@@ -138,9 +141,13 @@ export function TenantUsersTabCore({
     select: (data) => data.map(tenantRowToTenantUser),
   });
 
+  useEffect(() => {
+    setUserPage(1);
+  }, [tenantId]);
+
   const fixedTenantUsersQuery = useQuery({
-    queryKey: [...TENANT_USERS_QUERY_KEY, tenantId],
-    queryFn: () => listAdminTenantUsers(tenantId!),
+    queryKey: [...TENANT_USERS_QUERY_KEY, tenantId, userPage, userPageSize],
+    queryFn: () => listAdminTenantUsers(tenantId!, { page: userPage, pageSize: userPageSize }),
     enabled: isFixedTenant,
   });
 
@@ -186,7 +193,7 @@ export function TenantUsersTabCore({
         message.error(t('tenants.users.quick.messages.rateLimited'));
         return;
       }
-      message.error(t('tenants.users.quick.messages.failed'));
+      toastLimitExceededOrFallback(message, t, err, t('tenants.users.quick.messages.failed'));
     },
   });
 
@@ -270,7 +277,7 @@ export function TenantUsersTabCore({
   }, [scopedRows, searchParam, tenantIdFilter, roleFilter]);
 
   const filteredFixedTenantUsers = useMemo(() => {
-    const users = fixedTenantUsersQuery.data ?? [];
+    const users = fixedTenantUsersQuery.data?.items ?? [];
     const q = searchParam?.toLowerCase();
     if (!q) return users;
     return users.filter(
@@ -296,7 +303,7 @@ export function TenantUsersTabCore({
   );
 
   const assignedIds = useMemo(
-    () => new Set((fixedTenantUsersQuery.data ?? []).map((u) => u.userId)),
+    () => new Set((fixedTenantUsersQuery.data?.items ?? []).map((u) => u.userId)),
     [fixedTenantUsersQuery.data]
   );
 
@@ -522,11 +529,17 @@ export function TenantUsersTabCore({
           onResetPassword={
             canProvision
               ? (userId) => {
-                  const row = fixedTenantUsersQuery.data?.find((u) => u.userId === userId) ?? null;
+                  const row = fixedTenantUsersQuery.data?.items.find((u) => u.userId === userId) ?? null;
                   setResetRow(row);
                 }
               : undefined
           }
+          listPage={{
+            current: userPage,
+            pageSize: userPageSize,
+            total: fixedTenantUsersQuery.data?.totalCount ?? 0,
+            onChange: setUserPage,
+          }}
         />
       ) : (
         <Table

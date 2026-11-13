@@ -33,6 +33,15 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
     formatLocale: 'de-AT',
+    textLocale: 'de',
+  }),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    formatLocale: 'de-AT',
+    textLocale: 'de',
   }),
 }));
 
@@ -70,7 +79,7 @@ describe('BackupList', () => {
           createdAt: '2026-07-03T15:01:00Z',
           tenantSlug: 'dev',
           isFake: true,
-          status: BackupRunStatus.NUMBER_3,
+          status: BackupRunStatus.Succeeded,
           durationSeconds: 180,
           durationFormatted: '3m',
         },

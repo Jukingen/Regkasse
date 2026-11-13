@@ -25,6 +25,7 @@ import {
   useDepExportAuditTrail,
   type DepExportAuditEntryDto,
 } from '@/features/rksv/hooks/useDepExportAudit';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { useI18n } from '@/i18n';
 import dayjs from '@/lib/dayjs';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -37,6 +38,7 @@ const ACTION_VALUES = ['Created', 'Downloaded', 'Archived', 'Deleted', 'Validate
 
 export function DepExportAuditTrailCard({ style }: Props) {
   const { t } = useI18n();
+  const { formatDateTime } = useCountryFormatting();
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null] | null>([
     dayjs().subtract(12, 'month').startOf('day'),
     dayjs().endOf('day'),
@@ -76,7 +78,7 @@ export function DepExportAuditTrailCard({ style }: Props) {
       dataIndex: 'actionAt',
       key: 'actionAt',
       width: 160,
-      render: (value: string) => dayjs(value).format('DD.MM.YYYY HH:mm'),
+      render: (value: string) => formatDateTime(value),
     },
     {
       title: t('rksvHub.depExportAudit.colAction'),

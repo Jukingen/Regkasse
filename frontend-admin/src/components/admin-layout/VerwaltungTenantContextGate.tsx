@@ -2,11 +2,11 @@
 
 import { usePathname } from 'next/navigation';
 
-import { TenantInfoCard } from '@/components/admin-layout/TenantInfoCard';
 import { useSuperAdminTenantMode } from '@/features/tenancy/hooks/useSuperAdminTenantMode';
 import { isVerwaltungAdminPath, normalizeAdminPathname } from '@/shared/adminSidebarNavigation';
+import { TenantHeader } from '@/shared/components/TenantHeader';
 
-/** Tenant info card on Verwaltung routes when a mandant context is active (not blocked by TenantGuard). */
+/** Compact tenant header on Verwaltung routes when a mandant context is active (not blocked by TenantGuard). */
 export function VerwaltungTenantContextGate() {
   const pathname = usePathname();
   const { requiresTenantSelection } = useSuperAdminTenantMode();
@@ -22,5 +22,5 @@ export function VerwaltungTenantContextGate() {
     return null;
   }
 
-  return <TenantInfoCard />;
+  return <TenantHeader />;
 }

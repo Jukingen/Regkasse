@@ -1,4 +1,5 @@
-export const ADMIN_LICENSE_PAGE_PATH = '/admin/license';
+export const ADMIN_LICENSE_PAGE_PATH = '/admin/license-management';
+export const LEGACY_ADMIN_LICENSE_PAGE_PATH = '/admin/license';
 export const ADMIN_LICENSE_PAGE_INTENT_EXTEND = 'extend';
 
 const MACHINE_HASH_HEX_REGEX = /^[0-9a-f]{64}$/i;

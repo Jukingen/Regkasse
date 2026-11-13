@@ -35,4 +35,13 @@ describe('quickSwitch storage', () => {
 
     expect(readQuickCashRegisterId('tenant-a')).toBeNull();
   });
+
+  it('does not resurrect a legacy global value after a scoped clear', () => {
+    sessionStorage.setItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY, 'legacy-reg');
+
+    writeQuickCashRegisterId(null, 'tenant-a');
+
+    expect(readQuickCashRegisterId('tenant-a')).toBeNull();
+    expect(sessionStorage.getItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY)).toBeNull();
+  });
 });

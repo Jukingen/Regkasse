@@ -10,6 +10,10 @@ import {
   BACKUP_HUB_LANDING_PATH,
   BACKUP_PERFORMANCE_PATH,
   BACKUP_RESTORE_HISTORY_PATH,
+  BACKUP_RESTORE_VERIFICATION_PATH,
+  ADMIN_RESTORE_VERIFICATION_PATH,
+  BACKUP_PITR_PATH,
+  BACKUP_RETENTION_PATH,
   BACKUP_SECONDARY_NAV_ITEMS,
   backupPathFromPathname,
 } from '@/shared/backupAreaRoutes';
@@ -44,10 +48,37 @@ describe('backup overview hub routes', () => {
     expect(BACKUP_SECONDARY_NAV_ITEMS.some((i) => i.href === BACKUP_COSTS_PATH)).toBe(true);
   });
 
+  it('exposes retention secondary nav and path mapping', () => {
+    expect(BACKUP_RETENTION_PATH).toBe('/backup/retention');
+    expect(backupPathFromPathname('/backup/retention')).toBe(BACKUP_RETENTION_PATH);
+    expect(backupPathFromPathname('/settings/backup-retention')).toBe(BACKUP_RETENTION_PATH);
+    expect(BACKUP_SECONDARY_NAV_ITEMS.some((i) => i.href === BACKUP_RETENTION_PATH)).toBe(true);
+  });
+
+  it('exposes PITR secondary nav and path mapping', () => {
+    expect(BACKUP_PITR_PATH).toBe('/backup/pitr');
+    expect(backupPathFromPathname('/backup/pitr')).toBe(BACKUP_PITR_PATH);
+    expect(BACKUP_SECONDARY_NAV_ITEMS.some((i) => i.href === BACKUP_PITR_PATH)).toBe(true);
+  });
+
   it('exposes restore-history secondary nav and path mapping', () => {
     expect(BACKUP_RESTORE_HISTORY_PATH).toBe('/backup/restore-history');
     expect(backupPathFromPathname('/backup/restore-history')).toBe(BACKUP_RESTORE_HISTORY_PATH);
     expect(BACKUP_SECONDARY_NAV_ITEMS.some((i) => i.href === BACKUP_RESTORE_HISTORY_PATH)).toBe(
+      true
+    );
+  });
+
+  it('exposes restore-verification secondary nav and path mapping', () => {
+    expect(BACKUP_RESTORE_VERIFICATION_PATH).toBe('/backup/restore-verification');
+    expect(ADMIN_RESTORE_VERIFICATION_PATH).toBe('/admin/restore-verification');
+    expect(backupPathFromPathname('/backup/restore-verification')).toBe(
+      BACKUP_RESTORE_VERIFICATION_PATH
+    );
+    expect(backupPathFromPathname('/admin/restore-verification/abc')).toBe(
+      BACKUP_RESTORE_VERIFICATION_PATH
+    );
+    expect(BACKUP_SECONDARY_NAV_ITEMS.some((i) => i.href === ADMIN_RESTORE_VERIFICATION_PATH)).toBe(
       true
     );
   });

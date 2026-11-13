@@ -39,6 +39,7 @@ import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { AdminCategory } from '@/features/categories/types';
 import { DevCatalogPurgeButton } from '@/features/products/components/DevCatalogPurgeButton';
 import { ProductFilterBar } from '@/features/products/components/ProductFilterBar';
+import { ProductCategoryBadge } from '@/features/products/components/ProductCategoryBadge';
 import ProductForm, {
   type ProductFormSubmitValues,
 } from '@/features/products/components/ProductForm';
@@ -54,6 +55,11 @@ import {
   parseProductPaginationFromSearchParams,
 } from '@/features/products/utils/productFilterUrl';
 import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
+import {
+  mergeCategoriesForProductFilter,
+  resolveProductCategoryDisplay,
+  resolveProductCategoryIds,
+} from '@/features/products/utils/resolveProductCategoryFilter';
 import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import {
   formatProductUnitLabelForLocale,
@@ -65,6 +71,7 @@ import {
 import { TaxQuickActions } from '@/features/tax/components/TaxQuickActions';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { useLicenseGuard } from '@/hooks/useLicenseGuard';
@@ -75,6 +82,8 @@ import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -123,26 +132,31 @@ export default function ProductsPage() {
 
   const { useList: useCategoriesList, invalidateList: invalidateCategoriesList } = useCategories();
   const categoriesQuery = useCategoriesList();
-  const categories = categoriesQuery.data ?? [];
+  const catalogCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
-  const listParams = useMemo(
-    () => productFiltersToApiParams(filters, pagination),
-    [filters, pagination]
+  const filterCategories = useMemo(
+    (): AdminCategory[] => mergeCategoriesForProductFilter(catalogCategories, undefined),
+    [catalogCategories]
   );
+
+  const listParams = useMemo(() => {
+    const categoryIds = resolveProductCategoryIds(filters, filterCategories);
+    return productFiltersToApiParams(
+      categoryIds?.length ? { ...filters, categoryIds } : filters,
+      pagination
+    );
+  }, [filterCategories, filters, pagination]);
 
   const listQuery = useList(listParams, { placeholderData: keepPreviousData });
 
-  const filterCategories = useMemo((): AdminCategory[] => {
-    const fromApi = listQuery.data?.availableFilters?.categories;
-    if (fromApi?.length) {
-      return fromApi.map((c) => ({
-        id: c.id,
-        key: c.id,
-        name: c.name,
-      }));
-    }
-    return categories;
-  }, [listQuery.data?.availableFilters?.categories, categories]);
+  const categories = useMemo(
+    (): AdminCategory[] =>
+      mergeCategoriesForProductFilter(
+        catalogCategories,
+        listQuery.data?.availableFilters?.categories
+      ),
+    [catalogCategories, listQuery.data?.availableFilters?.categories]
+  );
 
   const filterTaxTypes = useMemo(() => {
     const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4, 5];
@@ -164,11 +178,12 @@ export default function ProductsPage() {
       const params = buildProductListSearchParams(
         nextFilters,
         nextPagination,
-        new URLSearchParams(searchParams.toString())
+        new URLSearchParams(searchParams.toString()),
+        categories
       );
       router.replace(`?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams]
+    [categories, router, searchParams]
   );
 
   const handleFilterChange = useCallback(
@@ -176,6 +191,18 @@ export default function ProductsPage() {
       applyFiltersAndPagination(nextFilters, { page: 1, pageSize: pagination.pageSize });
     },
     [applyFiltersAndPagination, pagination.pageSize]
+  );
+
+  const handleCategoryBadgeClick = useCallback(
+    (categoryId?: string, categoryName?: string) => {
+      if (!categoryId && !categoryName) return;
+      handleFilterChange({
+        ...filters,
+        categoryIds: categoryId ? [categoryId] : undefined,
+        categoryName: categoryName?.trim() || undefined,
+      });
+    },
+    [filters, handleFilterChange]
   );
 
   const createMutation = useCreate();
@@ -285,7 +312,9 @@ export default function ProductsPage() {
       setFormVisible(false);
       invalidateList();
     } catch (err) {
-      message.error(t('products.messages.createError'));
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        toastLimitExceededOrFallback(message, t, err, t('products.messages.createError'));
+      }
       throw err;
     }
   };
@@ -315,7 +344,9 @@ export default function ProductsPage() {
       setEditingProductId(null);
       invalidateList();
     } catch (err) {
-      message.error(t('products.messages.updateError'));
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        message.error(t('products.messages.updateError'));
+      }
       throw err;
     }
   };
@@ -533,12 +564,15 @@ export default function ProductsPage() {
     },
   };
 
+  const resolveRowCategory = (record: Product) =>
+    resolveProductCategoryDisplay(record, categories);
+
   const columns: ColumnType<Product>[] = [
     {
       title: t('products.table.product'),
       key: 'product',
       ellipsis: true,
-      width: 260,
+      width: 300,
       render: (_: unknown, record: Product) => {
         const desc = record.description?.trim();
         const bc = record.barcode?.trim();
@@ -551,11 +585,25 @@ export default function ProductsPage() {
           tipLines.length > 0 ? (
             <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
           ) : undefined;
+        const category = resolveRowCategory(record);
         const cell = (
           <Space orientation="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
-            <Typography.Text strong ellipsis style={{ display: 'block' }}>
-              {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
-            </Typography.Text>
+            <Space size={8} align="center" wrap>
+              <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
+              </Typography.Text>
+              {(record as Product & { hasVariants?: boolean }).hasVariants ? (
+                <Tag variant="filled">{t('products.table.variantsBadge')}</Tag>
+              ) : null}
+              {category.name ? (
+                <ProductCategoryBadge
+                  name={category.name}
+                  color={category.color}
+                  title={t('products.table.filterByCategory', { name: category.name })}
+                  onClick={() => handleCategoryBadgeClick(category.id, category.name)}
+                />
+              ) : null}
+            </Space>
             {bc ? (
               <Typography.Text
                 code
@@ -607,11 +655,25 @@ export default function ProductsPage() {
       key: 'category',
       width: 140,
       ellipsis: true,
-      render: (text: string) => (
-        <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-          {text?.trim() ? text : FORMAT_EMPTY_DISPLAY}
-        </Typography.Text>
-      ),
+      render: (_text: string, record: Product) => {
+        const category = resolveRowCategory(record);
+        return (
+          <ProductCategoryBadge
+            name={category.name}
+            color={category.color}
+            title={
+              category.name
+                ? t('products.table.filterByCategory', { name: category.name })
+                : undefined
+            }
+            onClick={
+              category.name
+                ? () => handleCategoryBadgeClick(category.id, category.name)
+                : undefined
+            }
+          />
+        );
+      },
     },
     {
       title: t('products.table.tax'),
@@ -769,10 +831,13 @@ export default function ProductsPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
+      <LimitWarning limitKey="maxProductsPerTenant" />
+
       <ProductFilterBar
         filters={filters}
         onFilterChange={handleFilterChange}
-        categories={filterCategories}
+        categories={categories.length ? categories : filterCategories}
+        categoriesLoading={categoriesQuery.isLoading}
         taxTypes={filterTaxTypes}
         statusCounts={statusCounts}
         filteredResultCount={
@@ -850,7 +915,7 @@ export default function ProductsPage() {
             ...tablePagination,
           }}
           size="middle"
-          scroll={{ x: showProductLagerUi ? 1100 : 980 }}
+          scroll={{ x: showProductLagerUi ? 1180 : 1060 }}
           locale={{
             emptyText: (
               <EmptyState

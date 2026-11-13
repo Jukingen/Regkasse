@@ -1,12 +1,12 @@
 # FinanzOnline automatic retry and alerting
 
-## Değişen dosyalar
+## Changed files
 
-| Dosya | Değişiklik |
-|-------|------------|
+| File | Change |
+|------|--------|
 | `backend/Options/FinanzOnlineRetryJobOptions.cs` | Config: Interval, MaxRetryCount, BaseDelaySeconds, BackoffCapSeconds, BatchSize, AlertFailedThreshold, RegisterRepeatedFailureThreshold, Enabled. Namespace: `KasseAPI_Final.Configuration`. |
 | `backend/Services/FinanzOnlineMetrics.cs` | `IFinanzOnlineMetrics` (IncrementSubmitTotal, IncrementSubmitFailed(kind), GetSnapshot), `IFinanzOnlineAlertSink`, `NoOpFinanzOnlineAlertSink`. |
-| `backend/Services/FinanzOnlineRetryHostedService.cs` | Background job: Pending retry with exponential backoff, max retry, mark max-retries-exceeded as Failed, emit alerts. |
+| `backend/Services/FinanzOnlineRetryHostedService.cs` | Background job: pending retry with exponential backoff, max retry, mark max-retries-exceeded as Failed, emit alerts. |
 | `backend/Services/PaymentService.cs` | Optional `IFinanzOnlineMetrics`; IncrementSubmitTotal/IncrementSubmitFailed on create and retry paths. |
 | `backend/Controllers/FinanzOnlineReconciliationController.cs` | GET `metrics` endpoint; ctor `IFinanzOnlineMetrics`. |
 | `backend/Program.cs` | Register FinanzOnlineRetryJobOptions, IFinanzOnlineMetrics, IFinanzOnlineAlertSink, FinanzOnlineRetryHostedService. |
@@ -17,17 +17,17 @@
 
 ## Retry strategy
 
-- **Ne retry edilir:** Sadece `FinanzOnlineStatus == "Pending"` ve `FinanzOnlineRetryCount < MaxRetryCount` (varsayılan 5) ve backoff süresi geçmiş kayıtlar.
-- **Backoff:** `BaseDelaySeconds * 2^RetryCount` saniye, en fazla `BackoffCapSeconds` (örn. 3600). İlk denemeden hemen sonra ikinci deneme en erken BaseDelaySeconds saniye sonra.
-- **Sonuç:** Success → `Submitted`. Transient fail → `Pending` (retry count artar). Permanent/Unknown fail → `Failed`. Retry sayısı MaxRetryCount’a ulaştıktan sonra bir kez daha fail olursa status `Failed` yapılır, hata metnine "(Max retries exceeded)." eklenir.
-- **Duplicate submit:** Job sadece Pending seçer. `RetryFinanzOnlineSubmitAsync` zaten Submitted ise external API çağrılmaz; duplicate submit riski değişmedi.
+- **What is retried:** Only rows with `FinanzOnlineStatus == "Pending"` and `FinanzOnlineRetryCount < MaxRetryCount` (default 5) whose backoff window has elapsed.
+- **Backoff:** `BaseDelaySeconds * 2^RetryCount` seconds, capped at `BackoffCapSeconds` (for example 3600). After the first attempt, the second is at earliest BaseDelaySeconds later.
+- **Outcome:** Success → `Submitted`. Transient fail → `Pending` (retry count increases). Permanent/Unknown fail → `Failed`. After MaxRetryCount is reached and one more fail occurs, status becomes `Failed` and the error text gets "(Max retries exceeded)."
+- **Duplicate submit:** The job selects Pending only. `RetryFinanzOnlineSubmitAsync` does not call the external API if already Submitted; duplicate-submit risk is unchanged.
 
 ---
 
-## Ops nasıl izler
+## How Ops monitors
 
-1. **Metrikler:** `GET /api/admin/finanzonline-reconciliation/metrics` (FinanzOnlineView) → `submitTotal`, `submitFailedTotal`, `submitFailedTransient`, `submitFailedPermanent`, `submitFailedUnknown`. Uygulama restart’ta sıfırlanır.
-2. **Liste:** `GET /api/admin/finanzonline-reconciliation?status=Pending,Failed` ile bekleyen ve başarısız kayıtlar.
-3. **Log alert:** "FinanzOnlineAlert" içeren log satırları: Failed sayısı eşiği aşıldığında veya aynı kasa için tekrarlayan hata. Bu mesajlara log tabanlı alert kuralı bağlanabilir.
-4. **Alert sink (isteğe bağlı):** `IFinanzOnlineAlertSink` implementasyonu (webhook, queue vb.) kaydedilirse `OnFailedCountThresholdExceeded` ve `OnRegisterRepeatedFailure` çağrılır. Varsayılan: `NoOpFinanzOnlineAlertSink`.
-5. **Job kapatma:** `FinanzOnlineRetryJob:Enabled: false` ile otomatik retry kapatılır; sadece manuel retry kullanılır.
+1. **Metrics:** `GET /api/admin/finanzonline-reconciliation/metrics` (FinanzOnlineView) → `submitTotal`, `submitFailedTotal`, `submitFailedTransient`, `submitFailedPermanent`, `submitFailedUnknown`. Reset on process restart.
+2. **List:** `GET /api/admin/finanzonline-reconciliation?status=Pending,Failed` for pending and failed rows.
+3. **Log alert:** Log lines containing "FinanzOnlineAlert": Failed count over threshold, or repeated failure on the same cash register. Bind a log-based alert rule to those messages.
+4. **Alert sink (optional):** If an `IFinanzOnlineAlertSink` implementation (webhook, queue, and similar) is registered, `OnFailedCountThresholdExceeded` and `OnRegisterRepeatedFailure` are called. Default: `NoOpFinanzOnlineAlertSink`.
+5. **Disable the job:** `FinanzOnlineRetryJob:Enabled: false` turns off automatic retry; only manual retry remains.

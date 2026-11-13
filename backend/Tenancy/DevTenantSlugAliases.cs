@@ -1,7 +1,10 @@
 namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
-/// Normalizes dev tenant slugs for API resolution. Legacy cafe/bar/test_* aliases map to dev/prod presets.
+/// Normalizes legacy demo tenant slugs for API resolution (cafe/bar aliases → dev/prod presets).
+/// Callers must apply this only when <c>IHostEnvironment.IsDevelopment()</c> —
+/// Production/Staging must resolve exact slugs (no cafe→dev remapping).
+/// Platform sentinel is not aliased here — Production admin host binds to <c>platform</c> directly.
 /// </summary>
 public static class DevTenantSlugAliases
 {

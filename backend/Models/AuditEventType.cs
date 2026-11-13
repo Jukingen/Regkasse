@@ -52,9 +52,9 @@ public enum AuditEventType
     PermissionConfigBackupCreated = 32,
     /// <summary>Generic admin file download (history / exports).</summary>
     FileDownloaded = 33,
-    /// <summary>System backup artifact downloaded (sensitive; may require 2FA + approval).</summary>
+    /// <summary>System backup artifact downloaded (sensitive; may require approval / privacy ack).</summary>
     SystemBackupDownloaded = 34,
-    /// <summary>Audit log export file downloaded (sensitive; may require 2FA + approval).</summary>
+    /// <summary>Audit log export file downloaded (sensitive; may require approval / privacy ack).</summary>
     AuditLogExportDownloaded = 35,
     /// <summary>GDPR / tenant data-rights ZIP downloaded (sensitive; may require approval).</summary>
     GdprDataExportDownloaded = 36,
@@ -118,6 +118,350 @@ public enum AuditEventType
 
     /// <summary>Compliance officer signed off production deployment checklist.</summary>
     DeploymentComplianceApproved = 61,
+
+    /// <summary>Super Admin manually cleared application cache (troubleshooting).</summary>
+    SystemCacheCleared = 62,
+
+    /// <summary>SaaS trial converted to a paid license sale.</summary>
+    TrialConvertedToPaid = 63,
+
+    /// <summary>Super Admin changed the Fiskaly SIGN AT enable/disable overlay.</summary>
+    FiskalySettingsChanged = 64,
+
+    /// <summary>FON (FinanzOnline) credentials submitted to fiskaly SIGN AT (PIN never logged).</summary>
+    FiskalyFonAuthenticated = 65,
+
+    /// <summary>fiskaly SCU transitioned to INITIALIZED (FON registration).</summary>
+    FiskalyScuInitialized = 66,
+
+    /// <summary>fiskaly cash register transitioned to INITIALIZED (initial receipt).</summary>
+    FiskalyCashRegisterInitialized = 67,
+
+    /// <summary>Development-only Super Admin fiskaly SIGN AT test receipt signed (not a POS payment).</summary>
+    FiskalyTestReceiptSigned = 68,
+
+    /// <summary>Unified REGK key activated (deployment or mandant).</summary>
+    LicenseActivated = 69,
+
+    /// <summary>Unified REGK key revoked / deactivated.</summary>
+    LicenseRevoked = 70,
+
+    /// <summary>Unified REGK activation rejected (format, not found, already used, slug mismatch).</summary>
+    LicenseActivationFailed = 71,
+
+    /// <summary>Reserved: Super Admin previewed a key (not written on every FA keystroke).</summary>
+    LicensePreviewed = 72,
+
+    /// <summary>Super Admin changed the FinanzOnline outbox worker enable/disable overlay.</summary>
+    FinanzOnlineOutboxSettingsChanged = 73,
+
+    /// <summary>Operator reset one outbox row to Pending so the worker can submit it again.</summary>
+    FinanzOnlineOutboxRetried = 139,
+
+    /// <summary>Operator reset every matching failed outbox row to Pending.</summary>
+    FinanzOnlineOutboxBulkRetried = 140,
+
+    /// <summary>Super Admin closed an outbox row without another FinanzOnline submit.</summary>
+    FinanzOnlineOutboxMarkedResolved = 141,
+
+    /// <summary>Super Admin force-logged-out a user (security stamp + all sessions).</summary>
+    UserForceLogout = 74,
+
+    /// <summary>Super Admin terminated one or more auth sessions (refresh tokens revoked).</summary>
+    UserSessionTerminated = 75,
+
+    /// <summary>Super Admin changed the instance-wide RKSV Demo/Production overlay.</summary>
+    RksvRuntimeConfigChanged = 76,
+
+    /// <summary>POS/FA storno signed at fiskaly SIGN AT as receipt_type=CANCELLATION.</summary>
+    FiskalyCancellationReceiptSigned = 77,
+
+    /// <summary>SuperAdmin Fiskaly/RKSV receipt operation failed (structured error envelope).</summary>
+    FiskalyReceiptOperationFailed = 78,
+
+    /// <summary>SuperAdmin Fiskaly/RKSV receipt operation succeeded (normal, storno, or Sonderbeleg).</summary>
+    FiskalyReceiptSigned = 79,
+
+    /// <summary>Failed Fiskaly operation retried from FA history.</summary>
+    FiskalyOperationRetried = 80,
+
+    /// <summary>FA batch Fiskaly storno, Sonderbelege, or SuperAdmin DEP export finished (summary).</summary>
+    FiskalyBatchCompleted = 81,
+
+    /// <summary>Failed Fiskaly history row marked resolved / known issue / reopened.</summary>
+    FiskalyErrorReviewUpdated = 82,
+
+    /// <summary>Super Admin changed backup Hot/Warm/Cold legal retention policy.</summary>
+    BackupRetentionPolicyUpdated = 83,
+
+    /// <summary>Backup artifacts moved to Cold / WORM archive.</summary>
+    BackupMovedToColdStorage = 84,
+
+    /// <summary>Legal hold set or cleared on a backup run.</summary>
+    BackupLegalHoldChanged = 85,
+
+    /// <summary>Backup run enqueued (manual, scheduled cron, or operator API).</summary>
+    BackupCreated = 86,
+
+    /// <summary>Backup artifact downloaded to an operator workstation.</summary>
+    BackupDownloaded = 87,
+
+    /// <summary>Backup checksum / content verification completed.</summary>
+    BackupVerified = 88,
+
+    /// <summary>Cashier requested Mandanten-Admin to open a closed cash register.</summary>
+    CashRegisterOpenRequested = 89,
+
+    /// <summary>Mandanten-Admin approved a POS cash register open request.</summary>
+    CashRegisterOpenRequestApproved = 90,
+
+    /// <summary>Mandanten-Admin denied a POS cash register open request.</summary>
+    CashRegisterOpenRequestDenied = 91,
+
+    /// <summary>Cashier notified Mandanten-Admin that Monatsbeleg is missing.</summary>
+    MonatsbelegManagerContacted = 92,
+
+    /// <summary>Mandanten-Admin changed Monatsbeleg sales-blocking policy.</summary>
+    MonatsbelegPolicyChanged = 93,
+
+    /// <summary>TSE-signed Monatsbeleg created (including automatic system actor).</summary>
+    MonatsbelegCreated = 94,
+
+    /// <summary>Automatic Monatsbeleg creation exhausted retries.</summary>
+    MonatsbelegAutoCreateFailed = 95,
+
+    /// <summary>Super Admin created a mandant with an explicit country + VAT regime.</summary>
+    TenantCreatedWithCountry = 96,
+
+    /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
+    TenantCountryChanged = 97,
+
+    /// <summary>
+    /// Country change left historical invoices/receipts/payments stamped with their original
+    /// <c>CountryCodeAtIssue</c> / <c>VatRegimeAtIssue</c> (row count in audit newValues).
+    /// </summary>
+    TenantCountryChangedHistoricalPreserved = 98,
+
+    /// <summary>DE canary: TSS or client id stored on company settings for the first time. No API secrets.</summary>
+    KsDeTssCreated = 100,
+
+    /// <summary>DE SIGN start. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxStarted = 101,
+
+    /// <summary>DE SIGN finish. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxFinished = 102,
+
+    /// <summary>DSFinV-K export requested. This package records PENDING only.</summary>
+    KsDeExportCreated = 103,
+
+    /// <summary>
+    /// Auto-Monatsbeleg catch-up window closed with previous-month receipt still missing.
+    /// Numeric 105: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    MonatsbelegAutoCreateMissed = 105,
+
+    /// <summary>CH canary built an MWST QR payload. No TSE signature. IBAN is not stored.</summary>
+    ChMwstQrBuilt = 106,
+
+    /// <summary>Super Admin set Fiscal.MwstCh=false for the CH canary tenant.</summary>
+    ChMwstCanaryRolledBack = 107,
+
+    /// <summary>EN 16931 Schematron passed. Peppol was not sent when the Access Point is unset.</summary>
+    EinvoiceValidated = 108,
+
+    /// <summary>Hosted or mock Peppol Access Point accepted the UBL invoice.</summary>
+    EinvoiceSubmitted = 109,
+
+    /// <summary>Schematron or Access Point rejected the invoice. Detail is rule ids or HTTP status, not the XML.</summary>
+    EinvoiceSubmissionFailed = 110,
+
+    /// <summary>CH QR-Rechnung SPC payload built. Stores a hash only. The payload contains an IBAN and is not logged.</summary>
+    QrRechnungPayloadBuilt = 111,
+
+    /// <summary>CH QR-Rechnung PDF rendered. Stores a relative path when the caller supplied one. No absolute path and no IBAN.</summary>
+    QrRechnungPdfGenerated = 112,
+
+    /// <summary>Super Admin registered a Peppol participant id. No credential is stored.</summary>
+    PeppolParticipantRegistered = 113,
+
+    /// <summary>
+    /// Operator acknowledged open CH QR print gaps for one tenant.
+    /// This is not a SIX or MWST compliance claim and it does not enable bank submission.
+    /// </summary>
+    ChQrKnownGapsAccepted = 114,
+
+    /// <summary>
+    /// Storecove reported the canary document as delivered. Not a Peppol compliance claim.
+    /// The UBL document is not stored in the audit row.
+    /// </summary>
+    EinvoiceAckReceived = 115,
+
+    /// <summary>
+    /// Super Admin downloaded the QR-Rechnung PDF. No bank HTTP. The IBAN is not stored.
+    /// </summary>
+    QrRechnungPdfDownloaded = 116,
+
+    /// <summary>
+    /// Operator recorded that the PDF was uploaded in a bank portal. No bank HTTP.
+    /// </summary>
+    QrRechnungBankUploadConfirmed = 117,
+
+    /// <summary>
+    /// A transient Storecove ACK read was scheduled again. Not a Peppol compliance claim.
+    /// The UBL document and the API key are not stored.
+    /// </summary>
+    EinvoiceSubmissionRetry = 118,
+
+    /// <summary>Super Admin changed a tenant's POS vertical profile and/or its JSON overrides.</summary>
+    TenantVerticalProfileChanged = 119,
+
+    /// <summary>POS created a tenant-scoped appointment (not a fiscal receipt).</summary>
+    AppointmentCreated = 120,
+
+    /// <summary>POS updated a tenant-scoped appointment with a version check.</summary>
+    AppointmentUpdated = 121,
+
+    /// <summary>POS soft-cancelled a tenant-scoped appointment.</summary>
+    AppointmentCancelled = 122,
+
+    /// <summary>
+    /// A sale stored a non-fiscal prescription reference. The reference itself is not logged.
+    /// Not part of the RKSV/TSE chain.
+    /// </summary>
+    PaymentWithPrescription = 123,
+
+    /// <summary>A ticket-sales sale issued a redeemable ticket. The plaintext code is not logged.</summary>
+    TicketIssued = 124,
+
+    /// <summary>POS redeemed a ticket. The plaintext code is not logged.</summary>
+    TicketRedeemed = 125,
+
+    /// <summary>POS sent a non-fiscal kitchen order from the current cart.</summary>
+    KitchenOrderCreated = 126,
+
+    /// <summary>Kitchen or POS changed a kitchen order or item status.</summary>
+    KitchenOrderStatusChanged = 127,
+
+    /// <summary>POS cancelled a kitchen order that was not served.</summary>
+    KitchenOrderCancelled = 128,
+
+    /// <summary>A lodging room was created. Not a fiscal event.</summary>
+    RoomCreated = 129,
+
+    /// <summary>A guest folio was opened for a room. Not a fiscal receipt.</summary>
+    GuestFolioOpened = 130,
+
+    /// <summary>Super Admin created a POS vertical profile (blank or cloned). Not a fiscal event.</summary>
+    VerticalProfileCreated = 131,
+
+    /// <summary>Super Admin edited a POS vertical profile. Not a fiscal event.</summary>
+    VerticalProfileUpdated = 132,
+
+    /// <summary>Super Admin soft-deleted a custom POS vertical profile. Not a fiscal event.</summary>
+    VerticalProfileDeleted = 133,
+
+    /// <summary>A lodging room status changed. Not a fiscal event.</summary>
+    RoomStatusChanged = 134,
+
+    /// <summary>A guest folio was closed or cancelled. Not a fiscal receipt.</summary>
+    FolioClosed = 135,
+
+    /// <summary>A non-fiscal charge was added to an open guest folio. No TSE receipt.</summary>
+    FolioCharged = 136,
+
+    /// <summary>An ambient-tenant extension was enabled or disabled. Not a fiscal event.</summary>
+    TenantExtensionToggled = 137,
+
+    /// <summary>A hair-salon campaign changed a cart gross before signing. The campaign id list is stored; line prices are not.</summary>
+    HairSalonCampaignApplied = 138,
+
+    /// <summary>
+    /// Super Admin acknowledged Backup/DR known gaps for one tenant.
+    /// This does not disable the checks, does not move restore-proof timestamps, and does not pass the compliance gate.
+    /// Numeric 142: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupKnownGapsAccepted = 142,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary email was sent.
+    /// Recipients and SMTP secrets are not stored.
+    /// Numeric 143: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportSent = 143,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary email was not sent.
+    /// Recipients and SMTP secrets are not stored.
+    /// Numeric 144: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportFailed = 144,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary did not send because no recipients were configured.
+    /// The audit row stores <c>Reason=no-recipients</c> and a correlation id. Addresses are not stored.
+    /// Numeric 145: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportSkipped = 145,
+
+    /// <summary>
+    /// Admin changed a ticket price category or an event's category price and capacity.
+    /// Not a fiscal event. The ticket plaintext is not stored.
+    /// Numeric 146: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TicketPriceCategoryChanged = 146,
+
+    /// <summary>
+    /// A seat was sold on the non-fiscal ticket-events sell path.
+    /// Does not call payment or TSE. The ticket plaintext is not stored.
+    /// Numeric 147: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TicketSeatSold = 147,
+
+    /// <summary>
+    /// Admin created, updated, or deactivated a product variant.
+    /// Product metadata only. Not a fiscal event. Numeric 148: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    ProductVariantChanged = 148,
+
+    /// <summary>
+    /// Variant stock changed by a delta. Not a payment or TSE event.
+    /// Numeric 149: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    ProductVariantStockAdjusted = 149,
+
+    /// <summary>
+    /// An open guest folio moved to another room. The folio row and its balance stay.
+    /// Not a receipt, a folio item, or a payment. Numeric 150: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    FolioRoomMoved = 150,
+
+    /// <summary>
+    /// Super Admin downloaded a single restore-drill PDF.
+    /// The row stores tenant id, drill id, and actor id. PDF bytes, dump content, and secrets are not stored.
+    /// Numeric 151: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    RestoreDrillPdfDownloaded = 151,
+
+    /// <summary>
+    /// Super Admin seeded a demo catalog after tenant create. The row stores tenant id,
+    /// added product and customer counts, and the cash register id. Product names and passwords are not stored.
+    /// Numeric 152: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TenantDemoSeeded = 152,
+
+    /// <summary>
+    /// Demo catalog seed rolled back. The row stores tenant id and the profile that failed.
+    /// Product names, clinical data, and passwords are not stored.
+    /// Numeric 153: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TenantDemoSeedPartial = 153,
+
+    /// <summary>
+    /// A past-month Monatsbeleg was signed again with force=true.
+    /// The previous payment stays in the database with its signature and BelegNr; only IsActive is cleared.
+    /// Numeric 154: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    MonatsbelegReissued = 154,
 
     Other = 99
 }

@@ -4,6 +4,7 @@
  * Bileşen + pano entegrasyonu: yalnızca saf yardımcı fonksiyon testi değil.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { App } from 'antd';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
@@ -27,8 +28,8 @@ import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
 } from '@/api/generated/model';
-import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { RestoreVerificationStatus } from '@/api/generated/model';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
 import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
 import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
 import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
@@ -79,12 +80,45 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t,
     formatLocale: 'en-US',
+    textLocale: 'en',
+  }),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t,
+    formatLocale: 'en-US',
+    textLocale: 'en',
   }),
 }));
 
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => ({
     user: { permissions: ['settings.manage'] },
+  }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: {},
+  }),
+}));
+
+vi.mock('@/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    tenantSlug: 'dev',
+    isSuperAdminUser: true,
+  }),
+}));
+
+vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    tenantSlug: 'dev',
+    isSuperAdminUser: true,
   }),
 }));
 
@@ -125,7 +159,11 @@ function wrap(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <App>{ui}</App>
+    </QueryClientProvider>
+  );
 }
 
 beforeAll(() => {
@@ -217,7 +255,7 @@ function baseRecoverabilityFake(over: Partial<BackupRecoverabilitySummaryRespons
 describe('RestoreVerificationCard — PG_RESTORE_LIST_FAILED', () => {
   const baseRun = {
     id: 'rv-1',
-    status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+    status: RestoreVerificationStatus.Failed,
     failureCode: 'PG_RESTORE_LIST_FAILED',
     failureDetail: 'pg_restore: error',
     completedAt: '2026-01-10T12:00:00Z',
@@ -308,7 +346,7 @@ describe('BackupArtifactsDownloadCard — stub meaning on rows', () => {
         artifacts={[
           {
             id: 'a-dump',
-            artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+            artifactType: BackupArtifactType.LogicalDump,
             isFilePresentForDownload: true,
             byteSize: 42,
           },
@@ -463,7 +501,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
         artifacts: [
           {
             id: 'art-1',
-            artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+            artifactType: BackupArtifactType.LogicalDump,
             isFilePresentForDownload: true,
             byteSize: 40,
           },
@@ -580,7 +618,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
         artifacts: [
           {
             id: 'art-pg',
-            artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+            artifactType: BackupArtifactType.LogicalDump,
             isFilePresentForDownload: true,
             byteSize: 500_000,
           },
@@ -594,7 +632,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: {
         id: 'drill-ok-1',
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
         completedAt: '2026-01-10T11:00:00Z',
       },
       isLoading: false,
@@ -630,7 +668,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: {
         id: 'rv-fail',
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'PG_RESTORE_LIST_FAILED',
         failureDetail: 'could not read input',
         detailsJson: JSON.stringify({
@@ -664,7 +702,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     );
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'PG_RESTORE_LIST_FAILED',
         failureDetail: 'x',
         detailsJson: JSON.stringify({
@@ -773,7 +811,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
         artifacts: [
           {
             id: 'art-pg',
-            artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+            artifactType: BackupArtifactType.LogicalDump,
             isFilePresentForDownload: true,
             byteSize: 600_000,
           },

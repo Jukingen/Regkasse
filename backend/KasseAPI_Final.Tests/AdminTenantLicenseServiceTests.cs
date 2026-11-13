@@ -3,9 +3,12 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -42,7 +45,9 @@ public sealed class AdminTenantLicenseServiceTests
         string plan = LicenseSalePlans.TwelveMonths,
         string status = LicenseSaleStatuses.Active)
     {
-        licenseKey ??= BillingKeyGenerator.GenerateLicenseKey(slug, validUntil);
+        licenseKey ??= validUntil > DateTime.UtcNow
+            ? BillingKeyGenerator.GenerateLicenseKey(slug, validUntil)
+            : LicenseKeyGenerator.FormatUnifiedLicenseKey(validUntil, slug, "EXPIRED1");
         var validFrom = plan switch
         {
             LicenseSalePlans.SixMonths => validUntil.AddDays(-183),
@@ -67,6 +72,19 @@ public sealed class AdminTenantLicenseServiceTests
         };
     }
 
+    private static ITrialService CreateTrialService(AppDbContext db)
+    {
+        var options = Mock.Of<IOptionsMonitor<TrialOptions>>(m => m.CurrentValue == new TrialOptions());
+        return new TrialService(
+            db,
+            options,
+            Mock.Of<IEmailService>(),
+            Mock.Of<IActivityEventService>(),
+            Mock.Of<ITenantService>(),
+            Mock.Of<ITrialConversionService>(),
+            Mock.Of<ILogger<TrialService>>());
+    }
+
     private static AdminTenantLicenseService CreateService(
         AppDbContext db,
         ILicenseReminderEmailSender? reminderSender = null) =>
@@ -82,7 +100,8 @@ public sealed class AdminTenantLicenseServiceTests
             Options.Create(new LicenseOptions { Enabled = true }),
             Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
-            CreateTenantLicenseService(db));
+            CreateTenantLicenseService(db),
+            CreateTrialService(db));
 
     [Fact]
     public async Task GetOverviewAsync_InDevelopment_ReturnsActiveForExpiredTenant()
@@ -113,7 +132,8 @@ public sealed class AdminTenantLicenseServiceTests
             Options.Create(new LicenseOptions { Enabled = false }),
             Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
-            CreateTenantLicenseService(db));
+            CreateTenantLicenseService(db),
+            CreateTrialService(db));
 
         var overview = await service.GetOverviewAsync(tenantId);
 
@@ -145,7 +165,7 @@ public sealed class AdminTenantLicenseServiceTests
         Assert.NotNull(result);
         Assert.Equal("active", result!.Status.Kind);
         Assert.NotNull(result.Status.ValidUntilUtc);
-        Assert.True(result.Status.DaysRemaining is > 0 and <= 30);
+        Assert.True(result.Status.DaysRemaining is > 0 and <= 14);
     }
 
     [Fact]
@@ -316,7 +336,7 @@ public sealed class AdminTenantLicenseServiceTests
         var tenantId = Guid.NewGuid();
         const string slug = "preview-co";
         var expiry = DateTime.UtcNow.AddDays(-1);
-        var key = BillingKeyGenerator.GenerateLicenseKey(slug, expiry);
+        var key = LicenseKeyGenerator.FormatUnifiedLicenseKey(expiry, slug, "EXPIRED1");
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
@@ -515,7 +535,8 @@ public sealed class AdminTenantLicenseServiceTests
             Options.Create(new LicenseOptions { Enabled = true }),
             Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
-            CreateTenantLicenseService(db));
+            CreateTenantLicenseService(db),
+            CreateTrialService(db));
 
         var (result, error) = await service.ExtendAsync(
             tenantId,
@@ -558,7 +579,7 @@ public sealed class AdminTenantLicenseServiceTests
         var tenantId = Guid.NewGuid();
         const string slug = "expired-co";
         var expiry = DateTime.UtcNow.AddDays(-1);
-        var key = BillingKeyGenerator.GenerateLicenseKey(slug, expiry);
+        var key = LicenseKeyGenerator.FormatUnifiedLicenseKey(expiry, slug, "EXPIRED1");
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,

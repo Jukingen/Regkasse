@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { App } from 'antd';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,10 +15,43 @@ vi.mock('@/features/backup/hooks/useComplianceStatus', () => ({
   useComplianceStatus: (...args: unknown[]) => useComplianceStatusMock(...args),
 }));
 
+vi.mock('@/features/backup/hooks/useBackupRuns', () => ({
+  useBackupRuns: () => ({ data: { items: [] }, isLoading: false }),
+}));
+
+vi.mock('@/features/backup/hooks/useRestoreVerificationRuns', () => ({
+  useRestoreVerificationRuns: () => ({ data: { items: [] }, isLoading: false, isSuccess: true }),
+}));
+
+vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
+  useGetApiAdminBackupRecoverabilitySummary: () => ({ data: undefined, isLoading: false }),
+}));
+
+vi.mock('@/features/backup/hooks/useBackupKnownGaps', () => ({
+  useBackupKnownGaps: () => ({ data: undefined, isLoading: false, isSuccess: false, isError: false }),
+}));
+
+vi.mock('@/features/backup/components/BackupKnownGapAcceptancePanel', () => ({
+  BackupKnownGapAcceptancePanel: () => null,
+}));
+
+vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
+  useTenantProviderValue: () => null,
+}));
+
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
     formatLocale: 'de-AT',
+    textLocale: 'de',
+  }),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    formatLocale: 'de-AT',
+    textLocale: 'de',
   }),
 }));
 
@@ -54,6 +87,9 @@ describe('BackupComplianceDashboard', () => {
       },
       isLoading: false,
       isError: false,
+      error: null,
+      refetch: vi.fn(),
+      isFetching: false,
     });
 
     render(
@@ -64,5 +100,38 @@ describe('BackupComplianceDashboard', () => {
 
     expect(screen.getByText('backupDr.compliance.warningTitle')).toBeInTheDocument();
     expect(screen.getByText('backupDr.compliance.listTitle')).toBeInTheDocument();
+  });
+
+  it('shows API error detail and retries on demand', () => {
+    const refetch = vi.fn();
+    useComplianceStatusMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+      error: {
+        message: 'Request failed with status code 403',
+        response: {
+          status: 403,
+          data: { message: 'Permission denied', code: 'FORBIDDEN' },
+        },
+        normalized: { message: 'Permission denied' },
+      },
+      refetch,
+      isFetching: false,
+    });
+
+    render(
+      <App>
+        <BackupComplianceDashboard />
+      </App>
+    );
+
+    expect(screen.getByText('backupDr.compliance.loadFailed')).toBeInTheDocument();
+    expect(screen.getByText(/HTTP 403/)).toBeInTheDocument();
+    expect(screen.getByText(/FORBIDDEN/)).toBeInTheDocument();
+    expect(screen.getByText(/Permission denied/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.buttons.retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

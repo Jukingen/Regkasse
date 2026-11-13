@@ -1,6 +1,12 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Logging;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Metrics;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
+using Microsoft.Extensions.Options;
 using Prometheus;
 
 namespace KasseAPI_Final.Middleware;
@@ -8,6 +14,7 @@ namespace KasseAPI_Final.Middleware;
 /// <summary>
 /// Records HTTP API Prometheus metrics: <c>api_requests_total</c>, <c>api_request_duration_ms</c>,
 /// <c>api_errors_total</c>, <c>api_active_requests</c>.
+/// Also emits concise request duration (Debug), slow-request warnings, and enriched failure logs.
 /// </summary>
 public class MetricsMiddleware
 {
@@ -46,11 +53,16 @@ public class MetricsMiddleware
 
     private readonly RequestDelegate _next;
     private readonly ILogger<MetricsMiddleware> _logger;
+    private readonly MonitoringOptions _monitoringOptions;
 
-    public MetricsMiddleware(RequestDelegate next, ILogger<MetricsMiddleware> logger)
+    public MetricsMiddleware(
+        RequestDelegate next,
+        ILogger<MetricsMiddleware> logger,
+        IOptions<MonitoringOptions>? monitoringOptions = null)
     {
         _next = next;
         _logger = logger;
+        _monitoringOptions = monitoringOptions?.Value ?? new MonitoringOptions();
     }
 
     public async Task InvokeAsync(HttpContext context, ApiRequestMetricsAccumulator accumulator)
@@ -65,6 +77,7 @@ public class MetricsMiddleware
         var method = context.Request.Method;
         var endpoint = NormalizePathForMetric(path);
         var isError = false;
+        Exception? caught = null;
 
         ActiveRequests.Inc();
         var stopwatch = Stopwatch.StartNew();
@@ -86,18 +99,121 @@ public class MetricsMiddleware
         catch (Exception ex)
         {
             isError = true;
+            caught = ex;
             endpoint = ResolveEndpointLabel(context, endpoint);
             ErrorCounter.WithLabels(method, endpoint, ex.GetType().Name).Inc();
-            _logger.LogWarning(ex, "API request failed: {Method} {Endpoint}", method, endpoint);
             throw;
         }
         finally
         {
             stopwatch.Stop();
-            RequestDuration.WithLabels(method, endpoint).Observe(stopwatch.ElapsedMilliseconds);
-            accumulator.Record(stopwatch.ElapsedMilliseconds, isError);
+            var elapsedMs = stopwatch.ElapsedMilliseconds;
+            RequestDuration.WithLabels(method, endpoint).Observe(elapsedMs);
+            accumulator.Record(elapsedMs, isError);
             ActiveRequests.Dec();
+
+            LogRequestOutcome(context, method, endpoint, elapsedMs, caught);
         }
+    }
+
+    private void LogRequestOutcome(
+        HttpContext context,
+        string method,
+        string endpoint,
+        long elapsedMs,
+        Exception? caught)
+    {
+        var statusCode = caught != null
+            ? (context.Response.StatusCode >= 400 ? context.Response.StatusCode : 500)
+            : context.Response.StatusCode;
+        var pathAndQuery = $"{context.Request.Path}{context.Request.QueryString}";
+        var (userLabel, userId, tenantLabel, tenantId) = ResolveActorLabels(context);
+
+        if (caught != null)
+        {
+            _logger.LogError(
+                caught,
+                "API request failed: {Method} {PathAndQuery} - {StatusCode}\nUser: {User} ({UserId})\nTenant: {Tenant} ({TenantId})\nError: {ErrorType}: {ErrorMessage}",
+                method,
+                pathAndQuery,
+                statusCode,
+                userLabel,
+                userId,
+                tenantLabel,
+                tenantId,
+                caught.GetType().Name,
+                caught.Message);
+            return;
+        }
+
+        if (statusCode >= 500)
+        {
+            _logger.LogWarning(
+                "API request failed: {Method} {PathAndQuery} - {StatusCode}\nUser: {User} ({UserId})\nTenant: {Tenant} ({TenantId})",
+                method,
+                pathAndQuery,
+                statusCode,
+                userLabel,
+                userId,
+                tenantLabel,
+                tenantId);
+        }
+
+        var threshold = Math.Max(0, _monitoringOptions.SlowRequestThresholdMs);
+        if (threshold > 0 && elapsedMs >= threshold)
+        {
+            _logger.LogWarning(
+                "Slow request: {Method} {Path} - {StatusCode} - {Duration}ms (threshold {Threshold}ms) | User: {User} | Tenant: {Tenant}",
+                method,
+                context.Request.Path.Value,
+                statusCode,
+                elapsedMs,
+                threshold,
+                userLabel,
+                tenantLabel);
+        }
+        else if (statusCode < 500)
+        {
+            _logger.LogDebug(
+                "{Method} {Path} - {StatusCode} - {Duration}ms",
+                method,
+                context.Request.Path.Value,
+                statusCode,
+                elapsedMs);
+        }
+    }
+
+    private static (string User, string UserId, string Tenant, string TenantId) ResolveActorLabels(HttpContext context)
+    {
+        var user = context.User;
+        var email = user.GetActorEmail();
+        var userIdRaw = user.GetActorUserId();
+        var userLabel = string.IsNullOrWhiteSpace(email) ? "-" : email.Trim();
+        var userId = string.IsNullOrWhiteSpace(userIdRaw) ? "-" : LogIdFormatting.ShortId(userIdRaw);
+
+        var tenantLabel = "-";
+        var tenantId = "-";
+        var requestServices = context.RequestServices;
+        if (requestServices != null)
+        {
+            var tenantAccessor = requestServices.GetService<ICurrentTenantAccessor>();
+            if (tenantAccessor != null)
+            {
+                if (!string.IsNullOrWhiteSpace(tenantAccessor.TenantSlug))
+                    tenantLabel = tenantAccessor.TenantSlug.Trim();
+                if (tenantAccessor.TenantId is Guid tid && tid != Guid.Empty)
+                    tenantId = LogIdFormatting.ShortGuid(tid);
+            }
+        }
+
+        if (tenantId == "-" && user?.Identity?.IsAuthenticated == true)
+        {
+            var claim = user.FindFirst(ScopeCheckService.TenantIdClaim)?.Value;
+            if (!string.IsNullOrWhiteSpace(claim))
+                tenantId = LogIdFormatting.ShortId(claim);
+        }
+
+        return (userLabel, userId, tenantLabel, tenantId);
     }
 
     internal static bool IsExemptPath(string path)

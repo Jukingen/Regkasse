@@ -28,8 +28,9 @@ public interface IRestoreService
 
 /// <summary>
 /// Default RKSV restore compliance implementation. Production restore remains deferred
-/// (<see cref="IRestoreOrchestrationBoundary"/>); this service only gates the existing
-/// dual-approval validation path in <c>ManualRestoreTriggerService</c>.
+/// (<see cref="IRestoreOrchestrationBoundary"/>); this service only gates the validation
+/// path in <c>ManualRestoreTriggerService</c> (dual approval outside Development;
+/// Super Admin auto-execute in Development).
 /// </summary>
 public sealed class RestoreService : IRestoreService
 {

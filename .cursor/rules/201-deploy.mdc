@@ -1,0 +1,77 @@
+---
+description: Manual — deployment checklist and environment variables. Read when changing deploy config, hosts, or env vars.
+alwaysApply: false
+---
+
+# Deploy
+
+Apply this rule manually for deployment and environment work. Authoritative pipeline map: [`docs/CI_CD.md`](../../docs/CI_CD.md), [`DEPLOYMENT.md`](../../DEPLOYMENT.md), [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](../../docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md).
+
+## Checklist
+- Staging deploys automatically on push to `main` / `master`. Production is gated (environment protection, confirm phrase, compliance). See `docs/CI_CD.md`.
+- NEVER automatic restore to production. Validation restore uses an isolated DB (`restore_validation_*`) and dual Super Admin approval.
+- Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.
+- Super Admin cache clear (`POST /api/admin/cache/clear`) is for emergencies or after database migrations / manual DB fixes — not for routine deploys.
+- Do not enable `Fiscal.KassenSicherheitDe` or `QrRechnung:BankSubmit` for a real tenant until `docs/COUNTRIES.md` §16 marks that package production-ready.
+- Encrypt secrets in `appsettings.Production.json`. Do not commit secrets.
+
+## Production hosts
+
+| Surface | URL |
+|---------|-----|
+| POS UI | `https://pos.regkasse.at` |
+| FA UI | `https://admin.regkasse.at` |
+| API | `https://api.regkasse.at` |
+
+One shared POS UI for all tenants. Production API traffic is scoped by JWT `tenant_id`. Do not use `X-Tenant-Id` or `?tenant=` in Production.
+
+## Development URLs
+
+```text
+POS UI:     http://localhost:8081
+FA UI:      http://admin.regkasse.local:3000
+API:        http://localhost:5184
+```
+
+### Environment Variables
+
+Backend:
+```env
+ASPNETCORE_ENVIRONMENT=Development
+ConnectionStrings__DefaultConnection=Host=localhost;Database=kasse_db;Username=postgres;Password=***
+JwtSettings__SecretKey=*** (min 32 chars)
+```
+
+Frontend Admin:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
+NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST
+```
+
+Frontend POS:
+```env
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:5184/api
+EXPO_PUBLIC_DEV_TENANT_ID=dev
+# Production target: EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
+# (single POS UI — see docs/POS_PRODUCTION_ARCHITECTURE.md)
+```
+
+Frontend Sites:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
+```
+
+
+## Backup configuration
+
+### Backup Configuration
+```yaml
+enabled: true
+scheduleCron: "0 2 * * *"  # Daily 02:00 UTC (System strategy)
+retentionDays: 30           # Tenant default; System default 90 via strategy policy
+# SmartRetentionEnabled: false  # optional GFS 7/4/12/7 via SmartRetentionService
+# StorageTierManagementEnabled: false
+# AutomaticCleanupEnabled: false
+executionMode: "PgDump"     # Fake, PgDump, ProductionStub
+externalArchiveRoot: "/backup/archive"  # Super Admin only
+```

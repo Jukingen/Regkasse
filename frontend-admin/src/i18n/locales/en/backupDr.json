@@ -679,6 +679,24 @@
     "title": "Known limits (outbox / TSE / infra)",
     "body": "Database backup does not replace full RKSV/TSE protection; outbox and signature needs may require separate operations. RPO/RTO targets depend on infrastructure, not this UI."
   },
+  "knownGapAcceptance": {
+    "title": "Known Backup/DR gaps",
+    "description": "Acceptance does not turn the check off. A known gap is shown in amber instead of red. The overall gate stays failed while AllowsGateOverride is off.",
+    "save": "Save acknowledgement",
+    "saved": "Known gaps were saved.",
+    "loadFailed": "Known gaps could not be loaded.",
+    "invalidGaps": "At least one gap id is unknown.",
+    "acceptedOn": "Known, accepted on {{date}}",
+    "verdictPass": "Gate passed",
+    "verdictFail": "Gate not passed",
+    "noTenant": "Select a tenant to acknowledge known gaps.",
+    "gaps": {
+      "externalArchiveNotSet": "External archive is not set",
+      "scheduledDrillNotRun": "Scheduled restore drill is overdue",
+      "systemLegalHoldNotConfigured": "System legal hold is not configured",
+      "devOnlyFakeAdapter": "Development only: fake adapter"
+    }
+  },
   "manual": {
     "title": "Manual actions (enqueue only)",
     "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below (including Fake/ProductionStub stub files when on disk — not production pg_dump proof). “Manage settings”; audit-logged.",
@@ -820,7 +838,8 @@
       "reject": "Reject"
     },
     "messages": {
-      "requestCreated": "Restore request created — second administrator approval required.",
+      "requestCreated": "Restore request created — approval required",
+      "requestExecuting": "Restore is running…",
       "approvalSubmitted": "Approval submitted — validation running in background.",
       "rejected": "Request rejected."
     },
@@ -891,6 +910,16 @@
     "etaQueued": "Rough estimated completion (queue + average duration, n={{n}}): {{time}}",
     "noEta": "No time estimate: no successful runs with measurable duration yet.",
     "etaDemotedLead": "Rough timing hint (not a promise):"
+  },
+  "restoreProgress": {
+    "cardTitle": "Restore drill progress",
+    "idle": "No restore drill is running.",
+    "titleQueued": "Restore drill queued",
+    "titleRunning": "Restore drill in progress",
+    "titleSucceeded": "Restore drill finished",
+    "titleFailed": "Restore drill failed",
+    "estimatedRemaining": "Estimated time remaining: {{time}}",
+    "noEta": "No time estimate yet (no prior successful drill duration)."
   },
   "download": {
     "titleLatestSuccess": "Download artifacts (latest run — API success status)",
@@ -1150,7 +1179,7 @@
     "title": "Recent backup runs",
     "statusHint": "Each row shows the API-reported outcome for that run. This history is not the same as last-known-good proof in the recoverability section."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Recent restore verifications",
     "empty": "No restore drills recorded yet.",
     "statusHint": "Each row shows the API-reported drill outcome. A completed drill is technical metadata — not a full recovery guarantee."
@@ -1481,6 +1510,14 @@
     "close": "Close",
     "download": "Download",
     "downloadBackup": "Download backup",
+    "createdByEmail": "Email",
+    "createdFromIp": "IP address",
+    "tenant": "Tenant",
+    "downloadCount": "Downloads",
+    "tablesSection": "Tables and row counts",
+    "fileName": "File",
+    "downloadedAt": "Downloaded at",
+    "downloadHistoryEmpty": "No downloads recorded yet.",
     "triggerLabel": "Trigger",
     "requestedAt": "Requested at",
     "startedAt": "Start time",
@@ -1497,6 +1534,7 @@
     },
     "tabs": {
       "overview": "Overview",
+      "downloadHistory": "Download history",
       "artifacts": "Artifacts",
       "verification": "Verification",
       "pipeline": "Pipeline",
@@ -1508,6 +1546,7 @@
       "createdAt": "Created",
       "lifecycle": "Lifecycle",
       "onDisk": "On server",
+      "hash": "SHA-256",
       "empty": "No artifacts",
       "sizeBreakdownHint": "Per-artifact sizes below; total matches the sum when all byte sizes are recorded."
     },
@@ -1519,7 +1558,10 @@
       "verifier": "Verifier",
       "completeness": "Completeness",
       "completenessOk": "OK",
-      "completenessMissing": "Missing"
+      "completenessMissing": "Missing",
+      "lastResult": "Last verification result",
+      "storedHash": "Stored hash",
+      "computedHash": "Computed hash"
     },
     "pipeline": {
       "empty": "No pipeline steps"
@@ -1628,6 +1670,48 @@
       "findings": "Findings"
     }
   },
+  "drills": {
+    "pageTitle": "Restore drills",
+    "pageSubtitle": "Past restore checks: time, duration, and result. No file paths.",
+    "timelineTitle": "Drill timeline",
+    "empty": "No restore drills loaded.",
+    "columns": {
+      "date": "Date",
+      "duration": "Duration",
+      "result": "Result",
+      "reason": "Reason"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "successRate": "Success rate (30 days)",
+    "lastSuccess": "Last scheduled drill proof",
+    "daysSince": "Days since scheduled proof",
+    "durationUnknown": "Duration unknown",
+    "reasonHidden": "Details hidden",
+    "scheduleTitle": "Drill schedule",
+    "scheduleNext": "Next window (default): {{date}}",
+    "scheduleOverdue": "Window overdue since {{date}}",
+    "scheduleEmpty": "No scheduled drill proof yet.",
+    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override.",
+    "downloadPdf": "Download PDF",
+    "downloadPdfSuccess": "Inspection report downloaded",
+    "downloadPdfFailed": "The inspection report could not be downloaded."
+  },
+  "recoverabilityCheck": {
+    "title": "Check recoverability",
+    "lastProof": "Last restore proof",
+    "lastDrill": "Last successful drill",
+    "daysSince": "Days since proof",
+    "nextDrill": "Next scheduled drill",
+    "successRate": "Success rate (30 days)",
+    "acceptedGaps": "Accepted known gaps",
+    "compare": "Compare with the last 5 drills",
+    "drift": "Drift",
+    "driftTooltip": "The last proof does not match the last passed drill."
+  },
   "compliance": {
     "pageTitle": "RKSV compliance status",
     "pageSubtitle": "Backup restore-readiness gates (30 days) — product controls, not BMF certification.",
@@ -1638,6 +1722,7 @@
     "allOkTitle": "All listed backups pass product gates",
     "allOkDescription": "Succeeded backups in the window have a valid stored SHA-256. Restore still runs validation-only with dual approval.",
     "loadFailed": "Could not load compliance status.",
+    "loadFailedDetail": "No further server details available. Check network, sign-in, or API response.",
     "empty": "No succeeded backups in the last 30 days.",
     "listTitle": "Backup compliance list",
     "stats": {
@@ -1666,6 +1751,18 @@
       "missingLogicalDump": "No logical dump",
       "backupNotSucceeded": "Not succeeded",
       "unknown": "Other"
+    },
+    "gate": {
+      "title": "Product gate",
+      "systemBackup": "Last successful system backup",
+      "legalHold": "7-year legal hold",
+      "drill": "Last scheduled restore proof",
+      "drillThreshold": "Same timestamp as the dashboard restore proof (scheduled success only). Green: at most 14 days old. Yellow: older than 14 days. Red: older than 30 days, or no scheduled proof.",
+      "missing": "No evidence",
+      "simulated": "Simulated run",
+      "green": "Green",
+      "yellow": "Yellow",
+      "red": "Red"
     }
   },
   "costs": {
@@ -1729,7 +1826,46 @@
         "title": "Storage cost profile looks healthy",
         "description": "Budget usage and tier mix are within expected ranges. Keep monitoring after large tenant growth."
       }
+    },
+    "insights": {
+      "trendTitle": "Storage cost trend (90 days)",
+      "trendHint": "Estimate from succeeded dump size times the current €/GB rate. Not an invoice.",
+      "retentionTitle": "Retention policy impact",
+      "retentionActual": "Current estimate",
+      "retentionAllHot": "All priced as Hot",
+      "tierTitle": "Tier distribution",
+      "monthlyEstimate": "Monthly estimate",
+      "emptyTrend": "No dump sizes in the last 90 days."
     }
+  },
+  "retention": {
+    "pageTitle": "Backup retention",
+    "pageSubtitle": "Hot/Warm/Cold windows, 7-year legal retention (RKSV / BAO §132), and cold storage.",
+    "legalTitle": "Legal retention (7 years)",
+    "legalDescription": "System backups must be kept for 7 years (BAO §132). Legal hold blocks deletion. Cold storage is WORM (write once, read many).",
+    "hotLabel": "Hot",
+    "warmLabel": "Warm",
+    "coldLabel": "Cold (legal)",
+    "daysSuffix": "days",
+    "yearsSuffix": "years",
+    "policyCardTitle": "Retention policy",
+    "hotDays": "Hot retention (days)",
+    "warmDays": "Warm retention (days)",
+    "coldYears": "Cold retention (years)",
+    "coldYearsHint": "Minimum 7 years — legal floor.",
+    "coldEnabled": "Enable cold storage",
+    "cloudProvider": "Cloud provider",
+    "cloudReady": "Configured",
+    "cloudNotConfigured": "Not configured (filesystem fallback)",
+    "save": "Save policy",
+    "saveSuccess": "Retention policy saved.",
+    "saveFailed": "Could not save the retention policy.",
+    "loadFailed": "Could not load the retention policy.",
+    "superAdminOnly": "Only Super Admin can change the policy.",
+    "statusHot": "Hot",
+    "statusWarm": "Warm",
+    "statusCold": "Cold",
+    "statusLegalHold": "Legal hold"
   },
   "backupDiff": {
     "cardTitle": "Backup comparison",
@@ -1773,8 +1909,19 @@
     "instanceScopeDescription": "All tenants share the same PostgreSQL instance. This list is deployment-wide; tenant filter applies to manually triggered runs (idempotency key).",
     "tenantFilterLabel": "Tenant (filter)",
     "tenantFilterPlaceholder": "All tenants",
+    "createdBy": "Created by",
+    "createdBySystemCron": "System (Cron)",
+    "filterType": "Type",
+    "filterTypePlaceholder": "All types",
+    "filterCreatedByPlaceholder": "All creators",
+    "filterDate": "Date",
+    "strategyTenant": "Tenant",
+    "strategySystem": "System",
+    "download": "Download",
+    "downloadFailed": "Download failed.",
     "startTime": "Start time",
     "statusColumn": "Status",
+    "retention": "Retention",
     "duration": "Duration",
     "durationTooltip": "Start: {{start}} | End: {{end}}",
     "size": "Size",
@@ -1788,10 +1935,18 @@
     "retry": "Retry",
     "delete": "Delete",
     "deleteUnavailable": "Delete is not available in the API yet.",
+    "moveToCold": "Move to cold",
+    "moveToColdConfirmTitle": "Move this backup to cold storage?",
+    "moveToColdConfirmDescription": "The artifact is compressed, deduplicated when possible, and stored as WORM (write once, read many).",
+    "moveToColdSuccess": "Backup moved to cold storage.",
+    "moveToColdFailed": "Could not move the backup to cold storage.",
     "noDuration": "—",
     "durationMinutes": "{{minutes}} min",
     "retryConfirmTitle": "Enqueue a new backup?",
     "retryConfirmDescription": "A new manual backup run is queued (this does not replay the same run).",
+    "verify": "Verify",
+    "verifyChecksum": "Verify checksum",
+    "lastVerification": "Last verification",
     "statusLabels": {
       "queued": "Queued",
       "running": "Running",
@@ -1809,6 +1964,27 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verify": "Verify",
+    "verifyChecksum": "Verify checksum",
+    "verifyPassed": "Verification passed",
+    "verifyFailed": "Verification failed",
+    "checksumPassed": "Integrity check passed",
+    "checksumFailed": "File corrupted or checksum mismatch",
+    "checksumNotAvailable": "Checksum not available for this backup",
+    "lastVerification": "Last verification",
+    "verifying": "Verifying checksum…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum failed",
+    "badgeUnknown": "Not verified yet",
+    "rpoAlert": "No successful system backup for {{days}} days. RPO may be at risk.",
+    "validateContent": "Validate content",
+    "contentPassed": "All tables validated",
+    "contentWarning": "Content validation completed with warnings",
+    "contentFailed": "Content validation failed",
+    "contentUnavailable": "Content validation not available",
+    "contentReportTitle": "Content validation report"
   },
   "verificationReport": {
     "sectionTitle": "Backup verification report",
@@ -1867,7 +2043,7 @@
     "cancel": "Cancel",
     "restore": "Restore",
     "alertTitle": "Point-in-Time Recovery",
-    "alertDescription": "Restore your database to a specific moment. All changes after that time will be rolled back.",
+    "alertDescription": "Plan recovery to a specific moment. The API never overwrites production — Super Admin can only enqueue an isolated validation restore.",
     "availablePointsTitle": "Available restore window",
     "walArchivingActive": "WAL archiving active",
     "earliestPoint": "Earliest point",
@@ -1885,6 +2061,7 @@
     "estimatedDataLoss": "Estimated data loss: about {{seconds}} seconds",
     "recoveryMethodPitr": "WAL replay (PITR)",
     "recoveryMethodFullBackup": "Full backup only",
+    "recoveryMethodFullPlusIncremental": "Full backup + incrementals",
     "walDisabledTitle": "WAL archiving not enabled",
     "walDisabledDescription": "Point-in-Time Recovery requires WAL archiving. Only full backup restores are available for now.",
     "scopeNoteTitle": "Restore scope",
@@ -1892,12 +2069,65 @@
     "tenantRequiredDescription": "Select a tenant (impersonation or tenant subdomain) before using PITR. Super Admin on the platform host has no tenant scope.",
     "confirmTitle": "Point-in-Time restore",
     "confirmIntro": "You are about to restore the database to:",
-    "confirmIrreversible": "This operation is irreversible. All data after this point will be lost.",
+    "confirmIrreversible": "This starts an isolated validation restore (restore_validation_*), not production. Dual Super Admin approval still applies.",
     "confirmSecondApproval": "This action requires a second administrator approval.",
     "confirmOk": "Restore",
     "moreSupportedPoints": "+{{count}} more backup-based restore points",
     "errors": {
       "missingBaseBackup": "No eligible base backup was found for this restore point."
+    }
+  },
+  "pitrPage": {
+    "pageTitle": "Point-in-time recovery",
+    "pageSubtitle": "Pick a restore time, inspect the backup chain, and run an isolated dry-run. Production is never overwritten.",
+    "isolatedTitle": "Isolated validation only",
+    "isolatedDescription": "PITR and incremental restore in this UI enqueue restore_validation_* / restore-drill clones. Operator-led PostgreSQL WAL replay stays a DBA procedure.",
+    "walFiles": "WAL files",
+    "walOpsTitle": "WAL archive status",
+    "chainTitle": "Backup chain",
+    "chainNote": "Restore chain",
+    "chainEmpty": "No succeeded full, incremental, or System backups in this scope.",
+    "chainKind": "Kind",
+    "chainCompleted": "Completed",
+    "chainTenant": "Tenant",
+    "chainWal": "WAL",
+    "chainRunId": "Run ID",
+    "walCovered": "Covered",
+    "walNotCovered": "Not covered",
+    "walWindow": "WAL window: {{start}} – {{end}} ({{count}} files)",
+    "kind": {
+      "full": "Full tenant",
+      "incremental": "Incremental",
+      "system": "System dump"
+    },
+    "reportPassed": "Pre-restore checks passed",
+    "reportFailed": "Pre-restore checks failed",
+    "dataLossLabel": "Estimated data loss",
+    "checkHash": "Integrity (hash)",
+    "checkSchema": "Schema / content",
+    "checkTse": "TSE chain",
+    "checkPassed": "Passed",
+    "checkFailed": "Failed",
+    "dryRun": "Dry-run on isolated database",
+    "dryRunConfirmTitle": "Enqueue isolated restore drill?",
+    "dryRunConfirmBody": "This restores the nearest System dump into an isolated database. Production is not modified.",
+    "dryRunOk": "Enqueue dry-run",
+    "dryRunAccepted": "Isolated restore drill enqueued."
+  },
+  "walStatus": {
+    "title": "WAL archiving",
+    "lastSegment": "Last segment",
+    "lag": "Lag",
+    "segments24h": "Segments (24 h)",
+    "empty": "WAL archiving has not started yet.",
+    "loadFailed": "WAL archive status could not be loaded.",
+    "lagValue": "{{seconds}} s",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} archived / {{failed}} failed",
+    "health": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "critical": "Critical"
     }
   },
   "backupList": {
@@ -2033,10 +2263,96 @@
     "lastRunStored": "Last successful automation run (stored)",
     "lastScheduledRunLabel": "Latest scheduled backup run",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Last 5 scheduled backup runs",
+    "recentScheduledWhen": "Requested",
+    "recentScheduledStatus": "Status",
+    "failureReason": "Failure reason",
     "runStatusSuffix": "(status {{status}})",
     "save": "Save",
     "saveSuccess": "Settings saved.",
     "saveError": "Could not save settings.",
     "loadError": "Could not load schedule settings."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Restore verification",
+    "detailTitle": "Restore verification detail",
+    "pageSubtitle": "PASS/FAIL for isolated restore drills. Production is never overwritten. System dump drills are Super Admin only; Mandanten-Admin sees own tenant-strategy runs only.",
+    "empty": "No restore verification runs in this scope.",
+    "loadError": "Could not load restore verification runs.",
+    "openDetail": "Open",
+    "backToList": "Back to list",
+    "verifiedAt": "Verified at",
+    "failedChecks": "Failed checks: {{checks}}",
+    "columns": {
+      "date": "Date",
+      "backupId": "Backup ID",
+      "type": "Type",
+      "status": "Status",
+      "verdict": "PASS/FAIL",
+      "actions": "Actions"
+    },
+    "filters": {
+      "type": "Type",
+      "status": "Status",
+      "backupId": "Search backup ID",
+      "apply": "Apply"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "unknown": "Unknown"
+    },
+    "type": {
+      "manual": "Manual",
+      "scheduled": "Scheduled"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash verification",
+      "schema": "Schema verification",
+      "data": "Data verification",
+      "tse": "TSE chain verification",
+      "fiscal": "Fiscal SQL",
+      "unknown": "Check"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Skipped",
+      "unavailable": "Unavailable"
+    },
+    "detail": {
+      "summary": "Run summary",
+      "checksTitle": "Verification checks",
+      "check": "Check",
+      "result": "Result",
+      "detail": "Detail"
+    },
+    "rowCounts": {
+      "title": "Table row counts",
+      "id": "Check id",
+      "name": "Name",
+      "category": "Category",
+      "measured": "Measured",
+      "expected": "Min",
+      "status": "Status",
+      "empty": "No clone row counts were persisted for this drill."
+    },
+    "fiscal": {
+      "title": "Fiscal SQL result",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "Download PDF",
+      "csv": "Download CSV",
+      "ready": "Report downloaded.",
+      "failed": "Could not download the verification report."
+    }
   }
 }

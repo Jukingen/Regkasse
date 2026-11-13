@@ -1,0 +1,28 @@
+---
+description: Additive database changes only — do not edit committed EF migrations
+globs: "**/Migrations/**/*.cs,**/*.sql"
+alwaysApply: false
+---
+
+# Database and migrations
+
+## Database Baseline Rules
+- `id uuid PRIMARY KEY`, `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at timestamptz`
+- `is_active boolean NOT NULL DEFAULT true`
+- `tenant_id uuid REFERENCES tenants(id)` on tenant-scoped tables (indexed)
+- All foreign keys MUST have indexes
+
+
+## Migrations
+- Do not modify existing migration files after they are committed.
+- Use additive schema changes only (new columns, new tables).
+- Do not delete columns directly; mark as `is_deleted` or deprecated.
+- Perform data backfill in a separate migration/step from schema introduction.
+- Baseline columns: `id uuid PRIMARY KEY`, `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at timestamptz`, `is_active boolean NOT NULL DEFAULT true`, `tenant_id uuid REFERENCES tenants(id)` on tenant-scoped tables (indexed). All foreign keys MUST have indexes.
+- **Never add a `CountryCode` column or a second country field.** Country lives on `company_settings.country` (`NOT NULL DEFAULT 'AT'`, migration `20260723190000_AddTenantSettingsHistory`). `VatRegime`, `BillingCountry`, and `TaxExempt` shipped in `20260916110000_AddCompanySettingsCountryBilling` — that file is the only later country-schema change on `company_settings`. Issue-time snapshots live on invoices/receipts/payment_details (`CountryCodeAtIssue` / `VatRegimeAtIssue`); do not rewrite historical rows on country change.
+
+```bash
+dotnet ef migrations add <Name> --project backend
+```
+
+Schema contract: `ai/02_DATABASE_CONTRACT.md`.

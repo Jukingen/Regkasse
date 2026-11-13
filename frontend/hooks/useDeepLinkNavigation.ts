@@ -1,20 +1,22 @@
 /**
  * Apply inbound deep links (email / push / QR) to Expo Router screens.
- * Complements expo-router's built-in path matching for brand remaps
- * (e.g. regkasse://tenant/{slug} → /customer?tenant=…).
+ * POS: regkasse://tenant/{slug} stores the mandant and opens login when signed out.
+ * Customer surface: the same URL still opens /customer.
  */
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { resolveDeepLink } from '@/services/linking/deepLinking';
-
-function isCustomerSurface(): boolean {
-  return (process.env.EXPO_PUBLIC_APP_SURFACE ?? '').trim().toLowerCase() === 'customer';
-}
+import { isCustomerAppSurface } from '@/services/linking/posTenantDeepLink';
+import { isRedirectStatusCancelled, isRedirectStatusFailed } from '@/services/payment/parsePaymentResultParams';
+import { bootstrapPosTenantSlug } from '@/services/verticalProfiles/posTenantBootstrap';
+import { onlinePaymentStoreActions } from '@/stores/onlinePaymentStore';
 
 export function useDeepLinkNavigation(): void {
   const router = useRouter();
+  const { isAuthenticated, isAuthReady } = useAuth();
   const linkingUrl = Linking.useLinkingURL();
   const lastHandled = useRef<string | null>(null);
 
@@ -23,16 +25,30 @@ export function useDeepLinkNavigation(): void {
 
     const intent = resolveDeepLink(linkingUrl);
     if (!intent || intent.type === 'unhandled') return;
+    if (intent.type === 'customerTenant' && !isAuthReady) return;
 
     lastHandled.current = linkingUrl;
-    const customerSurface = isCustomerSurface();
+    const customerSurface = isCustomerAppSurface();
 
     switch (intent.type) {
       case 'customerTenant':
-        router.replace({
-          pathname: '/customer',
-          params: { tenant: intent.slug },
-        });
+        if (customerSurface) {
+          router.replace({
+            pathname: '/customer',
+            params: { tenant: intent.slug },
+          });
+          break;
+        }
+        if (!isAuthenticated) {
+          void bootstrapPosTenantSlug(intent.slug).finally(() => {
+            router.replace({
+              pathname: '/(auth)/login',
+              params: { tenant: intent.slug },
+            });
+          });
+          break;
+        }
+        router.replace('/(tabs)/cash-register');
         break;
       case 'customerHome':
         if (intent.slug) {
@@ -57,8 +73,20 @@ export function useDeepLinkNavigation(): void {
           router.replace('/(auth)/login');
         }
         break;
+      case 'onlinePaymentCallback':
+        if (isRedirectStatusFailed(intent.gatewayStatus)) {
+          onlinePaymentStoreActions.fail('ONLINE_PAYMENT_FAILED');
+        } else if (isRedirectStatusCancelled(intent.gatewayStatus)) {
+          onlinePaymentStoreActions.cancel();
+        } else {
+          onlinePaymentStoreActions.markCallbackReceived();
+        }
+        if (!customerSurface) {
+          router.replace('/(tabs)/cash-register');
+        }
+        break;
       default:
         break;
     }
-  }, [linkingUrl, router]);
+  }, [isAuthReady, isAuthenticated, linkingUrl, router]);
 }

@@ -10,7 +10,7 @@ public interface IBackupService
     /// <summary>
     /// Mandanten-Admin path: tenant-bound enqueue (Identity excluded, ~30d retention default).
     /// </summary>
-    Task<BackupResult> CreateTenantBackupAsync(
+    Task<BackupTriggerResult> CreateTenantBackupAsync(
         Guid tenantId,
         Guid userId,
         CancellationToken ct = default);
@@ -18,7 +18,7 @@ public interface IBackupService
     /// <summary>
     /// Super Admin path: deployment-wide enqueue (Identity included, ~90d retention default).
     /// </summary>
-    Task<BackupResult> CreateSystemBackupAsync(
+    Task<BackupTriggerResult> CreateSystemBackupAsync(
         Guid userId,
         CancellationToken ct = default);
 
@@ -34,7 +34,7 @@ public interface IBackupService
         CancellationToken ct = default);
 
     /// <summary>Alias for <see cref="CreateTenantBackupAsync"/> (backward compatible).</summary>
-    Task<BackupResult> CreateBackupAsync(
+    Task<BackupTriggerResult> CreateBackupAsync(
         Guid tenantId,
         Guid userId,
         CancellationToken ct = default);

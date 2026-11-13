@@ -1,7 +1,10 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Onboarding;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -16,11 +19,14 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
     private const string ActionWelcomeEmail = "TENANT_ONBOARDING_WELCOME_EMAIL";
     private const string ActionCompleted = "TENANT_ONBOARDING_COMPLETED";
     private const string ActionFailed = "TENANT_ONBOARDING_FAILED";
+    private const string ActionCreatedWithCountry = "TENANT_CREATED_WITH_COUNTRY";
 
     private readonly AppDbContext _db;
     private readonly ITenantProvisioningService _provisioningService;
     private readonly IWelcomeEmailService _welcomeEmail;
     private readonly IAuditLogService _auditLog;
+    private readonly ITenantOnboardingChecklistService _checklist;
+    private readonly ICountryProfileRegistry _countries;
     private readonly ILogger<TenantOnboardingService> _logger;
 
     public TenantOnboardingService(
@@ -28,12 +34,16 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         ITenantProvisioningService provisioningService,
         IWelcomeEmailService welcomeEmail,
         IAuditLogService auditLog,
+        ITenantOnboardingChecklistService checklist,
+        ICountryProfileRegistry countries,
         ILogger<TenantOnboardingService> logger)
     {
         _db = db;
         _provisioningService = provisioningService;
         _welcomeEmail = welcomeEmail;
         _auditLog = auditLog;
+        _checklist = checklist;
+        _countries = countries;
         _logger = logger;
     }
 
@@ -100,6 +110,31 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             return (null, takenFailure);
         }
 
+        var profile = _countries.Get(request.CountryCode);
+        if (!profile.IsTenantSelectable)
+        {
+            await LogStepAsync(
+                ActionFailed,
+                actorId,
+                correlationId,
+                $"Country '{request.CountryCode}' is not tenant-selectable.",
+                AuditLogStatus.Failed,
+                cancellationToken).ConfigureAwait(false);
+            throw new CountryNotSelectableException(request.CountryCode);
+        }
+
+        if (!profile.Supports(request.VatRegime))
+        {
+            await LogStepAsync(
+                ActionFailed,
+                actorId,
+                correlationId,
+                $"VAT regime '{request.VatRegime}' is not allowed for country '{profile.Code}'.",
+                AuditLogStatus.Failed,
+                cancellationToken).ConfigureAwait(false);
+            throw new InvalidVatRegimeForCountryException(profile.Code, request.VatRegime);
+        }
+
         var now = DateTime.UtcNow;
         var tenant = new Tenant
         {
@@ -109,7 +144,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             Email = TrimOrNull(request.Email),
             Phone = TrimOrNull(request.Phone),
             Address = TrimOrNull(request.Address),
-            Status = TenantStatuses.Active,
+            Status = TenantStatuses.InOnboarding,
             IsActive = true,
             LicenseKey = TrimOrNull(request.LicenseKey),
             LicenseValidUntilUtc = request.LicenseValidUntilUtc.HasValue
@@ -141,15 +176,26 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 cancellationToken,
                 tenant.Id).ConfigureAwait(false);
 
+            await LogCreatedWithCountryAsync(
+                actorId,
+                correlationId,
+                tenant.Id,
+                profile,
+                request.VatRegime).ConfigureAwait(false);
+
             var (provisioning, provisionError) = await _provisioningService
                 .ProvisionAsync(
                     tenant,
                     request.AdminEmail,
                     request.AdminPassword,
                     request.GrantTrialLicense,
-                    request.ImportDemoMenu,
+                    request.SeedDemo ? false : request.ImportDemoMenu,
                     request.CashRegisterNumber,
                     request.SeedIndustryStarterUsers,
+                    request.TrialDurationDays,
+                    profile,
+                    request.VatRegime,
+                    skipGenericDemoProducts: request.SeedDemo,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -218,6 +264,24 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 cancellationToken,
                 tenant.Id).ConfigureAwait(false);
 
+            tenant.Status = TenantStatuses.Active;
+            tenant.IsActive = true;
+            tenant.UpdatedAt = DateTime.UtcNow;
+            tenant.UpdatedBy = actorUserId;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await _checklist.EnsureAndGetAsync(tenant.Id, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception checklistEx)
+            {
+                _logger.LogWarning(
+                    checklistEx,
+                    "Failed to seed onboarding checklist for tenant {TenantId}",
+                    tenant.Id);
+            }
+
             _logger.LogInformation(
                 "Super-admin onboarded tenant {TenantId} slug {Slug} (welcomeEmailSent={WelcomeSent})",
                 tenant.Id,
@@ -225,7 +289,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 welcomeSent);
 
             var dto = provisioning.ToDto(welcomeSent, forcePasswordChangeOnNextLogin: true);
-            return (ToDetail(tenant, dto), null);
+            return (ToDetail(tenant, dto, profile.Code, request.VatRegime), null);
         }
         catch (Exception ex)
         {
@@ -272,6 +336,35 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         }
     }
 
+    private async Task LogCreatedWithCountryAsync(
+        string actorUserId,
+        string correlationId,
+        Guid tenantId,
+        CountryProfile profile,
+        VatRegime vatRegime)
+    {
+        try
+        {
+            await _auditLog.LogSystemOperationAsync(
+                ActionCreatedWithCountry,
+                AuditEntityType,
+                actorUserId,
+                Roles.SuperAdmin,
+                description: $"Tenant created with country {profile.Code} vatRegime {vatRegime}",
+                status: AuditLogStatus.Success,
+                correlationIdOverride: correlationId,
+                actionType: AuditEventType.TenantCreatedWithCountry,
+                entityId: tenantId,
+                tenantId: tenantId,
+                newValues: new { countryCode = profile.Code, vatRegime = vatRegime.ToString() })
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Onboarding audit log failed for action {Action} tenant {TenantId}", ActionCreatedWithCountry, tenantId);
+        }
+    }
+
     private static string BuildTenantPortalUrl(string slug) => $"https://{slug.Trim().ToLowerInvariant()}.regkasse.at";
 
     private static string? TrimOrNull(string? value)
@@ -280,7 +373,11 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantDetailDto ToDetail(Tenant t, TenantProvisioningDto provisioning) =>
+    private static AdminTenantDetailDto ToDetail(
+        Tenant t,
+        TenantProvisioningDto provisioning,
+        string country,
+        VatRegime vatRegime) =>
         new(
             t.Id,
             t.Name,
@@ -300,5 +397,15 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             OperationMode: t.OperationMode,
             MaintenanceMessage: t.MaintenanceMessage,
             MaintenanceStartedAt: t.MaintenanceStartedAt,
-            MaintenanceEndsAt: t.MaintenanceEndsAt);
+            MaintenanceEndsAt: t.MaintenanceEndsAt,
+            TrialStatus: t.TrialStatus,
+            TrialStartedAtUtc: t.TrialStartedAtUtc,
+            TrialEndsAtUtc: t.TrialEndsAtUtc,
+            TrialGracePeriodEndsAtUtc: t.TrialGracePeriodEndsAtUtc,
+            TrialConvertedAtUtc: t.TrialConvertedAtUtc,
+            TrialReminder7dSent: t.TrialReminder7dSent,
+            TrialReminder3dSent: t.TrialReminder3dSent,
+            TrialReminder1dSent: t.TrialReminder1dSent,
+            Country: country,
+            VatRegime: vatRegime);
 }

@@ -20,9 +20,11 @@ import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator'
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
 import { ShiftManager } from '../../components/ShiftManager';
 import { useAuth } from '../../contexts/AuthContext';
+/** Settings sync uses OfflineOrderManager only (legacy offlineOrderQueue removed). */
 import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { formatUserDateTime } from '../../utils/dateFormatter';
 
 function formatDeDateTime(iso: string | null | undefined): string {
@@ -37,11 +39,34 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
   const { effectiveRegisterId } = usePosRegisterSelection();
+  const { canCreateSonderbeleg } = usePosPermissions();
   const { status: offlineStatus, syncNow } = useOfflineOrderManager();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const pendingCount = offlineStatus?.pendingCount ?? 0;
   const syncBusy = isSyncing || Boolean(offlineStatus?.isSyncing);
+
+  const openReceiptList = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [effectiveRegisterId, router, t]);
+
+  const openFiskalyOps = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/fiskaly-operations' as const);
+  }, [effectiveRegisterId, router, t]);
 
   const openPaymentHistory = useCallback(() => {
     if (!effectiveRegisterId) {
@@ -121,6 +146,12 @@ export default function SettingsScreen() {
       paymentHistoryTitle: t('settings:paymentHistory.title'),
       paymentHistoryDescription: t('settings:paymentHistory.description'),
       paymentHistoryOpen: t('settings:paymentHistory.open'),
+      receiptListTitle: t('settings:receiptList.title'),
+      receiptListDescription: t('settings:receiptList.description'),
+      receiptListOpen: t('settings:receiptList.open'),
+      fiskalyOpsTitle: t('settings:fiskalyOps.title'),
+      fiskalyOpsDescription: t('settings:fiskalyOps.description'),
+      fiskalyOpsOpen: t('settings:fiskalyOps.open'),
       licenseHeading: t('license:settingsSectionTitle'),
       licenseTransferHeading: t('license:transferSectionTitle'),
       adminMenuTitle: t('settings:adminMenu.title'),
@@ -217,6 +248,25 @@ export default function SettingsScreen() {
           <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
         ) : null}
       </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.receiptListTitle}</Text>
+        <Text style={styles.description}>{translations.receiptListDescription}</Text>
+        <TouchableOpacity style={styles.queueLinkButton} onPress={openReceiptList}>
+          <Text style={styles.queueLinkText}>{translations.receiptListOpen}</Text>
+        </TouchableOpacity>
+        {!effectiveRegisterId ? (
+          <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
+        ) : null}
+      </View>
+      {canCreateSonderbeleg ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{translations.fiskalyOpsTitle}</Text>
+          <Text style={styles.description}>{translations.fiskalyOpsDescription}</Text>
+          <TouchableOpacity style={styles.queueLinkButton} onPress={openFiskalyOps}>
+            <Text style={styles.queueLinkText}>{translations.fiskalyOpsOpen}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineSyncTitle}</Text>
         <Text style={styles.description}>{translations.offlineSyncDescription}</Text>

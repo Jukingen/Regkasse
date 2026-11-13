@@ -1,59 +1,59 @@
-# Monatsbeleg → FinanzOnline — Karar (P1-1)
+# Monatsbeleg → FinanzOnline — Decision (P1-1)
 
-**Tarih:** 2026-07-29  
-**Aksiyon:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P1-1**  
-**Durum:** ✅ **NotRequired** — Ocak–Kasım Monatsbeleg için ayrı FON `belegpruefung` / outbox **yok**  
-**Uyarı:** Bu belge Compliance + BMF birincil kaynaklarına dayanan **ürün kararıdır**; hukuki danışmanlık değildir. Resmî metinler çelişirse onlar geçerlidir.
-
----
-
-## 1. Soru
-
-Monatsbeleg, Startbeleg/Jahresbeleg gibi FinanzOnline’a (rkdb `belegpruefung` / Belegcheck) **ayrıca** gönderilmeli midir, yoksa Aralık Monatsbeleg = Jahresbeleg yolu yeterli midir?
+**Date:** 2026-07-29  
+**Action:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P1-1**  
+**Status:** ✅ **NotRequired** — no separate FON `belegpruefung` / outbox for January–November Monatsbeleg  
+**Warning:** This is a **product decision** based on Compliance plus BMF primary sources; it is not legal advice. If official texts conflict, they win.
 
 ---
 
-## 2. Araştırma özeti (BMF / WKO / RKSV)
+## 1. Question
 
-| Kaynak | İlgili nokta |
+Must a Monatsbeleg be submitted to FinanzOnline (rkdb `belegpruefung` / Belegcheck) **in addition** to Startbeleg/Jahresbeleg, or is the December Monatsbeleg = Jahresbeleg path enough?
+
+---
+
+## 2. Research summary (BMF / WKO / RKSV)
+
+| Source | Relevant point |
 |--------|----------------|
-| **RKSV § 8 Abs. 3** (WKO özeti) | Her takvim yılı sonunda, yıl sonu sayacını içeren **Monatsbeleg (Jahresbeleg)** basılmalı, **kontrol edilmeli** ve § 132 BAO’ya göre saklanmalı. |
-| [WKO — Prüfung des Jahresbelegs](https://www.wko.at/steuern/pruefung-jahresbeleg-registrierkasse) | **Startbeleg** ve **Jahresbeleg** için FON Belegcheck zorunlu; süre genelde **izleyen yıl 15 Şubat**. Kassensystem webservice ile otomatik gönderebilir. |
-| [BMF Handbuch Registrierkassen](https://www.bmf.gv.at/dam/jcr:0af97a40-da60-4c81-8e1e-22c3ecca52a4/BMF_Handbuch_Registrierkassen.pdf) | Yıl sonunda Monatsbeleg (= Jahresbeleg) oluşturulup kontrol edilir. Belegcheck App / Webservice genel Belegprüfung için kullanılabilir; **aylık Monatsbeleg’lerin her birinin FON’a zorunlu gönderimi** metinde Jahresbeleg/Startbeleg kadar bağlayıcı yazılmaz. |
-| Operatör özetleri (ör. şube/kasa rehberleri) | Monatsbeleg: **oluştur + DEP’te sakla**; FON sınavı **önerilir**, **Jahresbeleg için zorunlu**. |
+| **RKSV § 8 Abs. 3** (WKO summary) | At the end of each calendar year, a **Monatsbeleg (Jahresbeleg)** that includes the year-end counter must be printed, **checked**, and retained per § 132 BAO. |
+| [WKO — Prüfung des Jahresbelegs](https://www.wko.at/steuern/pruefung-jahresbeleg-registrierkasse) | FON Belegcheck is mandatory for **Startbeleg** and **Jahresbeleg**; the deadline is typically **15 February of the following year**. The cash-register system may submit automatically via webservice. |
+| [BMF Handbuch Registrierkassen](https://www.bmf.gv.at/dam/jcr:0af97a40-da60-4c81-8e1e-22c3ecca52a4/BMF_Handbuch_Registrierkassen.pdf) | At year end a Monatsbeleg (= Jahresbeleg) is created and checked. Belegcheck App / webservice can be used for general Belegprüfung; **mandatory FON submit of every monthly Monatsbeleg** is not stated as binding as Jahresbeleg/Startbeleg. |
+| Operator summaries (for example branch/register guides) | Monatsbeleg: **create + store in DEP**; FON check is **recommended**, **mandatory for Jahresbeleg**. |
 
-**Teknik eşdeğerlik:** Regkasse’de Aralık Monatsbeleg isteği zaten **Jahresbeleg** üretim yoluna yönlendirilir (`RksvSpecialReceiptService`); Jahresbeleg FON outbox’ta izlenir.
+**Technical equivalence:** In Regkasse, a December Monatsbeleg request is already routed to the **Jahresbeleg** production path (`RksvSpecialReceiptService`); Jahresbeleg is tracked in the FON outbox.
 
 ---
 
-## 3. Karar (Compliance ürün politikası)
+## 3. Decision (Compliance product policy)
 
-| Tür | Kasa içi üretim (TSE imza + DEP) | FinanzOnline Belegcheck / rkdb `belegpruefung` outbox |
-|-----|----------------------------------|------------------------------------------------------|
-| **Monatsbeleg** (Ocak–Kasım) | ✅ Zorunlu (RKSV aylık kontrol) | ❌ **NotRequired** — ayrı otomatik gönderim yok |
-| **Jahresbeleg** (= Aralık Monatsbeleg) | ✅ | ✅ Startbeleg ile aynı hat (`RksvJahresbelegSubmission`) |
+| Kind | In-register production (TSE signature + DEP) | FinanzOnline Belegcheck / rkdb `belegpruefung` outbox |
+|------|----------------------------------------------|------------------------------------------------------|
+| **Monatsbeleg** (January–November) | ✅ Required (RKSV monthly check) | ❌ **NotRequired** — no separate automatic submit |
+| **Jahresbeleg** (= December Monatsbeleg) | ✅ | ✅ Same path as Startbeleg (`RksvJahresbelegSubmission`) |
 | **Startbeleg** | ✅ | ✅ |
 
-**Gerekçe:** Yasal olarak bağlayıcı FON Belegprüfung, uygulamada **Startbeleg** ve **Jahresbeleg** için netleştirilmiştir. Aylık Monatsbeleg’ler DEP bütünlüğü ve işletme denetimi için üretilir; her ayı FON’a göndermek **ek bir Regkasse yükümlülüğü olarak uygulanmaz**. Aralık dönemi Jahresbeleg üzerinden karşılanır.
+**Rationale:** Binding FON Belegprüfung is, in practice, clear for **Startbeleg** and **Jahresbeleg**. Monthly Monatsbeleg receipts are produced for DEP integrity and business control; submitting every month to FON is **not implemented as an extra Regkasse obligation**. December is covered via Jahresbeleg.
 
-**Manuel seçenek:** Operatör isterse herhangi bir Monatsbeleg QR’ını BMF Belegcheck App ile kontrol edebilir; bu Regkasse outbox’ına yazılmaz.
+**Manual option:** An operator may check any Monatsbeleg QR with the BMF Belegcheck App; that check is not written to the Regkasse outbox.
 
-**Yeniden değerlendirme tetikleri:** BMF/RKSV metin değişikliği; Mandanten vergi danışmanı talebi; Compliance yazılı “tüm ayları gönder” politikası → o zaman P1-1 reverse: `SubmitMonatsbelegAsync` + outbox.
-
----
-
-## 4. Uygulama yansıması
-
-| Katman | Davranış |
-|--------|----------|
-| Backend | Monatsbeleg oluşturma **outbox enqueue etmez** (mevcut). `SubmitMonatsbelegAsync` → `RKS_MONATSBELEG_NOT_REQUIRED`. |
-| FA Sonderbelege | `MonatsbelegInfoCard` — NotRequired + BMF/WKO linkleri |
-| FA Fiş detayı | Monatsbeleg için FO “tracked” değil; bilgi notu |
-| Assessment | P1-1 kapatıldı; risk satırı “NotRequired” olarak güncellendi |
+**Re-evaluation triggers:** BMF/RKSV text change; a mandant tax advisor request; a written Compliance “submit all months” policy → then reverse P1-1: `SubmitMonatsbelegAsync` + outbox.
 
 ---
 
-## 5. Referanslar
+## 4. Implementation impact
+
+| Layer | Behavior |
+|-------|----------|
+| Backend | Creating a Monatsbeleg **does not enqueue** the outbox (current). `SubmitMonatsbelegAsync` → `RKS_MONATSBELEG_NOT_REQUIRED`. |
+| FA Sonderbelege | `MonatsbelegInfoCard` — NotRequired + BMF/WKO links |
+| FA receipt detail | Monatsbeleg is not FO “tracked”; info note only |
+| Assessment | P1-1 closed; risk row updated to “NotRequired” |
+
+---
+
+## 5. References
 
 - [`docs/RKSV_OFFICIAL_SOURCES.md`](RKSV_OFFICIAL_SOURCES.md)  
 - [WKO Jahresbelegprüfung](https://www.wko.at/steuern/pruefung-jahresbeleg-registrierkasse)  
@@ -61,4 +61,4 @@ Monatsbeleg, Startbeleg/Jahresbeleg gibi FinanzOnline’a (rkdb `belegpruefung` 
 - [`docs/RKSV_CASH_REGISTER_OPERATIONS.md`](RKSV_CASH_REGISTER_OPERATIONS.md) §4.3  
 - [`docs/RKSV_BMF_BELEGCHECK_WORKFLOW.md`](RKSV_BMF_BELEGCHECK_WORKFLOW.md)
 
-**Son güncelleme:** 2026-07-29 — P1-1 karar: **NotRequired** (ayrı Monatsbeleg FON outbox yok).
+**Last updated:** 2026-07-29 — P1-1 decision: **NotRequired** (no separate Monatsbeleg FON outbox).

@@ -20,7 +20,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CashRegisterControllerByTenantTests
 {
-    private static readonly Guid PrimaryTenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid PrimaryTenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateContext(ICurrentTenantAccessor? tenantAccessor = null)
     {
@@ -50,7 +50,8 @@ public sealed class CashRegisterControllerByTenantTests
             tenantAccessor,
             Mock.Of<ICashRegisterManagementService>(),
             enrichment ?? CashRegisterTestDoubles.NoOpListEnrichment(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
 
         controller.ControllerContext = new ControllerContext
         {

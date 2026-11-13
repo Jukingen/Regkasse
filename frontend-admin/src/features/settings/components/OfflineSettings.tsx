@@ -12,6 +12,7 @@ import {
   useOfflineSettings,
   useUpdateOfflineSettings,
 } from '@/features/settings/hooks/useOfflineSettings';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 
@@ -55,6 +56,8 @@ export function OfflineSettings() {
         showIcon
         style={{ marginBottom: 16 }}
       />
+
+      <LimitWarning limitKey="maxOfflineTransactions" />
 
       <Form
         form={form}

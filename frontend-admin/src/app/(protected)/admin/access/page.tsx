@@ -6,6 +6,7 @@ import {
   CloudUploadOutlined,
   FileSearchOutlined,
   HistoryOutlined,
+  LaptopOutlined,
   PieChartOutlined,
   SafetyOutlined,
   TeamOutlined,
@@ -18,7 +19,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
@@ -43,6 +44,13 @@ export default function AccessHubPage() {
       descriptionKey: 'access.hub.cardUsersDescription',
       href: '/admin/users',
       icon: <TeamOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
+      permission: PERMISSIONS.USER_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardSessionsTitle',
+      descriptionKey: 'access.hub.cardSessionsDescription',
+      href: '/admin/sessions',
+      icon: <LaptopOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
       permission: PERMISSIONS.USER_VIEW,
     },
     {
@@ -110,7 +118,7 @@ export default function AccessHubPage() {
       <AdminPageShell>
         <AdminPageHeader
           title={t('access.hub.pageTitle')}
-          breadcrumbs={[adminOverviewCrumb(t), { title: t('access.hub.pageTitle') }]}
+          breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', { title: t('access.hub.pageTitle') })}
         />
         <Alert
           type="warning"
@@ -126,7 +134,7 @@ export default function AccessHubPage() {
     <AdminPageShell>
       <AdminPageHeader
         title={t('access.hub.pageTitle')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('access.hub.pageTitle') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', { title: t('access.hub.pageTitle') })}
       />
       <Typography.Paragraph type="secondary">{t('access.hub.intro')}</Typography.Paragraph>
       <Row gutter={[16, 16]}>

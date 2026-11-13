@@ -29,12 +29,12 @@ public sealed class Wave3BTenantScopedModifierRelationsTests
 
     private static AppDbContext CreateContext() => CreateContextWithAccessor().Ctx;
 
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     private static void EnsureTwoTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
         {
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "wave3b-test-tenant-b" });
@@ -242,7 +242,7 @@ public sealed class Wave3BTenantScopedModifierRelationsTests
     public async Task LegacyPrimaryTenant_Data_StillLoadsAfterModelChange()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var catId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
         var mainId = Guid.NewGuid();

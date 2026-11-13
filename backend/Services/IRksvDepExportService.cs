@@ -4,6 +4,8 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Builds the official BMF RKSV DEP JSON export (§7 Signaturjournal) for one cash register and UTC period.
+/// History rows, download tokens, and on-disk storage live on <see cref="IDepExportHistoryService"/>
+/// (<c>RecordCompletedAsync</c>, <c>GetExportEntityByTokenAsync</c>, <c>GetRecentExportsAsync</c>, download open APIs).
 /// </summary>
 public interface IRksvDepExportService
 {

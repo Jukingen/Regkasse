@@ -40,7 +40,11 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         if (string.IsNullOrWhiteSpace(configuredRoot))
         {
             // Staging kökü yok: OS temp altında gerçek dosya üret (indirme / doğrulama ile uyumlu).
-            var stubDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "regkasse-backup-stub"));
+            // One folder per run so two Fake backups in the same UTC second do not share a file name.
+            var stubDir = Path.GetFullPath(Path.Combine(
+                Path.GetTempPath(),
+                "regkasse-backup-stub",
+                context.BackupRunId.ToString("N")));
             Directory.CreateDirectory(stubDir);
 
             var stubLogicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(

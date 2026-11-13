@@ -73,19 +73,38 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened => "Cash register opened",
             ActivityEventType.CashRegisterClosed => "Cash register closed",
             ActivityEventType.CashRegisterDecommissioned => "Cash register decommissioned",
+            ActivityEventType.CashRegisterOpenRequested => "Cash register open requested",
+            ActivityEventType.CashRegisterOpenRequestApproved => "Cash register open request approved",
+            ActivityEventType.CashRegisterOpenRequestDenied => "Cash register open request denied",
             ActivityEventType.LicenseExpiringSoon => ResolveLicenseExpiringTitle(metadata),
             ActivityEventType.LicenseExpired => "License expired",
+            ActivityEventType.LimitApproaching => "Limit approaching",
+            ActivityEventType.OfflineQueueApproachingLimit => "Offline queue approaching limit",
+            ActivityEventType.LimitExceeded => "Limit exceeded",
+            ActivityEventType.RksvRuntimeConfigChanged => "RKSV runtime config changed",
+            ActivityEventType.TenantCountryChanged => "Tenant country / VAT regime changed",
             ActivityEventType.OfflineQueueGrowing => "Offline queue growing",
             ActivityEventType.OfflineOrdersBacklogGrowing => "Offline orders backlog growing",
             ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",
             ActivityEventType.OfflineSyncStalled => "Offline sync stalled",
             ActivityEventType.FinanzOnlineSubmissionFailed => "FinanzOnline submission failed",
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => "FinanzOnline outbox failures",
             ActivityEventType.BackupFailed => "Backup failed",
             ActivityEventType.BackupSucceeded => "Backup succeeded",
             ActivityEventType.RestoreDrillFailed => "Restore drill failed",
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
             ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
             ActivityEventType.DailyClosingPendingReminder => "Daily closing pending reminder",
+            ActivityEventType.DailyClosingAutoCreated => "Automatic daily closing created",
+            ActivityEventType.DailyClosingOpenOrdersWarning => "Open orders during automatic daily closing",
+            ActivityEventType.MonatsbelegMissingReminder => "Monatsbeleg missing reminder",
+            ActivityEventType.MonatsbelegAutoCreated => "Monatsbeleg auto-created",
+            ActivityEventType.MonatsbelegCreated => "Monatsbeleg created",
+            ActivityEventType.MonatsbelegAutoCreateFailed => "Monatsbeleg auto-create failed",
+            ActivityEventType.MonatsbelegAutoCreateMissed => "Monatsbeleg auto-create missed",
+            ActivityEventType.JahresbelegFonReminder => "Jahresbeleg FinanzOnline reminder",
+            ActivityEventType.JahresbelegDeadlineReminder => "Jahresbeleg deadline",
+            ActivityEventType.MonatsbelegManagerContacted => "Monatsbeleg manager contacted",
             ActivityEventType.DepExportDueSoon => "DEP export due soon",
             ActivityEventType.DepExportOverdue => "DEP export overdue",
             ActivityEventType.DepExportValidationFailed => "DEP export validation failed",
@@ -94,9 +113,15 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.OnlineOrderPushedToPos => "Online order pushed to POS",
             ActivityEventType.OnlineOrderPaid => "Online order paid",
             ActivityEventType.OnlineOrderStatusChanged => "Online order status changed",
+            ActivityEventType.OnlineOrderIntegrationFailed => "Online order integration failed",
             ActivityEventType.OnlineOrderConfirmed => "Online order confirmed",
             ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
             ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",
+            ActivityEventType.SupportTicketCreated => "Support ticket created",
+            ActivityEventType.SupportTicketStaffReplied => "Support ticket staff reply",
+            ActivityEventType.SupportTicketTenantReplied => "Support ticket tenant reply",
+            ActivityEventType.SupportTicketResolved => "Support ticket resolved",
+            ActivityEventType.SupportTicketClosed => "Support ticket closed",
             ActivityEventType.DataExportReady => "Data export ready",
             ActivityEventType.RoleCreated => ResolveRoleActivityTitle(metadata, "created"),
             ActivityEventType.RoleDeleted => ResolveRoleActivityTitle(metadata, "deleted"),
@@ -144,6 +169,19 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.TseAutoScaleRecommended => "TSE auto-scaling — recommendation / soft apply",
             ActivityEventType.TseAnomalyDetected => "TSE anomaly detected (statistical baseline)",
             ActivityEventType.TseAutoHealExecuted => "TSE auto-healing — recovery action executed",
+            ActivityEventType.KsDeTxFinished => "DE KassenSicherheit transaction finished",
+            ActivityEventType.QrRechnungPayloadBuilt => "QR-Rechnung payload built",
+            ActivityEventType.QrRechnungPdfGenerated => "QR-Rechnung PDF generated",
+            ActivityEventType.TenantCountryChangedHistoricalPreserved => "Historical fiscal documents kept their issue-time country",
+            ActivityEventType.EinvoiceValidated => "E-invoice validated",
+            ActivityEventType.EinvoiceSubmitted => "E-invoice submitted",
+            ActivityEventType.EinvoiceSubmissionFailed => "E-invoice submission failed",
+            ActivityEventType.PeppolParticipantRegistered => "Peppol participant registered",
+            ActivityEventType.ChQrKnownGapsAccepted => "CH QR known gaps accepted",
+            ActivityEventType.ChQrKnownGapsOutstanding => "CH QR known gaps are not accepted",
+            ActivityEventType.EinvoiceAckReceived => "E-invoice acknowledged",
+            ActivityEventType.EinvoiceSubmissionRetry => "E-invoice submission retry scheduled",
+            ActivityEventType.DemoRequestReceived => "Demo request received",
             _ => type.ToString(),
         };
 
@@ -208,6 +246,11 @@ internal static class ActivityEventPublishBuilder
                 TryFormatBackup(metadata),
             ActivityEventType.LicenseExpiringSoon or ActivityEventType.LicenseExpired =>
                 TryFormatLicense(metadata),
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Description"),
             ActivityEventType.OnlineOrderPushedToPos =>
                 TryFormatOnlineOrder(metadata),
             ActivityEventType.OnlineOrderPaid =>
@@ -318,6 +361,10 @@ internal static class ActivityEventPublishBuilder
 
         return type switch
         {
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded
+                => ("tenant_limit", TryGetString(metadata, "LimitKey")),
             ActivityEventType.UserCreated or ActivityEventType.UserUpdated or ActivityEventType.UserDeleted
                 => ("user", TryGetString(metadata, "UserId")),
             ActivityEventType.BackupFailed or ActivityEventType.BackupSucceeded
@@ -325,11 +372,25 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened
                 or ActivityEventType.CashRegisterClosed
                 or ActivityEventType.CashRegisterDecommissioned
+                or ActivityEventType.CashRegisterOpenRequested
+                or ActivityEventType.CashRegisterOpenRequestApproved
+                or ActivityEventType.CashRegisterOpenRequestDenied
                 => ("cash_register", TryGetString(metadata, "CashRegisterId")),
             ActivityEventType.DailyClosingBackdatedCreated
+                or ActivityEventType.DailyClosingAutoCreated
                 => ("DailyClosing", TryGetString(metadata, "ClosingId")),
             ActivityEventType.DailyClosingPendingReminder
+                or ActivityEventType.DailyClosingOpenOrdersWarning
+                or ActivityEventType.MonatsbelegMissingReminder
+                or ActivityEventType.MonatsbelegAutoCreated
+                or ActivityEventType.MonatsbelegCreated
+                or ActivityEventType.MonatsbelegAutoCreateFailed
+                or ActivityEventType.MonatsbelegAutoCreateMissed
+                or ActivityEventType.JahresbelegFonReminder
+                or ActivityEventType.MonatsbelegManagerContacted
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),
+            ActivityEventType.JahresbelegDeadlineReminder
+                => ("tenant", TryGetString(metadata, "tenantId")),
             ActivityEventType.DepExportDueSoon
                 or ActivityEventType.DepExportOverdue
                 => ("dep_export_requirement", TryGetString(metadata, "requirementId")),
@@ -347,6 +408,12 @@ internal static class ActivityEventPublishBuilder
                 => ("digital_service_request", TryGetString(metadata, "RequestId")),
             ActivityEventType.DataAccessDeleteRequested
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.SupportTicketCreated
+                or ActivityEventType.SupportTicketStaffReplied
+                or ActivityEventType.SupportTicketTenantReplied
+                or ActivityEventType.SupportTicketResolved
+                or ActivityEventType.SupportTicketClosed
+                => ("support_ticket", TryGetString(metadata, "TicketId")),
             ActivityEventType.DataExportReady
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
             ActivityEventType.RoleCreated
@@ -391,6 +458,11 @@ internal static class ActivityEventPublishBuilder
                     ?? TryGetString(metadata, "RunbookId")
                     ?? TryGetString(metadata, "TenantId")
                     ?? TryGetString(metadata, "AnomalyId")),
+            ActivityEventType.QrRechnungPayloadBuilt or ActivityEventType.QrRechnungPdfGenerated
+                or ActivityEventType.ChQrKnownGapsOutstanding
+                => ("Invoice", TryGetString(metadata, "InvoiceId")),
+            ActivityEventType.ChQrKnownGapsAccepted
+                => ("TenantSetting", TryGetString(metadata, "acceptedBy")),
             _ => (null, null),
         };
     }

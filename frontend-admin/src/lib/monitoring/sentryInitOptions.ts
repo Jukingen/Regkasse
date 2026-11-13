@@ -7,6 +7,7 @@ import type { ErrorEvent, EventHint } from '@sentry/nextjs';
 import {
   SENTRY_IGNORE_ERRORS,
   isProductionSentryEnabled,
+  scrubSentryPii,
   shouldDropSentryEvent,
 } from '@/lib/monitoring/sentryFilter';
 
@@ -41,7 +42,7 @@ export function buildSentryInitOptions() {
       if (shouldDropSentryEvent(event)) {
         return null;
       }
-      return event;
+      return scrubSentryPii(event);
     },
   };
 }

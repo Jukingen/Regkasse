@@ -229,8 +229,10 @@ public sealed class AdminDownloadHistoryController : ControllerBase
 
         if (string.Equals(row.SourceKind, "dep-export", StringComparison.OrdinalIgnoreCase))
         {
-            var file = await _depHistory.TryOpenDownloadAsync(row.SourceId.Value, cancellationToken).ConfigureAwait(false);
-            if (file is null)
+            var attempt = await _depHistory
+                .TryOpenDownloadAsync(row.SourceId.Value, tenantId.Value, cancellationToken)
+                .ConfigureAwait(false);
+            if (attempt.Open is null)
             {
                 return NotFound(new
                 {
@@ -239,6 +241,7 @@ public sealed class AdminDownloadHistoryController : ControllerBase
                 });
             }
 
+            var open = attempt.Open;
             var userId = User.GetActorUserId() ?? "unknown";
             var downloadUrl = $"/api/admin/download-history/{id}/redownload";
             try
@@ -248,7 +251,7 @@ public sealed class AdminDownloadHistoryController : ControllerBase
                         {
                             TenantId = tenantId.Value,
                             UserId = userId,
-                            FileName = file.Value.FileName,
+                            FileName = open.FileName,
                             FileType = "json",
                             FileSize = row.FileSize,
                             DownloadUrl = downloadUrl,
@@ -265,7 +268,7 @@ public sealed class AdminDownloadHistoryController : ControllerBase
                 _logger.LogWarning(ex, "Failed to record re-download history for {Id}", id);
             }
 
-            return File(file.Value.Stream, file.Value.ContentType, file.Value.FileName);
+            return File(open.Stream, open.ContentType, open.FileName);
         }
 
         return NotFound(new

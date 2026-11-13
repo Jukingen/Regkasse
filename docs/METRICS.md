@@ -2,6 +2,8 @@
 
 Prometheus metrics exposed by the API (`GET /metrics`) and related gauges.
 
+Outside Development, `/metrics` is IP-allowlisted (loopback + RFC1918 by default, or `Monitoring:Prometheus:AllowedCidrs`). See [`MONITORING.md`](MONITORING.md).
+
 **Last updated:** 2026-07-29
 
 | Related | Link |

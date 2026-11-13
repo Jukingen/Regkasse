@@ -20,8 +20,8 @@ describe('manualRestorePresentation', () => {
   });
 
   it('eligible only for succeeded backup runs', () => {
-    expect(isBackupRunEligibleForManualRestore(BackupRunStatus.NUMBER_3)).toBe(true);
-    expect(isBackupRunEligibleForManualRestore(BackupRunStatus.NUMBER_4)).toBe(false);
+    expect(isBackupRunEligibleForManualRestore(BackupRunStatus.Succeeded)).toBe(true);
+    expect(isBackupRunEligibleForManualRestore(BackupRunStatus.Failed)).toBe(false);
   });
 
   it('polls while executing', () => {

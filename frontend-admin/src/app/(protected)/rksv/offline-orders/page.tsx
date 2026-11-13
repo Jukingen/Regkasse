@@ -26,6 +26,7 @@ import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdm
 import type { OfflineOrderStatus } from '@/features/offline/types';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { ADMIN_NAV_GROUP_LABELS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -57,6 +58,7 @@ function toApiListParams(input: {
 
 export default function OfflineOrdersPage() {
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
   const { message, modal } = useAntdApp();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.PAYMENT_VIEW);
@@ -211,7 +213,7 @@ export default function OfflineOrdersPage() {
       width: 110,
       render: (v: number) =>
         typeof v === 'number'
-          ? v.toLocaleString('de-AT', { style: 'currency', currency: 'EUR' })
+          ? formatCurrency(v)
           : '—',
     },
     {

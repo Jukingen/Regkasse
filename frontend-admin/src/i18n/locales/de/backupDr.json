@@ -679,6 +679,24 @@
     "title": "Bekannte Grenzen (Outbox / TSE / Infra)",
     "body": "Datenbank-Backup ersetzt keine vollständige RKSV-/TSE-Sicherung; Outbox- und Signatur-Anforderungen können zusätzliche Betriebsprozesse brauchen. Ziele wie RPO/RTO hängen von Infrastruktur ab, nicht von dieser Oberfläche."
   },
+  "knownGapAcceptance": {
+    "title": "Bekannte Backup/DR-Lücken",
+    "description": "Bestätigung schaltet die Prüfung nicht ab. Eine bekannte Lücke wird gelb statt rot. Das Gesamt-Gate bleibt fehlgeschlagen, solange AllowsGateOverride aus ist.",
+    "save": "Bestätigung speichern",
+    "saved": "Bekannte Lücken wurden gespeichert.",
+    "loadFailed": "Bekannte Lücken konnten nicht geladen werden.",
+    "invalidGaps": "Mindestens eine Lücken-ID ist unbekannt.",
+    "acceptedOn": "Bekannt, akzeptiert am {{date}}",
+    "verdictPass": "Gate bestanden",
+    "verdictFail": "Gate nicht bestanden",
+    "noTenant": "Bitte einen Mandanten wählen, um bekannte Lücken zu bestätigen.",
+    "gaps": {
+      "externalArchiveNotSet": "Externes Archiv nicht gesetzt",
+      "scheduledDrillNotRun": "Geplanter Restore-Drill überfällig",
+      "systemLegalHoldNotConfigured": "System-Legal-Hold nicht konfiguriert",
+      "devOnlyFakeAdapter": "Nur Entwicklung: Fake-Adapter"
+    }
+  },
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
     "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach Erfolg: Artefakte unten herunterladbar (auch Fake/ProductionStub-Stubs auf dem Server — kein Produktions-pg_dump). „Einstellungen verwalten“; Audit.",
@@ -820,7 +838,8 @@
       "reject": "Ablehnen"
     },
     "messages": {
-      "requestCreated": "Restore-Anfrage erstellt — Freigabe durch zweiten Administrator erforderlich.",
+      "requestCreated": "Restore-Anfrage erstellt — Freigabe erforderlich",
+      "requestExecuting": "Restore wird ausgeführt…",
       "approvalSubmitted": "Freigabe übermittelt — Validierung läuft im Hintergrund.",
       "rejected": "Anfrage abgelehnt."
     },
@@ -891,6 +910,16 @@
     "etaQueued": "Grober Richtwert Fertigstellung (Warteschlange + Ø Dauer, n={{n}}): {{time}}",
     "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer.",
     "etaDemotedLead": "Grober Zeit-Hinweis (keine Zusage):"
+  },
+  "restoreProgress": {
+    "cardTitle": "Restore-Drill Fortschritt",
+    "idle": "Kein Restore-Drill läuft.",
+    "titleQueued": "Restore-Drill in der Warteschlange",
+    "titleRunning": "Restore-Drill läuft",
+    "titleSucceeded": "Restore-Drill abgeschlossen",
+    "titleFailed": "Restore-Drill fehlgeschlagen",
+    "estimatedRemaining": "Geschätzte Restzeit: {{time}}",
+    "noEta": "Noch keine Zeitschätzung (keine vorherige erfolgreiche Drill-Dauer)."
   },
   "download": {
     "titleLatestSuccess": "Artefakte herunterladen (letzter Lauf — API-Erfolgsstatus)",
@@ -1150,7 +1179,7 @@
     "title": "Letzte Backup-Läufe",
     "statusHint": "Jede Zeile zeigt das von der API gemeldete Ergebnis dieses Laufs. Der Verlauf ersetzt nicht die „letzte bekannte gute“ Nachweise in der Recoverability-Karte."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Letzte Restore-Verifikationen",
     "empty": "Noch keine Restore-Drills erfasst.",
     "statusHint": "Jede Zeile zeigt das API-Ergebnis des Drills. Ein abgeschlossener Drill ist technische Metadaten — keine vollständige Recovery-Garantie."
@@ -1481,6 +1510,14 @@
     "close": "Schließen",
     "download": "Herunterladen",
     "downloadBackup": "Backup herunterladen",
+    "createdByEmail": "E-Mail",
+    "createdFromIp": "IP-Adresse",
+    "tenant": "Mandant",
+    "downloadCount": "Downloads",
+    "tablesSection": "Tabellen und Zeilenzahlen",
+    "fileName": "Datei",
+    "downloadedAt": "Heruntergeladen am",
+    "downloadHistoryEmpty": "Noch keine Downloads erfasst.",
     "triggerLabel": "Auslöser",
     "requestedAt": "Angefordert am",
     "startedAt": "Startzeit",
@@ -1497,6 +1534,7 @@
     },
     "tabs": {
       "overview": "Übersicht",
+      "downloadHistory": "Download-Historie",
       "artifacts": "Artefakte",
       "verification": "Verifizierung",
       "pipeline": "Pipeline",
@@ -1508,6 +1546,7 @@
       "createdAt": "Erstellt",
       "lifecycle": "Lifecycle",
       "onDisk": "Auf Server",
+      "hash": "SHA-256",
       "empty": "Keine Artefakte",
       "sizeBreakdownHint": "Größen je Artefakt unten; die Summe entspricht dem Total, wenn alle Byte-Größen erfasst sind."
     },
@@ -1519,7 +1558,10 @@
       "verifier": "Verifier",
       "completeness": "Vollständigkeit",
       "completenessOk": "OK",
-      "completenessMissing": "Fehlt"
+      "completenessMissing": "Fehlt",
+      "lastResult": "Letztes Prüfergebnis",
+      "storedHash": "Gespeicherter Hash",
+      "computedHash": "Berechneter Hash"
     },
     "pipeline": {
       "empty": "Keine Pipeline-Schritte"
@@ -1628,6 +1670,48 @@
       "findings": "Hinweise"
     }
   },
+  "drills": {
+    "pageTitle": "Restore-Drills",
+    "pageSubtitle": "Vergangene Restore-Prüfungen: Zeit, Dauer, Ergebnis. Keine Dateipfade.",
+    "timelineTitle": "Drill-Verlauf",
+    "empty": "Keine Restore-Drills geladen.",
+    "columns": {
+      "date": "Datum",
+      "duration": "Dauer",
+      "result": "Ergebnis",
+      "reason": "Grund"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Offen"
+    },
+    "successRate": "Erfolgsquote (30 Tage)",
+    "lastSuccess": "Letzter geplanter Drill-Nachweis",
+    "daysSince": "Tage seit dem geplanten Nachweis",
+    "durationUnknown": "Dauer unbekannt",
+    "reasonHidden": "Details ausgeblendet",
+    "scheduleTitle": "Drill-Plan",
+    "scheduleNext": "Nächster Termin (Standard): {{date}}",
+    "scheduleOverdue": "Fenster überfällig seit {{date}}",
+    "scheduleEmpty": "Noch kein geplanter Drill-Nachweis.",
+    "cadenceNote": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard. Manuelle Drills setzen ihn nicht zurück. Standardrhythmus {{days}} Tage; diese Ansicht liest keine Deployment-Abweichung.",
+    "downloadPdf": "PDF herunterladen",
+    "downloadPdfSuccess": "Prüfbericht heruntergeladen",
+    "downloadPdfFailed": "Prüfbericht konnte nicht heruntergeladen werden."
+  },
+  "recoverabilityCheck": {
+    "title": "Wiederherstellbarkeit prüfen",
+    "lastProof": "Letzter Restore-Nachweis",
+    "lastDrill": "Letzter erfolgreicher Drill",
+    "daysSince": "Tage seit dem Nachweis",
+    "nextDrill": "Nächster geplanter Drill",
+    "successRate": "Erfolgsquote (30 Tage)",
+    "acceptedGaps": "Akzeptierte bekannte Lücken",
+    "compare": "Mit den letzten 5 Drills abgleichen",
+    "drift": "Abweichung",
+    "driftTooltip": "Der letzte Nachweis stimmt nicht mit dem letzten bestandenen Drill überein."
+  },
   "compliance": {
     "pageTitle": "RKSV-Compliance-Status",
     "pageSubtitle": "Backup Restore-Readiness (30 Tage) — Produktregeln, keine BMF-Zertifizierung.",
@@ -1638,6 +1722,7 @@
     "allOkTitle": "Alle gelisteten Backups erfüllen die Produktregeln",
     "allOkDescription": "Erfolgreiche Backups im Zeitraum haben gültiges SHA-256. Restore bleibt validation-only mit Dual-Approval.",
     "loadFailed": "Compliance-Status konnte nicht geladen werden.",
+    "loadFailedDetail": "Keine weiteren Serverdetails verfügbar. Netzwerk, Anmeldung oder API-Antwort prüfen.",
     "empty": "Keine erfolgreichen Backups in den letzten 30 Tagen.",
     "listTitle": "Backup-Compliance-Liste",
     "stats": {
@@ -1666,6 +1751,18 @@
       "missingLogicalDump": "Kein Logikdump",
       "backupNotSucceeded": "Nicht erfolgreich",
       "unknown": "Sonstiges"
+    },
+    "gate": {
+      "title": "Produkt-Gate",
+      "systemBackup": "Letztes erfolgreiches System-Backup",
+      "legalHold": "7-Jahres-Legal-Hold",
+      "drill": "Letzter geplanter Restore-Nachweis",
+      "drillThreshold": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard (nur geplante Erfolge). Grün: höchstens 14 Tage alt. Gelb: älter als 14 Tage. Rot: älter als 30 Tage oder kein geplanter Nachweis.",
+      "missing": "Kein Nachweis",
+      "simulated": "Simulierter Lauf",
+      "green": "Grün",
+      "yellow": "Gelb",
+      "red": "Rot"
     }
   },
   "costs": {
@@ -1729,7 +1826,46 @@
         "title": "Kostenprofil wirkt gesund",
         "description": "Budget und Tier-Mix liegen im erwarteten Bereich. Bei starkem Mandantenwachstum weiter beobachten."
       }
+    },
+    "insights": {
+      "trendTitle": "Speicherkostentrend (90 Tage)",
+      "trendHint": "Schätzung aus der Größe erfolgreicher Dumps mal aktuellem €/GB. Keine Rechnung.",
+      "retentionTitle": "Auswirkung der Aufbewahrung",
+      "retentionActual": "Aktuelle Schätzung",
+      "retentionAllHot": "Alles als Hot",
+      "tierTitle": "Tier-Verteilung",
+      "monthlyEstimate": "Monatsschätzung",
+      "emptyTrend": "Keine Dump-Größen in den letzten 90 Tagen."
     }
+  },
+  "retention": {
+    "pageTitle": "Backup-Aufbewahrung",
+    "pageSubtitle": "Hot/Warm/Cold-Fenster, 7-Jahres-Pflicht (RKSV / BAO §132) und Cold-Storage.",
+    "legalTitle": "Gesetzliche Aufbewahrung (7 Jahre)",
+    "legalDescription": "System-Backups unterliegen der 7-jährigen Aufbewahrung (BAO §132). Legal Hold verhindert das Löschen. Cold Storage ist WORM (Write Once Read Many).",
+    "hotLabel": "Hot",
+    "warmLabel": "Warm",
+    "coldLabel": "Cold (rechtlich)",
+    "daysSuffix": "Tage",
+    "yearsSuffix": "Jahre",
+    "policyCardTitle": "Aufbewahrungsrichtlinie",
+    "hotDays": "Hot-Aufbewahrung (Tage)",
+    "warmDays": "Warm-Aufbewahrung (Tage)",
+    "coldYears": "Cold-Aufbewahrung (Jahre)",
+    "coldYearsHint": "Mindestens 7 Jahre — gesetzliche Untergrenze.",
+    "coldEnabled": "Cold Storage aktivieren",
+    "cloudProvider": "Cloud-Anbieter",
+    "cloudReady": "Konfiguriert",
+    "cloudNotConfigured": "Nicht konfiguriert (Dateisystem-Fallback)",
+    "save": "Richtlinie speichern",
+    "saveSuccess": "Aufbewahrungsrichtlinie gespeichert.",
+    "saveFailed": "Aufbewahrungsrichtlinie konnte nicht gespeichert werden.",
+    "loadFailed": "Aufbewahrungsrichtlinie konnte nicht geladen werden.",
+    "superAdminOnly": "Nur Super-Admin kann die Richtlinie ändern.",
+    "statusHot": "Hot",
+    "statusWarm": "Warm",
+    "statusCold": "Cold",
+    "statusLegalHold": "Legal Hold"
   },
   "backupDiff": {
     "cardTitle": "Backup-Vergleich",
@@ -1773,8 +1909,19 @@
     "instanceScopeDescription": "Alle Mandanten teilen sich dieselbe PostgreSQL-Instanz. Die Liste zeigt deployment-weite Läufe; Mandantenfilter gilt für manuell ausgelöste Läufe (Idempotency-Key).",
     "tenantFilterLabel": "Mandant (Filter)",
     "tenantFilterPlaceholder": "Alle Mandanten",
+    "createdBy": "Erstellt von",
+    "createdBySystemCron": "System (Cron)",
+    "filterType": "Typ",
+    "filterTypePlaceholder": "Alle Typen",
+    "filterCreatedByPlaceholder": "Alle Ersteller",
+    "filterDate": "Datum",
+    "strategyTenant": "Mandant",
+    "strategySystem": "System",
+    "download": "Download",
+    "downloadFailed": "Download fehlgeschlagen.",
     "startTime": "Startzeit",
     "statusColumn": "Status",
+    "retention": "Aufbewahrung",
     "duration": "Dauer",
     "durationTooltip": "Start: {{start}} | Ende: {{end}}",
     "size": "Größe",
@@ -1788,10 +1935,18 @@
     "retry": "Wiederholen",
     "delete": "Löschen",
     "deleteUnavailable": "Löschen ist in der API noch nicht verfügbar.",
+    "moveToCold": "In Cold Storage verschieben",
+    "moveToColdConfirmTitle": "Dieses Backup in Cold Storage verschieben?",
+    "moveToColdConfirmDescription": "Das Artefakt wird komprimiert, nach Möglichkeit dedupliziert und als WORM (Write Once Read Many) gespeichert.",
+    "moveToColdSuccess": "Backup wurde in Cold Storage verschoben.",
+    "moveToColdFailed": "Backup konnte nicht in Cold Storage verschoben werden.",
     "noDuration": "—",
     "durationMinutes": "{{minutes}} min",
     "retryConfirmTitle": "Neues Backup einreihen?",
     "retryConfirmDescription": "Es wird ein neuer manueller Backup-Lauf in die Warteschlange gestellt (kein erneutes Abspielen desselben Laufs).",
+    "verify": "Prüfen",
+    "verifyChecksum": "Checksum prüfen",
+    "lastVerification": "Letzte Prüfung",
     "statusLabels": {
       "queued": "Wartend",
       "running": "Läuft",
@@ -1809,6 +1964,27 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verify": "Prüfen",
+    "verifyChecksum": "Checksum prüfen",
+    "verifyPassed": "Verifizierung bestanden",
+    "verifyFailed": "Verifizierung fehlgeschlagen",
+    "checksumPassed": "Integritätsprüfung bestanden",
+    "checksumFailed": "Datei beschädigt oder Prüfsumme stimmt nicht",
+    "checksumNotAvailable": "Checksum für dieses Backup nicht verfügbar",
+    "lastVerification": "Letzte Prüfung",
+    "verifying": "Checksum wird geprüft…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum fehlgeschlagen",
+    "badgeUnknown": "Noch nicht geprüft",
+    "rpoAlert": "Kein erfolgreiches System-Backup seit {{days}} Tagen. RPO gefährdet.",
+    "validateContent": "Inhalt prüfen",
+    "contentPassed": "Alle Tabellen geprüft",
+    "contentWarning": "Inhaltsprüfung mit Warnungen",
+    "contentFailed": "Inhaltsprüfung fehlgeschlagen",
+    "contentUnavailable": "Inhaltsprüfung nicht verfügbar",
+    "contentReportTitle": "Inhaltsprüfbericht"
   },
   "verificationReport": {
     "sectionTitle": "Backup-Verifizierungsbericht",
@@ -1867,7 +2043,7 @@
     "cancel": "Abbrechen",
     "restore": "Wiederherstellen",
     "alertTitle": "Point-in-Time Recovery",
-    "alertDescription": "Stellen Sie Ihre Datenbank auf einen bestimmten Zeitpunkt wieder her. Alle Änderungen danach werden rückgängig gemacht.",
+    "alertDescription": "Planen Sie die Wiederherstellung auf einen Zeitpunkt. Die API überschreibt nie die Produktion — Super Admin kann nur eine isolierte Validierungs-Wiederherstellung starten.",
     "availablePointsTitle": "Verfügbare Wiederherstellungspunkte",
     "walArchivingActive": "WAL Archiving aktiv",
     "earliestPoint": "Frühester Punkt",
@@ -1885,6 +2061,7 @@
     "estimatedDataLoss": "Datenverlust: ca. {{seconds}} Sekunden",
     "recoveryMethodPitr": "WAL-Wiedergabe (PITR)",
     "recoveryMethodFullBackup": "Nur Vollbackup",
+    "recoveryMethodFullPlusIncremental": "Vollbackup + Inkremente",
     "walDisabledTitle": "WAL Archiving nicht aktiviert",
     "walDisabledDescription": "Point-in-Time Recovery ist nur mit aktiviertem WAL-Archiving möglich. Derzeit sind nur vollständige Backup-Wiederherstellungen verfügbar.",
     "scopeNoteTitle": "Wiederherstellungsumfang",
@@ -1892,12 +2069,65 @@
     "tenantRequiredDescription": "Wählen Sie einen Mandanten (Impersonation oder Mandanten-Subdomain), bevor Sie PITR nutzen. Super Admin auf dem Plattform-Host hat keinen Mandanten.",
     "confirmTitle": "Point-in-Time Wiederherstellung",
     "confirmIntro": "Sie sind dabei, die Datenbank wiederherzustellen auf:",
-    "confirmIrreversible": "Dieser Vorgang ist nicht umkehrbar. Alle Daten nach diesem Zeitpunkt gehen verloren.",
+    "confirmIrreversible": "Dies startet eine isolierte Validierungs-Wiederherstellung (restore_validation_*), nicht die Produktion. Zweite Super-Admin-Freigabe gilt weiterhin.",
     "confirmSecondApproval": "Diese Aktion erfordert eine zweite Administrator-Freigabe.",
     "confirmOk": "Wiederherstellen",
     "moreSupportedPoints": "+{{count}} weitere backup-basierte Wiederherstellungspunkte",
     "errors": {
       "missingBaseBackup": "Für diesen Wiederherstellungspunkt wurde kein geeignetes Basis-Backup gefunden."
+    }
+  },
+  "pitrPage": {
+    "pageTitle": "Point-in-Time Wiederherstellung",
+    "pageSubtitle": "Zeitpunkt wählen, Backup-Kette prüfen und isolierten Dry-Run starten. Die Produktion wird nicht überschrieben.",
+    "isolatedTitle": "Nur isolierte Validierung",
+    "isolatedDescription": "PITR und inkrementelle Wiederherstellung starten hier nur restore_validation_* / Restore-Drills. WAL-Replay bleibt ein DBA-Verfahren.",
+    "walFiles": "WAL-Dateien",
+    "walOpsTitle": "WAL-Archivstatus",
+    "chainTitle": "Backup-Kette",
+    "chainNote": "Wiederherstellungskette",
+    "chainEmpty": "Keine erfolgreichen Voll-, Inkremental- oder System-Backups in diesem Umfang.",
+    "chainKind": "Typ",
+    "chainCompleted": "Abgeschlossen",
+    "chainTenant": "Mandant",
+    "chainWal": "WAL",
+    "chainRunId": "Lauf-ID",
+    "walCovered": "Abgedeckt",
+    "walNotCovered": "Nicht abgedeckt",
+    "walWindow": "WAL-Fenster: {{start}} – {{end}} ({{count}} Dateien)",
+    "kind": {
+      "full": "Mandant vollständig",
+      "incremental": "Inkrementell",
+      "system": "System-Dump"
+    },
+    "reportPassed": "Vorprüfungen bestanden",
+    "reportFailed": "Vorprüfungen fehlgeschlagen",
+    "dataLossLabel": "Geschätzter Datenverlust",
+    "checkHash": "Integrität (Hash)",
+    "checkSchema": "Schema / Inhalt",
+    "checkTse": "TSE-Kette",
+    "checkPassed": "Bestanden",
+    "checkFailed": "Fehlgeschlagen",
+    "dryRun": "Dry-Run auf isolierter Datenbank",
+    "dryRunConfirmTitle": "Isolierten Restore-Drill einreihen?",
+    "dryRunConfirmBody": "Der nächste System-Dump wird in eine isolierte Datenbank wiederhergestellt. Die Produktion wird nicht geändert.",
+    "dryRunOk": "Dry-Run einreihen",
+    "dryRunAccepted": "Isolierter Restore-Drill wurde eingereiht."
+  },
+  "walStatus": {
+    "title": "WAL-Archivierung",
+    "lastSegment": "Letztes Segment",
+    "lag": "Verzögerung",
+    "segments24h": "Segmente (24 h)",
+    "empty": "WAL-Archivierung ist noch nicht gestartet.",
+    "loadFailed": "Der WAL-Archivstatus konnte nicht geladen werden.",
+    "lagValue": "{{seconds}} s",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} archiviert / {{failed}} fehlgeschlagen",
+    "health": {
+      "healthy": "Gesund",
+      "degraded": "Beeinträchtigt",
+      "critical": "Kritisch"
     }
   },
   "backupList": {
@@ -2033,10 +2263,96 @@
     "lastRunStored": "Letzter erfolgreicher Lauf (Zeitpunkt)",
     "lastScheduledRunLabel": "Letzter geplanter Backup-Lauf",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Letzte 5 geplante Backup-Läufe",
+    "recentScheduledWhen": "Angefordert",
+    "recentScheduledStatus": "Status",
+    "failureReason": "Fehlergrund",
     "runStatusSuffix": "(Status {{status}})",
     "save": "Speichern",
     "saveSuccess": "Einstellungen gespeichert.",
     "saveError": "Speichern fehlgeschlagen.",
     "loadError": "Zeitplaneinstellungen konnten nicht geladen werden."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Restore-Prüfung",
+    "detailTitle": "Restore-Prüfung Detail",
+    "pageSubtitle": "PASS/FAIL für isolierte Restore-Drills. Produktion wird nicht überschrieben. System-Dumps nur für Super-Admin; Mandanten-Admin sieht nur eigene Tenant-Läufe.",
+    "empty": "Keine Restore-Prüfungen in diesem Bereich.",
+    "loadError": "Restore-Prüfungen konnten nicht geladen werden.",
+    "openDetail": "Öffnen",
+    "backToList": "Zurück zur Liste",
+    "verifiedAt": "Geprüft am",
+    "failedChecks": "Fehlgeschlagene Prüfungen: {{checks}}",
+    "columns": {
+      "date": "Datum",
+      "backupId": "Backup-ID",
+      "type": "Typ",
+      "status": "Status",
+      "verdict": "PASS/FAIL",
+      "actions": "Aktionen"
+    },
+    "filters": {
+      "type": "Typ",
+      "status": "Status",
+      "backupId": "Backup-ID suchen",
+      "apply": "Anwenden"
+    },
+    "status": {
+      "queued": "In Warteschlange",
+      "running": "Läuft",
+      "succeeded": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "unknown": "Unbekannt"
+    },
+    "type": {
+      "manual": "Manuell",
+      "scheduled": "Geplant"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash-Prüfung",
+      "schema": "Schema-Prüfung",
+      "data": "Datenprüfung",
+      "tse": "TSE-Kettenprüfung",
+      "fiscal": "Fiscal-SQL",
+      "unknown": "Prüfung"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Übersprungen",
+      "unavailable": "Nicht verfügbar"
+    },
+    "detail": {
+      "summary": "Laufübersicht",
+      "checksTitle": "Prüfungen",
+      "check": "Prüfung",
+      "result": "Ergebnis",
+      "detail": "Detail"
+    },
+    "rowCounts": {
+      "title": "Tabellen-Zeilenzahlen",
+      "id": "Prüf-ID",
+      "name": "Name",
+      "category": "Kategorie",
+      "measured": "Gemessen",
+      "expected": "Min",
+      "status": "Status",
+      "empty": "Für diesen Drill wurden keine Klon-Zeilenzahlen gespeichert."
+    },
+    "fiscal": {
+      "title": "Fiscal-SQL-Ergebnis",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "PDF herunterladen",
+      "csv": "CSV herunterladen",
+      "ready": "Bericht heruntergeladen.",
+      "failed": "Der Prüfbericht konnte nicht heruntergeladen werden."
+    }
   }
 }

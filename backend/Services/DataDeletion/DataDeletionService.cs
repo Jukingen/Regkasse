@@ -380,34 +380,27 @@ public sealed class DataDeletionService : IDataDeletionService
     }
 
     /// <summary>
-    /// Deletes purgeable non-RKSV rows. Never touches payments, receipts, fiscal invoices,
-    /// audit logs, TSE signatures, online orders, or vouchers.
+    /// Deletes purgeable non-RKSV rows and anonymizes personal data that must stay for
+    /// fiscal retention (payment and invoice amounts, receipt numbers, TSE signatures).
+    /// The whole purge runs in one transaction.
     /// </summary>
     internal static async Task<Dictionary<string, int>> DeleteNonRksvDataAsync(
         AppDbContext db,
         Guid tenantId,
         CancellationToken ct)
     {
-        var counts = new Dictionary<string, int>(StringComparer.Ordinal)
+        await using var tx = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+        try
         {
-            ["products"] = await db.Products.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["categories"] = await db.Categories.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["customers"] = await db.Customers.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["company_settings"] = await db.CompanySettings.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["tenant_customizations"] = await db.TenantCustomizations.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["invoices_non_fiscal"] = await db.Invoices.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId && x.SourcePaymentId == null)
-                .ExecuteDeleteAsync(ct).ConfigureAwait(false),
-            ["digital_service_requests"] = await db.DigitalServiceRequests.IgnoreQueryFilters()
-                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
-        };
-
-        return counts;
+            var counts = await TenantPiiPurge.ExecuteAsync(db, tenantId, ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+            return counts;
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async Task SoftRemoveUserAccountsAsync(
@@ -452,7 +445,7 @@ public sealed class DataDeletionService : IDataDeletionService
                 where m.UserId == user.Id
                     && m.IsActive
                     && t.IsActive
-                    && t.Status != TenantStatuses.Deleted
+                    && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 select m.Id
             ).AnyAsync(ct).ConfigureAwait(false);
 

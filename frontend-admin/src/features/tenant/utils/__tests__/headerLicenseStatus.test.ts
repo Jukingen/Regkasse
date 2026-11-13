@@ -35,8 +35,6 @@ const t = (key: string, params?: Record<string, string | number>) => {
   return table[key] ?? key;
 };
 
-const VALID_UNTIL = '2026-07-20T21:30:00.000Z';
-
 function status(
   partial: Partial<ResolvedLicenseStatus> & Pick<ResolvedLicenseStatus, 'kind'>
 ): ResolvedLicenseStatus {
@@ -85,9 +83,10 @@ describe('headerLicenseStatus', () => {
     });
     expect(getHeaderLicenseStatusClass(license)).toBe('warning');
     // Far-future ValidUntil so hours-preference does not override day copy.
-    expect(
-      getHeaderLicenseStatusText(license, t, { validUntilUtc: '2026-08-01T12:00:00.000Z' })
-    ).toBe('Läuft ab in 5 Tagen');
+    const farUntil = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    expect(getHeaderLicenseStatusText(license, t, { validUntilUtc: farUntil })).toBe(
+      'Läuft ab in 5 Tagen'
+    );
   });
 
   it('shows hours remaining when less than one day left', () => {

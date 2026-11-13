@@ -86,7 +86,7 @@ public sealed class AuthService : IAuthService
                 .ConfigureAwait(false);
 
             if (tenant != null
-                && string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+                && TenantStatuses.IsRemoved(tenant.Status))
             {
                 return LoginTenantAccessResult.Blocked(
                     _messages.Get(ApiMessageKeys.TenantDisabled),
@@ -135,13 +135,13 @@ public sealed class AuthService : IAuthService
 
         var hasEligible = rows.Any(m =>
             m.IsActive
-            && !string.Equals(m.TenantStatus, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
+            && !TenantStatuses.IsRemoved(m.TenantStatus)
             && m.TenantIsActive);
 
         if (hasEligible)
             return false;
 
         return rows.Any(m =>
-            string.Equals(m.TenantStatus, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase));
+            TenantStatuses.IsRemoved(m.TenantStatus));
     }
 }

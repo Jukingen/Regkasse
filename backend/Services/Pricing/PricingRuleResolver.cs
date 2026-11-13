@@ -40,9 +40,9 @@ public sealed class PricingRuleResolver : IPricingRuleResolver
             .Where(r => r.IsActive && r.ValidFromDate <= localDate && r.ValidToDate >= localDate)
             .Where(r =>
                 (r.TargetScope == PricingRuleTargetScope.Product &&
-                 _db.Products.Any(p => p.Id == r.TargetId && p.TenantId == tenantId))
+                 _db.Products.IgnoreQueryFilters().Any(p => p.Id == r.TargetId && p.TenantId == tenantId))
                 || (r.TargetScope == PricingRuleTargetScope.Category &&
-                    _db.Categories.Any(c => c.Id == r.TargetId && c.TenantId == tenantId)))
+                    _db.Categories.IgnoreQueryFilters().Any(c => c.Id == r.TargetId && c.TenantId == tenantId)))
             .ToListAsync(ct);
 
         var candidates = rules

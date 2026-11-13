@@ -35,7 +35,9 @@ public sealed class CompositeSystemBackupExecutionAdapter : IBackupExecutionAdap
         _logger = logger;
     }
 
-    public string AdapterKind => "SystemComposite";
+    public const string AdapterKindValue = "SystemComposite";
+
+    public string AdapterKind => AdapterKindValue;
 
     public async Task<BackupExecutionResult> ExecuteAsync(BackupExecutionContext context)
     {

@@ -156,6 +156,64 @@ public sealed class RestoreVerificationRunResponseDto
 
     /// <summary>Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).</summary>
     public string? ConfigSnapshotJson { get; init; }
+
+    /// <summary><c>pending</c> | <c>passed</c> | <c>failed</c> — composed from executed checks; skipped is not a fail.</summary>
+    public string? Verdict { get; init; }
+
+    public IReadOnlyList<RestoreVerificationCheckDto>? Checks { get; init; }
+
+    public IReadOnlyList<string>? FailedCheckIds { get; init; }
+
+    /// <summary>Source <c>backup_runs.strategy</c> when the navigation is loaded.</summary>
+    public string? SourceBackupStrategy { get; init; }
+
+    public Guid? SourceBackupTenantId { get; init; }
+}
+
+public sealed class RestoreVerificationCheckDto
+{
+    /// <summary><c>hash</c> | <c>schema</c> | <c>data</c> | <c>tse</c> | <c>fiscal</c>.</summary>
+    public string Id { get; init; } = string.Empty;
+
+    /// <summary><c>passed</c> | <c>failed</c> | <c>skipped</c> | <c>unavailable</c>.</summary>
+    public string Result { get; init; } = "unavailable";
+
+    public string? Detail { get; init; }
+}
+
+public sealed class RestoreVerificationRowCountDto
+{
+    public string Id { get; init; } = string.Empty;
+
+    public string Name { get; init; } = string.Empty;
+
+    public string Category { get; init; } = string.Empty;
+
+    public long? Measured { get; init; }
+
+    public long? ExpectedAtLeast { get; init; }
+
+    public string Status { get; init; } = string.Empty;
+}
+
+public sealed class RestoreVerificationReportDto
+{
+    public required RestoreVerificationRunResponseDto Run { get; init; }
+
+    public string Verdict { get; init; } = "pending";
+
+    public IReadOnlyList<RestoreVerificationCheckDto> Checks { get; init; } =
+        Array.Empty<RestoreVerificationCheckDto>();
+
+    public IReadOnlyList<string> FailedCheckIds { get; init; } = Array.Empty<string>();
+
+    public IReadOnlyList<RestoreVerificationRowCountDto> RowCounts { get; init; } =
+        Array.Empty<RestoreVerificationRowCountDto>();
+
+    /// <summary>Human-readable fiscal script rollup (e.g. <c>RESULT OK</c>).</summary>
+    public string? FiscalSqlResult { get; init; }
+
+    public DateTime? VerifiedAtUtc { get; init; }
 }
 
 public sealed class RestoreVerificationHistoryResponseDto
@@ -168,55 +226,64 @@ public sealed class RestoreVerificationHistoryResponseDto
 
 public static class RestoreVerificationRunMapper
 {
-    public static RestoreVerificationRunResponseDto ToDto(RestoreVerificationRun r) => new()
+    public static RestoreVerificationRunResponseDto ToDto(RestoreVerificationRun r)
     {
-        Id = r.Id,
-        Status = r.Status,
-        TriggerSource = r.TriggerSource,
-        SourceBackupRunId = r.SourceBackupRunId,
-        SourceBackupArtifactId = r.SourceBackupArtifactId,
-        DumpInspectionPassed = r.PgRestoreListPassed,
-        PgRestoreListExitCode = r.PgRestoreListExitCode,
-        PgRestoreListLineCount = r.PgRestoreListLineCount,
-        RestoreAttemptExecuted = r.RestoreAttemptExecuted,
-        RestoreAttemptPassed = r.RestoreAttemptPassed,
-        RestoreAttemptExitCode = r.RestoreAttemptExitCode,
-        RestoreAttemptSkipReason = r.RestoreAttemptSkipReason,
-        RestoreTargetDbRedacted = r.RestoreTargetDbRedacted,
-        FiscalSqlSkipped = r.FiscalSqlSkipped,
-        FiscalSqlSkipReason = r.FiscalSqlSkipReason,
-        FiscalSqlPassed = r.FiscalSqlPassed,
-        FiscalSqlFailCount = r.FiscalSqlFailCount,
-        FiscalSqlWarnCount = r.FiscalSqlWarnCount,
-        IntegrityScope = r.IntegrityScope,
-        IntegrityChecksPassed = r.IntegrityChecksPassed,
-        PostRestoreContinuityChecksExecuted = r.PostRestoreContinuityChecksExecuted,
-        PostRestoreContinuityChecksPassed = r.PostRestoreContinuityChecksPassed,
-        PostRestoreL4ContinuityProofState = MapPostRestoreL4ContinuityProofState(r),
-        FiscalContinuityLayerPassed = r.FiscalContinuityLayerPassed,
-        RestoredDatabaseApplicationSmokeExecuted = r.RestoredDatabaseApplicationSmokeExecuted,
-        RestoredDatabaseApplicationSmokeResultKind = r.RestoredDatabaseApplicationSmokeResultKind,
-        RestoredDatabaseApplicationSmokePassed = r.RestoredDatabaseApplicationSmokePassed,
-        ApplicationSmokeProbeExecuted = r.ApplicationSmokeProbeExecuted,
-        ApplicationSmokeProbePassed = r.ApplicationSmokeProbePassed,
-        ExternalDependencyProofOutcome = r.ExternalDependencyProofOutcome,
-        ExternalDependencyL6OverallState = r.ExternalDependencyL6OverallState,
-        ExternalDependencyL6Summary = r.ExternalDependencyL6Summary,
-        RestoreDrillReachedStage = r.RestoreDrillReachedStage,
-        FailureCategory = r.FailureCategory,
-        DurationMs = r.DurationMs,
-        EvidenceJson = r.EvidenceJson,
-        RequestedAt = r.RequestedAt,
-        StartedAt = r.StartedAt,
-        CompletedAt = r.CompletedAt,
-        FailureCode = r.FailureCode,
-        FailureDetail = r.FailureDetail,
-        RequestedByUserId = r.RequestedByUserId,
-        CorrelationId = r.CorrelationId,
-        IdempotencyKey = r.IdempotencyKey,
-        DetailsJson = r.DetailsJson,
-        ConfigSnapshotJson = r.ConfigSnapshotJson
-    };
+        var snapshot = RestoreVerificationVerdictEvaluator.Evaluate(r);
+        return new RestoreVerificationRunResponseDto
+        {
+            Id = r.Id,
+            Status = r.Status,
+            TriggerSource = r.TriggerSource,
+            SourceBackupRunId = r.SourceBackupRunId,
+            SourceBackupArtifactId = r.SourceBackupArtifactId,
+            DumpInspectionPassed = r.PgRestoreListPassed,
+            PgRestoreListExitCode = r.PgRestoreListExitCode,
+            PgRestoreListLineCount = r.PgRestoreListLineCount,
+            RestoreAttemptExecuted = r.RestoreAttemptExecuted,
+            RestoreAttemptPassed = r.RestoreAttemptPassed,
+            RestoreAttemptExitCode = r.RestoreAttemptExitCode,
+            RestoreAttemptSkipReason = r.RestoreAttemptSkipReason,
+            RestoreTargetDbRedacted = r.RestoreTargetDbRedacted,
+            FiscalSqlSkipped = r.FiscalSqlSkipped,
+            FiscalSqlSkipReason = r.FiscalSqlSkipReason,
+            FiscalSqlPassed = r.FiscalSqlPassed,
+            FiscalSqlFailCount = r.FiscalSqlFailCount,
+            FiscalSqlWarnCount = r.FiscalSqlWarnCount,
+            IntegrityScope = r.IntegrityScope,
+            IntegrityChecksPassed = r.IntegrityChecksPassed,
+            PostRestoreContinuityChecksExecuted = r.PostRestoreContinuityChecksExecuted,
+            PostRestoreContinuityChecksPassed = r.PostRestoreContinuityChecksPassed,
+            PostRestoreL4ContinuityProofState = MapPostRestoreL4ContinuityProofState(r),
+            FiscalContinuityLayerPassed = r.FiscalContinuityLayerPassed,
+            RestoredDatabaseApplicationSmokeExecuted = r.RestoredDatabaseApplicationSmokeExecuted,
+            RestoredDatabaseApplicationSmokeResultKind = r.RestoredDatabaseApplicationSmokeResultKind,
+            RestoredDatabaseApplicationSmokePassed = r.RestoredDatabaseApplicationSmokePassed,
+            ApplicationSmokeProbeExecuted = r.ApplicationSmokeProbeExecuted,
+            ApplicationSmokeProbePassed = r.ApplicationSmokeProbePassed,
+            ExternalDependencyProofOutcome = r.ExternalDependencyProofOutcome,
+            ExternalDependencyL6OverallState = r.ExternalDependencyL6OverallState,
+            ExternalDependencyL6Summary = r.ExternalDependencyL6Summary,
+            RestoreDrillReachedStage = r.RestoreDrillReachedStage,
+            FailureCategory = r.FailureCategory,
+            DurationMs = r.DurationMs,
+            EvidenceJson = r.EvidenceJson,
+            RequestedAt = r.RequestedAt,
+            StartedAt = r.StartedAt,
+            CompletedAt = r.CompletedAt,
+            FailureCode = r.FailureCode,
+            FailureDetail = r.FailureDetail,
+            RequestedByUserId = r.RequestedByUserId,
+            CorrelationId = r.CorrelationId,
+            IdempotencyKey = r.IdempotencyKey,
+            DetailsJson = r.DetailsJson,
+            ConfigSnapshotJson = r.ConfigSnapshotJson,
+            Verdict = snapshot.Verdict,
+            Checks = snapshot.Checks,
+            FailedCheckIds = snapshot.FailedCheckIds,
+            SourceBackupStrategy = r.SourceBackupRun?.Strategy.ToString(),
+            SourceBackupTenantId = r.SourceBackupRun?.TenantId
+        };
+    }
 
     public static RestoreVerificationTriggerResponseDto ToTriggerResponseDto(RestoreVerificationManualTriggerResult r) =>
         new()

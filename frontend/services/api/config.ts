@@ -1,5 +1,7 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { safeLog } from '../../utils/loggingUtils';
+import { resolvePosHttpErrorMessage } from '../../utils/userFacingHttpError';
 
 import {
   createApiAbortController,
@@ -16,13 +18,25 @@ import {
 } from '../../config';
 import { applyDevNetworkDelayIfConfigured } from '../../src/config/devFlags';
 import { sessionManager } from '../session/sessionManager';
-import { applyTenantHeader, resolveEffectiveTenantSlug } from '../tenant/devTenant';
+import {
+  applyTenantHeader,
+  appendTenantQueryParam,
+  applyDevTenantAxiosParams,
+  resolveEffectiveTenantSlug,
+} from '../tenant/devTenant';
 import { tenantStorage, TENANT_HTTP_HEADER } from '../tenant/tenantStorage';
+import {
+  logDevLoopbackApiWarningIfNeeded,
+} from '../../utils/devApiHostWarning';
 
 const isDev = __DEV__;
 
 // Platform-aware API URL from main config
 export const API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+if (isDev) {
+  logDevLoopbackApiWarningIfNeeded(API_BASE_URL);
+}
 
 /** Applies tenant-specific API base URL after license activation (no-op when unchanged). */
 export function applyStoredApiBaseUrl(url: string): void {
@@ -32,7 +46,7 @@ export function applyStoredApiBaseUrl(url: string): void {
   }
   axiosInstance.defaults.baseURL = normalized;
   if (isDev) {
-    console.log('🔧 API base URL updated from tenant bootstrap:', normalized);
+    safeLog('🔧 API base URL updated from tenant bootstrap:', normalized);
   }
 }
 
@@ -44,7 +58,8 @@ export function resetApiBaseUrlToConfigured(): void {
 }
 
 /**
- * Ensures axios base URL has no <c>?tenant=</c> suffix (dev tenant uses {@link TENANT_HTTP_HEADER} per request).
+ * Ensures axios base URL has no <c>?tenant=</c> suffix (dev tenant is sent per request
+ * via {@link TENANT_HTTP_HEADER} and axios <c>params.tenant</c> / {@link appendTenantQueryParam}).
  * Call after dev tenant switch or on auth bootstrap to clear legacy mis-built base URLs.
  */
 export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
@@ -53,7 +68,7 @@ export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
   if (axiosInstance.defaults.baseURL !== next) {
     axiosInstance.defaults.baseURL = next;
     if (isDev) {
-      console.log('🔧 API base URL normalized (tenant via X-Tenant-Id):', next);
+      safeLog('🔧 API base URL normalized (tenant via X-Tenant-Id):', next);
     }
   }
 }
@@ -87,8 +102,29 @@ export async function resolveTenantFetchHeaders(
   return applyTenantHeader(headers, tenantSlug) as Record<string, string>;
 }
 
+/** Development: append <c>?tenant=</c> to a full URL. Production: unchanged. */
+export async function resolveTenantFetchUrl(url: string): Promise<string> {
+  if (!isDev) return url;
+  const tenantSlug = await resolveRequestTenantSlug();
+  if (!tenantSlug) return url;
+  return appendTenantQueryParam(url, tenantSlug);
+}
+
+/** Headers + optional dev tenant query for raw <c>fetch()</c>. */
+export async function resolveTenantFetchRequest(
+  url: string,
+  headers: Record<string, string> = {}
+): Promise<{ url: string; headers: Record<string, string> }> {
+  return {
+    url: await resolveTenantFetchUrl(url),
+    headers: await resolveTenantFetchHeaders(headers),
+  };
+}
+
+export { appendTenantQueryParam, applyDevTenantAxiosParams };
+
 if (isDev) {
-  console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
+  safeLog('🔧 API Services - Using API Base URL:', API_BASE_URL);
 }
 
 // Token yönetimi için yardımcı fonksiyonlar
@@ -126,7 +162,7 @@ const TokenManager = {
       const cleanToken = sessionManager.normalizeToken(token);
       await sessionManager.persistSession({ token: cleanToken });
       if (isDev) {
-        console.log('Token stored successfully.');
+        safeLog('Token stored successfully.');
       }
 
       try {
@@ -262,8 +298,16 @@ axiosInstance.interceptors.request.use(
 
     await addTenantHeader(config);
 
+    if (isDev) {
+      const tenantSlug = await resolveRequestTenantSlug();
+      if (tenantSlug) {
+        config.params = applyDevTenantAxiosParams(config.params, tenantSlug);
+      }
+    }
+
     config.headers = config.headers ?? {};
     config.headers['Accept-Language'] = 'de';
+    config.headers['X-App-Context'] = 'pos';
 
     if (requestNeedsCsrf(config.method, config.url)) {
       try {
@@ -305,7 +349,7 @@ axiosInstance.interceptors.request.use(
     // Expired / missing token: never attach Authorization (avoids login-screen 401 loops).
     if (token && TokenManager.isTokenExpired(token)) {
       if (isDev) {
-        console.log('Token expired, clearing...');
+        safeLog('Token expired, clearing...');
       }
       await TokenManager.clearTokens();
       if (typeof window !== 'undefined' && window.dispatchEvent) {
@@ -359,7 +403,7 @@ axiosInstance.interceptors.response.use(
     // 401 Unauthorized - Token geçersiz
     if (error.response?.status === 401) {
       if (isDev) {
-        console.log('⚠️ Unauthorized error (401)');
+        safeLog('⚠️ Unauthorized error (401)');
       }
 
       const originalConfig = error.config || {};
@@ -376,7 +420,7 @@ axiosInstance.interceptors.response.use(
       if (token) {
         isExpired = TokenManager.isTokenExpired(token);
         if (isDev) {
-          console.log('[API] 401 received. Local Token Expired:', isExpired);
+          safeLog('[API] 401 received. Local Token Expired:', isExpired);
         }
       }
 
@@ -404,7 +448,7 @@ axiosInstance.interceptors.response.use(
 
       if (isExpired || wasRetried) {
         if (isDev) {
-          console.log('⚠️ Session invalid/refresh failed, dispatching expiration event...');
+          safeLog('⚠️ Session invalid/refresh failed, dispatching expiration event...');
         }
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           const event = new CustomEvent('AUTH_SESSION_EXPIRED');
@@ -421,7 +465,7 @@ axiosInstance.interceptors.response.use(
     // 403 Forbidden - Yetkisiz erişim
     if (error.response?.status === 403) {
       if (isDev) {
-        console.log('⛔ Forbidden error (403) - insufficient permissions');
+        safeLog('⛔ Forbidden error (403) - insufficient permissions');
       }
     }
 
@@ -433,10 +477,20 @@ axiosInstance.interceptors.response.use(
     }
 
     // Normalized error for callers (no Axios internals / no secret headers).
+    const responseData = error.response?.data;
+    const bodyMessage =
+      responseData && typeof responseData === 'object' && !Array.isArray(responseData)
+        ? (responseData as { message?: unknown }).message
+        : undefined;
+    const friendlyMessage = resolvePosHttpErrorMessage(
+      error.response?.status,
+      bodyMessage,
+      error.message
+    );
     throw {
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message,
+      message: friendlyMessage ?? error.message,
       code: error.code,
       isNetworkError: !error.response,
       isCanceled: error.code === 'ERR_CANCELED' || error.name === 'CanceledError',
@@ -448,6 +502,11 @@ function getApiErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== 'object') return undefined;
   const candidate = error as { response?: { status?: number }; status?: number };
   return candidate.response?.status ?? candidate.status;
+}
+
+/** True when the API rejected the call for missing permission (POS must keep working). */
+export function isForbiddenApiError(error: unknown): boolean {
+  return getApiErrorStatus(error) === 403;
 }
 
 function logApiClientError(method: string, error: unknown): void {
@@ -485,6 +544,16 @@ export const apiClient = {
       return response as T;
     } catch (error) {
       logApiClientError('PUT', error);
+      throw error;
+    }
+  },
+
+  patch: async <T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await axiosInstance.patch<T>(url, data, config);
+      return response as T;
+    } catch (error) {
+      logApiClientError('PATCH', error);
       throw error;
     }
   },

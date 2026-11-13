@@ -9,8 +9,8 @@ import type {
   BackupRunResponseDto,
   BackupVerificationResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
-import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupArtifactLifecycleState } from '@/api/generated/model/backupArtifactLifecycleState';
 
 export type DerivedPipelineStepState =
   'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'degraded';
@@ -159,8 +159,8 @@ export function deriveBackupPipelineSteps(
   const st = run.status ?? RUN_QUEUED;
   const artifacts = detail?.artifacts ?? run.artifacts ?? [];
   const verifications = detail?.verifications ?? run.verifications ?? [];
-  const logical = artifactByType(artifacts, BackupArtifactResponseDtoArtifactType.NUMBER_0);
-  const manifest = artifactByType(artifacts, BackupArtifactResponseDtoArtifactType.NUMBER_4);
+  const logical = artifactByType(artifacts, BackupArtifactType.LogicalDump);
+  const manifest = artifactByType(artifacts, BackupArtifactType.VerificationManifest);
   const pv = pickPrimaryVerification(run.id, verifications);
   const wantExternal = externalPipelineExpected(policy);
 
@@ -240,9 +240,9 @@ export function deriveBackupPipelineSteps(
   else mf = 'pending';
 
   const ls = logical?.lifecycleState;
-  const stagingVerified = ls === BackupArtifactResponseDtoLifecycleState.NUMBER_1;
-  const externalOk = ls === BackupArtifactResponseDtoLifecycleState.NUMBER_2;
-  const externalBad = ls === BackupArtifactResponseDtoLifecycleState.NUMBER_3;
+  const stagingVerified = ls === BackupArtifactLifecycleState.StagingVerified;
+  const externalOk = ls === BackupArtifactLifecycleState.ExternalCopyVerified;
+  const externalBad = ls === BackupArtifactLifecycleState.ExternalCopyFailed;
   /** Başarılı run ama harici arşiv bu koşuda tetiklenmedi (StagingVerified’da kaldı). */
   const externalNotRunThisRun = Boolean(wantExternal && logical && stagingVerified && terminalOk);
 
@@ -295,7 +295,7 @@ export function sumLogicalDumpBytes(
   artifacts: BackupArtifactResponseDto[] | null | undefined
 ): number | undefined {
   const d = artifacts?.find(
-    (a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0
+    (a) => a.artifactType === BackupArtifactType.LogicalDump
   );
   const n = d?.byteSize;
   if (n === undefined || n === null) return undefined;

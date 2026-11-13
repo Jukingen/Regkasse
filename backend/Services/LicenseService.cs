@@ -4,14 +4,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
+using TenantLicenseStatus = KasseAPI_Final.Services.Tenancy.TenantLicenseStatus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -238,6 +239,12 @@ public sealed class ActivateLicenseRequest
     /// <summary>Optional client-reported fingerprint; when set, must match this host.</summary>
     [JsonPropertyName("machineFingerprint")]
     public string? MachineFingerprint { get; set; }
+
+    /// <summary>
+    /// Optional mandant target for Super Admin (platform mode has no ambient tenant).
+    /// Ignored for <c>system</c> keys. When omitted, tenant is resolved from the key slug.
+    /// </summary>
+    public Guid? TenantId { get; set; }
 }
 
 public sealed record LicenseActivationResult(
@@ -247,7 +254,13 @@ public sealed record LicenseActivationResult(
     string? LicenseType = null,
     Guid? TenantId = null,
     string? TenantSlug = null,
-    string? ApiBaseUrl = null);
+    string? ApiBaseUrl = null,
+    /// <summary>Whole days remaining until <see cref="ValidUntil"/> (UTC); null when expiry unknown.</summary>
+    int? DaysRemaining = null,
+    /// <summary>Coarse lifecycle label for clients (e.g. <c>active</c>).</summary>
+    string? Status = null,
+    /// <summary>Stable machine code (e.g. <c>INVALID_LICENSE_FORMAT</c>, <c>LICENSE_ALREADY_ACTIVATED</c>).</summary>
+    string? ErrorCode = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
 public sealed record LicenseActivationClientInfo(
@@ -277,10 +290,6 @@ public sealed class LicenseService : ILicenseService
     {
         PropertyNameCaseInsensitive = true,
     };
-
-    private static readonly Regex LicenseKeyRegex = new(
-        @"^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly IOptions<LicenseOptions> _options;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -436,13 +445,13 @@ public sealed class LicenseService : ILicenseService
             if (snapshot.IsExpired)
             {
                 await _activityPublisher.TryPublishAsync(
-                    LegacyDefaultTenantIds.Primary,
+                    SystemTenantIds.Platform,
                     ActivityEventType.LicenseExpired,
                     new
                     {
                         DaysRemaining = 0,
                         ExpiryDate = snapshot.ExpiryDate,
-                        TenantId = LegacyDefaultTenantIds.Primary,
+                        TenantId = SystemTenantIds.Platform,
                     },
                     dedupKey: "deployment_license_expired").ConfigureAwait(false);
                 return;
@@ -452,13 +461,13 @@ public sealed class LicenseService : ILicenseService
                 return;
 
             await _activityPublisher.TryPublishAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 ActivityEventType.LicenseExpiringSoon,
                 new
                 {
                     DaysRemaining = snapshot.DaysRemaining,
                     ExpiryDate = snapshot.ExpiryDate,
-                    TenantId = LegacyDefaultTenantIds.Primary,
+                    TenantId = SystemTenantIds.Platform,
                 },
                 dedupKey: $"deployment_license_expiry_{snapshot.DaysRemaining}d").ConfigureAwait(false);
         }
@@ -755,7 +764,7 @@ public sealed class LicenseService : ILicenseService
             normalizedKeyUpper = key.Trim().ToUpperInvariant();
         }
 
-        if (!LicenseKeyRegex.IsMatch(normalizedKeyUpper))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(normalizedKeyUpper))
             return;
 
         var machine = _storage.MachineHashHex;
@@ -812,8 +821,9 @@ public sealed class LicenseService : ILicenseService
                 "LicenseKey is required.");
 
         var normalizedKey = request.LicenseKey.Trim().ToUpperInvariant();
-        if (!LicenseKeyRegex.IsMatch(normalizedKey))
-            return await FailAndLogAsync(normalizedKey, "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.");
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(normalizedKey)
+            && !LicenseKeyGenerator.IsDeploymentLicenseKey(request.LicenseKey.Trim()))
+            return await FailAndLogAsync(normalizedKey, "Invalid license key format. Expected REGK-YYYYMMDD-system-{code} (legacy REGK-XXXXX-XXXXX-XXXXX still accepted).");
 
         if (!string.IsNullOrWhiteSpace(request.MachineFingerprint))
         {
@@ -947,7 +957,14 @@ public sealed class LicenseService : ILicenseService
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             var licenseType = MapPublicLicenseTypeLabel(st);
-            return new LicenseActivationResult(true, "Lizenz erfolgreich aktiviert", st.ExpiryDate, licenseType);
+            var daysRemaining = ComputeActivationDaysRemaining(st.ExpiryDate);
+            return new LicenseActivationResult(
+                true,
+                "Lizenz erfolgreich aktiviert",
+                st.ExpiryDate,
+                licenseType,
+                DaysRemaining: daysRemaining,
+                Status: "active");
         }
         catch (Exception ex)
         {
@@ -966,6 +983,19 @@ public sealed class LicenseService : ILicenseService
         if (trialActive)
             return "Trial";
         return "Expired";
+    }
+
+    /// <summary>Whole calendar days remaining until expiry (ceil); null when expiry is unknown.</summary>
+    internal static int? ComputeActivationDaysRemaining(DateTime? expiryUtc, DateTime? nowUtc = null)
+    {
+        if (expiryUtc is not DateTime until)
+            return null;
+        var now = nowUtc ?? DateTime.UtcNow;
+        var untilUtc = until.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(until, DateTimeKind.Utc)
+            : until.ToUniversalTime();
+        var days = (int)Math.Ceiling((untilUtc - now).TotalDays);
+        return Math.Max(0, days);
     }
 
     private LicenseStatusResponse BuildSnapshot(LicensePersistedState blob, bool paidValid)
@@ -990,7 +1020,7 @@ public sealed class LicenseService : ILicenseService
             if (jwtExpUtc is null && !string.IsNullOrWhiteSpace(blob.LicenseKey))
             {
                 var k = keyUpper;
-                if (LicenseKeyRegex.IsMatch(k))
+                if (LicenseKeyGenerator.IsDeploymentLicenseKey(k))
                 {
                     TryResolveActivatedDbPaid(k, out activatedExpiryUtc);
                     TryResolveIssuedRegistryPaid(k, out registryExpiryUtc);
@@ -1005,7 +1035,7 @@ public sealed class LicenseService : ILicenseService
             var days = expiryUtc.HasValue
                 ? Math.Max(0, (int)Math.Ceiling((expiryUtc.Value - nowUtc).TotalDays))
                 : 365;
-            var paidFeatures = !string.IsNullOrEmpty(keyUpper) && LicenseKeyRegex.IsMatch(keyUpper)
+            var paidFeatures = !string.IsNullOrEmpty(keyUpper) && LicenseKeyGenerator.IsDeploymentLicenseKey(keyUpper)
                 ? ResolveEnabledFeaturesForPaid(keyUpper, blob)
                 : LicenseFeatureIds.All;
             return new LicenseStatusResponse(
@@ -1183,7 +1213,7 @@ public sealed class LicenseService : ILicenseService
         if (string.IsNullOrWhiteSpace(blob.LicenseKey))
             return false;
 
-        if (!LicenseKeyRegex.IsMatch(blob.LicenseKey.Trim()))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(blob.LicenseKey.Trim()))
             return false;
 
         var key = blob.LicenseKey.Trim().ToUpperInvariant();
@@ -1263,7 +1293,7 @@ public sealed class LicenseService : ILicenseService
         _persisted ??= LoadOrCreatePersisted();
 
         var dbKey = row.LicenseKey.Trim().ToUpperInvariant();
-        if (!LicenseKeyRegex.IsMatch(dbKey))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(dbKey))
             return;
 
         var needsSave = false;
@@ -1398,12 +1428,18 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            var row = WithDbContext(db => db.ActivatedLicenses.AsNoTracking()
-                .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
-                .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
-                .Where(a => EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-                .OrderByDescending(a => a.ActivatedAtUtc)
-                .FirstOrDefault());
+            var row = WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedKeyUpper);
+                return db.ActivatedLicenses.AsNoTracking()
+                    .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
+                    .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
+                    .Where(a =>
+                        EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
+                        || EF.Functions.ILike(a.LicenseKey, canonical))
+                    .OrderByDescending(a => a.ActivatedAtUtc)
+                    .FirstOrDefault();
+            });
 
             if (row is null)
                 return false;
@@ -1418,6 +1454,37 @@ public sealed class LicenseService : ILicenseService
         }
     }
 
+    private static string ResolveCanonicalLicenseKey(AppDbContext db, string licenseKey)
+    {
+        var trimmed = licenseKey.Trim();
+        var mapped = db.LicenseKeyMappings.AsNoTracking()
+            .Where(m => m.OldLicenseKey == trimmed || m.NewLicenseKey == trimmed)
+            .Select(m => m.NewLicenseKey)
+            .FirstOrDefault();
+        return string.IsNullOrEmpty(mapped) ? trimmed : mapped;
+    }
+
+    private bool LicenseKeysAreAliases(string left, string right)
+    {
+        if (string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            return WithDbContext(db =>
+            {
+                var canonicalLeft = ResolveCanonicalLicenseKey(db, left.Trim());
+                var canonicalRight = ResolveCanonicalLicenseKey(db, right.Trim());
+                return string.Equals(canonicalLeft, canonicalRight, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "License: alias lookup skipped.");
+            return false;
+        }
+    }
+
     /// <summary>
     /// Resolves paid entitlement from <c>issued_licenses</c> when this deployment issued the key (on-prem registry).
     /// Ignores revoked, transferred-away, superseded rows and enforces fingerprint when required.
@@ -1427,12 +1494,18 @@ public sealed class LicenseService : ILicenseService
         expiryUtc = null;
         try
         {
-            var row = WithDbContext(db => db.IssuedLicenses.AsNoTracking()
-                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
-                .Where(il => !il.IsDeleted && !il.IsCancelled)
-                .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
-                .OrderByDescending(il => il.IssuedAtUtc)
-                .FirstOrDefault());
+            var row = WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedKeyUpper);
+                return db.IssuedLicenses.AsNoTracking()
+                    .Where(il =>
+                        EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper)
+                        || EF.Functions.ILike(il.LicenseKey, canonical))
+                    .Where(il => !il.IsDeleted && !il.IsCancelled)
+                    .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
+                    .OrderByDescending(il => il.IssuedAtUtc)
+                    .FirstOrDefault();
+            });
 
             if (row is null)
                 return false;
@@ -1629,9 +1702,14 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            return WithDbContext(db => db.IssuedLicenses.AsNoTracking().Any(il =>
-                EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
-                && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled)));
+            return WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedLicenseKeyUpper);
+                return db.IssuedLicenses.AsNoTracking().Any(il =>
+                    (EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
+                     || EF.Functions.ILike(il.LicenseKey, canonical))
+                    && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled));
+            });
         }
         catch (Exception ex)
         {
@@ -1789,7 +1867,8 @@ public sealed class LicenseService : ILicenseService
                 return false;
             }
 
-            if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase)
+                && !LicenseKeysAreAliases(licenseKeyClaim, expectedLicenseKey))
             {
                 _logger.LogWarning(
                     "License JWT: licenseKey claim does not match request key. LicenseKeyPrefix={LicenseKeyPrefix}, ClaimKeyPrefix={ClaimKeyPrefix}",

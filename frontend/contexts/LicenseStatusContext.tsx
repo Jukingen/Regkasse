@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 
 import { usePosStatusOverview } from './PosStatusOverviewContext';
+import type { LicenseActivationResultDto } from '../api/license';
 import type { LicenseStatus } from '../services/license/licenseStatusCache';
 
 export type { LicenseStatus };
@@ -8,6 +9,14 @@ export type { LicenseStatus };
 type LicenseStatusContextValue = {
   status: LicenseStatus | null;
   loading: boolean;
+  /** True while license activation request is in flight. */
+  isActivating: boolean;
+  setIsActivating: (value: boolean) => void;
+  /** Apply POST /license/activate payload to license state immediately. */
+  applyLicenseActivation: (
+    result: LicenseActivationResultDto,
+    activatedKey?: string
+  ) => Promise<void>;
   /** Pass `true` to bypass caches (e.g. after activation). */
   refetch: (force?: boolean) => Promise<void>;
 };
@@ -16,13 +25,27 @@ const LicenseStatusContext = createContext<LicenseStatusContextValue | null>(nul
 
 /** License read model fed by {@link PosStatusOverviewProvider} (no background polling). */
 export function LicenseStatusProvider({ children }: { children: React.ReactNode }) {
-  const { licenseStatus, loading, refreshOverview } = usePosStatusOverview();
+  const {
+    licenseStatus,
+    loading,
+    isActivating,
+    setIsActivating,
+    applyLicenseActivation,
+    refreshOverview,
+  } = usePosStatusOverview();
 
   const refetch = useCallback((force = true) => refreshOverview(force), [refreshOverview]);
 
   const value = useMemo(
-    () => ({ status: licenseStatus, loading, refetch }),
-    [licenseStatus, loading, refetch]
+    () => ({
+      status: licenseStatus,
+      loading,
+      isActivating,
+      setIsActivating,
+      applyLicenseActivation,
+      refetch,
+    }),
+    [licenseStatus, loading, isActivating, setIsActivating, applyLicenseActivation, refetch]
   );
 
   return <LicenseStatusContext.Provider value={value}>{children}</LicenseStatusContext.Provider>;

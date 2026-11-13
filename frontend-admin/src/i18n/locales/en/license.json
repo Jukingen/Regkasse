@@ -8,6 +8,102 @@
     "subtitle": "License for this API instance (deployment). Do not confuse with the tenant license badge in the header.",
     "subtitleWithMandant": "Manage your tenant license and view the server (on-premise) license. Tenant license applies to your company; server license applies to this API instance."
   },
+  "unified": {
+    "keyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
+    "formatHint": "Unified format: REGK-yyyyMMdd-slug-XXXXXXXX (tenant: your slug, server: system). A system license does not unlock the tenant."
+  },
+  "management": {
+    "title": "License management",
+    "subtitle": "All licenses in one list. Type is derived from the slug (system or tenant). Activation uses the unified REGK format.",
+    "tenantTitle": "My license",
+    "activateTitle": "Activate license",
+    "activateButton": "Activate license",
+    "activateSuccess": "License activated successfully.",
+    "activateError": "License activation failed.",
+    "activateTenantLabel": "Tenant (optional)",
+    "activateTenantPlaceholder": "Select a tenant or use the slug from the key",
+    "activateTenantHint": "Super Admin without tenant context: select a tenant or rely on the key slug. System keys do not need a tenant.",
+    "listTitle": "All licenses",
+    "tabAll": "All",
+    "kind": "Type",
+    "kindServer": "System",
+    "kindSystem": "System",
+    "kindTenant": "Tenant",
+    "slug": "Slug",
+    "statusActive": "Active",
+    "statusExpired": "Expired",
+    "statusGrace": "Grace",
+    "customer": "Customer / tenant",
+    "exists": "In database",
+    "actions": "Actions",
+    "viewDetails": "Details",
+    "detailsTitle": "License details",
+    "detailsEmpty": "No license information found.",
+    "searchPlaceholder": "Search key, customer, or tenant",
+    "openSales": "License sales",
+    "openAudit": "Audit log",
+    "renewNow": "Renew now",
+    "bulkImportTitle": "CSV import (license keys)",
+    "bulkImportHint": "One REGK key column per row. Header row is ignored.",
+    "bulkImportButton": "Activate keys",
+    "bulkImportEmpty": "No valid REGK keys found.",
+    "bulkImportProgress": "{{current}} / {{total}}",
+    "exportCsv": "Export CSV",
+    "showKeys": "Show",
+    "hideKeys": "Hide",
+    "showKeysTooltip": "Show license keys. Super Admin only.",
+    "showKeysConfirmTitle": "Show full license keys?",
+    "showKeysConfirmContent": "Full keys are confidential. Use them only for support and management.",
+    "copyKey": "Copy license key",
+    "systemDoesNotUnlockTenant": "A system license does NOT unlock the tenant. Use a tenant license for tenant access.",
+    "layersTitle": "License status (system and tenant)",
+    "systemLayer": "System license",
+    "tenantLayer": "Tenant license",
+    "systemActiveTenantLocked": "System active, tenant locked",
+    "activateUnlocksSystem": "System will be unlocked",
+    "activateUnlocksTenant": "Tenant will be unlocked",
+    "activateSystemConfirmTitle": "Only the system will be unlocked",
+    "activateSystemConfirmContent": "This license key unlocks only the system. The tenant stays locked.",
+    "slugMismatchWarning": "The slug in the key ({{slug}}) does not match the current tenant ({{current}}).",
+    "activateSlugMismatchTitle": "Tenant does not match",
+    "activateSlugMismatchContent": "This key was issued for “{{slug}}”, but “{{current}}” is selected. Activation is rejected if the tenant does not match."
+  },
+  "statusBadge": {
+    "labels": {
+      "active": "Active",
+      "grace": "Grace",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired",
+      "locked": "Locked"
+    },
+    "tooltips": {
+      "active": "License is valid and outside the 30-day warning window.",
+      "grace": "Validity has ended. 7-day grace period: limited operation is still possible.",
+      "expiringSoon": "License expires within 30 days. Please renew in time.",
+      "expired": "License has expired and the grace period has ended.",
+      "locked": "License is locked (revoked, cancelled, or archived)."
+    },
+    "countdown": "Expires in: {{countdown}}"
+  },
+  "renewal": {
+    "renewNow": "Renew now",
+    "requestButton": "Request renewal",
+    "requestSuccess": "Renewal request was sent to Super Admin.",
+    "requestError": "Could not send the renewal request.",
+    "requestTitle": "License renewal requested",
+    "requestMessage": "Please renew the tenant license. Valid until: {{validUntil}}."
+  },
+  "certificate": {
+    "download": "License certificate (PDF)",
+    "downloadSuccess": "Certificate downloaded.",
+    "downloadError": "Could not download the certificate."
+  },
+  "autoRenew": {
+    "title": "Optional auto-renewal",
+    "subtitle": "Recurring SaaS billing uses subscription invoices — not automatic Stripe card charges on the POS.",
+    "openInvoices": "Open subscription invoices",
+    "requestAutoRenew": "Request auto-renewal"
+  },
   "mandant": {
     "status": "Status",
     "validUntil": "Valid until",
@@ -130,8 +226,8 @@
     "statusLabel": "Status",
     "validUntilLabel": "Valid until",
     "licenseKeyLabel": "New license key",
-    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
-    "infoText": "The validity period is determined by the license key.",
+    "licenseKeyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
+    "infoText": "Unified format REGK-yyyyMMdd-slug-XXXXXXXX. Validity is encoded in the key.",
     "confirmButton": "Extend license",
     "previewButton": "Preview",
     "previewTitle": "License information",
@@ -173,7 +269,7 @@
       "active": "Active",
       "graceWrite": "Grace phase: write allowed",
       "graceReadonly": "Grace phase: read-only",
-      "lockdown": "Lockdown",
+      "lockdown": "Tenant locked",
       "expired": "Expired",
       "noLicense": "No license"
     },
@@ -190,7 +286,7 @@
         "active": "The tenant license is active. Write access, user management, and general access are enabled.",
         "graceWrite": "The tenant license expired {{days}} day(s) ago. Writing is still allowed, but renewal is now due.",
         "graceReadonly": "The tenant license expired {{days}} day(s) ago. Write operations are blocked, while read access and user management remain available.",
-        "lockdown": "The tenant license expired {{days}} day(s) ago. The tenant is now in lockdown.",
+        "lockdown": "Tenant locked — please activate a tenant license. Expired {{days}} day(s) ago.",
         "expired": "The tenant license expired {{days}} day(s) ago.",
         "noLicense": "No license is stored for this tenant."
       },
@@ -300,9 +396,9 @@
         "restrictions": "During grace: POS usable with warnings. After grace: POS locked (only Super Admin can unlock)."
       },
       "lockdown": {
-        "title": "Tenant license expired – POS locked",
-        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. The grace period has ended. POS is locked — only Super Admin can unlock. Please renew the license.",
-        "contactAdminDescription": "This tenant is currently locked (grace period ended). Only Super Admin can unlock. Please contact your administrator.",
+        "title": "Tenant locked — please activate a tenant license",
+        "adminDescription": "Tenant locked — please activate a tenant license. The license expired {{daysExpired}} day(s) ago. The grace period has ended. POS is locked — only Super Admin can unlock.",
+        "contactAdminDescription": "Tenant locked — please activate a tenant license. Only Super Admin can unlock. Please contact your administrator.",
         "restrictions": "POS locked. Only Super Admin can unlock. Renewal required."
       },
       "noLicense": {
@@ -355,7 +451,7 @@
       "progressAria": "Grace period: {{days}} day(s) remaining"
     },
     "locked": {
-      "title": "Restricted mode",
+      "title": "Tenant locked — please activate a tenant license",
       "description": "Your license expired {{days}} day(s) ago.",
       "bulletReadOnly": "You can only access your data in read-only mode",
       "bulletNoWrite": "Changes or new records are not possible",
@@ -492,7 +588,7 @@
     "graceDaysRemainingLabel": "Grace days remaining",
     "daysOverdueLabel": "Days overdue",
     "licenseKeyLabel": "License key",
-    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
+    "licenseKeyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
     "noLicenseKey": "Please enter a license key.",
     "submit": "Renew license",
     "success": "License renewed successfully.",
@@ -500,7 +596,7 @@
     "supportContact": "Contact support: support@regkasse.at"
   },
   "lockdownToast": {
-    "title": "License expired",
+    "title": "Tenant locked",
     "description": "Please renew your license to perform this action.",
     "guardDescription": "This action is not available while the license is locked.",
     "guardDescriptionWithAction": "\"{{action}}\" is not available while the license is locked.",
@@ -569,7 +665,7 @@
     "title": "Activation history (API audit)",
     "subtitle": "Every activation attempt against this server (success and failure). Enter the full REGK key for key filtering (not the masked list value).",
     "licenseKeyFilter": "License key (REGK, optional)",
-    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
+    "licenseKeyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
     "machineFingerprintFilter": "Machine fingerprint (substring)",
     "statusFilter": "Status",
     "statusAll": "All",
@@ -640,6 +736,16 @@
     "featureNotIncluded": "This server's license does not include license management (admin_license_manage). Activate an appropriate license first.",
     "expiryInPast": "The expiry date cannot be in the past.",
     "invalidMachineHash": "Enter a valid 64-character SHA-256 hex fingerprint.",
+    "kindLabel": "For System (deployment) or Tenant?",
+    "kindSystem": "System (deployment)",
+    "kindTenant": "Tenant",
+    "kindSystemHint": "Creates REGK-{date}-system-{random}. Unlocks the deployment only, not the tenant.",
+    "kindTenantHint": "Creates REGK-{date}-{tenantSlug}-{random}. Unlocks the selected tenant.",
+    "tenantRequired": "Please select a tenant.",
+    "tenantSelectLabel": "Tenant",
+    "tenantSelectPlaceholder": "Select a tenant",
+    "tenantKindNeedsSuperAdmin": "Only Super Admin can generate tenant licenses (license sales).",
+    "systemDoesNotUnlockTenant": "A system license does NOT unlock the tenant. Use a tenant license for tenant access.",
     "modal": {
       "title": "Generated license",
       "copyJwt": "Copy activation JWT",
@@ -775,73 +881,6 @@
       "fullKeyHint": "Full key is only shown in this detail view."
     }
   },
-  "dashboard": {
-    "sectionTitle": "Licenses (overview)",
-    "sectionSubtitle": "Tenant and deployment license metrics, activation trend, and latest events (audit + activations).",
-    "statGroupOwnTenant": "Your tenant license",
-    "statGroupTenant": "Tenant license (tenants)",
-    "statGroupTenantSaas": "Tenant license (SaaS)",
-    "statGroupDeployment": "Deployment licenses (issued_licenses)",
-    "statGroupDeploymentOnPrem": "Deployment licenses (on-premise)",
-    "statTenantActive": "Active",
-    "statTenantExpiring30": "Expiring (30 days)",
-    "statTenantExpired": "Expired",
-    "statDeploymentActive": "Active",
-    "statDeploymentExpiring30": "Expiring (30 days)",
-    "statDeploymentExpired": "Expired",
-    "statActive": "Active licenses",
-    "statExpiring30": "Expiring (30 days)",
-    "statExpired": "Expired",
-    "statDevices": "Activated devices (unique)",
-    "cardCurrentTenant": "Current tenant",
-    "cardCurrentDeployment": "Current deployment",
-    "daysSuffix": "days",
-    "expiredSuffix": "expired",
-    "chartTitle": "License activations",
-    "chartDay": "Daily",
-    "chartWeek": "Weekly",
-    "chartEmpty": "No activations in the selected window.",
-    "activityTitle": "Recent activity",
-    "colTime": "Timestamp",
-    "colKey": "License key",
-    "colMachine": "Machine fingerprint",
-    "colAction": "Action",
-    "actionActivate": "Activate",
-    "actionExtend": "Extend",
-    "actionRevoke": "Revoke / block",
-    "actionCancel": "Cancel (terminal)",
-    "actionDelete": "Delete",
-    "actionUnregister": "Unregister machine",
-    "actionDetails": "Details",
-    "actionOther": "Other",
-    "quickTitle": "Shortcuts",
-    "quickNewLicense": "Create new license",
-    "quickManage": "Manage licenses",
-    "quickExportCsv": "Export license report (CSV)",
-    "exportStarted": "Download started…",
-    "exportSuccess": "CSV downloaded.",
-    "exportFailed": "Export failed.",
-    "loadFailed": "Could not load the license dashboard."
-  },
-  "activityLog": {
-    "title": "License activity",
-    "empty": "No recent license activity.",
-    "descriptions": {
-      "activated": "License activated ({{key}})",
-      "generated": "License issued ({{key}})",
-      "extended": "License extended ({{key}})",
-      "renewed": "License renewed ({{key}})",
-      "reminder": "Reminder sent ({{key}})",
-      "revoked": "License revoked ({{key}})",
-      "cancelled": "License cancelled ({{key}})",
-      "deleted": "License deleted ({{key}})",
-      "unregistered": "Machine unregistered ({{key}})",
-      "viewed": "License details viewed ({{key}})",
-      "forceDeactivated": "License force-deactivated ({{key}})",
-      "expired": "License expired / ended ({{key}})",
-      "other": "License event ({{key}})"
-    }
-  },
   "calendar": {
     "title": "License calendar",
     "subtitle": "Tenant expiry overview. KPI “Expiring soon” = ≤30 days; table status “expires soon” = ≤7 days.",
@@ -871,8 +910,9 @@
     "error": "Could not load preview",
     "horizons": {
       "d30": "30 days",
-      "d14": "14 days",
+      "d15": "15 days",
       "d7": "7 days",
+      "d3": "3 days",
       "d1": "1 day",
       "d0": "Expired"
     }
@@ -881,6 +921,14 @@
     "title": "License audit log",
     "subtitle": "Merged events from billing audit and license audit (read-only).",
     "empty": "No audit entries found",
+    "exportCsv": "Export CSV",
+    "filters": {
+      "action": "Action",
+      "actionAll": "All actions",
+      "user": "User",
+      "userPlaceholder": "Name or user id",
+      "dateRange": "Date range"
+    },
     "columns": {
       "time": "Time",
       "tenant": "Tenant",
@@ -929,6 +977,7 @@
     "tabs": {
       "overview": "Overview",
       "trend": "Trend",
+      "distribution": "Distribution",
       "export": "Export"
     },
     "kpi": {
@@ -969,7 +1018,6 @@
     "loadingTenant": "Loading tenant…",
     "tenantLoadError": "Failed to load tenant",
     "contextTenantHint": "Current context: {name} ({slug})",
-
     "refresh": "Refresh status",
     "refreshedAt": "Last updated: {time}",
     "developmentBypassActive": "Development-mode license bypass is active — deployment status may be synthetic.",

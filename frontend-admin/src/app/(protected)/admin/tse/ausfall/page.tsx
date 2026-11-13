@@ -28,10 +28,15 @@ import {
   triggerRksvAusfall,
 } from '@/features/tse-ausfall/api/tseAusfall';
 import type { RksvAusfallEpisode } from '@/features/tse-ausfall/types';
+import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -62,14 +67,16 @@ export default function TseAusfallPage() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission(PERMISSIONS.FINANZONLINE_VIEW);
   const canSubmit = hasPermission(PERMISSIONS.FINANZONLINE_SUBMIT);
+  const { tenantId, isReady } = useTsePageTenant();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [triggerOpen, setTriggerOpen] = useState(false);
   const [form] = Form.useForm();
 
   const listQuery = useQuery({
-    queryKey: [...QUERY_KEY, 'list', statusFilter ?? 'all'],
-    queryFn: ({ signal }) => listRksvAusfallEpisodes({ status: statusFilter, signal }),
-    enabled: canView,
+    queryKey: [...QUERY_KEY, 'list', tenantId, statusFilter ?? 'all'],
+    queryFn: ({ signal }) =>
+      listRksvAusfallEpisodes({ status: statusFilter, tenantId, signal }),
+    enabled: canView && !!tenantId,
   });
 
   const codesQuery = useQuery({
@@ -269,16 +276,23 @@ export default function TseAusfallPage() {
       <AdminPageHeader
         title={t('tseAusfall.title')}
         subtitle={t('tseAusfall.subtitle')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAusfall.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseAusfall.title') })}
         extra={
-          canSubmit ? (
-            <Button type="primary" onClick={() => setTriggerOpen(true)}>
-              {t('tseAusfall.trigger')}
-            </Button>
-          ) : null
+          <Space wrap>
+            <TseActiveTenantTag />
+            {canSubmit ? (
+              <Button type="primary" onClick={() => setTriggerOpen(true)}>
+                {t('tseAusfall.trigger')}
+              </Button>
+            ) : null}
+          </Space>
         }
       />
 
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseAusfall.emptySelect" />
+      ) : (
+        <>
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           allowClear
@@ -307,6 +321,8 @@ export default function TseAusfallPage() {
         pagination={{ pageSize: 20 }}
         scroll={{ x: 1100 }}
       />
+        </>
+      )}
 
       <Modal
         title={t('tseAusfall.triggerTitle')}

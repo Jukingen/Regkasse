@@ -179,3 +179,22 @@
   color: #ff4d4f;
   margin-right: 6px;
 }
+
+.suggestionsBlock {
+  margin-top: 8px;
+}
+
+.suggestionsLabel {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.suggestionsChips {
+  width: 100%;
+}
+
+.suggestionChip {
+  cursor: pointer;
+  user-select: none;
+}

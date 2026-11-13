@@ -17,19 +17,19 @@ import { useI18n } from '@/i18n';
 function uiKeyToStatus(uiKey: string): number | undefined {
   switch (uiKey) {
     case 'queued':
-      return BackupRunStatus.NUMBER_0;
+      return BackupRunStatus.Queued;
     case 'running':
-      return BackupRunStatus.NUMBER_1;
+      return BackupRunStatus.Running;
     case 'awaitingVerification':
-      return BackupRunStatus.NUMBER_2;
+      return BackupRunStatus.AwaitingVerification;
     case 'succeeded':
-      return BackupRunStatus.NUMBER_3;
+      return BackupRunStatus.Succeeded;
     case 'failed':
-      return BackupRunStatus.NUMBER_4;
+      return BackupRunStatus.Failed;
     case 'verificationFailed':
-      return BackupRunStatus.NUMBER_5;
+      return BackupRunStatus.VerificationFailed;
     case 'cancelled':
-      return BackupRunStatus.NUMBER_6;
+      return BackupRunStatus.Cancelled;
     default:
       return undefined;
   }

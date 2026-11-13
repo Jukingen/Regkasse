@@ -26,6 +26,14 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
+        /// <summary>Cash tendered by the customer. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("cash_given", TypeName = "decimal(18,2)")]
+        public decimal? CashGiven { get; set; }
+
+        /// <summary>Change returned on a cash sale. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("change_due", TypeName = "decimal(18,2)")]
+        public decimal? ChangeDue { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }
@@ -55,7 +63,7 @@ namespace KasseAPI_Final.Models
         // Avusturya yasal gereksinimleri (RKSV & DSGVO)
         [Required]
         [MaxLength(12)]
-        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
+        [RegularExpression(Countries.VatIdPatterns.Austria, ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
         public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
 
         /// <summary>RKSV §8 snapshot: Unternehmensbezeichnung at payment time (from <see cref="CompanySettings"/>).</summary>
@@ -65,6 +73,20 @@ namespace KasseAPI_Final.Models
         /// <summary>RKSV §8 snapshot: Sitz der gewerblichen Betriebsstätte at payment time (from <see cref="CompanySettings"/>).</summary>
         [MaxLength(200)]
         public string? CompanyAddress { get; set; }
+
+        /// <summary>ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.</summary>
+        [MaxLength(2)]
+        [Column("country_code_at_issue")]
+        public string? CountryCodeAtIssue { get; set; }
+
+        /// <summary>SIX QR-bill SPC payload frozen at issue time for CH MWST. Null for other countries.</summary>
+        [MaxLength(1000)]
+        [Column("swiss_qr_text", TypeName = "character varying(1000)")]
+        public string? SwissQrText { get; set; }
+
+        /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
+        [Column("vat_regime_at_issue")]
+        public VatRegime? VatRegimeAtIssue { get; set; }
 
         /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]
@@ -76,6 +98,31 @@ namespace KasseAPI_Final.Models
 
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Optional non-fiscal prescription reference (vet vertical). Not part of the RKSV/TSE payload.
+        /// </summary>
+        [MaxLength(255)]
+        [Column("prescription_reference")]
+        public string? PrescriptionReference { get; set; }
+
+        /// <summary>Optional taxi trip origin. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_from")]
+        public string? RouteFrom { get; set; }
+
+        /// <summary>Optional taxi trip destination. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_to")]
+        public string? RouteTo { get; set; }
+
+        /// <summary>Optional taxi distance in kilometres. Not part of the RKSV/TSE payload.</summary>
+        [Column("route_km", TypeName = "decimal(8,2)")]
+        public decimal? RouteKm { get; set; }
+
+        /// <summary>Optional taxi trip start (UTC). Not part of the RKSV/TSE payload.</summary>
+        [Column("taxi_trip_started_at_utc")]
+        public DateTime? TripStartedAtUtc { get; set; }
 
         [MaxLength(100)]
         public string? TransactionId { get; set; }
@@ -245,6 +292,7 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Customer? Customer { get; set; }
+
     }
 }
 

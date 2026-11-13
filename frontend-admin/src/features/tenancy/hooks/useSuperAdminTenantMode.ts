@@ -11,12 +11,17 @@ import { normalizeAdminPathname } from '@/shared/adminSidebarNavigation';
 /** Routes reachable on platform admin host without mandant context (tenant pick / platform ops). */
 export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
   '/admin/tenants',
+  '/admin/vertical-profiles',
   '/admin/approvals',
   '/admin/users',
   '/admin/licenses',
   '/admin/license',
+  '/admin/license-management',
   '/admin/system',
   '/admin/digital',
+  '/admin/cash-registers',
+  '/admin/rksv/config',
+  '/admin/mwst',
 ] as const;
 
 export function isPathAllowedWithoutTenant(pathname: string | null | undefined): boolean {

@@ -36,11 +36,13 @@ public sealed class AdminTseOfflineQueueController : ControllerBase
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        var tid = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tid is null)
+        var resolved = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (resolved.Error != null)
+            return resolved.Error;
+        if (resolved.TenantId is null)
             return BadRequest(new { error = "tenantId is required (or select a tenant context)." });
 
-        var status = await _queue.GetQueueStatusAsync(tid.Value, cancellationToken).ConfigureAwait(false);
+        var status = await _queue.GetQueueStatusAsync(resolved.TenantId.Value, cancellationToken).ConfigureAwait(false);
         return Ok(status);
     }
 
@@ -52,12 +54,14 @@ public sealed class AdminTseOfflineQueueController : ControllerBase
         [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        var tid = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tid is null)
+        var resolved = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (resolved.Error != null)
+            return resolved.Error;
+        if (resolved.TenantId is null)
             return BadRequest(new { error = "tenantId is required (or select a tenant context)." });
 
         var rows = await _queue
-            .GetQueuedTransactionsAsync(tid.Value, limit, cancellationToken)
+            .GetQueuedTransactionsAsync(resolved.TenantId.Value, limit, cancellationToken)
             .ConfigureAwait(false);
         return Ok(rows);
     }
@@ -76,13 +80,15 @@ public sealed class AdminTseOfflineQueueController : ControllerBase
         CancellationToken cancellationToken)
     {
         body ??= new TseOfflineQueueClearRequestDto();
-        var tid = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tid is null)
+        var resolved = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (resolved.Error != null)
+            return resolved.Error;
+        if (resolved.TenantId is null)
             return BadRequest(new { error = "tenantId is required (or select a tenant context)." });
 
         var actorId = User.GetActorUserId() ?? "system";
         var result = await _queue
-            .SoftClearQueueAsync(tid.Value, body.ConfirmToken, body.Reason, actorId, cancellationToken)
+            .SoftClearQueueAsync(resolved.TenantId.Value, body.ConfirmToken, body.Reason, actorId, cancellationToken)
             .ConfigureAwait(false);
 
         if (!result.Success)
@@ -98,20 +104,42 @@ public sealed class AdminTseOfflineQueueController : ControllerBase
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        var tid = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tid is null)
+        var resolved = await ResolveTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (resolved.Error != null)
+            return resolved.Error;
+        if (resolved.TenantId is null)
             return BadRequest(new { error = "tenantId is required (or select a tenant context)." });
 
-        var result = await _queue.SendQueueAlertAsync(tid.Value, cancellationToken: cancellationToken)
+        var result = await _queue.SendQueueAlertAsync(resolved.TenantId.Value, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         return Ok(result);
     }
 
-    private async Task<Guid?> ResolveTenantAsync(Guid? tenantId, CancellationToken cancellationToken)
+    private async Task<(Guid? TenantId, ActionResult? Error)> ResolveTenantAsync(
+        Guid? tenantId,
+        CancellationToken cancellationToken)
     {
-        if (tenantId is { } explicitId && explicitId != Guid.Empty)
-            return explicitId;
+        var ambient = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var hasExplicit = tenantId is { } explicitId && explicitId != Guid.Empty;
+        var isSuperAdmin = User?.IsInRole(Roles.SuperAdmin) == true;
 
-        return await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        if (!isSuperAdmin)
+        {
+            if (hasExplicit && tenantId!.Value != ambient)
+                return (null, NotFound());
+
+            if (ambient == Guid.Empty)
+                return (null, BadRequest(new { error = "tenantId is required (or select a tenant context)." }));
+
+            return (ambient, null);
+        }
+
+        if (hasExplicit)
+            return (tenantId, null);
+
+        if (ambient == Guid.Empty)
+            return (null, BadRequest(new { error = "tenantId is required (or select a tenant context)." }));
+
+        return (ambient, null);
     }
 }

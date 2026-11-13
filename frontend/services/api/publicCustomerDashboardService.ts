@@ -71,11 +71,13 @@ function mapDashboard(dto: DashboardApi): PublicCustomerDashboard {
 export async function fetchPublicCustomerDashboard(params: {
   tenant: string;
   phone: string;
+  orderNumber: string;
 }): Promise<PublicCustomerDashboard> {
   const data = await apiClient.get<DashboardApi>(API_PATHS.PUBLIC_CUSTOMER.DASHBOARD, {
     params: {
       tenant: params.tenant.trim(),
       phone: params.phone.trim(),
+      orderNumber: params.orderNumber.trim(),
     },
   });
   return mapDashboard(data ?? {});

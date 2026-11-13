@@ -1,15 +1,20 @@
 'use client';
 
 import { UploadOutlined } from '@ant-design/icons';
-import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload } from 'antd';
+import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Table, Tabs, Tag, Upload } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { MAX_PRODUCT_IMAGE_BYTES, uploadAdminProductImage } from '@/api/admin/products';
+import { useAdminProductImeis } from '@/api/admin/product-imeis';
+import { useAdminStaff } from '@/api/admin/staff';
+import { useAmbientVerticalProfile } from '@/api/admin/vertical-profile';
 import { Product } from '@/api/generated/model';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { TaxSelect } from '@/components/TaxSelect';
 import { useCategories } from '@/features/categories/hooks/useCategories';
+import ProductVariantsPanel from '@/features/products/components/ProductVariantsPanel';
 import { taxRateToType } from '@/features/products/utils/productMapper';
+import { shouldShowDurationAndStaffFields, shouldShowImeiTracking, shouldShowTicketFlag, shouldShowVariants } from '@/features/products/utils/productVerticalFields';
 import { PriceChangeModal } from '@/features/tax/components/PriceChangeModal';
 import { PriceHistoryCard } from '@/features/tax/components/PriceHistoryCard';
 import type { PriceChangeResult } from '@/features/tax/api/priceHistory';
@@ -17,6 +22,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCurrentTaxRegulation } from '@/hooks/useCurrentTaxRegulation';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
+import { translateApiError } from '@/lib/api/errorTranslator';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import {
   type ModifierGroupDto,
   getModifierGroups,
@@ -31,6 +38,8 @@ export type ProductFormSubmitValues = Product & {
   categoryId?: string;
   taxGroupId?: string;
   taxRate?: number;
+  imeiTracked?: boolean;
+  isTicket?: boolean;
 };
 
 interface ProductFormProps {
@@ -50,7 +59,8 @@ const { TextArea } = Input;
 /** Aligned with backend Product model / AdminProductsController field limits. */
 const PRODUCT_NAME_MAX_LENGTH = 200;
 const PRODUCT_DESCRIPTION_MAX_LENGTH = 2000;
-const PRODUCT_BARCODE_MAX_LENGTH = 50;
+const PRODUCT_BARCODE_MAX_LENGTH = 64;
+const PRODUCT_BARCODE_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 export default function ProductForm(props: ProductFormProps) {
   if (!props.visible) {
@@ -146,6 +156,21 @@ function ProductFormContent({
 
   const { data: taxGroups } = useTaxGroups(visible);
   const { data: regulation } = useCurrentTaxRegulation(visible);
+  const { data: verticalProfile } = useAmbientVerticalProfile(visible);
+  const showDurationStaff = shouldShowDurationAndStaffFields(verticalProfile?.posFeatures);
+  const showImeiTracking = shouldShowImeiTracking(verticalProfile?.posFeatures);
+  const showVariants = shouldShowVariants(verticalProfile?.posFeatures);
+  const showVariantsTab = showVariants && isEditMode && Boolean(initialValues?.id);
+  const [detailTab, setDetailTab] = useState<'product' | 'variants'>('product');
+  const showTicketFlag = shouldShowTicketFlag(
+    verticalProfile?.profileId,
+    verticalProfile?.posFeatures
+  );
+  const { data: staffMembers } = useAdminStaff(visible && showDurationStaff);
+  const { data: productImeis, isLoading: imeisLoading } = useAdminProductImeis(
+    initialValues?.id,
+    visible && isEditMode && showImeiTracking
+  );
   const watchedTaxGroupId = Form.useWatch('taxGroupId', form) as string | undefined;
   const watchedPrice = Form.useWatch('price', form) as number | undefined;
   const watchedName = Form.useWatch('name', form) as string | undefined;
@@ -179,6 +204,19 @@ function ProductFormContent({
     () => ({
       max: PRODUCT_BARCODE_MAX_LENGTH,
       message: t('products.form.fieldMaxLength', { max: PRODUCT_BARCODE_MAX_LENGTH }),
+    }),
+    [t]
+  );
+
+  const barcodePatternRule = useMemo(
+    () => ({
+      validator: async (_: unknown, value: unknown) => {
+        const raw = typeof value === 'string' ? value.trim() : '';
+        if (!raw) return;
+        if (!PRODUCT_BARCODE_PATTERN.test(raw)) {
+          throw new Error(t('products.form.barcodeInvalid'));
+        }
+      },
     }),
     [t]
   );
@@ -255,6 +293,8 @@ function ProductFormContent({
           unit: 'pcs',
           stockQuantity: 0,
           minStockLevel: 0,
+          imeiTracked: false,
+          isTicket: false,
         });
       }
     }
@@ -338,6 +378,13 @@ function ProductFormContent({
 
         // If there's an error on a hidden field (shouldn't happen with defaults, but just in case),
         // we might want to know.
+      } else if (normalizeApiError(error).code === 'BARCODE_DUPLICATE') {
+        message.error(
+          translateApiError(t, error, {
+            skipLog: true,
+            fallbackKey: 'products.messages.updateError',
+          })
+        );
       } else if (axiosError.response?.data?.title) {
         message.error(axiosError.response.data.title);
       }
@@ -360,6 +407,19 @@ function ProductFormContent({
       okText={t('common.buttons.save')}
       cancelText={t('common.buttons.cancel')}
     >
+      {showVariantsTab ? (
+        <Tabs
+          activeKey={detailTab}
+          onChange={(key) => setDetailTab(key as 'product' | 'variants')}
+          destroyOnHidden={false}
+          styles={{ content: { display: 'none' } }}
+          items={[
+            { key: 'product', label: t('products.form.tabProduct') },
+            { key: 'variants', label: t('products.variants.tab') },
+          ]}
+        />
+      ) : null}
+      <div style={{ display: showVariantsTab && detailTab === 'variants' ? 'none' : 'block' }}>
       <Form form={form} layout="vertical" initialValues={{ isActive: true }}>
         {/* Hidden Fields to hold state */}
         <Form.Item name="unit" hidden>
@@ -449,7 +509,7 @@ function ProductFormContent({
           <Form.Item
             name="barcode"
             label={t('products.form.barcode')}
-            rules={[barcodeMaxLengthRule]}
+            rules={[barcodeMaxLengthRule, barcodePatternRule]}
           >
             <Input
               placeholder={t('products.form.barcodePlaceholder')}
@@ -497,6 +557,70 @@ function ProductFormContent({
             <InputNumber style={{ width: '100%' }} min={0} precision={2} prefix="€" />
           </Form.Item>
         </div>
+
+        {showDurationStaff ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="durationMinutes" label={t('products.form.durationMinutes')}>
+              <InputNumber style={{ width: '100%' }} min={1} max={1440} precision={0} />
+            </Form.Item>
+            <Form.Item name="staffId" label={t('products.form.staff')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('products.form.staffPlaceholder')}
+                options={(staffMembers ?? []).map((member) => ({
+                  value: member.id,
+                  label: member.name || member.id,
+                }))}
+              />
+            </Form.Item>
+          </div>
+        ) : null}
+
+        {showImeiTracking ? (
+          <Form.Item
+            name="imeiTracked"
+            label={t('products.form.imeiTracked')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        ) : null}
+
+        {showTicketFlag ? (
+          <Form.Item
+            name="isTicket"
+            label={t('products.form.isTicket')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        ) : null}
+
+        {showImeiTracking && isEditMode && initialValues?.id ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>{t('products.form.imeiList')}</div>
+            <Table
+              size="small"
+              rowKey="id"
+              loading={imeisLoading}
+              pagination={false}
+              dataSource={productImeis ?? []}
+              locale={{ emptyText: t('products.form.imeiListEmpty') }}
+              columns={[
+                { title: t('products.form.imeiColumn'), dataIndex: 'imei' },
+                {
+                  title: t('products.form.imeiStatus'),
+                  dataIndex: 'status',
+                  render: (status: string) => (
+                    <Tag variant="filled">{t(`products.form.imeiStatusValue.${status}`)}</Tag>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        ) : null}
 
         <Form.Item
           name="taxGroupId"
@@ -635,6 +759,10 @@ function ProductFormContent({
           />
         </Form.Item>
       </Form>
+      </div>
+      {showVariantsTab && detailTab === 'variants' ? (
+        <ProductVariantsPanel productId={String(initialValues?.id)} />
+      ) : null}
     </Modal>
 
       {isEditMode && initialValues?.id ? (

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
+import { toAddressPayload, useMobileServiceJob } from '../contexts/MobileServiceJobContext';
 import { orderService } from '../services/api/orderService';
 import { Cart } from '../services/api/cartService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -38,6 +39,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const job = useMobileServiceJob();
 
   const handleConfirmOrder = async () => {
     if (!cart?.items || cart.items.length === 0) {
@@ -61,7 +63,8 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         customerPhone.trim() || undefined,
         notes.trim() || undefined,
         cart.cartId,
-        cart.customerId
+        cart.customerId,
+        toAddressPayload(job.jobLocation)
       );
 
       setLoading(false);

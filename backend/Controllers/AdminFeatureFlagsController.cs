@@ -57,6 +57,14 @@ public sealed class AdminFeatureFlagsController : ControllerBase
                     .ConfigureAwait(false);
             }
         }
+        catch (FeatureFlagLockedException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (FeatureFlagCountryRejectedException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });

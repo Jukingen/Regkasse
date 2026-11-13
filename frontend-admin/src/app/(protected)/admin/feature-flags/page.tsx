@@ -15,7 +15,7 @@ import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const QUERY_KEY = ['admin', 'feature-flags'] as const;
@@ -35,11 +35,9 @@ export default function FeatureFlagsAdminPage() {
   const [tenantInput, setTenantInput] = useState('');
   const tenantId = normalizeTenantId(tenantInput);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
-    { title: t('nav.featureFlags') },
-  ];
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', {
+    title: t('nav.featureFlags'),
+  });
 
   const listQuery = useQuery({
     queryKey: [...QUERY_KEY, tenantId ?? 'global'],

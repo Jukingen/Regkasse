@@ -68,7 +68,7 @@ public sealed class BulkUserImportService : IBulkUserImportService
         {
             var tenantsBySlug = await _db.Tenants
                 .AsNoTracking()
-                .Where(t => t.IsActive && t.Slug != "admin" && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
+                .Where(t => t.IsActive && t.Slug != "admin" && t.Slug != SystemTenantIds.PlatformSlug)
                 .ToDictionaryAsync(t => t.Slug, StringComparer.OrdinalIgnoreCase, cancellationToken)
                 .ConfigureAwait(false);
 

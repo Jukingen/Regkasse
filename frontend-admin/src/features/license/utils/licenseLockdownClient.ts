@@ -33,7 +33,7 @@ type LockdownToastCopy = {
 };
 
 const FALLBACK_DE: LockdownToastCopy = {
-  title: 'Lizenz abgelaufen',
+  title: 'Mandant gesperrt',
   description: 'Bitte verlängern Sie Ihre Lizenz, um diese Aktion durchzuführen.',
   guardDescription: 'Diese Aktion ist im gesperrten Zustand nicht verfügbar.',
   guardDescriptionWithAction: '„{{action}}“ ist im gesperrten Zustand nicht verfügbar.',

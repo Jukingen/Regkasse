@@ -30,6 +30,8 @@ export type CreateMonatsbelegRequest = {
   year: number;
   month: number;
   reason?: string | null;
+  /** Query only — stripped from JSON body. Past Vienna months require `force=true`. */
+  force?: boolean;
 };
 
 export type CreateMonatsbelegResponse = {
@@ -43,9 +45,17 @@ export type CreateMonatsbelegResponse = {
 export async function postCreateMonatsbeleg(
   body: CreateMonatsbelegRequest
 ): Promise<CreateMonatsbelegResponse> {
+  const { force, ...payload } = body;
+  if (force === true) {
+    return await apiClient.post<CreateMonatsbelegResponse>(
+      '/rksv/special-receipts/monatsbeleg?force=true',
+      payload,
+      { params: { force: true } }
+    );
+  }
   return await apiClient.post<CreateMonatsbelegResponse>(
     '/rksv/special-receipts/monatsbeleg',
-    body
+    payload
   );
 }
 
@@ -74,6 +84,50 @@ export async function postCreateJahresbeleg(
   );
 }
 
+/** POST /api/rksv/special-receipts/nullbeleg */
+export type CreateNullbelegRequest = {
+  cashRegisterId: string;
+  year?: number | null;
+  month?: number | null;
+  reason?: string | null;
+};
+
+export type CreateNullbelegResponse = {
+  paymentId: string;
+  invoiceId: string;
+  receiptId: string;
+  receiptNumber: string;
+};
+
+export async function postCreateNullbeleg(
+  body: CreateNullbelegRequest
+): Promise<CreateNullbelegResponse> {
+  return await apiClient.post<CreateNullbelegResponse>('/rksv/special-receipts/nullbeleg', body);
+}
+
+/** POST /api/rksv/special-receipts/schlussbeleg */
+export type CreateSchlussbelegRequest = {
+  cashRegisterId: string;
+  reason?: string | null;
+};
+
+export type CreateSchlussbelegResponse = {
+  paymentId: string;
+  invoiceId: string;
+  receiptId: string;
+  receiptNumber: string;
+  qrData: string;
+};
+
+export async function postCreateSchlussbeleg(
+  body: CreateSchlussbelegRequest
+): Promise<CreateSchlussbelegResponse> {
+  return await apiClient.post<CreateSchlussbelegResponse>(
+    '/rksv/special-receipts/schlussbeleg',
+    body
+  );
+}
+
 /** GET /api/rksv/monatsbeleg/status/{cashRegisterId} — matches backend `MonatsbelegStatusDto` (camelCase JSON). */
 export type MissingMonthDto = {
   year: number;
@@ -98,6 +152,9 @@ export type MonatsbelegStatusDto = {
   currentMonthOverdue: boolean;
   lastMonthMissing: boolean;
   warningMessage: string | null;
+  blockingMode?: string;
+  salesBlocked?: boolean;
+  canContinueWithWarning?: boolean;
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {

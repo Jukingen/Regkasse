@@ -24,7 +24,7 @@ public sealed class TaxRegulationServiceTests
     [Fact]
     public async Task GetCurrentRegulationAsync_ReturnsActiveAustrianBands()
     {
-        await using var db = CreateDb(LegacyDefaultTenantIds.Primary);
+        await using var db = CreateDb(SystemTenantIds.Platform);
         var sut = CreateService(db);
 
         var current = await sut.GetCurrentRegulationAsync();
@@ -41,7 +41,7 @@ public sealed class TaxRegulationServiceTests
     [Fact]
     public async Task GetRegulationHistoryAsync_IncludesCurrentAndPrior()
     {
-        await using var db = CreateDb(LegacyDefaultTenantIds.Primary);
+        await using var db = CreateDb(SystemTenantIds.Platform);
         var sut = CreateService(db);
 
         var history = (await sut.GetRegulationHistoryAsync()).ToList();
@@ -62,7 +62,7 @@ public sealed class TaxRegulationServiceTests
     [InlineData(7.5, false)]
     public async Task IsTaxRateValidAsync_MatchesCurrentCatalog(decimal rate, bool expected)
     {
-        await using var db = CreateDb(LegacyDefaultTenantIds.Primary);
+        await using var db = CreateDb(SystemTenantIds.Platform);
         var sut = CreateService(db);
 
         var actual = await sut.IsTaxRateValidAsync(rate);
@@ -73,7 +73,7 @@ public sealed class TaxRegulationServiceTests
     [Fact]
     public async Task GetTaxChangeImpactAsync_CountsProductsAtOldRate()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 

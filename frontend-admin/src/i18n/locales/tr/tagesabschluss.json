@@ -1,4 +1,11 @@
 {
+  "emptyDayWarning": "Bu gun icin islem bulunamadi. Bos gun sonu olusturmak istiyor musunuz?",
+  "emptyDayConfirm": "Bu gun icin islem bulunamadi. Bos gun sonu olusturmak istiyor musunuz?",
+  "emptyDaySuccess": "Bos gun sonu olusturuldu. Islem yok.",
+  "normalDaySuccess": "Gun sonu basariyla olusturuldu. {{count}} islem.",
+  "type": "Tur",
+  "typeNormal": "Normal",
+  "typeEmpty": "Bos (0 islem)",
   "page": {
     "intro": "Operasyonel kasa gun sonu (TSE/RKSV): on kontrol ve gun sonu. Resmi gunluk rapor (belge, finalize, FinanzOnline) icin menuden \"Resmi gunluk rapor\"u kullanin."
   },
@@ -44,8 +51,24 @@
     "lastMonthlyClosing": "Son aylik kapanis",
     "lastYearlyClosing": "Son yillik kapanis",
     "paymentsWithoutInvoice": "Faturasiz odemeler (secilen gun)",
+    "transactionCount": "Islemler (secilen gun)",
     "hint": "Not",
     "backendHint": "Sunucu notu (dil garanti degil)"
+  },
+  "autoClose": {
+    "title": "Otomatik gun sonu",
+    "intro": "Kasiyer yapilandirilan Europe/Vienna saatine kadar kapatmazsa ve o gunde islem varsa, sistem onceki is gunu icin TSE imzali bir yedek kapanis olusturur.",
+    "enabled": "Otomatik yedek kapanisi ac",
+    "hour": "Saat (Viyana)",
+    "minute": "Dakika",
+    "openOrdersPolicy": "Acik masalar / siparisler",
+    "openOrdersForce": "Uyariyla kapat (varsayilan)",
+    "openOrdersNotify": "Bildir ve yine de kapat",
+    "openOrdersBlock": "Masalar kapanana kadar engelle",
+    "promptCashCount": "Yedekten once POS'ta \"Kasa say\" uyarisi",
+    "save": "Ayarlari kaydet",
+    "saveSuccess": "Otomatik gun sonu ayarlari kaydedildi.",
+    "saveError": "Ayarlar kaydedilemedi."
   },
   "backdated": {
     "dateLabel": "Kapanis tarihi",
@@ -102,6 +125,9 @@
     "colDate": "Tarih",
     "colCreatedAt": "Olusturulma",
     "colType": "Tur",
+    "filterAll": "Tumu",
+    "filterNormal": "Normal",
+    "filterEmpty": "Bos",
     "colLateReason": "Neden (gecikmeli)",
     "colGross": "Brut",
     "colTax": "Vergi",
@@ -109,6 +135,12 @@
     "colStatus": "Durum",
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
+    "colFiskaly": "Fiskaly",
+    "colTrigger": "Tetikleyen",
+    "filterAutomatic": "Otomatik",
+    "filterManual": "Manuel",
+    "triggerAutomatic": "Sistem",
+    "triggerManual": "Kullanici",
     "closingTypes": {
       "Daily": "Gunluk",
       "Monthly": "Aylik",
@@ -128,6 +160,8 @@
   },
   "messages": {
     "successDaily": "Gunluk gun sonu uygulandi.",
+    "successDailyEmpty": "Bos gun sonu olusturuldu. Islem yok.",
+    "successDailyNormal": "Gun sonu basariyla olusturuldu. {{count}} islem.",
     "successDailyBackdated": "{{date}} icin sonradan gunluk kapanis uygulandi.",
     "successMonthly": "Aylik kapanis uygulandi.",
     "successYearly": "Yillik kapanis uygulandi.",
@@ -141,6 +175,21 @@
     "warningYearlyAlreadyClosed": "{{dateTime}} icin yillik kapanis zaten yapildi.",
     "pdfUnavailable": "Bu kayit icin PDF yok.",
     "pdfAutoDownloadFailed": "Kapanis basarili, ancak PDF indirilemedi."
+  },
+  "fiskaly": {
+    "colStatus": "Fiskaly",
+    "send": "Fiskaly'ye Gönder",
+    "sendSuccess": "Gün sonu Fiskaly'ye gönderildi.",
+    "sendFailed": "Fiskaly gönderimi başarısız.",
+    "notSent": "Henüz gönderilmedi",
+    "receiptId": "Fiskaly fiş kimliği",
+    "hint": "SIGN AT'te ayrı bir günlük kapanış tipi yoktur. Kapanış, Tagesabschluss metinli 0,00 € fiş olarak gönderilir. Yerel TSE imzası değiştirilmez.",
+    "status": {
+      "Submitted": "Gönderildi",
+      "Failed": "Başarısız",
+      "Pending": "Beklemede",
+      "Skipped": "Atlandı"
+    }
   },
   "errors": {
     "unknown": "Bilinmeyen hata",
@@ -156,6 +205,65 @@
     "registerUnavailable": "Kasa gun sonu icin kullanilamiyor (bulunamadi veya hizmet disi).",
     "tseNotConnected": "TSE bagli degil. Gun sonu kapanisi yapilamaz.",
     "tenantContextRequired": "Musteri (tenant) baglami eksik. Lutfen once bir musteri secin.",
-    "noRegister": "Bu musteri icin kasa bulunamadi."
+    "noRegister": "Bu musteri icin kasa bulunamadi.",
+    "loadCalendarTitle": "Takvim yuklenemedi"
+  },
+  "calendar": {
+    "viewCalendar": "Takvim",
+    "viewList": "Liste",
+    "prevMonth": "Onceki ay",
+    "nextMonth": "Sonraki ay",
+    "gridLabel": "Gun sonu takvimi {{month}}",
+    "loadErrorTitle": "Takvim yuklenemedi",
+    "txCount": "{{count}} islem",
+    "summaryTotal": "Aydaki gunler",
+    "summaryClosed": "Kapali",
+    "summaryOpen": "Acik",
+    "summaryNoTx": "Islem yok",
+    "summaryEmpty": "Bos kapanislar",
+    "bulkClose": "Tum acik gunleri kapat",
+    "bulkCloseConfirmTitle": "Acik gunler kapatilsin mi?",
+    "bulkCloseConfirm": "{{count}} acik gun sirayla kapatilacak. Gecmis gunler gecikmeli (nachtraglich) kapanistir (TSE/RKSV).",
+    "bulkCloseSuccess": "{{total}} gunden {{done}} tanesi kapatildi.",
+    "bulkClosePartial": "{{total}} gunden {{done}} tanesi kapatildi. {{failed}} basarisiz.",
+    "bulkCloseNone": "Bu ayda acik gun yok.",
+    "exportMonth": "Ayi disa aktar",
+    "detailsTitle": "Gun sonu {{date}}",
+    "weekdays": {
+      "mon": "Pzt",
+      "tue": "Sal",
+      "wed": "Car",
+      "thu": "Per",
+      "fri": "Cum",
+      "sat": "Cmt",
+      "sun": "Paz"
+    },
+    "legend": {
+      "closed": "Kapali (normal)",
+      "empty": "Kapali (bos)",
+      "open": "Acik",
+      "noTransactions": "Islem yok",
+      "future": "Gelecek",
+      "today": "Bugun"
+    },
+    "tooltip": {
+      "closed": "Kapali - {{count}} islem",
+      "empty": "Bos (0 islem)",
+      "open": "Acik - {{count}} islem bekliyor",
+      "noTransactions": "Islem yok - bos kapanis mumkun",
+      "future": "Gelecek tarih",
+      "today": "Bugun"
+    },
+    "menu": {
+      "close": "Kapat",
+      "details": "Detaylari goster",
+      "export": "Ozeti disa aktar"
+    },
+    "csv": {
+      "date": "Tarih",
+      "status": "Durum",
+      "transactionCount": "Islemler",
+      "canClose": "Kapatilabilir"
+    }
   }
 }

@@ -29,6 +29,8 @@ public sealed class UserActivityReportService : IUserActivityReportService
         AuditLogActions.USER_REACTIVATE,
         AuditLogActions.USER_PASSWORD_RESET,
         AuditLogActions.FORCE_RESET_PASSWORD,
+        AuditLogActions.USER_FORCE_LOGOUT,
+        AuditLogActions.USER_SESSION_TERMINATED,
     };
 
     private static readonly HashSet<string> PaymentProcessedActions = new(StringComparer.Ordinal)
@@ -330,8 +332,10 @@ public sealed class UserActivityReportService : IUserActivityReportService
         CancellationToken cancellationToken)
     {
         var sessionQuery = _db.AuthSessions.AsNoTracking().IgnoreQueryFilters().Where(s => s.UserId == userId);
-        if (tenantScope.Count > 0)
-            sessionQuery = sessionQuery.Where(s => s.TenantId == null || tenantScope.Contains(s.TenantId.Value));
+        // Null-tenant rows are platform sessions. A manager report must not include them or another mandant.
+        sessionQuery = tenantScope.Count > 0
+            ? sessionQuery.Where(s => s.TenantId != null && tenantScope.Contains(s.TenantId.Value))
+            : sessionQuery.Where(s => s.TenantId != null);
 
         var activeCount = await sessionQuery
             .CountAsync(s => s.RevokedAtUtc == null, cancellationToken)

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs, Redirect, router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
-import { OfflineStatusChip } from '../../components/OfflineStatusChip';
+import { OfflineQueueIndicator } from '../../components/OfflineQueueIndicator';
+import { OfflineLimitReachedModal } from '../../components/OfflineLimitReachedModal';
+import { retryOfflineQueuesNow } from '../../services/offline/retryOfflineQueues';
 import { GracePeriodWarning } from '../../components/GracePeriodWarning';
 import { Header as WorkingHoursStatus } from '../../components/Header';
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
@@ -16,34 +18,49 @@ import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { MaintenanceNotice } from '../../components/MaintenanceNotice';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
-import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { takeFolioCheckout } from '../../components/lodging/folioCheckoutHandoff';
 import PaymentModal from '../../components/PaymentModal';
+import { updateFolio } from '../../services/api/lodgingService';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { TagesabschlussReminder } from '../../components/TagesabschlussReminder';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { ToastContainer } from '../../components/ToastNotification';
 import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
 import { UserMenu } from '../../components/UserMenu';
+import { KitchenHubBridge } from '../../hooks/useKitchenHub';
+import { useKitchenPendingCount } from '../../services/kitchenPendingStore';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useTaxiTrip } from '../../contexts/TaxiTripContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
+import {
+  useVerticalFeatures,
+  useVerticalProfileContext,
+} from '../../contexts/VerticalProfileContext';
 import {
   PosRegisterReadinessProvider,
   usePosRegisterReadiness,
 } from '../../contexts/PosRegisterReadinessContext';
 import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { useConditionalPolling } from '../../hooks/useConditionalPolling';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
+import { DevLoopbackApiBanner } from '../../src/components/dev/DevLoopbackApiBanner';
 import { eventEmitter } from '../../utils/eventEmitter';
 import { formatPrice } from '../../utils/formatPrice';
+import {
+  needsPosCashRegisterSelection,
+  POS_CASH_REGISTER_SELECT_HREF,
+} from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
@@ -78,7 +95,16 @@ function PosTabsInner({
   saleCustomer,
   developmentModeSettings,
 }: PosTabsInnerProps) {
+  const { t: tSettings } = useTranslation(['settings', 'common', 'offline']);
   const posReadiness = usePosRegisterReadiness();
+  const { canMakePayment } = usePosPermissions();
+  const { posFeatures, profileId, posLayout } = useVerticalFeatures();
+  const kitchenPendingCount = useKitchenPendingCount();
+  const [atCap, setAtCap] = useState(false);
+  const handleOfflineAtCapChange = useCallback((next: boolean) => {
+    setAtCap(next);
+  }, []);
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
 
   const [tabBarToasts, setTabBarToasts] = useState<
     {
@@ -93,7 +119,24 @@ function PosTabsInner({
     setTabBarToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
+  useEffect(() => {
+    if (atCap) {
+      setLimitModalVisible(true);
+    }
+  }, [atCap]);
+
   const tryOpenPaymentModal = () => {
+    if (atCap) {
+      setLimitModalVisible(true);
+      return;
+    }
+    if (!canMakePayment) {
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+      );
+      return;
+    }
     if (cartCount === 0) {
       const id = `${Date.now()}-empty-cart`;
       const message = t('checkout:posFlow.toast.emptyCart');
@@ -225,7 +268,7 @@ function PosTabsInner({
           <View style={styles.headerStatusLeft}>
             <TseStatusBanner />
             <WorkingHoursStatus />
-            <OfflineStatusChip />
+            <OfflineQueueIndicator onAtCapChange={handleOfflineAtCapChange} />
             <MonatsbelegHeaderBadge />
           </View>
           <View style={styles.headerRight}>
@@ -237,10 +280,11 @@ function PosTabsInner({
           </View>
         </View>
         <TimeSyncBanner />
+        <DevLoopbackApiBanner />
         <TseOfflineRestrictionBanner />
-        <MonatsbelegSessionBlockModal />
         <StartbelegRequiredBanner />
         <TagesabschlussReminder />
+        {posFeatures.kitchenDisplay ? <KitchenHubBridge enabled /> : null}
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: SoftColors.accent,
@@ -260,6 +304,68 @@ function PosTabsInner({
             options={{
               title: t('navigation:cashRegister') || 'Kasa',
               tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+            }}
+          />
+
+          {/* Legacy route. Tables live on the cash register; the file only redirects. */}
+          <Tabs.Screen
+            name="orders"
+            options={{
+              href: null,
+              title: t('navigation:cashRegister'),
+            }}
+          />
+
+          <Tabs.Screen
+            name="rooms"
+            options={{
+              href: profileId === 'beherbergung' || posLayout === 'rooms' ? undefined : null,
+              title: t('verticalProfiles:tabs.rooms'),
+              tabBarIcon: ({ color }) => <Ionicons name="bed-outline" size={24} color={color} />,
+            }}
+          />
+
+          <Tabs.Screen
+            name="kitchen-display"
+            options={{
+              href: posFeatures.kitchenDisplay ? undefined : null,
+              title: t('verticalProfiles:tabs.kitchen'),
+              tabBarBadge:
+                posFeatures.kitchenDisplay && kitchenPendingCount > 0
+                  ? kitchenPendingCount
+                  : undefined,
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="fast-food-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="patient-record"
+            options={{
+              href: posFeatures.patientRecord ? undefined : null,
+              title:
+                profileId === 'vet'
+                  ? t('verticalProfiles:tabs.animalRecord')
+                  : t('verticalProfiles:tabs.patientRecord'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons
+                  name={profileId === 'doctor' ? 'person-outline' : 'paw-outline'}
+                  size={24}
+                  color={color}
+                />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="appointments"
+            options={{
+              href: posFeatures.appointment ? undefined : null,
+              title: t('verticalProfiles:tabs.appointments'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={24} color={color} />
+              ),
             }}
           />
 
@@ -302,7 +408,23 @@ function PosTabsInner({
             }}
           />
 
-          {/* Settings & Admin remain routable via UserMenu; hidden from footer */}
+          {/* Belegliste, Settings & Admin remain routable via UserMenu; hidden from footer */}
+          <Tabs.Screen
+            name="receipt-list"
+            options={{
+              href: null,
+              title: t('navigation:receiptList') || 'Belegliste',
+            }}
+          />
+
+          <Tabs.Screen
+            name="ticket-validate"
+            options={{
+              href: null,
+              title: t('verticalProfiles:screens.tickets.menu') || 'Ticket prüfen',
+            }}
+          />
+
           <Tabs.Screen
             name="settings"
             options={{
@@ -316,6 +438,22 @@ function PosTabsInner({
             options={{
               href: null,
               title: 'Admin',
+            }}
+          />
+
+          <Tabs.Screen
+            name="fiskaly-operations"
+            options={{
+              href: null,
+              title: 'Fiskaly',
+            }}
+          />
+
+          <Tabs.Screen
+            name="payment"
+            options={{
+              href: null,
+              title: 'Zahlung',
             }}
           />
         </Tabs>
@@ -337,6 +475,7 @@ function PosTabsInner({
             unitPrice: item.unitPrice || item.price || 0,
             totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
             taxType: item.taxType,
+            variantId: item.variantId,
             modifiers: item.modifiers?.map((m) => ({
               modifierId: m.id,
               name: m.name,
@@ -347,6 +486,19 @@ function PosTabsInner({
           customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
           tableNumber={activeTableId}
         />
+        <OfflineLimitReachedModal
+          visible={limitModalVisible}
+          title={tSettings('offline:limit.title')}
+          body={tSettings('offline:limit.body')}
+          retryLabel={tSettings('offline:limit.retryNow')}
+          cancelLabel={tSettings('offline:limit.cancel')}
+          onRetryNow={() => {
+            void retryOfflineQueuesNow().finally(() => {
+              setLimitModalVisible(false);
+            });
+          }}
+          onCancel={() => setLimitModalVisible(false)}
+        />
         <OfflineBanner />
       </View>
     </TseHealthProvider>
@@ -354,11 +506,13 @@ function PosTabsInner({
 }
 
 export default function TabLayout() {
-  const { t } = useTranslation(['navigation', 'checkout']);
+  const { t } = useTranslation(['navigation', 'checkout', 'verticalProfiles']);
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
   const { settings: developmentModeSettings } = useDevelopmentModeContext();
+  const { posLayout, isLoading: verticalProfileLoading } = useVerticalProfileContext();
   const checkAuthStatusRef = useRef(checkAuthStatus);
+  const appliedLayoutScopeRef = useRef<string | null>(null);
   checkAuthStatusRef.current = checkAuthStatus;
 
   // Context usage
@@ -371,12 +525,27 @@ export default function TabLayout() {
     saleCustomer,
     setSaleCustomer,
   } = useCart();
+  const { resetTrip } = useTaxiTrip();
+  const { reset: resetImeis } = useImeiSelections();
 
   const totals = getCartDisplayTotals(currentCart);
   const cartCount = totals.itemCount;
 
   const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+    const pendingFolio = takeFolioCheckout();
+    if (pendingFolio) {
+      try {
+        await updateFolio(pendingFolio.folioId, { status: 'Closed' });
+      } catch {
+        Alert.alert(
+          t('pos.checkout.closeFailedTitle', { ns: 'verticalProfiles' }),
+          t('pos.checkout.closeFailed', { ns: 'verticalProfiles' })
+        );
+      }
+    }
     setSaleCustomer(null);
+    resetTrip();
+    resetImeis();
     await clearCart(paidTableNumber ?? activeTableId);
   };
 
@@ -411,6 +580,48 @@ export default function TabLayout() {
     Boolean(isAuthenticated && user?.id)
   );
 
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !user?.id ||
+      verticalProfileLoading ||
+      needsPosCashRegisterSelection(user.currentCashRegisterId)
+    ) {
+      return;
+    }
+
+    const scope = `${user.tenantId ?? user.tenantSlug ?? user.id}:${posLayout}`;
+    if (appliedLayoutScopeRef.current === scope) return;
+
+    const target =
+      posLayout === 'appointment'
+        ? '/(tabs)/appointments'
+        : posLayout === 'rooms'
+          ? '/(tabs)/rooms'
+          : null;
+    appliedLayoutScopeRef.current = scope;
+    if (!target) return;
+
+    // AuthContext and onboarding land on cash-register. Appointment and room
+    // profiles open their floor afterwards. Gastronomy tables stay on the register.
+    const timer = setTimeout(() => {
+      // Expo typed routes are generated by Metro; the new static route is not in the
+      // checked-in type cache until the next Expo start.
+      router.replace(target as never);
+    }, 700);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    isAuthenticated,
+    posLayout,
+    user?.currentCashRegisterId,
+    user?.id,
+    user?.tenantId,
+    user?.tenantSlug,
+    verticalProfileLoading,
+  ]);
+
   if (!isAuthReady || isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -432,6 +643,10 @@ export default function TabLayout() {
     console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
     logout();
     return <Redirect href="/(auth)/login" />;
+  }
+
+  if (needsPosCashRegisterSelection(user.currentCashRegisterId)) {
+    return <Redirect href={POS_CASH_REGISTER_SELECT_HREF} />;
   }
 
   return (

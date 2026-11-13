@@ -27,9 +27,18 @@ import { MaintenanceProvider } from '../contexts/MaintenanceContext';
 import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext';
 import { SystemProvider } from '../contexts/SystemContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { VerticalProfileProvider } from '../contexts/VerticalProfileContext';
+import { MobileServiceJobProvider } from '../contexts/MobileServiceJobContext';
+import { TaxiTripProvider } from '../contexts/TaxiTripContext';
+import { ImeiSelectionProvider } from '../contexts/ImeiSelectionContext';
 import { i18nReady } from '../i18n';
 import { OfflineSyncService } from '../services/offline/offlineSyncService';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
+import { initPosSentry } from '../src/monitoring/initPosSentry';
+import { safeLog } from '../utils/loggingUtils';
+import { applyPosWebDocument } from '../utils/posWebDocument';
+
+initPosSentry();
 
 // Native screen containers + freeze inactive routes (react-native-screens / Expo Router).
 // Must run before navigators mount — module scope of the root layout.
@@ -58,16 +67,25 @@ try {
   // Web / unsupported; ignore.
 }
 
-console.log('🚀 ROOT LAYOUT: Module loaded successfully');
+safeLog('🚀 ROOT LAYOUT: Module loaded successfully');
+
+/** Deep links read auth state, so this must render under AuthProvider. */
+function DeepLinkNavigationBridge() {
+  useDeepLinkNavigation();
+  return null;
+}
 
 export default function RootLayout() {
+  React.useLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+    applyPosWebDocument();
+  }, []);
+
   const [isI18nReady, setIsI18nReady] = React.useState(false);
   const [fontsLoaded, fontError] = useFonts(CUSTOM_FONT_MAP);
 
   // Memory kullanımını izle
   useMemoryMonitor();
-  // Email / push / QR deep links → correct Expo Router screens
-  useDeepLinkNavigation();
 
   React.useEffect(() => {
     let mounted = true;
@@ -108,9 +126,9 @@ export default function RootLayout() {
   }, []);
 
   React.useEffect(() => {
-    console.log('🌳 ROOT LAYOUT: Mounted');
+    safeLog('🌳 ROOT LAYOUT: Mounted');
     return () => {
-      console.log('🌳 ROOT LAYOUT: Unmounted');
+      safeLog('🌳 ROOT LAYOUT: Unmounted');
     };
   }, []);
 
@@ -124,17 +142,22 @@ export default function RootLayout() {
       <ErrorBoundary>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <AuthProvider>
-            <PosStatusOverviewProvider>
-              <LicenseStatusProvider>
-                <MandantLicenseWarningProvider>
-                  <LicenseExpiryNotificationBridge />
-                  <MaintenanceProvider>
-                  <SystemProvider>
-                    <ThemeProvider>
-                      <AppStateProvider>
-                        <CartProvider>
-                          <DevelopmentModeProvider>
-                            <Stack
+            <DeepLinkNavigationBridge />
+            <VerticalProfileProvider>
+              <TaxiTripProvider>
+              <MobileServiceJobProvider>
+              <ImeiSelectionProvider>
+              <PosStatusOverviewProvider>
+                <LicenseStatusProvider>
+                  <MandantLicenseWarningProvider>
+                    <LicenseExpiryNotificationBridge />
+                    <MaintenanceProvider>
+                    <SystemProvider>
+                      <ThemeProvider>
+                        <AppStateProvider>
+                          <CartProvider>
+                            <DevelopmentModeProvider>
+                              <Stack
                               screenOptions={{
                                 headerShown: false,
                                 // With enableFreeze(true) above, inactive routes suspend (native iOS/Android).
@@ -147,18 +170,23 @@ export default function RootLayout() {
                               <Stack.Screen name="customer" />
                               <Stack.Screen name="tenant/[slug]" />
                               <Stack.Screen name="order-tracker" />
+                              <Stack.Screen name="online-payment/callback" />
                             </Stack>
-                            <ThemedStatusBar />
-                            <ThemedSystemUI />
-                          </DevelopmentModeProvider>
-                        </CartProvider>
-                      </AppStateProvider>
-                    </ThemeProvider>
-                  </SystemProvider>
-                  </MaintenanceProvider>
-                </MandantLicenseWarningProvider>
-              </LicenseStatusProvider>
-            </PosStatusOverviewProvider>
+                              <ThemedStatusBar />
+                              <ThemedSystemUI />
+                            </DevelopmentModeProvider>
+                          </CartProvider>
+                        </AppStateProvider>
+                      </ThemeProvider>
+                    </SystemProvider>
+                    </MaintenanceProvider>
+                  </MandantLicenseWarningProvider>
+                </LicenseStatusProvider>
+              </PosStatusOverviewProvider>
+              </ImeiSelectionProvider>
+              </MobileServiceJobProvider>
+              </TaxiTripProvider>
+            </VerticalProfileProvider>
           </AuthProvider>
         </SafeAreaProvider>
       </ErrorBoundary>

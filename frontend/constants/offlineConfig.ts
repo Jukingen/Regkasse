@@ -46,5 +46,6 @@ export const OFFLINE_CONFIG = {
     PAYMENTS: '/api/offline-transactions/replay',
     STATUS: '/api/pos/offline-orders/status',
     HEALTH: '/api/pos/offline/health',
+    LIMIT: '/api/pos/offline-limit',
   },
 } as const;

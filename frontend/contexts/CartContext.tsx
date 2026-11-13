@@ -6,12 +6,14 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import type { AddItemToCartRequest } from '../services/api/cartService';
 import { apiClient } from '../services/api/config';
 import type { Customer } from '../services/api/customerService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { storage } from '../utils/storage';
+import { applyOptimisticCartAdd } from '../utils/optimisticCartAdd';
 import {
   createEmptyCart,
   getCartDisplayTotals,
@@ -62,6 +64,8 @@ export interface CartItem {
   taxType?: number | string;
   /** Extra Zutaten – her biri kendi quantity ile; toplam = sum(price * quantity). */
   modifiers?: CartItemModifier[];
+  /** Catalog variant metadata. Not a fiscal field and not written into the receipt. */
+  variantId?: string;
 }
 
 /** Satır toplamı: (ürün birim fiyat * ürün miktarı) + (her modifier: price * quantity). */
@@ -69,6 +73,38 @@ export function getCartLineTotal(item: CartItem): number {
   const base = (item.unitPrice ?? item.price ?? 0) * (item.qty ?? 0);
   const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
   return base + modTotal;
+}
+
+/** Keep variant lines after the cart API replaces local items. Tax fields come from the backend line. */
+export function overlayVariantLines(optimistic: CartItem[], backend: CartItem[]): CartItem[] {
+  if (!optimistic.some((item) => item.variantId)) return backend;
+  return optimistic.map((local) => {
+    const match = backend.find((row) => row.productId === local.productId);
+    if (!local.variantId) {
+      return match ? { ...match, clientId: local.clientId ?? match.clientId } : local;
+    }
+    return {
+      ...local,
+      taxType: match?.taxType ?? local.taxType,
+      taxRate: match?.taxRate ?? local.taxRate,
+      itemId: local.itemId ?? match?.itemId,
+    };
+  });
+}
+
+function cartsWithoutVariantIds(carts: Record<number, Cart>): Record<number, Cart> {
+  const next: Record<number, Cart> = {};
+  for (const [tableId, cart] of Object.entries(carts)) {
+    next[Number(tableId)] = {
+      ...cart,
+      items: cart.items.map((item) => {
+        const next = { ...item };
+        delete next.variantId;
+        return next;
+      }),
+    };
+  }
+  return next;
 }
 
 export interface Cart {
@@ -115,7 +151,12 @@ interface CartContextType {
   addItem: (
     productId: string,
     quantity?: number,
-    options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
+    options?: {
+      modifiers?: CartItemModifier[];
+      productName?: string;
+      unitPrice?: number;
+      variantId?: string;
+    }
   ) => Promise<void>;
   /** Base + add-ons: one line for base, one per add-on (flat cart). No parent_product_id in backend; order implies link. */
   addItemWithAddOns: (
@@ -133,7 +174,7 @@ interface CartContextType {
   getCartForTable: (tableNumber: number) => Cart;
   updateItemQuantity: (productId: string, quantity: number) => Promise<void>;
   updateItemQuantityByItemId: (itemId: string, quantity: number) => Promise<void>;
-  fetchTableCart: (tableNumber: number) => Promise<void>;
+  fetchTableCart: (tableNumber: number, forceRefresh?: boolean) => Promise<void>;
   /** Modifier miktarı bağımsız: ekle (qty 1 veya mevcutsa +1), artır, azalt, kaldır. cartItemId = itemId ?? clientId */
   addModifier: (
     cartItemId: string,
@@ -196,7 +237,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await storage.setJson('cart-storage', {
           state: {
             activeTableId,
-            cartsByTable,
+            cartsByTable: cartsWithoutVariantIds(cartsByTable),
           },
           version: 0,
         });
@@ -239,7 +280,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (tableNumber: number, forceRefresh = false) => {
       // Prevent duplicate fetch for same table (Brute-force Guard)
       if (!forceRefresh && lastFetchedTableIdRef.current === tableNumber) {
-        console.log(
+        safeLog(
           `🛡️ [CartContext] Skipping fetch for Table ${tableNumber} (Already fetched/In-progress)`
         );
         return;
@@ -248,7 +289,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (forceRefresh) lastFetchedTableIdRef.current = null;
       lastFetchedTableIdRef.current = tableNumber;
       setLoading(true);
-      console.log(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
+      safeLog(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
       try {
         // GET /pos/cart/current?tableNumber=X (equivalent to GET /Table/{id})
         const response = await apiClient.get<AddItemResponse['cart']>(
@@ -264,7 +305,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...prev,
             [tableNumber]: createEmptyCart(),
           }));
-          console.log(`✅ [CartContext] Table ${tableNumber} is empty — totals reset to 0`);
+          safeLog(`✅ [CartContext] Table ${tableNumber} is empty — totals reset to 0`);
           return;
         }
 
@@ -346,7 +387,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             },
           };
         });
-        console.log(
+        safeLog(
           `✅ [CartContext] Table ${tableNumber} updated with ${backendItems.length} items`
         );
       } catch (err: any) {
@@ -378,11 +419,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (tableNumber: number) => {
       const current = activeTableIdRef.current;
       if (tableNumber === current) {
-        console.log(`[CartContext] Already on table ${tableNumber}, skipping switch.`);
+        safeLog(`[CartContext] Already on table ${tableNumber}, skipping switch.`);
         return;
       }
 
-      console.log(`[CartContext] Switching active table: ${current} -> ${tableNumber}`);
+      safeLog(`[CartContext] Switching active table: ${current} -> ${tableNumber}`);
       setActiveTableId(tableNumber);
       activeTableIdRef.current = tableNumber;
 
@@ -419,7 +460,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (
       productId: string,
       quantity: number = 1,
-      options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
+      options?: {
+        modifiers?: CartItemModifier[];
+        productName?: string;
+        unitPrice?: number;
+        variantId?: string;
+      }
     ) => {
       const currentCart = cartsByTable[activeTableId] || { items: [] };
       const rawMods = options?.modifiers ?? [];
@@ -430,60 +476,22 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         quantity: m.quantity ?? 1,
         groupId: m.groupId,
       }));
-      const modKey = getModifierKey(modifiers);
-      const productName = options?.productName ?? 'Loading...';
-      const baseUnitPrice = options?.unitPrice ?? 0;
-      const modifierTotal = modifiers.reduce((s, m) => s + m.price * m.quantity, 0);
-      const lineTotalPrice = baseUnitPrice * quantity + modifierTotal;
 
-      console.log(`➕ [CartContext] Adding item to table ${activeTableId}:`, {
+      safeLog(`➕ [CartContext] Adding item to table ${activeTableId}:`, {
         productId,
         quantity,
         modifiersCount: modifiers.length,
       });
 
-      // Aynı productId + aynı modifier set (id:qty) = mevcut satıra sadece ürün miktarı ekle; modifier miktarları değişmez
-      const existingItemIndex = currentCart.items.findIndex(
-        (item) => item.productId === productId && getModifierKey(item.modifiers) === modKey
-      );
-      let optimisticCart: Cart;
-
-      if (existingItemIndex !== -1) {
-        const item = currentCart.items[existingItemIndex];
-        const newQty = item.qty + quantity;
-        const modTotal = (item.modifiers ?? []).reduce(
-          (s, m) => s + m.price * (m.quantity ?? 1),
-          0
-        );
-        const newTotal = (item.unitPrice ?? item.price ?? 0) * newQty + modTotal;
-        optimisticCart = {
-          ...currentCart,
-          items: currentCart.items.map((it, index) =>
-            index === existingItemIndex ? { ...it, qty: newQty, totalPrice: newTotal } : it
-          ),
-          updatedAt: Date.now(),
-        };
-      } else {
-        const clientId = `ci-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        optimisticCart = {
-          ...currentCart,
-          items: [
-            ...currentCart.items,
-            {
-              productId,
-              productName,
-              price: baseUnitPrice,
-              qty: quantity,
-              unitPrice: baseUnitPrice,
-              totalPrice: lineTotalPrice,
-              modifiers: modifiers.length ? modifiers : undefined,
-              itemId: undefined,
-              clientId,
-            },
-          ],
-          updatedAt: Date.now(),
-        };
-      }
+      const optimisticCart = applyOptimisticCartAdd(currentCart, {
+        productId,
+        quantity,
+        modifiers,
+        productName: options?.productName,
+        unitPrice: options?.unitPrice,
+        variantId: options?.variantId,
+        clientId: `ci-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      });
 
       setCartsByTable((prev) => ({
         ...prev,
@@ -562,16 +570,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             };
           });
 
+          const items = overlayVariantLines(optimisticCart.items, localItems);
+          const variantLineGross = items.some((item) => item.variantId)
+            ? items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
+            : undefined;
           setCartsByTable((prev) => ({
             ...prev,
             [activeTableId]: {
-              items: localItems,
+              items,
               updatedAt: Date.now(),
               cartId: backendCart.CartId || backendCart.cartId,
-              subtotalGross: backendCart.SubtotalGross ?? backendCart.subtotalGross,
+              subtotalGross: variantLineGross ?? backendCart.SubtotalGross ?? backendCart.subtotalGross,
               subtotalNet: backendCart.SubtotalNet ?? backendCart.subtotalNet,
               includedTaxTotal: backendCart.IncludedTaxTotal ?? backendCart.includedTaxTotal,
-              grandTotalGross: backendCart.GrandTotalGross ?? backendCart.grandTotalGross,
+              grandTotalGross:
+                variantLineGross ?? backendCart.GrandTotalGross ?? backendCart.grandTotalGross,
               taxSummary: backendCart.TaxSummary ?? backendCart.taxSummary,
             },
           }));
@@ -588,7 +601,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(msg);
       }
     },
-    [activeTableId, cartsByTable, getModifierKey]
+    [activeTableId, cartsByTable]
   );
 
   /** Base + add-ons: one line for base (no modifiers), then one line per add-on. Flat cart; parent_product_id not in backend. */
@@ -634,7 +647,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      console.log('🗑️ [remove] Removing item', {
+      safeLog('🗑️ [remove] Removing item', {
         productId,
         itemId: item.itemId,
         cartId: currentCart.cartId,
@@ -652,7 +665,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Backend DELETE using itemId directly from local state
         await apiClient.delete(`/pos/cart/items/${item.itemId}`);
 
-        console.log('✅ [remove] Item removed successfully');
+        safeLog('✅ [remove] Item removed successfully');
       } catch (err: any) {
         console.error('❌ [remove] Failed to remove item', err);
         setError(err.message || 'Failed to remove item');
@@ -696,7 +709,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      console.log('🔄 [updateItemQuantity] Updating quantity', {
+      safeLog('🔄 [updateItemQuantity] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: quantity,
@@ -723,7 +736,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Notes: item.notes || '',
         });
 
-        console.log('✅ [updateItemQuantity] Quantity updated successfully');
+        safeLog('✅ [updateItemQuantity] Quantity updated successfully');
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
         console.error('❌ [updateItemQuantity] Failed to update quantity', e);
@@ -1042,7 +1055,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const newQuantity = item.qty + 1;
-      console.log('🔼 [increment] Updating quantity', {
+      safeLog('🔼 [increment] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: newQuantity,
@@ -1079,7 +1092,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Quantity: newQuantity,
           Notes: item.notes || '',
         });
-        console.log('✅ [increment] Quantity updated successfully');
+        safeLog('✅ [increment] Quantity updated successfully');
         // Totals'ı güncellemek için backend'den taze veri çek (FE KDV hesaplamaz)
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
@@ -1115,13 +1128,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // If quantity is 1, DELETE the item instead of decrementing
       if (item.qty <= 1) {
-        console.log('🔽 [decrement] Quantity is 1, removing item instead');
+        safeLog('🔽 [decrement] Quantity is 1, removing item instead');
         await remove(productId);
         return;
       }
 
       const newQuantity = item.qty - 1;
-      console.log('🔽 [decrement] Updating quantity', {
+      safeLog('🔽 [decrement] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: newQuantity,
@@ -1158,7 +1171,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Quantity: newQuantity,
           Notes: item.notes || '',
         });
-        console.log('✅ [decrement] Quantity updated successfully');
+        safeLog('✅ [decrement] Quantity updated successfully');
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
         console.error('❌ [decrement] Failed to update quantity', e);

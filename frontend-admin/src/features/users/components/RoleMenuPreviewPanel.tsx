@@ -6,22 +6,24 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Space, Typography } from 'antd';
-import React, { useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
+import React, { useMemo, useSyncExternalStore } from 'react';
 
 import {
-  buildRoleMenuPreview,
-  summarizeMenuPreview,
   type MenuPreviewNode,
   type MenuPreviewVisibility,
+  buildRoleMenuPreview,
+  summarizeMenuPreview,
 } from '@/features/users/utils/roleMenuPreview';
 import {
+  getRoleMenuPreviewSession,
   startRoleMenuPreview,
   stopRoleMenuPreview,
-  getRoleMenuPreviewSession,
   subscribeRoleMenuPreview,
 } from '@/features/users/utils/roleMenuPreviewSession';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { useI18n } from '@/i18n';
+import { toVerticalProfileMenuScope } from '@/shared/sidebarVerticalProfile';
 
 export type RoleMenuPreviewPanelProps = {
   roleName: string;
@@ -91,6 +93,7 @@ export function RoleMenuPreviewPanel({
   permissions,
 }: RoleMenuPreviewPanelProps) {
   const { t } = useI18n();
+  const verticalProfile = useAdminVerticalProfile();
   const router = useRouter();
   const permList = useMemo(
     () => (permissions instanceof Set ? [...permissions] : [...permissions]),
@@ -98,8 +101,8 @@ export function RoleMenuPreviewPanel({
   );
 
   const tree = useMemo(
-    () => buildRoleMenuPreview(roleName, permList, t),
-    [roleName, permList, t]
+    () => buildRoleMenuPreview(roleName, permList, t, toVerticalProfileMenuScope(verticalProfile)),
+    [roleName, permList, t, verticalProfile]
   );
   const stats = useMemo(() => summarizeMenuPreview(tree), [tree]);
   const activePreview = useSyncExternalStore(

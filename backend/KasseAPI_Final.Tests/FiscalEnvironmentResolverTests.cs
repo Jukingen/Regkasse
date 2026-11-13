@@ -126,4 +126,69 @@ public sealed class FiscalEnvironmentResolverTests
         Assert.True(result.IsDemoFiscal);
         Assert.Equal("RKSV-konform (Registrierkassensicherheitsverordnung)", result.RksvFooterLabel);
     }
+
+    [Fact]
+    public void Resolve_HidesDemoLabel_WhenShowDemoLabelFalseInDevelopment()
+    {
+        var env = Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development);
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RKSV:Mode"] = "Production",
+                ["RKSV:ShowDemoLabel"] = "false"
+            })
+            .Build();
+
+        var result = FiscalEnvironmentResolver.Resolve(
+            env,
+            new TseOptions { Mode = "Fake", TseMode = "Demo" },
+            config,
+            rksvOptions: new RksvOptions { Mode = "Production", ShowDemoLabel = false },
+            rksvEnvironment: CreateRksvEnvironment(new Dictionary<string, string?>
+            {
+                ["RKSV:Mode"] = "Production",
+                ["RKSV:ShowDemoLabel"] = "false"
+            }, Environments.Development));
+
+        Assert.True(result.IsDemoFiscal);
+        Assert.Equal("RKSV-konform (Registrierkassensicherheitsverordnung)", result.RksvFooterLabel);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsProduction_OnDevelopmentHost_WhenOverlayIsProductionReal()
+    {
+        var overlay = new RksvRuntimeSnapshot(
+            Mode: RksvRuntimeConfig.ModeProduction,
+            TseMode: RksvRuntimeConfig.IntegrationReal,
+            FinanzOnlineMode: RksvRuntimeConfig.IntegrationReal,
+            ShowDemoLabel: false,
+            OverlayPersisted: true,
+            Source: RksvRuntimeSnapshot.SourceDatabase,
+            UpdatedAtUtc: DateTime.UtcNow,
+            UpdatedByUserId: null);
+
+        var runtime = new Mock<IRksvRuntimeConfigService>();
+        runtime.Setup(r => r.GetEffective()).Returns(overlay);
+        var env = Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development);
+        var rksv = new RksvEnvironmentService(
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["RKSV:Mode"] = "Demo",
+                    ["RKSV:ShowDemoLabel"] = "true",
+                })
+                .Build(),
+            env,
+            runtime.Object);
+
+        var result = FiscalEnvironmentResolver.Resolve(
+            env,
+            new TseOptions { Mode = "Real", TseMode = "Device" },
+            rksvEnvironment: rksv);
+
+        Assert.False(result.IsDemoFiscal);
+        Assert.Equal("Production", result.EnvironmentName);
+        Assert.Equal("TSE AKTIV", result.TseStatusBadge);
+        Assert.Equal("RKSV-konform (Registrierkassensicherheitsverordnung)", result.RksvFooterLabel);
+    }
 }

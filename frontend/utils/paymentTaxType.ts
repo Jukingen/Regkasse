@@ -24,6 +24,8 @@ export type PosPaymentItemTaxInput = {
   productId: string;
   quantity: number;
   taxType?: string | number | null;
+  imei?: string;
+  variantId?: string;
 };
 
 /**
@@ -32,10 +34,18 @@ export type PosPaymentItemTaxInput = {
  */
 export function normalizePosPaymentItemsForRequest(
   items: readonly PosPaymentItemTaxInput[]
-): { productId: string; quantity: number; taxType: 'standard' | 'reduced' | 'special' }[] {
+): {
+  productId: string;
+  quantity: number;
+  taxType: 'standard' | 'reduced' | 'special';
+  imei?: string;
+  variantId?: string;
+}[] {
   return items.map((item) => ({
     productId: item.productId,
     quantity: item.quantity,
     taxType: normalizeCartLineTaxTypeForPayment(item.taxType),
+    ...(item.imei ? { imei: item.imei } : {}),
+    ...(item.variantId ? { variantId: item.variantId } : {}),
   }));
 }

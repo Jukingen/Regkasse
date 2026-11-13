@@ -23,7 +23,7 @@ describe('licensePaymentRedirect', () => {
   it('falls back to billing for Super Admin and mailto for Manager', () => {
     vi.stubEnv('NEXT_PUBLIC_LICENSE_PAYMENT_URL', '');
     expect(resolveLicensePaymentRedirectTarget({ isSuperAdmin: true })).toEqual({
-      href: '/admin/billing',
+      href: '/admin/billing/sales',
       kind: 'internal',
     });
     const manager = resolveLicensePaymentRedirectTarget({ isSuperAdmin: false });
@@ -35,6 +35,6 @@ describe('licensePaymentRedirect', () => {
     vi.stubEnv('NEXT_PUBLIC_LICENSE_PAYMENT_URL', '');
     const pushInternal = vi.fn();
     redirectToLicensePayment({ isSuperAdmin: true, pushInternal });
-    expect(pushInternal).toHaveBeenCalledWith('/admin/billing');
+    expect(pushInternal).toHaveBeenCalledWith('/admin/billing/sales');
   });
 });

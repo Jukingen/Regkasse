@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 
 import { authStorage } from '@/features/auth/services/authStorage';
-import { decodeJwtPayload } from '@/lib/auth/jwtPayload';
 
 /** Warn when impersonation JWT expires within this many minutes (exclusive: 5 min left still OK). */
 export const IMPERSONATION_EXPIRY_WARN_MINUTES = 5;
@@ -16,19 +15,11 @@ export type ImpersonationTokenExpiryState = {
 
 /** Exported for unit tests (JWT `exp` → minutes remaining, warn when under 5 min). */
 export function computeImpersonationTokenExpiryState(
-  token: string | null
+  expiresAtMs: number | null
 ): ImpersonationTokenExpiryState {
-  if (!token) {
+  if (expiresAtMs == null || !Number.isFinite(expiresAtMs)) {
     return { expiresAtMs: null, minutesRemaining: null, shouldWarn: false };
   }
-
-  const payload = decodeJwtPayload(token);
-  const exp = payload?.exp;
-  if (typeof exp !== 'number' || !Number.isFinite(exp)) {
-    return { expiresAtMs: null, minutesRemaining: null, shouldWarn: false };
-  }
-
-  const expiresAtMs = exp * 1000;
   const msRemaining = expiresAtMs - Date.now();
   const minutesRemaining = Math.max(0, Math.floor(msRemaining / 60_000));
   const shouldWarn = msRemaining > 0 && minutesRemaining < IMPERSONATION_EXPIRY_WARN_MINUTES;
@@ -42,7 +33,7 @@ export function computeImpersonationTokenExpiryState(
 export function useImpersonationTokenExpiry(enabled: boolean): ImpersonationTokenExpiryState {
   const [state, setState] = useState<ImpersonationTokenExpiryState>(() =>
     enabled
-      ? computeImpersonationTokenExpiryState(authStorage.getToken())
+      ? computeImpersonationTokenExpiryState(authStorage.getAccessExpiresAtMs())
       : { expiresAtMs: null, minutesRemaining: null, shouldWarn: false }
   );
 
@@ -52,7 +43,7 @@ export function useImpersonationTokenExpiry(enabled: boolean): ImpersonationToke
       return;
     }
 
-    const tick = () => setState(computeImpersonationTokenExpiryState(authStorage.getToken()));
+    const tick = () => setState(computeImpersonationTokenExpiryState(authStorage.getAccessExpiresAtMs()));
     tick();
     const id = window.setInterval(tick, 30_000);
     return () => window.clearInterval(id);

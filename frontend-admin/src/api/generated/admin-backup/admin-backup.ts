@@ -35,23 +35,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiAdminBackupStatusLatest = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BackupLatestStatusResponseDto>(
       {url: `/api/admin/backup/status/latest`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupStatusLatestQueryKey = () => {
     return [`/api/admin/backup/status/latest`] as const;
     }
 
-    
+
 export const getGetApiAdminBackupStatusLatestQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupStatusLatest>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupStatusLatest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -59,13 +59,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupStatusLatestQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupStatusLatest>>> = ({ signal }) => getApiAdminBackupStatusLatest(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupStatusLatest>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,23 +90,23 @@ export const useGetApiAdminBackupStatusLatest = <TData = Awaited<ReturnType<type
 
 
 export const getApiAdminBackupRecoverabilitySummary = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BackupRecoverabilitySummaryResponseDto>(
       {url: `/api/admin/backup/recoverability-summary`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupRecoverabilitySummaryQueryKey = () => {
     return [`/api/admin/backup/recoverability-summary`] as const;
     }
 
-    
+
 export const getGetApiAdminBackupRecoverabilitySummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -114,13 +114,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRecoverabilitySummaryQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>> = ({ signal }) => getApiAdminBackupRecoverabilitySummary(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -147,8 +147,8 @@ export const useGetApiAdminBackupRecoverabilitySummary = <TData = Awaited<Return
 export const postApiAdminBackupTrigger = (
     backupTriggerRequestDto?: BackupTriggerRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<BackupTriggerResponseDto>(
       {url: `/api/admin/backup/trigger`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -156,7 +156,7 @@ export const postApiAdminBackupTrigger = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiAdminBackupTriggerMutationOptions = <TError = unknown,
@@ -164,7 +164,7 @@ export const getPostApiAdminBackupTriggerMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, TError,{data: BackupTriggerRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, {data: BackupTriggerRequestDto}> = (props) => {
@@ -173,7 +173,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiAdminBackupTrigger(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -199,21 +199,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiAdminBackupRunsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BackupHistoryResponseDto>(
       {url: `/api/admin/backup/runs`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupRunsQueryKey = (params?: GetApiAdminBackupRunsParams,) => {
     return [`/api/admin/backup/runs`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAdminBackupRunsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRuns>>, TError = unknown>(params?: GetApiAdminBackupRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRuns>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -221,13 +221,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRuns>>> = ({ signal }) => getApiAdminBackupRuns(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRuns>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -255,20 +255,20 @@ export const getApiAdminBackupRunsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BackupRunResponseDto>(
       {url: `/api/admin/backup/runs/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupRunsIdQueryKey = (id: string,) => {
     return [`/api/admin/backup/runs/${id}`] as const;
     }
 
-    
+
 export const getGetApiAdminBackupRunsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsId>>, TError = void>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -276,13 +276,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsId>>> = ({ signal }) => getApiAdminBackupRunsId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -311,22 +311,22 @@ export const getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = (
     artifactId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`, method: 'GET',
         responseType: 'blob', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryKey = (runId: string,
     artifactId: string,) => {
     return [`/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`] as const;
     }
 
-    
+
 export const getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError = void>(runId: string,
     artifactId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -335,13 +335,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryKey(runId,artifactId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>> = ({ signal }) => getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload(runId,artifactId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(runId && artifactId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -367,23 +367,23 @@ export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData =
 
 
 export const getApiAdminBackupVerificationLatest = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<GetApiAdminBackupVerificationLatest200>(
       {url: `/api/admin/backup/verification/latest`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminBackupVerificationLatestQueryKey = () => {
     return [`/api/admin/backup/verification/latest`] as const;
     }
 
-    
+
 export const getGetApiAdminBackupVerificationLatestQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupVerificationLatest>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupVerificationLatest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -391,13 +391,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupVerificationLatestQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupVerificationLatest>>> = ({ signal }) => getApiAdminBackupVerificationLatest(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupVerificationLatest>>, TError, TData> & { queryKey: QueryKey }
 }

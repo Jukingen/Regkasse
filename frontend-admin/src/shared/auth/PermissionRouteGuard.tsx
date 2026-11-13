@@ -6,9 +6,14 @@ import React, { ReactNode, useEffect, useMemo } from 'react';
 
 import { isChangePasswordPath } from '@/features/auth/constants/changePasswordRoute';
 import { AuthStatus, useAuth } from '@/features/auth/hooks/useAuth';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { ForbiddenAccessView } from '@/shared/auth/ForbiddenAccessView';
 import { rememberAllowedAdminPath } from '@/shared/auth/useSafeNavigateBack';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import {
+  resolveVerticalProfileRouteAccess,
+  toVerticalProfileMenuScope,
+} from '@/shared/sidebarVerticalProfile';
 
 import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
 import { getRequiredPermissionForPath, permissionsSatisfyRoute } from './routePermissions';
@@ -34,6 +39,7 @@ function checkRoutePermission(pathname: string, permissions: string[]): boolean 
 export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const pathname = usePathname();
   const { user, authStatus, isAuthInitializing } = useAuth();
+  const verticalProfile = useAdminVerticalProfile();
   const permissions = (user as { permissions?: string[] } | undefined)?.permissions ?? [];
 
   const isProduction = process.env.NODE_ENV === 'production';
@@ -55,6 +61,12 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
       return 'no_permissions';
     }
     if (!checkRoutePermission(pathname, permissions)) return 'insufficient';
+    const profileAccess = resolveVerticalProfileRouteAccess(
+      pathname,
+      toVerticalProfileMenuScope(verticalProfile)
+    );
+    if (profileAccess === 'pending') return 'loading';
+    if (profileAccess === 'deny') return 'insufficient';
     return 'allowed';
   }, [
     isAuthInitializing,
@@ -63,6 +75,7 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
     pathname,
     allowEmptyPermissionsForRouteAccess,
     user?.mustChangePasswordOnNextLogin,
+    verticalProfile,
   ]);
 
   useEffect(() => {

@@ -112,7 +112,7 @@ export const PERMISSION_GROUPS = {
     labelKey: 'users.roleDrawer.groups.zahlung',
     icon: 'CreditCardOutlined',
     menuKeys: [],
-    sidebarGroupIds: ['operations'],
+    sidebarGroupIds: ['operations', 'finance'],
     resourcePrefixes: ['payment', 'refund', 'discount', 'voucher'],
     permissions: [
       PERMISSIONS.PAYMENT_VIEW,
@@ -137,7 +137,7 @@ export const PERMISSION_GROUPS = {
     icon: 'SafetyCertificateOutlined',
     menuKeys: ['rksv', 'finanzOnline'],
     sidebarGroupIds: ['rksv'],
-    resourcePrefixes: ['finanzonline', 'tse', 'rksv'],
+    resourcePrefixes: ['finanzonline', 'tse', 'rksv', 'fiskaly'],
     permissions: [
       PERMISSIONS.FINANZONLINE_VIEW,
       PERMISSIONS.FINANZONLINE_MANAGE,
@@ -189,7 +189,7 @@ export const PERMISSION_GROUPS = {
     labelKey: 'users.roleDrawer.groups.audit_berichte',
     icon: 'BarChartOutlined',
     menuKeys: ['reports'],
-    sidebarGroupIds: ['reports', 'rksv'],
+    sidebarGroupIds: ['finance', 'reports', 'rksv'],
     resourcePrefixes: ['audit', 'report'],
     permissions: [
       PERMISSIONS.REPORT_VIEW,
@@ -243,7 +243,7 @@ export const PERMISSION_GROUPS = {
     labelKey: 'users.roleDrawer.groups.system',
     icon: 'ToolOutlined',
     menuKeys: ['tenants', 'billing'],
-    sidebarGroupIds: ['administration', 'license'],
+    sidebarGroupIds: ['administration', 'securityTse', 'deploymentSystem', 'monitoringLogs', 'license', 'system'],
     resourcePrefixes: ['system', 'tenant', 'risk'],
     permissions: [
       PERMISSIONS.SYSTEM_CRITICAL,

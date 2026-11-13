@@ -19,10 +19,13 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { TseActiveTenantTag } from '@/features/tse-shared/components/TseTenantContextUi';
+import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
 import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import {
   getFailoverHistory,
@@ -47,7 +50,7 @@ import type { TseFailoverDevice } from '@/features/tse-failover/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDate, formatUtcDateTime } from '@/lib/dateUtils';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -77,19 +80,12 @@ export default function TseFailoverPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
-  const { tenantId: contextTenantId } = useTsePageTenant();
+  const { tenantId, isReady } = useTsePageTenant();
 
   const [manualPrimaryId, setManualPrimaryId] = useState<string | null>(null);
   const [manualBackupId, setManualBackupId] = useState<string | undefined>();
-  const [reportTenantId, setReportTenantId] = useState<string | undefined>();
   const [trendDays, setTrendDays] = useState(7);
   const [perfDeviceId, setPerfDeviceId] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (contextTenantId) {
-      setReportTenantId(contextTenantId);
-    }
-  }, [contextTenantId]);
 
   const devicesQuery = useQuery({
     queryKey: DEVICES_KEY,
@@ -112,22 +108,22 @@ export default function TseFailoverPage() {
   });
 
   const healthReportQuery = useQuery({
-    queryKey: ['admin', 'tse-failover', 'health-report', reportTenantId],
-    queryFn: ({ signal }) => getTseHealthReport(reportTenantId!, signal),
-    enabled: allowed && !!reportTenantId,
+    queryKey: ['admin', 'tse-failover', 'health-report', tenantId],
+    queryFn: ({ signal }) => getTseHealthReport(tenantId!, signal),
+    enabled: allowed && !!tenantId,
   });
 
   const healthTrendQuery = useQuery({
-    queryKey: ['admin', 'tse-failover', 'health-trend', reportTenantId, trendDays],
-    queryFn: ({ signal }) => getTseHealthTrend(reportTenantId!, trendDays, undefined, signal),
-    enabled: allowed && !!reportTenantId,
+    queryKey: ['admin', 'tse-failover', 'health-trend', tenantId, trendDays],
+    queryFn: ({ signal }) => getTseHealthTrend(tenantId!, trendDays, undefined, signal),
+    enabled: allowed && !!tenantId,
   });
 
   const tenantDevices = useMemo(() => {
     const all = devicesQuery.data ?? [];
-    if (!reportTenantId) return [];
-    return all.filter((d) => d.tenantId === reportTenantId);
-  }, [devicesQuery.data, reportTenantId]);
+    if (!tenantId) return [];
+    return all.filter((d) => d.tenantId === tenantId);
+  }, [devicesQuery.data, tenantId]);
 
   const effectivePerfDeviceId = useMemo(() => {
     if (perfDeviceId && tenantDevices.some((d) => d.id === perfDeviceId)) {
@@ -151,37 +147,37 @@ export default function TseFailoverPage() {
   });
 
   const complianceStatusQuery = useQuery({
-    queryKey: ['admin', 'tse-compliance', 'status', reportTenantId],
-    queryFn: ({ signal }) => getTseComplianceStatus(reportTenantId!, signal),
-    enabled: allowed && !!reportTenantId,
+    queryKey: ['admin', 'tse-compliance', 'status', tenantId],
+    queryFn: ({ signal }) => getTseComplianceStatus(tenantId!, signal),
+    enabled: allowed && !!tenantId,
     refetchInterval: 60_000,
   });
 
   const complianceReportQuery = useQuery({
-    queryKey: ['admin', 'tse-compliance', 'report', reportTenantId, trendDays],
+    queryKey: ['admin', 'tse-compliance', 'report', tenantId, trendDays],
     queryFn: ({ signal }) => {
       const toUtc = new Date();
       const fromUtc = new Date(toUtc.getTime() - trendDays * 24 * 60 * 60 * 1000);
       return getTseComplianceReport(
-        reportTenantId!,
+        tenantId!,
         fromUtc.toISOString(),
         toUtc.toISOString(),
         signal
       );
     },
-    enabled: allowed && !!reportTenantId,
+    enabled: allowed && !!tenantId,
   });
 
   const costReportQuery = useQuery({
-    queryKey: ['admin', 'tse-failover', 'cost-report', reportTenantId],
-    queryFn: ({ signal }) => getTseCostReport(reportTenantId!, 30, signal),
-    enabled: allowed && !!reportTenantId,
+    queryKey: ['admin', 'tse-failover', 'cost-report', tenantId],
+    queryFn: ({ signal }) => getTseCostReport(tenantId!, 30, signal),
+    enabled: allowed && !!tenantId,
   });
 
   const costAnomalyQuery = useQuery({
-    queryKey: ['admin', 'tse-failover', 'cost-anomalies', reportTenantId],
-    queryFn: ({ signal }) => getTseCostAnomalies(reportTenantId!, signal),
-    enabled: allowed && !!reportTenantId,
+    queryKey: ['admin', 'tse-failover', 'cost-anomalies', tenantId],
+    queryFn: ({ signal }) => getTseCostAnomalies(tenantId!, signal),
+    enabled: allowed && !!tenantId,
     refetchInterval: 60_000,
   });
 
@@ -240,15 +236,6 @@ export default function TseFailoverPage() {
   const status = statusQuery.data;
   const history = historyQuery.data ?? [];
   const report = healthReportQuery.data;
-
-  const tenantOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const d of devices) {
-      if (!d.tenantId) continue;
-      map.set(d.tenantId, d.tenantName || d.tenantSlug || d.tenantId);
-    }
-    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-  }, [devices]);
 
   const backupOptions = useMemo(() => {
     if (!manualPrimaryId) return [];
@@ -371,11 +358,11 @@ export default function TseFailoverPage() {
     <div style={{ padding: 24 }}>
       <AdminPageHeader
         title={t('tseFailover.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', [
           { title: t('nav.adminTseManagement'), href: '/admin/tse-management' },
           { title: t('tseFailover.title') },
-        ]}
+        ])}
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Text type="secondary">{t('tseFailover.subtitle')}</Typography.Text>
       </AdminPageHeader>
@@ -459,36 +446,23 @@ export default function TseFailoverPage() {
         title={t('tseFailover.healthReportTitle')}
         style={{ marginBottom: 16 }}
         extra={
-          <Space wrap>
-            <Select
-              style={{ minWidth: 220 }}
-              placeholder={t('tseFailover.healthReportSelectTenant')}
-              options={tenantOptions}
-              value={reportTenantId}
-              onChange={(v) => {
-                setReportTenantId(v);
-                setPerfDeviceId(undefined);
-              }}
-              allowClear
-              showSearch
-              optionFilterProp="label"
-            />
-            <TseActiveTenantTag />
-            <Select
-              style={{ width: 120 }}
-              value={trendDays}
-              onChange={setTrendDays}
-              options={[
-                { value: 7, label: `7 ${t('tseFailover.trendDaysLabel')}` },
-                { value: 14, label: `14 ${t('tseFailover.trendDaysLabel')}` },
-                { value: 30, label: `30 ${t('tseFailover.trendDaysLabel')}` },
-              ]}
-            />
-          </Space>
+          <Select
+            style={{ width: 120 }}
+            value={trendDays}
+            onChange={(v) => {
+              setTrendDays(v);
+              setPerfDeviceId(undefined);
+            }}
+            options={[
+              { value: 7, label: `7 ${t('tseFailover.trendDaysLabel')}` },
+              { value: 14, label: `14 ${t('tseFailover.trendDaysLabel')}` },
+              { value: 30, label: `30 ${t('tseFailover.trendDaysLabel')}` },
+            ]}
+          />
         }
       >
-        {!reportTenantId ? (
-          <Typography.Text type="secondary">{t('tseFailover.healthReportSelectTenant')}</Typography.Text>
+        {!isReady ? (
+          <TseTenantRequiredAlert emptySelectKey="tseFailover.healthReportSelectTenant" />
         ) : (
           <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Row gutter={[16, 16]}>

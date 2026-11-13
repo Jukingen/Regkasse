@@ -2,15 +2,20 @@
 
 import { CloudSyncOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Descriptions, Divider, Drawer, Space, Tag, Typography } from 'antd';
+import { Button, Descriptions, Divider, Drawer, Space, Tooltip, Typography } from 'antd';
 
 import type { CashRegister } from '@/api/generated/model';
 import { getCashRegisterTseHealth } from '@/features/cash-registers/api/cashRegisters';
+import { CashRegisterAssignedUserField } from '@/features/cash-registers/components/CashRegisterAssignedUserField';
+import { CashierDisplay } from '@/features/cash-registers/components/CashierDisplay';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
+import { useCashRegisterPermissions } from '@/features/cash-registers/hooks/useCashRegisterPermissions';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
+  isDecommissionedRegister,
   rawRegisterStatus,
   readDecommissionMeta,
   readStartbelegCreatedAt,
@@ -40,10 +45,12 @@ export function CashRegisterDetailDrawer({
   const { t, formatLocale } = useI18n();
   const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
   const status = register ? rawRegisterStatus(register) : undefined;
+  const decommissioned = isDecommissionedRegister(status);
   const decommissionMeta = register ? readDecommissionMeta(register) : null;
   const registerNumber = register?.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY;
   const enhanced = register as EnhancedCashRegister | null;
   const registerId = register?.id?.trim();
+  const permissions = useCashRegisterPermissions(enhanced);
 
   const tseHealthQuery = useQuery({
     queryKey: ['admin', 'cash-registers', registerId, 'tse-health'],
@@ -51,12 +58,6 @@ export function CashRegisterDetailDrawer({
     enabled: open && Boolean(registerId),
     staleTime: 15_000,
   });
-
-  const cashierName =
-    enhanced?.currentCashierName?.trim() ||
-    register?.currentUser?.userName?.trim() ||
-    register?.currentUserId?.trim() ||
-    null;
 
   const startbelegCreatedAt = readStartbelegCreatedAt(register);
 
@@ -75,6 +76,7 @@ export function CashRegisterDetailDrawer({
       {register ? (
         <CashRegisterStatusContextAlert register={register} showOpenPrerequisites />
       ) : null}
+      <LimitWarning limitKey="maxActiveRegistersPerUser" />
       {register ? (
         <Descriptions column={1} bordered size="small">
           <Descriptions.Item label={t('cashRegisters.detail.location')}>
@@ -98,7 +100,25 @@ export function CashRegisterDetailDrawer({
             {formatCurrency(register.startingBalance, formatLocale)}
           </Descriptions.Item>
           <Descriptions.Item label={t('cashRegisters.detail.currentCashier')}>
-            {cashierName ?? FORMAT_EMPTY_DISPLAY}
+            <CashierDisplay
+              user={register.currentUser}
+              displayName={enhanced?.currentCashierName}
+              userName={enhanced?.currentCashierUserName ?? register.currentUser?.userName}
+              email={enhanced?.currentCashierEmail ?? register.currentUser?.email}
+            />
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cashRegisters.detail.assignedUser')}>
+            {registerId ? (
+              <CashRegisterAssignedUserField
+                registerId={registerId}
+                assignedUserId={enhanced?.assignedUserId}
+                assignedUserName={enhanced?.assignedUserName}
+                canEdit={permissions.canAssignUser}
+                disabled={decommissioned}
+              />
+            ) : (
+              FORMAT_EMPTY_DISPLAY
+            )}
           </Descriptions.Item>
           <Descriptions.Item label={t('cashRegisters.detail.lastSyncAtUtc')}>
             {enhanced?.lastSyncAtUtc
@@ -195,18 +215,51 @@ export function CashRegisterDetailDrawer({
             {t('cashRegisters.detail.specialReceiptsTitle')}
           </Typography.Title>
           <Space wrap>
-            <Button size="small" href="/rksv/sonderbelege?focus=startbeleg">
-              {t('receipts.specialKind.startbeleg')}
-            </Button>
-            <Button size="small" href="/rksv/sonderbelege?focus=monatsbeleg">
-              {t('receipts.specialKind.monatsbeleg')}
-            </Button>
-            <Button size="small" href="/rksv/sonderbelege?focus=jahresbeleg">
-              {t('receipts.specialKind.jahresbeleg')}
-            </Button>
-            <Button size="small" danger href="/rksv/sonderbelege?focus=schlussbeleg">
-              {t('receipts.specialKind.schlussbeleg')}
-            </Button>
+            {(
+              [
+                {
+                  href: '/rksv/sonderbelege?focus=startbeleg',
+                  label: t('receipts.specialKind.startbeleg'),
+                  danger: false,
+                },
+                {
+                  href: '/rksv/sonderbelege?focus=monatsbeleg',
+                  label: t('receipts.specialKind.monatsbeleg'),
+                  danger: false,
+                },
+                {
+                  href: '/rksv/sonderbelege?focus=jahresbeleg',
+                  label: t('receipts.specialKind.jahresbeleg'),
+                  danger: false,
+                },
+                {
+                  href: '/rksv/sonderbelege?focus=schlussbeleg',
+                  label: t('receipts.specialKind.schlussbeleg'),
+                  danger: true,
+                },
+              ] as const
+            ).map((item) => {
+              const button = (
+                <Button
+                  size="small"
+                  danger={item.danger}
+                  disabled={decommissioned}
+                  href={decommissioned ? undefined : item.href}
+                >
+                  {item.label}
+                </Button>
+              );
+              return decommissioned ? (
+                <Tooltip
+                  key={item.href}
+                  title={t('cashRegisters.actions.decommissionedCannotCreateSpecialReceipts')}
+                >
+                  <span>{button}</span>
+                </Tooltip>
+              ) : (
+                <span key={item.href}>{button}</span>
+              );
+            })}
           </Space>
         </>
       ) : null}

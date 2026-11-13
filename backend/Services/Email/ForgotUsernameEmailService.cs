@@ -58,12 +58,12 @@ public sealed class ForgotUsernameEmailService : IForgotUsernameEmailService
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Forgot-username email sent to {EmailMasked}.", MaskEmail(to));
+            _logger.LogInformation("Forgot-username email sent to {EmailMasked}.", EmailLogMask.Mask(to));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Forgot-username email could not be sent to {EmailMasked}.", MaskEmail(to));
+            _logger.LogWarning(ex, "Forgot-username email could not be sent to {EmailMasked}.", EmailLogMask.Mask(to));
             return false;
         }
     }
@@ -89,9 +89,4 @@ public sealed class ForgotUsernameEmailService : IForgotUsernameEmailService
             ]);
     }
 
-    private static string MaskEmail(string email)
-    {
-        var at = email.IndexOf('@');
-        return at <= 1 ? "***" : $"{email[..2]}***{email[at..]}";
-    }
 }

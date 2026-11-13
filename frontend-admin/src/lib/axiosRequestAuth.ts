@@ -13,7 +13,9 @@ export type AxiosRequestAuthInput = {
   /** Extra headers (e.g. CSRF) applied after auth/tenant. */
   extraHeaders?: Record<string, string>;
   /**
-   * Development only: also set `?tenant=` when the slug is present and not already set.
+   * Optional Development fallback: also set `?tenant=` when the slug is present and not already set.
+   * Prefer `X-Tenant-Id` (always set when slug is present). The FA axios interceptor does **not**
+   * inject the query by default — enable only for callers that cannot send headers.
    * Production must not inject this query param.
    */
   injectDevTenantQuery?: boolean;
@@ -21,7 +23,7 @@ export type AxiosRequestAuthInput = {
 
 /**
  * Sets Authorization, X-Tenant-Id, Accept-Language (and optional extras) via AxiosHeaders.
- * Mutates and returns `config` for interceptor chaining.
+ * Prefers header over query for tenant resolution. Mutates and returns `config` for interceptor chaining.
  */
 export function applyAxiosRequestAuthHeaders<T extends AxiosRequestConfig>(
   config: T,
@@ -36,8 +38,13 @@ export function applyAxiosRequestAuthHeaders<T extends AxiosRequestConfig>(
 
   const tenantSlug = input.tenantSlug?.trim();
   if (tenantSlug) {
-    headers.set(TENANT_HTTP_HEADER, tenantSlug);
+    // Preserve an explicit per-request override (e.g. Super Admin TSE backup modal).
+    const existingTenantHeader = readAxiosHeader(headers, TENANT_HTTP_HEADER)?.trim();
+    if (!existingTenantHeader) {
+      headers.set(TENANT_HTTP_HEADER, tenantSlug);
+    }
 
+    // Query is opt-in fallback only — prefer header (see injectDevTenantQuery).
     if (input.injectDevTenantQuery) {
       const params = config.params ?? {};
       if (typeof params === 'object' && params !== null && !Array.isArray(params)) {
@@ -81,4 +88,43 @@ export function readAxiosHeader(
   const direct = bag[name] ?? bag[name.toLowerCase()];
   if (direct == null) return undefined;
   return Array.isArray(direct) ? direct.map(String).join(', ') : String(direct);
+}
+
+/** Strips optional `Bearer ` prefix from an Authorization header value. */
+export function extractBearerTokenFromAuthorization(
+  authorizationHeader: string | null | undefined
+): string | null {
+  if (authorizationHeader == null) {
+    return null;
+  }
+  const trimmed = authorizationHeader.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (/^bearer\s+/i.test(trimmed)) {
+    const token = trimmed.replace(/^bearer\s+/i, '').trim();
+    return token || null;
+  }
+  return trimmed;
+}
+
+/**
+ * On public auth routes (`/login`), a late 401 from a pre-login `/me` must not wipe tokens
+ * that a successful login just stored. Clear only when there is no current token, or the
+ * failed request used that same current token.
+ */
+export function shouldClearStoredTokenAfterPublicAuth401(params: {
+  requestAuthorizationHeader: string | null | undefined;
+  currentAccessToken: string | null | undefined;
+}): boolean {
+  const current = params.currentAccessToken?.trim() || null;
+  if (!current) {
+    return true;
+  }
+  const requestToken = extractBearerTokenFromAuthorization(params.requestAuthorizationHeader);
+  if (!requestToken) {
+    // Request left without Bearer — likely raced before login persist; keep the newer token.
+    return false;
+  }
+  return requestToken === current;
 }

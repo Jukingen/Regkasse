@@ -37,9 +37,9 @@ describe('resolveEffectiveTenant', () => {
     const result = resolveEffectiveTenant(
       null,
       {
-        id: 'default-id',
-        slug: 'default',
-        name: 'Default',
+        id: 'acme-id',
+        slug: 'acme',
+        name: 'Acme',
         licenseValid: true,
         licenseValidUntilUtc: '2026-01-01T00:00:00Z',
       },

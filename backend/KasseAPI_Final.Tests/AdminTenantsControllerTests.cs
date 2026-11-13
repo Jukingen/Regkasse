@@ -5,11 +5,16 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
@@ -87,11 +92,18 @@ public sealed class AdminTenantsControllerTests
         ITenantProvisioningService? provisioning = null)
     {
         var provisioningMock = provisioning ?? CreateSuccessfulProvisioningMock();
+        var checklist = new Mock<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService>();
+        checklist
+            .Setup(c => c.EnsureAndGetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KasseAPI_Final.Services.Onboarding.TenantOnboardingOverviewDto());
+
         return new TenantOnboardingService(
             db,
             provisioningMock,
             Mock.Of<IWelcomeEmailService>(),
             Mock.Of<IAuditLogService>(),
+            checklist.Object,
+            new CountryProfileRegistry(),
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
@@ -136,7 +148,8 @@ public sealed class AdminTenantsControllerTests
         IHttpContextAccessor? httpContextAccessor = null,
         ICurrentTenantAccessor? tenantAccessor = null,
         IHostEnvironment? environment = null,
-        TenantDeletionOptions? deletionOptions = null)
+        TenantDeletionOptions? deletionOptions = null,
+        IActivityEventPublisher? activity = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var tenantDeletion = CreateTenantDeletionService(db, audit, environment, deletionOptions);
@@ -156,7 +169,10 @@ public sealed class AdminTenantsControllerTests
             decommissionService ?? Mock.Of<ICashRegisterDecommissionService>(),
             accessor,
             tenantScopeAccessor,
-            Mock.Of<ILogger<AdminTenantService>>());
+            Mock.Of<ILogger<AdminTenantService>>(),
+            new CountryProfileRegistry(),
+            audit,
+            activity);
     }
 
     private static IHttpContextAccessor CreateHttpContextAccessor(ClaimsPrincipal? user = null)
@@ -184,16 +200,21 @@ public sealed class AdminTenantsControllerTests
         IAdminTenantLicenseService? tenantLicenseService = null,
         ITenantDeletionService? tenantDeletionService = null,
         IHostEnvironment? environment = null,
-        ClaimsPrincipal? user = null)
+        ClaimsPrincipal? user = null,
+        ITenantDemoSeeder? demoSeeder = null,
+        IAuditLogService? auditLog = null)
     {
         var controller = new AdminTenantsController(
             tenantService ?? Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
             tenantLicenseService ?? Mock.Of<IAdminTenantLicenseService>(),
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
-            Mock.Of<IAuditLogService>(),
+            auditLog ?? Mock.Of<IAuditLogService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            demoSeeder ?? Mock.Of<ITenantDemoSeeder>());
 
         controller.ControllerContext = new ControllerContext
         {
@@ -237,8 +258,12 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<bool>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool>(),
+                It.IsAny<int?>(),
+                It.IsAny<CountryProfile?>(),
+                It.IsAny<VatRegime>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, CancellationToken _) =>
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CountryProfile? ______, VatRegime _______, bool ________, CancellationToken _) =>
             {
                 if (grantTrial)
                     t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);
@@ -346,7 +371,13 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
 
         var (result, error) = await service.CreateAsync(
-            new CreateAdminTenantRequest { Name = "Acme Demo", Slug = "acme-demo" },
+            new CreateAdminTenantRequest
+            {
+                Name = "Acme Demo",
+                Slug = "acme-demo",
+                CountryCode = "AT",
+                VatRegime = VatRegime.AT_RKSV_STANDARD,
+            },
             "actor-1");
 
         Assert.Null(error);
@@ -379,7 +410,7 @@ public sealed class AdminTenantsControllerTests
         Assert.True(success);
         Assert.Null(error);
         var row = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
-        Assert.Equal(TenantStatuses.Deleted, row.Status);
+        Assert.Equal(TenantStatuses.Cancelled, row.Status);
         Assert.False(row.IsActive);
     }
 
@@ -514,7 +545,7 @@ public sealed class AdminTenantsControllerTests
     [Fact]
     public async Task DecommissionAsync_UsesTenantScopeForRegisters_AndSoftDeletesTenant()
     {
-        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         await using var db = CreateDb(tenantAccessor);
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
@@ -596,11 +627,11 @@ public sealed class AdminTenantsControllerTests
                 Roles.SuperAdmin,
                 It.IsAny<CancellationToken>()),
             Times.Exactly(2));
-        Assert.Equal(LegacyDefaultTenantIds.Primary, tenantAccessor.TenantId);
+        Assert.Equal(SystemTenantIds.Platform, tenantAccessor.TenantId);
         Assert.Null(httpContextAccessor.HttpContext!.User.FindFirst(ScopeCheckService.TenantIdClaim));
 
         var tenantRow = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
-        Assert.Equal(TenantStatuses.Deleted, tenantRow.Status);
+        Assert.Equal(TenantStatuses.Cancelled, tenantRow.Status);
         Assert.False(tenantRow.IsActive);
     }
 
@@ -671,6 +702,427 @@ public sealed class AdminTenantsControllerTests
 
         var dev = list.Single(x => x.Slug == "dev");
         Assert.True(dev.IsDemoPreset);
+    }
+
+    [Fact]
+    public async Task ListAsync_Enriches_Aggregates_From_Related_Tables()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var saleUntil = now.AddDays(20);
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Aggregate Cafe",
+            Slug = "aggregate-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseKey = "REGK-AGG-KEY",
+            LicenseValidUntilUtc = now.AddDays(5),
+            CreatedAt = now.AddDays(-10),
+        });
+
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "owner-agg",
+                UserName = "owner@aggregate.test",
+                Email = "owner@aggregate.test",
+                FirstName = "Owner",
+                LastName = "Agg",
+                Role = Roles.Manager,
+                IsActive = true,
+                EmailConfirmed = true,
+            },
+            new ApplicationUser
+            {
+                Id = "cashier-agg",
+                UserName = "cashier@aggregate.test",
+                Email = "cashier@aggregate.test",
+                FirstName = "Cash",
+                LastName = "Agg",
+                Role = Roles.Cashier,
+                IsActive = true,
+                EmailConfirmed = true,
+            });
+
+        db.UserTenantMemberships.AddRange(
+            new UserTenantMembership
+            {
+                UserId = "owner-agg",
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = now,
+            },
+            new UserTenantMembership
+            {
+                UserId = "cashier-agg",
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = now,
+            });
+
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "K1",
+                Location = "Front",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "K2",
+                Location = "Bar",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LicenseKey = "REGK-AGG-SALE",
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            LicenseType = LicenseType.Business,
+            ValidFromUtc = now.AddDays(-10),
+            ValidUntilUtc = saleUntil,
+            PriceNet = 100m,
+            VatRate = 20m,
+            VatAmount = 20m,
+            PriceGross = 120m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-10),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608AGG01",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-10),
+            UpdatedAt = now.AddDays(-10),
+        });
+
+        var olderAudit = now.AddDays(-2);
+        var newerAudit = now.AddHours(-1);
+        db.AuditLogs.AddRange(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                SessionId = "s1",
+                UserId = "owner-agg",
+                UserRole = Roles.Manager,
+                Action = "LOGIN",
+                EntityType = "User",
+                Status = AuditLogStatus.Success,
+                Timestamp = olderAudit,
+            },
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                SessionId = "s2",
+                UserId = "cashier-agg",
+                UserRole = Roles.Cashier,
+                Action = "PAYMENT",
+                EntityType = "Payment",
+                Status = AuditLogStatus.Success,
+                Timestamp = newerAudit,
+            });
+
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListAsync(false);
+        var row = Assert.Single(list, x => x.Id == tenantId);
+
+        Assert.Equal(LicenseType.Business, row.LicenseType);
+        Assert.Equal(2, row.RegisterCount);
+        Assert.Equal(2, row.UserCount);
+        Assert.Equal("owner@aggregate.test", row.OwnerAdminEmail);
+        Assert.Equal(newerAudit, row.LastActivityAtUtc);
+        Assert.NotNull(row.LicenseDaysRemaining);
+        Assert.InRange(row.LicenseDaysRemaining!.Value, 19, 21);
+    }
+
+    [Fact]
+    public async Task ListAsync_IncludesEffectiveVerticalProfile()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Profile Tenant",
+            Slug = "profile-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.VerticalProfiles.Add(new VerticalProfile
+        {
+            Id = VerticalProfileIds.HairSalon,
+            Name = "verticalProfiles.hairSalon.name",
+            PosFeatures = "{}",
+            RequiredFields = """{"customer":[],"product":[]}""",
+            OptionalFields = """{"customer":[],"product":[]}""",
+            PosLayout = VerticalProfileLayouts.Appointment,
+            IsActive = true,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CompanySettings.Local.Single(row => row.TenantId == tenantId).VerticalProfileId =
+            VerticalProfileIds.HairSalon;
+        await db.SaveChangesAsync();
+
+        var row = Assert.Single(
+            await CreateService(db).ListAsync(includeDeleted: false),
+            tenant => tenant.Id == tenantId);
+
+        Assert.Equal(VerticalProfileIds.HairSalon, row.VerticalProfileId);
+        Assert.Equal("verticalProfiles.hairSalon.name", row.VerticalProfileName);
+    }
+
+    [Fact]
+    public async Task ListPagedAsync_Filters_Sorts_And_Paginates()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+
+        var alphaId = Guid.NewGuid();
+        var betaId = Guid.NewGuid();
+        var gammaId = Guid.NewGuid();
+        var suspendedId = Guid.NewGuid();
+
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = alphaId,
+                Name = "Alpha Cafe",
+                Slug = "alpha-cafe",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = "REGK-ALPHA",
+                LicenseValidUntilUtc = now.AddDays(30),
+                CreatedAt = now.AddDays(-3),
+            },
+            new Tenant
+            {
+                Id = betaId,
+                Name = "Beta Bar",
+                Slug = "beta-bar",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = null,
+                LicenseValidUntilUtc = now.AddDays(14),
+                CreatedAt = now.AddDays(-2),
+            },
+            new Tenant
+            {
+                Id = gammaId,
+                Name = "Gamma Grill",
+                Slug = "gamma-grill",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = "REGK-GAMMA",
+                LicenseValidUntilUtc = now.AddDays(10),
+                CreatedAt = now.AddDays(-1),
+            },
+            new Tenant
+            {
+                Id = suspendedId,
+                Name = "Suspended Shop",
+                Slug = "suspended-shop",
+                Status = TenantStatuses.Suspended,
+                IsActive = false,
+                CreatedAt = now,
+            });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = alphaId,
+            LicenseKey = "REGK-ALPHA-SALE",
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            LicenseType = LicenseType.Business,
+            ValidFromUtc = now.AddDays(-30),
+            ValidUntilUtc = now.AddDays(30),
+            PriceNet = 100m,
+            VatRate = 20m,
+            VatAmount = 20m,
+            PriceGross = 120m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-30),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608PAGE01",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-30),
+            UpdatedAt = now.AddDays(-30),
+        });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = gammaId,
+            LicenseKey = "REGK-GAMMA-SALE",
+            LicensePlan = LicenseSalePlans.SixMonths,
+            LicenseType = LicenseType.Starter,
+            ValidFromUtc = now.AddDays(-10),
+            ValidUntilUtc = now.AddDays(10),
+            PriceNet = 80m,
+            VatRate = 20m,
+            VatAmount = 16m,
+            PriceGross = 96m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-10),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608PAGE02",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-10),
+            UpdatedAt = now.AddDays(-10),
+        });
+
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = alphaId,
+                RegisterNumber = "A1",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = alphaId,
+                RegisterNumber = "A2",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = gammaId,
+                RegisterNumber = "G1",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            });
+
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var byStatus = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = "Active",
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 1,
+            PageSize = 50,
+        });
+        Assert.Equal(3, byStatus.TotalCount);
+        Assert.DoesNotContain(byStatus.Items, t => t.Id == suspendedId);
+
+        var bySearch = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Search = "beta",
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, bySearch.TotalCount);
+        Assert.Equal(betaId, Assert.Single(bySearch.Items).Id);
+
+        var byLicense = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            LicenseType = LicenseType.Trial,
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, byLicense.TotalCount);
+        Assert.Equal(betaId, Assert.Single(byLicense.Items).Id);
+        Assert.Equal(LicenseType.Trial, byLicense.Items[0].LicenseType);
+
+        var byBusiness = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            LicenseType = LicenseType.Business,
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, byBusiness.TotalCount);
+        Assert.Equal(alphaId, Assert.Single(byBusiness.Items).Id);
+
+        var sorted = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "RegisterCount",
+            SortOrder = "Desc",
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(3, sorted.Items.Count);
+        Assert.Equal(alphaId, sorted.Items[0].Id);
+        Assert.Equal(2, sorted.Items[0].RegisterCount);
+
+        var page1 = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 1,
+            PageSize = 2,
+        });
+        Assert.Equal(3, page1.TotalCount);
+        Assert.Equal(2, page1.PageSize);
+        Assert.Equal(2, page1.TotalPages);
+        Assert.Equal(2, page1.Items.Count);
+        Assert.Equal(alphaId, page1.Items[0].Id);
+        Assert.Equal(betaId, page1.Items[1].Id);
+
+        var page2 = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 2,
+            PageSize = 2,
+        });
+        Assert.Equal(1, page2.Items.Count);
+        Assert.Equal(gammaId, page2.Items[0].Id);
+
+        var clamped = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Page = 0,
+            PageSize = 500,
+        });
+        Assert.Equal(1, clamped.Page);
+        Assert.Equal(100, clamped.PageSize);
     }
 
     [Fact]
@@ -799,6 +1251,79 @@ public sealed class AdminTenantsControllerTests
         var superList = await service.ListForSwitcherAsync("manager-1", actorIsSuperAdmin: true, includeDeleted: false);
         Assert.Equal(2, superList.Count);
         Assert.Equal(superList.Count, superList.Select(x => x.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task ListForSwitcherAsync_Excludes_Unused_Default_Tenant()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = SystemTenantIds.Platform,
+            Name = "Default",
+            Slug = SystemTenantIds.PlatformSlug,
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
+
+        Assert.DoesNotContain(list, t => t.Slug == SystemTenantIds.PlatformSlug);
+        Assert.Contains(list, t => t.Slug == "dev");
+    }
+
+    [Fact]
+    public async Task ListForSwitcherAsync_Excludes_Leftover_Cafe_And_Bar_Tenants()
+    {
+        await using var db = CreateDb();
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = DemoTenantIds.Dev,
+                Name = "Development",
+                Slug = "dev",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = Guid.Parse("b0000001-0001-4001-8001-000000000099"),
+                Name = "Test Cafe",
+                Slug = "cafe",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = Guid.Parse("b0000001-0001-4001-8001-000000000098"),
+                Name = "Test Bar",
+                Slug = "bar",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
+
+        Assert.Contains(list, t => t.Slug == "dev");
+        Assert.DoesNotContain(list, t => t.Slug == "cafe");
+        Assert.DoesNotContain(list, t => t.Slug == "bar");
     }
 
     [Fact]
@@ -997,9 +1522,9 @@ public sealed class AdminTenantsControllerTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -1007,7 +1532,7 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (success, error) = await service.SoftDeleteAsync(LegacyDefaultTenantIds.Primary, "actor-1");
+        var (success, error) = await service.SoftDeleteAsync(SystemTenantIds.Platform, "actor-1");
 
         Assert.False(success);
         Assert.NotNull(error);
@@ -1840,5 +2365,784 @@ public sealed class AdminTenantsControllerTests
         Assert.Null(error);
         Assert.Equal("updated", detail!.MaintenanceMessage);
         Assert.Equal(started, detail.MaintenanceStartedAt);
+    }
+
+    [Fact]
+    public async Task ConvertToPaid_SuperAdmin_ReturnsOk()
+    {
+        var tenantId = Guid.NewGuid();
+        var saleId = Guid.NewGuid();
+        var conversion = new Mock<KasseAPI_Final.Services.Trial.ITrialConversionService>();
+        conversion
+            .Setup(c => c.ConvertToPaidAsync(
+                tenantId,
+                saleId,
+                true,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new KasseAPI_Final.Services.Trial.TrialConversionResult(
+                    true,
+                    tenantId,
+                    saleId,
+                    DateTime.UtcNow.AddDays(365),
+                    DateTime.UtcNow,
+                    3,
+                    "12_months",
+                    "REGK-SA",
+                    Message: "ok"),
+                (string?)null));
+
+        var controller = new AdminTenantsController(
+            Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
+            Mock.Of<IAuditLogService>(),
+            conversion.Object,
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                            new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.TenantManage),
+                        },
+                        authenticationType: "TestAuth")),
+            },
+        };
+
+        var result = await controller.ConvertToPaid(
+            tenantId,
+            new KasseAPI_Final.Services.Trial.ConvertToPaidRequest
+            {
+                LicenseSaleId = saleId,
+                AddRemainingTrialDays = true,
+            },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.IsType<KasseAPI_Final.Services.Trial.TrialConversionResult>(ok.Value);
+    }
+
+    [Fact]
+    public async Task ConvertToPaid_NotInTrial_Returns400()
+    {
+        var tenantId = Guid.NewGuid();
+        var conversion = new Mock<KasseAPI_Final.Services.Trial.ITrialConversionService>();
+        conversion
+            .Setup(c => c.ConvertToPaidAsync(
+                tenantId,
+                It.IsAny<Guid>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                (KasseAPI_Final.Services.Trial.TrialConversionResult?)null,
+                "Tenant is not in an open trial (active or expired grace)."));
+
+        var controller = new AdminTenantsController(
+            Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
+            Mock.Of<IAuditLogService>(),
+            conversion.Object,
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                        },
+                        authenticationType: "TestAuth")),
+            },
+        };
+
+        var result = await controller.ConvertToPaid(
+            tenantId,
+            new KasseAPI_Final.Services.Trial.ConvertToPaidRequest { LicenseSaleId = Guid.NewGuid() },
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_IncludesCountryAndVatFields()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Country Tenant",
+            Slug = "country-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        SeedCompanySettings(db, tenantId, "AT", VatRegime.AT_RKSV_STANDARD, "ATU12345678", "DE", taxExempt: true);
+        await db.SaveChangesAsync();
+
+        var detail = await CreateService(db).GetByIdAsync(tenantId);
+
+        Assert.NotNull(detail);
+        Assert.Equal("AT", detail!.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, detail.VatRegime);
+        Assert.Equal("ATU12345678", detail.VatId);
+        Assert.Equal("DE", detail.BillingCountry);
+        Assert.True(detail.TaxExempt);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_VatRegimeChange_WritesAuditAndActivity()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Regime Tenant",
+            Slug = "regime-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        SeedCompanySettings(db, tenantId);
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var activity = new Mock<IActivityEventPublisher>();
+        var service = CreateService(db, auditLog: audit.Object, activity: activity.Object);
+
+        var (detail, error, code) = await service.UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "AT",
+                VatRegime = VatRegime.EU_REVERSE_CHARGE,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal(VatRegime.EU_REVERSE_CHARGE, detail!.VatRegime);
+        Assert.Equal("AT", detail.Country);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED",
+                "Tenant",
+                "super-admin",
+                Roles.SuperAdmin,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.TenantCountryChanged,
+                tenantId,
+                tenantId,
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()),
+            Times.Once);
+        activity.Verify(
+            a => a.TryPublishAsync(
+                tenantId,
+                ActivityEventType.TenantCountryChanged,
+                It.IsAny<object?>(),
+                "super-admin",
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_AtInvoiceThenDe_PreservesHistoricalCountryAtIssue()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var atPaymentId = Guid.NewGuid();
+        var atInvoiceId = Guid.NewGuid();
+        var atReceiptId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Preserve Tenant",
+            Slug = "preserve-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Closed,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        var atPayment = CreatePendingPayment(registerId);
+        atPayment.Id = atPaymentId;
+        atPayment.CountryCodeAtIssue = "AT";
+        atPayment.VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD;
+        db.PaymentDetails.Add(atPayment);
+        db.Invoices.Add(new Invoice
+        {
+            Id = atInvoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-AT-1",
+            InvoiceDate = now,
+            DueDate = now.AddDays(14),
+            Status = InvoiceStatus.Paid,
+            Subtotal = 10m,
+            TaxAmount = 2m,
+            TotalAmount = 12m,
+            PaidAmount = 12m,
+            RemainingAmount = 0,
+            CompanyName = "Demo GmbH",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Wien 1",
+            TseSignature = "sig",
+            KassenId = "KASSE-001",
+            TseTimestamp = now,
+            CashRegisterId = registerId,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        db.Receipts.Add(new Receipt
+        {
+            ReceiptId = atReceiptId,
+            TenantId = tenantId,
+            PaymentId = atPaymentId,
+            ReceiptNumber = "AT-TSE-20260526-0001",
+            IssuedAt = now,
+            CashRegisterId = registerId,
+            SubTotal = 10m,
+            TaxTotal = 2m,
+            GrandTotal = 12m,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var (detail, error, code) = await CreateService(db, auditLog: audit.Object).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(detail);
+        Assert.Equal(AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid, code);
+        Assert.NotNull(error);
+
+        db.ChangeTracker.Clear();
+        var preservedPayment = await db.PaymentDetails.AsNoTracking().SingleAsync(p => p.Id == atPaymentId);
+        var preservedInvoice = await db.Invoices.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == atInvoiceId);
+        var preservedReceipt = await db.Receipts.IgnoreQueryFilters().AsNoTracking().SingleAsync(r => r.ReceiptId == atReceiptId);
+        var settings = await db.CompanySettings.IgnoreQueryFilters().AsNoTracking()
+            .SingleAsync(s => s.TenantId == tenantId);
+
+        Assert.Equal("AT", preservedPayment.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedPayment.VatRegimeAtIssue);
+        Assert.Equal("AT", preservedInvoice.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedInvoice.VatRegimeAtIssue);
+        Assert.Equal("AT", preservedReceipt.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedReceipt.VatRegimeAtIssue);
+        Assert.Equal("AT", settings.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, settings.VatRegime);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_UnsignedHistoricalRows_KeepsSnapshotsAndAuditsCorrelation()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var invoiceId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Unsigned Tenant",
+            Slug = "unsigned-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-002",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Closed,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        db.Invoices.Add(new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-DRAFT-1",
+            InvoiceDate = now,
+            DueDate = now.AddDays(14),
+            Status = InvoiceStatus.Draft,
+            Subtotal = 10m,
+            TaxAmount = 2m,
+            TotalAmount = 12m,
+            PaidAmount = 0,
+            RemainingAmount = 12m,
+            CompanyName = "Demo GmbH",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Wien 1",
+            TseSignature = "",
+            KassenId = "KASSE-002",
+            CashRegisterId = registerId,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var (detail, error, code) = await CreateService(db, auditLog: audit.Object).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal("DE", detail!.Country);
+
+        db.ChangeTracker.Clear();
+        var preserved = await db.Invoices.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == invoiceId);
+        Assert.Equal("AT", preserved.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preserved.VatRegimeAtIssue);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED",
+                "Tenant",
+                "super-admin",
+                Roles.SuperAdmin,
+                It.Is<string?>(d => d != null && d.Contains("AT") && d.Contains("DE")),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.Is<string?>(c => !string.IsNullOrWhiteSpace(c)),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.TenantCountryChanged,
+                tenantId,
+                tenantId,
+                It.IsAny<object?>(),
+                It.Is<object?>(v => v != null && v.ToString()!.Contains("DE")),
+                It.IsAny<string?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_ToNonAt_DoesNotLeaveRksvEnabled()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Flag Tenant",
+            Slug = "flag-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.TenantSettings.Add(new TenantSetting
+        {
+            TenantId = tenantId,
+            Key = "FeatureFlags:Fiscal.RksvAt",
+            Value = "true",
+            UpdatedAtUtc = now,
+        });
+        await db.SaveChangesAsync();
+
+        var (detail, error, code) = await CreateService(db).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal("DE", detail!.Country);
+
+        db.ChangeTracker.Clear();
+        var flag = await db.TenantSettings.AsNoTracking()
+            .SingleAsync(s => s.TenantId == tenantId && s.Key == "FeatureFlags:Fiscal.RksvAt");
+        Assert.Equal("false", flag.Value);
+    }
+
+    [Fact]
+    public async Task UpdateCountry_Controller_LockedFiscal_Returns409()
+    {
+        var tenantId = Guid.NewGuid();
+        var service = new Mock<IAdminTenantService>();
+        service
+            .Setup(s => s.UpdateCountryAsync(
+                tenantId,
+                It.IsAny<UpdateAdminTenantCountryRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((null, "locked", AdminTenantCountryErrorCodes.CountryLockedFiscal));
+
+        var controller = CreateController(service.Object);
+        var result = await controller.UpdateCountry(
+            tenantId,
+            new UpdateAdminTenantCountryRequest { Country = "DE", VatRegime = VatRegime.DE_USTG_STANDARD });
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoTrue_AsSuperAdmin_SeedsTenantAndWritesAudit()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var tenants = new Mock<IAdminTenantService>();
+        tenants
+            .Setup(s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreatedTenant(tenantId), (TenantOnboardingFailureDto?)null));
+
+        var seeder = new Mock<ITenantDemoSeeder>();
+        seeder
+            .Setup(s => s.ResolveVerticalProfileIdAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(VerticalProfileIds.Doctor);
+        seeder
+            .Setup(s => s.SeedAsync(tenantId, VerticalProfileIds.Doctor, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantDemoSeedResult(44, 22, registerId));
+
+        var audit = new Mock<IAuditLogService>();
+        audit
+            .Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object, auditLog: audit.Object);
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Demo 2026-10-26",
+            Slug = "demo-202610261132",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+            SeedDemo = true,
+        });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        seeder.Verify(s => s.ResolveVerticalProfileIdAsync(tenantId, It.IsAny<CancellationToken>()), Times.Once);
+        seeder.Verify(s => s.SeedAsync(tenantId, VerticalProfileIds.Doctor, It.IsAny<CancellationToken>()), Times.Once);
+        seeder.Verify(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()), Times.Never);
+        audit.Verify(a => a.LogSystemOperationAsync(
+            "TENANT_DEMO_SEEDED",
+            "Tenant",
+            "super-admin",
+            Roles.SuperAdmin,
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            AuditLogStatus.Success,
+            It.IsAny<string?>(),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            It.IsAny<string?>(),
+            It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+            AuditEventType.TenantDemoSeeded,
+            tenantId,
+            tenantId,
+            It.IsAny<object?>(),
+            It.Is<object?>(values => DemoSeedAuditMatches(values, tenantId, registerId)),
+            It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoFalse_DoesNotSeed()
+    {
+        var tenantId = Guid.NewGuid();
+        var tenants = new Mock<IAdminTenantService>();
+        tenants
+            .Setup(s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreatedTenant(tenantId), (TenantOnboardingFailureDto?)null));
+        var seeder = new Mock<ITenantDemoSeeder>();
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object);
+
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Cafe",
+            Slug = "cafe",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+        });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoTrue_AsNonSuperAdmin_Returns403AndDoesNotCreate()
+    {
+        var tenants = new Mock<IAdminTenantService>();
+        var seeder = new Mock<ITenantDemoSeeder>();
+        var manager = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, "manager-1"),
+                new Claim(ClaimTypes.Role, Roles.Manager),
+            ],
+            authenticationType: "TestAuth"));
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object, user: manager);
+
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Demo",
+            Slug = "demo",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+            SeedDemo = true,
+        });
+
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, status.StatusCode);
+        tenants.Verify(
+            s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static AdminTenantDetailDto CreatedTenant(Guid id) => new(
+        id,
+        "Demo",
+        "demo",
+        null,
+        null,
+        null,
+        "active",
+        true,
+        null,
+        null,
+        DateTime.UtcNow,
+        null,
+        null);
+
+    private static bool DemoSeedAuditMatches(object? values, Guid tenantId, Guid registerId)
+    {
+        if (values is null)
+            return false;
+        var type = values.GetType();
+        return type.GetProperty("password") is null
+            && type.GetProperty("productNames") is null
+            && (Guid)type.GetProperty("tenantId")!.GetValue(values)! == tenantId
+            && (string)type.GetProperty("verticalProfileId")!.GetValue(values)! == VerticalProfileIds.Doctor
+            && (int)type.GetProperty("productsAdded")!.GetValue(values)! == 44
+            && (int)type.GetProperty("customersAdded")!.GetValue(values)! == 22
+            && (Guid)type.GetProperty("cashRegisterId")!.GetValue(values)! == registerId;
+    }
+
+    private static void SeedCompanySettings(
+        AppDbContext db,
+        Guid tenantId,
+        string country = "AT",
+        VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
+        string vatId = "ATU12345678",
+        string? billingCountry = null,
+        bool taxExempt = false)
+    {
+        db.CompanySettings.Add(new CompanySettings
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CompanyName = "Demo GmbH",
+            CompanyAddress = "Wien 1",
+            CompanyTaxNumber = vatId,
+            Currency = "EUR",
+            Country = country,
+            VatRegime = vatRegime,
+            BillingCountry = billingCountry,
+            TaxExempt = taxExempt,
+            Language = "de",
+            TimeZone = "Europe/Vienna",
+            DateFormat = "dd.MM.yyyy",
+            TimeFormat = "HH:mm",
+            TaxCalculationMethod = "inclusive",
+            InvoiceNumbering = "INV-{yyyy}-{seq}",
+            ReceiptNumbering = "R-{seq}",
+            DefaultPaymentMethod = "Cash",
+            BusinessHours = new Dictionary<string, string>(),
+            WorkingHours = WorkingHoursSettings.CreateDefault(),
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
     }
 }

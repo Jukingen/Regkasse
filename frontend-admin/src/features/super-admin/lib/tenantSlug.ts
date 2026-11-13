@@ -12,7 +12,7 @@ export const TENANT_SLUG_IN_PROGRESS_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]*)?$/;
 
 export const TENANT_SLUG_MAX_LENGTH = 63;
 
-const RESERVED_SLUGS = new Set(['admin', 'www', 'api', 'mail']);
+const RESERVED_SLUGS = new Set(['admin', 'www', 'api', 'mail', 'system']);
 
 export type TenantSlugValidationCode = 'required' | 'invalid' | 'reserved' | 'taken' | 'checking';
 

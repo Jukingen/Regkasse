@@ -1,10 +1,14 @@
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +49,9 @@ public sealed class TenantUserService : ITenantUserService
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ActivityEventRecorder _activityEvents;
     private readonly IUserRoleChangeService _userRoleChangeService;
+    private readonly ITrialLimitGuard _trialLimitGuard;
     private readonly ILogger<TenantUserService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public TenantUserService(
         AppDbContext db,
@@ -60,7 +66,9 @@ public sealed class TenantUserService : ITenantUserService
         ICurrentTenantAccessor tenantAccessor,
         ActivityEventRecorder activityEvents,
         IUserRoleChangeService userRoleChangeService,
-        ILogger<TenantUserService> logger)
+        ITrialLimitGuard trialLimitGuard,
+        ILogger<TenantUserService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _userManager = userManager;
@@ -74,10 +82,16 @@ public sealed class TenantUserService : ITenantUserService
         _tenantAccessor = tenantAccessor;
         _activityEvents = activityEvents;
         _userRoleChangeService = userRoleChangeService;
+        _trialLimitGuard = trialLimitGuard;
         _logger = logger;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
-    public async Task<IReadOnlyList<TenantUserDto>?> ListAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<TenantUserListPage?> ListAsync(
+        Guid tenantId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         if (!CanAccessTenant(tenantId))
             return null;
@@ -85,7 +99,10 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return null;
 
-        var rows = await MembershipsUnfiltered()
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
+        var query = MembershipsUnfiltered()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive)
             .Join(
@@ -105,11 +122,22 @@ public sealed class TenantUserService : ITenantUserService
                     : (x.User.FirstName + " " + x.User.LastName).Trim(),
                 x.User.Role ?? Roles.FallbackUnknown,
                 x.Membership.IsOwner,
-                x.Membership.CreatedAtUtc))
+                x.Membership.CreatedAtUtc));
+
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+        var rows = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows;
+        return new TenantUserListPage
+        {
+            Items = rows,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
     }
 
     public Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(
@@ -142,6 +170,15 @@ public sealed class TenantUserService : ITenantUserService
 
         if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             return (null, "SuperAdmin users cannot be assigned to a tenant via membership.");
+
+        var existingActive = await FindActiveMembershipAsync(user.Id, tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (existingActive == null)
+        {
+            var limitError = await EnsureTenantUserLimitAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            if (limitError != null)
+                return (null, limitError);
+        }
 
         var assignError = await AssignUserToTenantAsync(user, tenantId, request.Role, request.IsOwner, cancellationToken)
             .ConfigureAwait(false);
@@ -230,6 +267,19 @@ public sealed class TenantUserService : ITenantUserService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
+
+        try
+        {
+            await _trialLimitGuard.EnsureCanCreateUserAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TrialLimitExceededException ex)
+        {
+            return (null, $"{TrialLimitExceededException.ErrorCodeValue}: {ex.Message}");
+        }
+
+        var tenantLimitError = await EnsureTenantUserLimitAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (tenantLimitError != null)
+            return (null, tenantLimitError);
 
         if (string.IsNullOrEmpty(email))
             return (null, "Email is required.");
@@ -384,7 +434,7 @@ public sealed class TenantUserService : ITenantUserService
 
     private string ResolveActorRole()
     {
-        var role = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var role = _httpContextAccessor.HttpContext?.User?.GetActorRole();
         return string.IsNullOrWhiteSpace(role) ? Roles.FallbackUnknown : role.Trim();
     }
 
@@ -658,6 +708,22 @@ public sealed class TenantUserService : ITenantUserService
         return (true, null);
     }
 
+    private async Task<string?> EnsureTenantUserLimitAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        if (_tenantLimitGuard == null)
+            return null;
+
+        try
+        {
+            await _tenantLimitGuard.EnsureCanCreateUserAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (LimitExceededException ex)
+        {
+            return LimitErrorDto.FormatServiceError(ex);
+        }
+    }
+
     private async Task<string?> AssignUserToTenantAsync(
         ApplicationUser user,
         Guid tenantId,
@@ -745,7 +811,7 @@ public sealed class TenantUserService : ITenantUserService
         if (string.IsNullOrEmpty(trimmed))
             return (false, "Role is required.");
 
-        if (string.Equals(trimmed, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+        if (RoleHierarchy.IsPlatformOperatorRole(trimmed)
             || Roles.ReservedRoleNames.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
         {
             return (false, $"Role '{trimmed}' cannot be assigned to a tenant user.");

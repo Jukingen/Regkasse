@@ -22,6 +22,10 @@ import { useParams, useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import {
   FormalReportLanguageNotice,
@@ -362,7 +366,40 @@ export default function JahresberichtDetailPage() {
           { title: id },
         ]}
         actions={
-          <Space wrap>
+          <Space wrap align="start">
+            <PeriodSalesSummaryCard
+              periodLabel={`Jahr: ${d.summary.viennaYear}`}
+              receiptCount={d.summary.aggregationFromMonthly?.salePaymentRowCount ?? 0}
+              totalRevenue={d.summary.aggregationFromMonthly?.grossSalesAmount ?? 0}
+              zeroSales={
+                (d.summary.aggregationFromMonthly?.salePaymentRowCount ?? 0) === 0 ||
+                (d.summary.aggregationFromMonthly?.grossSalesAmount ?? 0) === 0
+              }
+            />
+            {canExport ? (
+              <Button
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const blob = await downloadReportPdf('jahresbericht', id);
+                      triggerReportPdfBlobDownload(
+                        blob,
+                        buildReportFileName({
+                          reportType: 'jahresbericht',
+                          tenantSlug: getEffectiveTenantSlug(),
+                          period: String(d.summary.viennaYear),
+                        })
+                      );
+                      message.success(t('reporting.storedPdf.success'));
+                    } catch {
+                      message.error(t('reporting.storedPdf.error'));
+                    }
+                  })();
+                }}
+              >
+                {t('reporting.periodSales.download')}
+              </Button>
+            ) : null}
             {canExport && d.reportStatus === 'Provisional' ? (
               <Button
                 type="primary"

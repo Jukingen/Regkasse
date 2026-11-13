@@ -2,8 +2,9 @@
 
 /**
  * Super Admin: RKSV-compliant validation restore request modal.
- * Requires dual acknowledgement before enqueueing dual-approval restore
- * into an isolated restore_validation_* database (never production).
+ * Requires dual acknowledgement before enqueueing restore into an isolated
+ * restore_validation_* database (never production). Development Super Admin
+ * auto-executes; Staging/Production still requires second-admin approval.
  */
 import { DatabaseOutlined, WarningOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ import {
   isValidValidationDatabaseName,
 } from '@/features/backup-dr/logic/manualRestorePresentation';
 import { RestorePreview } from '@/features/backup/components/RestorePreview';
+import { manualRestoreSuccessMessageKey } from '@/features/backup/logic/manualRestoreSuccessMessage';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 
@@ -93,7 +95,7 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
         reason: reason.trim() || undefined,
         validationOnly: true,
       });
-      message.success(t('backupDr.manualRestore.messages.requestCreated'));
+      message.success(t(manualRestoreSuccessMessageKey(result.status)));
       void queryClient.invalidateQueries({ queryKey: ['/api/admin/restore'] });
       onRequestCreated?.(result);
       onClose();

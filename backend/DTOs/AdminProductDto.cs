@@ -18,7 +18,7 @@ public class AdminProductDto
     public string? DescriptionDe { get; set; }
     public string? DescriptionEn { get; set; }
     public string? DescriptionTr { get; set; }
-    public string Barcode { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
     public Guid CategoryId { get; set; }
     public string Category { get; set; } = string.Empty;
     public int TaxType { get; set; }
@@ -27,6 +27,11 @@ public class AdminProductDto
     public ProductTaxGroupSummaryDto? TaxGroup { get; set; }
     public bool IsActive { get; set; }
     public string Unit { get; set; } = "pcs";
+    public int? DurationMinutes { get; set; }
+    public string? StaffId { get; set; }
+    public bool ImeiTracked { get; set; }
+    public bool IsTicket { get; set; }
+    public bool HasVariants { get; set; }
     public int StockQuantity { get; set; }
     public int MinStockLevel { get; set; }
     public decimal Cost { get; set; }
@@ -70,6 +75,11 @@ public class AdminProductDto
             TaxGroup = ProductTaxGroupSummaryDto.FromEntity(p.TaxGroup),
             IsActive = p.IsActive,
             Unit = p.Unit ?? "pcs",
+            DurationMinutes = p.DurationMinutes,
+            StaffId = p.StaffId,
+            ImeiTracked = p.ImeiTracked,
+            IsTicket = p.IsTicket,
+            HasVariants = p.HasVariants,
             StockQuantity = p.StockQuantity,
             MinStockLevel = p.MinStockLevel,
             Cost = p.Cost,

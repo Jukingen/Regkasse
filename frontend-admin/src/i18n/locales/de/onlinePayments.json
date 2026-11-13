@@ -1,0 +1,84 @@
+{
+  "title": "Online-Zahlungen",
+  "subtitle": "Karte- und PayPal-Intents einsehen und Test-Webhooks auslösen. Kein fiskalischer POS-Beleg.",
+  "tabs": {
+    "transactions": "Transaktionen",
+    "testConsole": "Testkonsole"
+  },
+  "empty": "Keine Online-Zahlungen vorhanden",
+  "loadError": "Online-Zahlungen konnten nicht geladen werden.",
+  "forbidden": "Sie haben keine Berechtigung für Online-Zahlungen.",
+  "actions": {
+    "refresh": "Aktualisieren",
+    "viewDetails": "Details anzeigen"
+  },
+  "columns": {
+    "createdAt": "Zeitpunkt",
+    "amount": "Betrag",
+    "status": "Status",
+    "tenant": "Mandant",
+    "method": "Zahlungsart",
+    "provider": "Anbieter",
+    "actions": "Aktion"
+  },
+  "status": {
+    "PENDING": "Ausstehend",
+    "AWAITING_PAYMENT_GATEWAY": "Wartet auf Gateway",
+    "GATEWAY_SUCCEEDED": "Gateway erfolgreich",
+    "COMPLETED": "Abgeschlossen",
+    "FAILED": "Fehlgeschlagen",
+    "REFUNDED": "Erstattet",
+    "Created": "Erstellt",
+    "Pending": "Ausstehend",
+    "Succeeded": "Erfolgreich",
+    "Failed": "Fehlgeschlagen",
+    "Cancelled": "Abgebrochen",
+    "Expired": "Abgelaufen",
+    "Refunded": "Erstattet"
+  },
+  "source": {
+    "synthetic": "Test",
+    "live": "Live"
+  },
+  "drawer": {
+    "title": "Online-Zahlung",
+    "id": "ID",
+    "tenant": "Mandant",
+    "amount": "Betrag",
+    "status": "Status",
+    "method": "Zahlungsart",
+    "provider": "Anbieter",
+    "paymentIntentId": "PaymentIntent",
+    "createdAt": "Erstellt",
+    "completedAt": "Abgeschlossen",
+    "webhookEvent": "Letztes Webhook-Ereignis",
+    "error": "Fehler",
+    "synthetic": "Herkunft"
+  },
+  "console": {
+    "title": "Testkonsole",
+    "intro": "Erzeugt eine Test-Online-Zahlung und simuliert Gateway-Webhooks. Kein fiskalischer POS-Beleg.",
+    "amount": "Betrag",
+    "method": "Zahlungsart",
+    "sendPayment": "Testzahlung senden",
+    "webhookSuccess": "Erfolgreichen Webhook simulieren",
+    "webhookFailure": "Fehlgeschlagenen Webhook simulieren",
+    "webhookExpire": "Abgelaufenen Webhook simulieren",
+    "confirmExpireTitle": "Abgelaufenen Webhook senden?",
+    "confirmExpireBody": "Die ausgewählte Testzahlung wird als abgelaufen markiert (synthetisches payment_intent.canceled).",
+    "webhookExpireToast": "Abgelaufener Webhook wurde simuliert.",
+    "lastPayment": "Letzte Testzahlung: {id}",
+    "noPaymentYet": "Zuerst eine Testzahlung senden.",
+    "confirmSuccessTitle": "Erfolgreichen Webhook senden?",
+    "confirmSuccessBody": "Die ausgewählte Testzahlung wird als erfolgreich markiert (synthetisches payment_intent.succeeded).",
+    "confirmFailureTitle": "Fehlgeschlagenen Webhook senden?",
+    "confirmFailureBody": "Die ausgewählte Testzahlung wird als fehlgeschlagen markiert (synthetisches payment_intent.payment_failed).",
+    "createSuccess": "Testzahlung wurde erstellt.",
+    "webhookSuccessToast": "Erfolgreicher Webhook wurde simuliert.",
+    "webhookFailureToast": "Fehlgeschlagener Webhook wurde simuliert.",
+    "methods": {
+      "card": "Karte",
+      "paypal": "PayPal"
+    }
+  }
+}

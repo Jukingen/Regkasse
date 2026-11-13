@@ -1,3 +1,4 @@
+import { safeLog } from './loggingUtils';
 /**
  * Memory leak'leri önlemek için utility fonksiyonları
  */
@@ -48,7 +49,7 @@ export const checkMemoryUsage = () => {
     const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
     const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
 
-    console.log(`Memory: ${usedMB}MB / ${totalMB}MB`);
+    safeLog(`Memory: ${usedMB}MB / ${totalMB}MB`);
 
     if (usedMB > 150) {
       // 150MB üzerinde uyarı

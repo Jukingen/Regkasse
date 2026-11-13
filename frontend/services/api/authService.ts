@@ -1,9 +1,12 @@
 import axios from 'axios';
+import { safeLog } from '../../utils/loggingUtils';
 
 import { apiClient } from './config';
 import { buildLoginPayload, type LoginRequest } from './loginPayload';
 import { normalizeLoginError } from '../../features/auth/authErrors';
 import { sessionManager } from '../session/sessionManager';
+import { getOfflineStorage } from '../offline/offlineStorage';
+import { clearPendingPaymentQueue } from '../payment/pendingPaymentQueue';
 
 export { buildLoginPayload, type LoginRequest } from './loginPayload';
 const isDev = __DEV__;
@@ -54,6 +57,7 @@ export interface User {
   isDemo?: boolean;
   tenantId?: string | null;
   tenantSlug?: string | null;
+  currentCashRegisterId?: string | null;
 }
 
 /** Prefer backend `userName`; keep both fields in sync for POS UI. */
@@ -108,6 +112,20 @@ export const logout = async (): Promise<void> => {
       console.warn('Backend logout call failed (non-critical):', error);
     }
   } finally {
+    try {
+      await getOfflineStorage().clearAll();
+    } catch (queueError) {
+      if (isDev) {
+        console.warn('Offline order queue clear on logout failed (non-critical):', queueError);
+      }
+    }
+    try {
+      await clearPendingPaymentQueue();
+    } catch (paymentQueueError) {
+      if (isDev) {
+        console.warn('Offline payment queue clear on logout failed (non-critical):', paymentQueueError);
+      }
+    }
     await sessionManager.clearSession();
   }
 };
@@ -118,12 +136,12 @@ export const getCurrentUser = async (): Promise<User | null> => {
     const user = await sessionManager.getStoredUser();
     if (!user) {
       if (isDev) {
-        console.log('No user data found in storage');
+        safeLog('No user data found in storage');
       }
       return null;
     }
     if (isDev) {
-      console.log('Retrieved user from storage');
+      safeLog('Retrieved user from storage');
     }
     return user;
   } catch (error) {
@@ -139,7 +157,7 @@ export const validateToken = async (): Promise<User | null> => {
   // 🚀 F5 REFRESH FIX: Debouncing için static flag
   if ((validateToken as any).isValidating) {
     if (isDev) {
-      console.log('🚫 validateToken zaten çalışıyor, atlanıyor...');
+      safeLog('🚫 validateToken zaten çalışıyor, atlanıyor...');
     }
     return null;
   }
@@ -151,7 +169,7 @@ export const validateToken = async (): Promise<User | null> => {
 
   if (currentTime - lastCallTime < DEBOUNCE_MS) {
     if (isDev) {
-      console.log(
+      safeLog(
         `🚫 validateToken debouncing: ${currentTime - lastCallTime}ms < ${DEBOUNCE_MS}ms`
       );
     }
@@ -164,20 +182,20 @@ export const validateToken = async (): Promise<User | null> => {
 
   try {
     if (isDev) {
-      console.log('🔐 Backend token validation başlatılıyor...');
+      safeLog('🔐 Backend token validation başlatılıyor...');
     }
 
     // Token'ı SecureStore'dan al
     const token = await sessionManager.getAccessToken();
     if (!token) {
       if (isDev) {
-        console.log('❌ Token bulunamadı, validation atlanıyor');
+        safeLog('❌ Token bulunamadı, validation atlanıyor');
       }
       return null;
     }
 
     if (isDev) {
-      console.log("🔑 Token bulundu, backend'e gönderiliyor...");
+      safeLog("🔑 Token bulundu, backend'e gönderiliyor...");
     }
 
     // Backend'den kullanıcı bilgisini al
@@ -185,7 +203,7 @@ export const validateToken = async (): Promise<User | null> => {
 
     if (response && response.id) {
       if (isDev) {
-        console.log('✅ Backend token validation başarılı:', response.id);
+        safeLog('✅ Backend token validation başarılı:', response.id);
       }
 
       const normalized = normalizeAuthUser(response);
@@ -196,7 +214,7 @@ export const validateToken = async (): Promise<User | null> => {
       return normalized;
     } else {
       if (isDev) {
-        console.log('❌ Backend token validation başarısız: invalid response');
+        safeLog('❌ Backend token validation başarısız: invalid response');
       }
       return null;
     }
@@ -210,12 +228,12 @@ export const validateToken = async (): Promise<User | null> => {
     // 401: do not retry /auth/me with the same session — clear storage and surface session expiry (web).
     if (status === 401) {
       if (isDev) {
-        console.log('🚨 Token geçersiz (401), storage temizleniyor...');
+        safeLog('🚨 Token geçersiz (401), storage temizleniyor...');
       }
       await sessionManager.clearSession();
     } else if (status === 500) {
       if (isDev) {
-        console.log('🚨 Backend hatası (500), storage temizleniyor...');
+        safeLog('🚨 Backend hatası (500), storage temizleniyor...');
       }
       await sessionManager.clearSession();
     }

@@ -1,4 +1,4 @@
-using KasseAPI_Final.Data;
+﻿using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
@@ -8,29 +8,29 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
-/// <summary>Wave 0–1: tenant primitives and singleton settings scoping.</summary>
+/// <summary>Wave 0â€“1: tenant primitives and singleton settings scoping.</summary>
 public class SettingsTenantWave1Tests
 {
     [Fact]
-    public void LegacyDefaultTenantIds_Are_Stable_For_Migration_Seed()
+    public void SystemTenantIds_Are_Stable_For_Migration_Seed()
     {
-        Assert.Equal(Guid.Parse("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c"), LegacyDefaultTenantIds.Primary);
-        Assert.Equal("default", LegacyDefaultTenantIds.PrimarySlug);
+        Assert.Equal(Guid.Parse("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c"), SystemTenantIds.Platform);
+        Assert.Equal("platform", SystemTenantIds.PlatformSlug);
     }
 
     [Fact]
-    public async Task SettingsTenantResolver_Returns_Legacy_Default_Id_When_No_Http_User()
+    public async Task SettingsTenantResolver_Returns_Platform_Id_When_No_Http_User()
     {
         var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
         snapshotMock
             .Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Default", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Platform", SystemTenantIds.PlatformSlug, null, null));
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns((HttpContext?)null);
         var tenantAccessor = new Mock<ICurrentTenantAccessor>();
         var resolver = new SettingsTenantResolver(http.Object, snapshotMock.Object, tenantAccessor.Object);
         var id = await resolver.ResolveEffectiveTenantIdAsync();
-        Assert.Equal(LegacyDefaultTenantIds.Primary, id);
+        Assert.Equal(SystemTenantIds.Platform, id);
     }
 
     [Fact]
@@ -113,3 +113,4 @@ public class SettingsTenantWave1Tests
         DefaultPaymentMethod = "Cash",
     };
 }
+

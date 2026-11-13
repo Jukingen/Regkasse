@@ -47,7 +47,7 @@ export function LicenseExpiryBanner() {
     tenant.isRealTenantSlug && hasMandantBanner(tenantLicense, tenant.isSuperAdminUser);
 
   const openDeploymentLicensePage = () => {
-    router.push('/admin/license');
+    router.push('/admin/license-management');
   };
 
   const renderDeploymentRenewAction = () =>

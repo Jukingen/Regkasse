@@ -18,9 +18,9 @@ describe('audit log status URL/API mapping', () => {
   });
 
   it('maps filter values to generated AuditLogStatus ordinals', () => {
-    expect(toAuditLogStatusApiParam('Failed')).toBe(AuditLogStatus.NUMBER_1);
-    expect(toAuditLogStatusApiParam('Success')).toBe(AuditLogStatus.NUMBER_0);
-    expect(toAuditLogStatusApiParam('Warning')).toBe(AuditLogStatus.NUMBER_9);
+    expect(toAuditLogStatusApiParam('Failed')).toBe(AuditLogStatus.Failed);
+    expect(toAuditLogStatusApiParam('Success')).toBe(AuditLogStatus.Success);
+    expect(toAuditLogStatusApiParam('Warning')).toBe(AuditLogStatus.Warning);
     expect(toAuditLogStatusApiParam(undefined)).toBeUndefined();
   });
 });

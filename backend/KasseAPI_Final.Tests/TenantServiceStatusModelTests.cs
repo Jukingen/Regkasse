@@ -74,7 +74,7 @@ public sealed class TenantServiceStatusModelTests
             .UseInMemoryDatabase(nameof(Persists_unique_per_tenant_and_service_type) + Guid.NewGuid())
             .Options;
 
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
         {
@@ -121,7 +121,7 @@ public sealed class TenantServiceStatusModelTests
             .UseInMemoryDatabase(nameof(Ef_model_has_unique_tenant_service_type_index) + Guid.NewGuid())
             .Options;
 
-        using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var entity = db.Model.FindEntityType(typeof(TenantServiceStatus));
         Assert.NotNull(entity);
 

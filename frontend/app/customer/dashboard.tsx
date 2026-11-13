@@ -38,6 +38,7 @@ export default function CustomerDashboardPage() {
   const { dashboard, isLoading, error, notFound, loadDashboard, reset } = useCustomerDashboard();
   const [tenant, setTenant] = useState('');
   const [phone, setPhone] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
 
   useEffect(() => {
     const envSlug = getEnvDevTenantSlug();
@@ -45,8 +46,8 @@ export default function CustomerDashboardPage() {
   }, []);
 
   const onSearch = useCallback(() => {
-    void loadDashboard(tenant, phone);
-  }, [loadDashboard, tenant, phone]);
+    void loadDashboard(tenant, phone, orderNumber);
+  }, [loadDashboard, tenant, phone, orderNumber]);
 
   const onRedeemHint = useCallback(() => {
     Alert.alert(t('dashboard.redeemTitle'), t('dashboard.redeemHint'));
@@ -79,6 +80,16 @@ export default function CustomerDashboardPage() {
         keyboardType="phone-pad"
         value={phone}
         onChangeText={setPhone}
+        returnKeyType="next"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder={t('dashboard.orderNumberPlaceholder')}
+        placeholderTextColor="#94a3b8"
+        autoCapitalize="characters"
+        autoCorrect={false}
+        value={orderNumber}
+        onChangeText={setOrderNumber}
         onSubmitEditing={onSearch}
         returnKeyType="search"
       />

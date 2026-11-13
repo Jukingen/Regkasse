@@ -14,7 +14,7 @@ namespace KasseAPI_Final.Tests;
 
 public class PosFavoritesControllerTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
     private const string CashierId = "cashier-fav-test";
 
     private static AppDbContext CreateContext()

@@ -9,8 +9,9 @@ import {
   formatLicensePreviewDurationCombined,
   formatLicensePreviewPlanName,
 } from '@/features/license/utils/licensePreviewDisplay';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useLicenseRenewal } from '@/hooks/useLicenseRenewal';
-import { formatDate, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 
 const { Text, Paragraph } = Typography;
 
@@ -35,7 +36,7 @@ export function LicenseRenewalFlow({
   redirectAfterSuccess = true,
   compact = false,
 }: LicenseRenewalFlowProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [licenseKey, setLicenseKey] = useState('');
@@ -78,7 +79,7 @@ export function LicenseRenewalFlow({
 
     const expiryIso = result.validUntilUtc ?? lastPreview?.validUntilUtc ?? null;
     const expiryLabel = expiryIso
-      ? formatDate(expiryIso, formatLocale)
+      ? formatLicenseValidUntil(expiryIso)
       : t('license.renewalFlow.validUntilFallback');
 
     setSuccessExpiryLabel(expiryLabel);
@@ -108,7 +109,7 @@ export function LicenseRenewalFlow({
   };
 
   const validUntilLabel = lastPreview?.validUntilUtc
-    ? formatDate(lastPreview.validUntilUtc, formatLocale)
+    ? formatLicenseValidUntil(lastPreview.validUntilUtc)
     : t('license.renewalFlow.validUntilFallback');
 
   const durationLabel = lastPreview

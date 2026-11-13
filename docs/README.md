@@ -12,9 +12,12 @@ Human-facing guides for operators and developers.
 
 | Doc | Audience | Topic |
 |-----|----------|--------|
+| [`DOCUMENTATION_STANDARDS.md`](DOCUMENTATION_STANDARDS.md) | All authors | English docs style, terminology (POS vs cash register, tenant, license) |
+| [`TRANSLATION_CHECKLIST.md`](TRANSLATION_CHECKLIST.md) | Authors | Language inventory and remaining Turkish → English work |
 | [`MULTI_TENANT.md`](MULTI_TENANT.md) | Dev / ops | Tenant resolution, isolation, hosts, Dev headers |
 | [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) | Dev / ops | Single POS UI (`pos.regkasse.at`), JWT tenant |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | Super Admin / FA | Mandant CRUD, switcher, provisioning |
+| [`TENANT_EXTENSIONS.md`](TENANT_EXTENSIONS.md) | Dev / FA | Additive tenant hooks (`Extensions.Enabled`) |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | FA | Platform vs tenant users, Access hub |
 | [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) | FA / security | Role × permission defaults |
 | [`PERMISSIONS_MENU_MAPPING.md`](PERMISSIONS_MENU_MAPPING.md) | FA / security | Sidebar menu ↔ permission catalog groups |
@@ -58,15 +61,26 @@ Human-facing guides for operators and developers.
 
 ---
 
-## Digital services & online orders
+## Digital services, online orders & online payments
 
 | Doc | Topic |
 |-----|--------|
 | [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) | Website / app generators, requests |
-| [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) | Non-fiscal order inbox & status |
+| [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) | Non-fiscal website/app order inbox & status |
+| [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) | POS Kreditkarte / PayPal intents, Stripe/Mock, FA Online-Zahlungen |
 | [`CHANGELOG.md`](CHANGELOG.md) | Digital / orders feature wave |
 
 Runtime storefront app: [`../frontend-sites/README.md`](../frontend-sites/README.md) (`/[slug]`, public catalog APIs). Custom hosts: verified `TenantDomain` (`website.manage`).
+
+---
+
+## POS hosted online payments (card / PayPal)
+
+Not the same as website **online orders**. Gateway intents live in `gateway_payment_intents` until fiscal `POST /api/pos/payment`.
+
+| Doc | Topic |
+|-----|--------|
+| [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) | Flow, Stripe/Mock config, FA **Online-Zahlungen** console, webhook/orphan troubleshooting |
 
 ---
 
@@ -93,7 +107,16 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 
 | Doc | Topic |
 |-----|--------|
+| [`COUNTRIES.md`](COUNTRIES.md) | **Multi-country hub** (AT production; DE/CH/EU shape-only) |
+| [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover (migrations, flags, FA, blackout windows) |
+| [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) | Germany fiscal **stub** (not production-ready) |
+| [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) | Paket 20: SIGN DE vs Epson/Swissbit (decision; not implemented) |
+| [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung **stub** (not production-ready) |
+| [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) | Paket 21: SIX IG 2.3 QR-bill plan (not implemented) |
+| [`EINVOICING_EU.md`](EINVOICING_EU.md) | EU e-invoicing / ViDA readiness **stub** (no submission) |
+| [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) | Paket 22: Peppol/UBL vs national platforms (plan; not implemented) |
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
+| [`STAGING_SETUP.md`](STAGING_SETUP.md) | **Staging hosts, secrets, smoke, local Staging, CH canary prep** |
 | [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
 | [`DEPLOYMENT_COMPLIANCE.md`](DEPLOYMENT_COMPLIANCE.md) | **Production RKSV gate, ComplianceOfficer, audit trail** |
 | [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | **Feature flags: config defaults, tenant_settings overrides, Admin API, FA UI** |
@@ -126,6 +149,7 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | Doc | Topic |
 |-----|--------|
 | [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) | SuperAdmin TOTP / Dev bypass |
+| [`AUTH_LOGOUT.md`](AUTH_LOGOUT.md) | Logout security (cookies, stamp, CSRF, FA/POS) |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | Users, Access & Roles hub |
 | [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) / [`LICENSE_MANAGEMENT_DESIGN.md`](LICENSE_MANAGEMENT_DESIGN.md) | Deployment vs mandant license |
 | [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) | License sales |
@@ -211,6 +235,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`API_CONTRACTS.md`](API_CONTRACTS.md) | API contract notes |
 | [`API_LEGACY_DEPRECATION.md`](API_LEGACY_DEPRECATION.md) | Legacy route policy |
 | [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) | SuperAdmin 2FA |
+| [`AUTH_LOGOUT.md`](AUTH_LOGOUT.md) | Logout security |
 | [`BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md) | Backdated daily closing |
 | [`backend-postgresql-integration-tests.md`](backend-postgresql-integration-tests.md) | PG integration tests |
 | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) | Backup hub |
@@ -247,6 +272,10 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`README.md`](README.md) | This index |
 | [`REGKASSE_APK_INSTALLATIONSANLEITUNG.md`](REGKASSE_APK_INSTALLATIONSANLEITUNG.md) | APK install (de) |
 | [`restore-*.md`](restore-boundary-notes.md) | Restore boundary / drills |
+| [`COUNTRIES.md`](COUNTRIES.md) | Multi-country fiscal hub |
+| [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover |
+| [`EINVOICING_EU.md`](EINVOICING_EU.md) / [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) / [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Country fiscal stubs (not production-ready) |
+| [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) / [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) / [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) | Paket 20/21/22 plans (not implemented) |
 | [`RKSV_*.md`](RKSV_COMPLIANCE.md) | RKSV / BMF / operations |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | **Key** — FA mandant CRUD |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | **Key** — users / Access hub |

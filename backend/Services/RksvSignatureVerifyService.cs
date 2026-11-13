@@ -20,24 +20,38 @@ public sealed class RksvSignatureVerifyService : IRksvSignatureVerifyService
         string? certificateThumbprint,
         CancellationToken cancellationToken = default)
     {
-        var compactJws = signature.Trim();
-        if (string.IsNullOrWhiteSpace(compactJws))
+        if (string.IsNullOrWhiteSpace(signature))
         {
             return Fail("Signature is empty.");
         }
 
-        var parts = compactJws.Split('.');
-        if (parts.Length != 3)
+        var parsed = JwsParser.Parse(signature);
+        if (!parsed.Success)
         {
-            return Fail("Compact JWS must have exactly 3 parts (header.payload.signature).");
+            return Fail(parsed.Error ?? "Compact JWS must have exactly 3 parts (header.payload.signature).");
         }
 
-        foreach (var part in parts)
+        string compactJws;
+        if (parsed.Format is JwsWireFormat.CompactJws)
         {
-            if (string.IsNullOrEmpty(part))
-                return Fail("Compact JWS contains an empty part.");
-            if (part.Contains('='))
-                return Fail("Compact JWS must use Base64URL without padding.");
+            compactJws = signature.Trim();
+            var parts = compactJws.Split('.');
+            if (parts.Length != 3)
+            {
+                return Fail("Compact JWS must have exactly 3 parts (header.payload.signature).");
+            }
+
+            foreach (var part in parts)
+            {
+                if (string.IsNullOrEmpty(part))
+                    return Fail("Compact JWS contains an empty part.");
+                if (part.Contains('='))
+                    return Fail("Compact JWS must use Base64URL without padding.");
+            }
+        }
+        else
+        {
+            compactJws = parsed.CompactJws;
         }
 
         var (publicKey, thumbprintUsed, resolveError) = await ResolvePublicKeyAsync(certificateThumbprint, cancellationToken)

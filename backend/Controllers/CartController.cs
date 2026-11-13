@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Lodging;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
@@ -14,20 +15,11 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// POS cart handlers. Canonical route: <c>api/pos/cart/*</c>.
-    /// Legacy alias <c>api/Cart/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
-    /// Drop the <c>api/Cart</c> route when metrics show zero legacy traffic (and FA generated clients are migrated).
-    /// New cart features go on these shared actions (canonical <c>/api/pos/cart</c>), never legacy-only. Sunset: 2026-09-30.
+    /// Legacy alias <c>/api/Cart/*</c> was removed (2026-08-13); clients must use this prefix only.
     /// </summary>
-    [Obsolete(
-        "Legacy HTTP alias /api/Cart/* is deprecated; clients must call /api/pos/cart/*. " +
-        "This type still hosts the canonical /api/pos/cart routes (dual [Route]). " +
-        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
-        error: false)]
     [HasPermission(AppPermissions.CartManage)]
     [ApiController]
-    [Route("api/[controller]")]
     [Route("api/pos/cart")]
-    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -1146,6 +1138,17 @@ namespace KasseAPI_Final.Controllers
                     return Forbid();
                 }
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
+                if (tenantId == Guid.Empty)
+                    return NotFound(new { message = "Tenant not found" });
+
+                // Ambient tenant only. UserTenantMemberships is filtered; do not IgnoreQueryFilters.
+                var memberUserIds = await _context.UserTenantMemberships.AsNoTracking()
+                    .Where(m => m.IsActive)
+                    .Select(m => m.UserId)
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+
                 var cleanupResult = new ForceCleanupResponse
                 {
                     RequestedBy = userId,
@@ -1162,7 +1165,8 @@ namespace KasseAPI_Final.Controllers
                     var tableCarts = await _context.Carts
                         .Include(c => c.Items)
                         .Where(c => c.TableNumber == request.TableNumber.Value &&
-                                   c.Status == CartStatus.Active)
+                                   c.Status == CartStatus.Active &&
+                                   memberUserIds.Contains(c.UserId))
                         .ToListAsync();
 
                     foreach (var cart in tableCarts)
@@ -1194,7 +1198,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var allActiveCarts = await _context.Carts
                         .Include(c => c.Items)
-                        .Where(c => c.Status == CartStatus.Active)
+                        .Where(c => c.Status == CartStatus.Active && memberUserIds.Contains(c.UserId))
                         .ToListAsync();
 
                     foreach (var cart in allActiveCarts)
@@ -1602,7 +1606,9 @@ namespace KasseAPI_Final.Controllers
                 {
                     Id = ci.Id,
                     ProductId = ci.ProductId,
-                    ProductName = prod?.Name ?? "Unknown Product",
+                    ProductName = LodgingStayLine.IsStayLabel(ci.Notes)
+                        ? ci.Notes!
+                        : prod?.Name ?? "Unknown Product",
                     ProductImage = prod?.ImageUrl,
                     Quantity = ci.Quantity,
                     UnitPrice = ci.UnitPrice,

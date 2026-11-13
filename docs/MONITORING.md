@@ -55,9 +55,12 @@ Smoke: [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md).
 
 | Layer | Format | Levels | Sink |
 |-------|--------|--------|------|
-| API | ASP.NET Core **JSON console** (`Logging:Console:FormatterName=json` in Production example) | Information+ for app; Warning for framework | Container stdout → Promtail → Loki |
+| API (Production) | ASP.NET Core **JSON console** (`Logging:Console:FormatterName=json`) | Information+ for app; Warning for framework; JWT success is Debug | Container stdout → Promtail → Loki |
+| API (Development) | **Readable** console (`FormatterName=readable`) | Same levels; scopes include Tenant/User | Local console |
 | FA | **pino** JSON on Route Handlers | `LOG_LEVEL` | stdout / beacons |
 | Compose | `json-file` rotation (`LOG_MAX_SIZE` / `LOG_MAX_FILES`) | — | Host + Promtail |
+
+Request enrichment: after auth, `RequestLoggingScopeMiddleware` adds unmasked `Tenant` / `User` / `Role` / `CorrelationId` scopes. Failures from `MetricsMiddleware` include method, path+query, user, and tenant. Slow requests (≥ `Monitoring:SlowRequestThresholdMs`) log Warning.
 
 **Retention**
 
@@ -75,6 +78,7 @@ Never log passwords, voucher codes, raw PEMs, or unredacted card data ([`CONFIGU
 ## Metrics & performance
 
 - API: `GET /metrics` (Prometheus text) when `Monitoring:Enabled` + `Monitoring:Prometheus:Enabled`
+- Outside Development, scrape is **IP-restricted** (`PrometheusMetricsAccessMiddleware`): loopback always; empty `Monitoring:Prometheus:AllowedCidrs` allows RFC1918 + unique-local IPv6; an explicit CIDR list replaces that default. Public IPs receive HTTP 403. JWT is not used (scrapers have no user token).
 - Middleware: request count, errors, duration, active requests
 - Fiscal: FinanzOnline, offline replay, TSE fleet gauges (`TseMetricsService`)
 - Business gauges: tenants, revenue, orders, users (refreshed periodically)
@@ -132,4 +136,26 @@ Set `GRAFANA_ADMIN_PASSWORD` in the environment before first Grafana start.
 - [ ] Loki shows container logs  
 - [ ] Alerts routed (see [`ALERTING.md`](ALERTING.md))  
 - [ ] FA Sentry DSN set for Production builds  
-- [ ] On-call knows fiscal alerts (`RegkasseTseFleetUnhealthy`, `RegkasseFinanzOnlineFailures`)  
+- [ ] On-call knows fiscal alerts (`RegkasseTseFleetUnhealthy`, `RegkasseFinanzOnlineFailures`)
+
+---
+
+## Production
+
+Sentry DSNs stay empty in git. Set them in the host environment before promoting a release. The SDK stays disabled when the value is blank.
+
+| Variable | Surface |
+|----------|---------|
+| `Sentry:Dsn` (or `Sentry__Dsn`) | API. Sample rate `Sentry:TracesSampleRate` defaults to `0.1`. `SendDefaultPii` is false. `/health*`, `/api/health*`, and `/metrics` are not sent. |
+| `NEXT_PUBLIC_SENTRY_DSN` | Frontend Admin, read at build time. Init runs only when this value is set and `NODE_ENV` is `production`. |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Shown on `/admin/monitoring`. |
+| `EXPO_PUBLIC_SENTRY_DSN` | POS. The Expo plugin and the native SDK load only when this value is set. |
+| `SLACK_WEBHOOK_URL` | GitHub Actions secret for CI failures (`notify-failure.yml`) and the uptime workflow. |
+
+Uptime: [`.github/workflows/uptime-check.yml`](../.github/workflows/uptime-check.yml) runs every 5 minutes against `https://api.regkasse.at/api/health/live`, `https://api.regkasse.at/api/health/ready`, `https://admin.regkasse.at/login`, and `https://pos.regkasse.at`. A failing probe posts the URL and HTTP status to Slack. If `SLACK_WEBHOOK_URL` is unset, the job logs the failure and exits 0.
+
+Optional next step: mirror the same four URLs in UptimeRobot or Better Stack. The GitHub Actions workflow stays the primary check.
+
+Thresholds (see [`ALERTING.md`](ALERTING.md)): error rate > 5% over 5 minutes, p95 latency > 1s, restore drill failed, backup failed, TSE offline, FinanzOnline dead-letter > 0.
+
+The in-app Health card on `/admin/monitoring` polls API live/ready every 30 seconds and lists the latest restore drills plus the last `BackupDrillReportSent` audit row. It does not add API routes.  

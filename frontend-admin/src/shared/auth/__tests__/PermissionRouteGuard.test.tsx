@@ -38,6 +38,15 @@ vi.mock('@/shared/auth/routeGuardConfig', () => ({
   ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS: false,
 }));
 
+vi.mock('@/features/vertical-profiles/contexts/AdminVerticalProfileContext', () => ({
+  useAdminVerticalProfile: () => ({
+    profileId: 'gastronomy',
+    posFeatures: { tables: true, kitchenDisplay: true },
+    posLayout: 'standard',
+    isLoading: false,
+  }),
+}));
+
 describe('PermissionRouteGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();

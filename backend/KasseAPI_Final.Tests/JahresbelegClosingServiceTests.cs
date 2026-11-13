@@ -98,9 +98,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task CreateJahresbelegClosingAsync_PersistsAggregatedTotals_AndMonthlyReferences()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -157,9 +157,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task CreateJahresbelegClosingAsync_LinksPreviousYearSignature()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -210,9 +210,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task CreateJahresbelegClosingAsync_DuplicateYear_ReturnsFailure()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -254,9 +254,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task CreateJahresbelegClosingAsync_MissingMonths_ReturnsFailure()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -306,9 +306,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task BuildReportDtoAsync_UsesDemoFooter_InDevelopment()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var entity = new Jahresbeleg
@@ -357,9 +357,9 @@ public sealed class JahresbelegClosingServiceTests
     [Fact]
     public async Task GenerateYearlySummaryPreviewAsync_FlagsDecemberMonatsbeleg()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         const int year = 2024;

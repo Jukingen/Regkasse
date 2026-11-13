@@ -2,7 +2,8 @@
 
 /**
  * Product list, CRUD, stock: all calls use /api/admin/products (generated product hooks are not used).
- * Single list query supports pagination, optional name/categoryId, and isActive (all/true/false).
+ * Single list query supports pagination, optional name/categoryId/categoryIds, and isActive (all/true/false).
+ * The products page maps shareable `?category=Name` URLs to `categoryId` via `resolveProductCategoryIds`.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -40,6 +41,8 @@ export function useProductFilters() {
     pageSize: string;
     search: string;
     categoryId: string;
+    /** Shareable category name (`/products?category=Kebab`). */
+    category: string;
     /** List scope: active (default), inactive, all — mirrors UI Segmented */
     status: string;
   }>();

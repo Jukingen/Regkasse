@@ -19,7 +19,7 @@ public sealed class OnlineOrderPaymentServiceTests
     [Fact]
     public async Task CreatePaymentIntent_then_Confirm_marks_paid_and_notifies()
     {
-        var (payments, _, db, activity, _) = CreateSut();
+        var (payments, _, db, activity, _, _) = CreateSut();
         var (tenantId, orderId) = await SeedOnlinePayableOrderAsync(db);
 
         var created = await payments.CreatePaymentIntentAsync(orderId, "pay-cafe");
@@ -29,7 +29,7 @@ public sealed class OnlineOrderPaymentServiceTests
         Assert.Equal("Mock", created.Provider);
 
         var confirmed = await payments.ConfirmPaymentAsync(created.PaymentIntentId!);
-        Assert.True(confirmed.Succeeded);
+        Assert.True(confirmed.Succeeded, confirmed.Error);
 
         db.ChangeTracker.Clear();
         var order = await db.OnlineOrders.IgnoreQueryFilters().SingleAsync(o => o.Id == orderId);
@@ -49,9 +49,27 @@ public sealed class OnlineOrderPaymentServiceTests
     }
 
     [Fact]
+    public async Task ConfirmPayment_OtherTenantAmbient_DoesNotPayForeignIntent()
+    {
+        var (payments, _, db, _, _, accessor) = CreateSut();
+        var (_, orderId) = await SeedOnlinePayableOrderAsync(db);
+        var created = await payments.CreatePaymentIntentAsync(orderId, "pay-cafe");
+        Assert.True(created.Succeeded);
+
+        accessor.TenantId = Guid.NewGuid();
+        var confirmed = await payments.ConfirmPaymentAsync(created.PaymentIntentId!);
+
+        Assert.False(confirmed.Succeeded);
+        Assert.Equal(OnlineOrderPaymentService.IntentNotFoundCode, confirmed.Code);
+        db.ChangeTracker.Clear();
+        var order = await db.OnlineOrders.IgnoreQueryFilters().SingleAsync(o => o.Id == orderId);
+        Assert.Equal(OnlineOrderPaymentStatuses.Pending, order.PaymentStatus);
+    }
+
+    [Fact]
     public async Task CreatePaymentIntent_rejects_cash_orders()
     {
-        var (payments, _, db, _, _) = CreateSut();
+        var (payments, _, db, _, _, _) = CreateSut();
         var (_, orderId) = await SeedOnlinePayableOrderAsync(db, OnlineOrderPaymentMethods.Cash);
 
         var result = await payments.CreatePaymentIntentAsync(orderId, "pay-cafe");
@@ -62,7 +80,7 @@ public sealed class OnlineOrderPaymentServiceTests
     [Fact]
     public async Task CreatePaymentIntent_requires_matching_tenant_slug()
     {
-        var (payments, _, db, _, _) = CreateSut();
+        var (payments, _, db, _, _, _) = CreateSut();
         var (_, orderId) = await SeedOnlinePayableOrderAsync(db);
 
         var result = await payments.CreatePaymentIntentAsync(orderId, "wrong-slug");
@@ -73,7 +91,7 @@ public sealed class OnlineOrderPaymentServiceTests
     [Fact]
     public async Task MarkPaidFromGateway_is_idempotent()
     {
-        var (payments, _, db, activity, _) = CreateSut();
+        var (payments, _, db, activity, _, _) = CreateSut();
         var (_, orderId) = await SeedOnlinePayableOrderAsync(db);
         var created = await payments.CreatePaymentIntentAsync(orderId, "pay-cafe");
         Assert.True(created.Succeeded);
@@ -97,7 +115,7 @@ public sealed class OnlineOrderPaymentServiceTests
     [Fact]
     public async Task UpdateStatus_notifies_activity()
     {
-        var (_, status, db, activity, _) = CreateSut();
+        var (_, status, db, activity, _, _) = CreateSut();
         var (tenantId, orderId) = await SeedOnlinePayableOrderAsync(db);
 
         var result = await status.UpdateStatusAsync(orderId, "accepted");
@@ -154,14 +172,16 @@ public sealed class OnlineOrderPaymentServiceTests
         OnlineOrderStatusService Status,
         AppDbContext Db,
         Mock<IActivityEventPublisher> Activity,
-        MockCardGateway Gateway)
+        MockCardGateway Gateway,
+        ICurrentTenantAccessor Accessor)
         CreateSut()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
-        var factory = new Factory(options);
+        var accessor = TenantTestDoubles.TenantAccessorReturning(null);
+        var db = new AppDbContext(options, accessor);
+        var factory = new Factory(options, accessor);
         var activity = new Mock<IActivityEventPublisher>();
         activity.Setup(a => a.TryPublishAsync(
                 It.IsAny<Guid>(),
@@ -183,7 +203,7 @@ public sealed class OnlineOrderPaymentServiceTests
 
         var payments = new OnlineOrderPaymentService(
             factory,
-            NullCurrentTenantAccessor.Instance,
+            accessor,
             gateway,
             notifications,
             TimeProvider.System,
@@ -191,20 +211,25 @@ public sealed class OnlineOrderPaymentServiceTests
 
         var status = new OnlineOrderStatusService(
             factory,
-            NullCurrentTenantAccessor.Instance,
+            accessor,
             notifications,
             Mock.Of<IOnlineOrderLoyaltyService>(),
             TimeProvider.System);
 
-        return (payments, status, db, activity, gateway);
+        return (payments, status, db, activity, gateway, accessor);
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>
     {
         private readonly DbContextOptions<AppDbContext> _options;
-        public Factory(DbContextOptions<AppDbContext> options) => _options = options;
-        public AppDbContext CreateDbContext() => new(_options);
+        private readonly ICurrentTenantAccessor _accessor;
+        public Factory(DbContextOptions<AppDbContext> options, ICurrentTenantAccessor accessor)
+        {
+            _options = options;
+            _accessor = accessor;
+        }
+        public AppDbContext CreateDbContext() => new(_options, _accessor);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            new(new AppDbContext(_options, _accessor));
     }
 }

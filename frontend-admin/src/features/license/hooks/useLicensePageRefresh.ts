@@ -27,6 +27,9 @@ function isLicensePageQueryKey(queryKey: readonly unknown[]): boolean {
   if (root === 'admin' && queryKey[1] === 'license') {
     return true;
   }
+  if (root === 'license' || root === '/api/license/status') {
+    return true;
+  }
   if (root === 'api' && queryKey[1] === 'admin' && queryKey[2] === 'tenants') {
     return true;
   }

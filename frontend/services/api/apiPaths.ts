@@ -24,6 +24,21 @@ export const API_PATHS = {
     BY_ID: (id: string) => `/pos/${id}`,
     /** GET - Product modifier groups (Extra Zutaten) */
     MODIFIER_GROUPS: (id: string) => `/pos/${id}/modifier-groups`,
+    /** GET/POST - IMEI stock for an IMEI-tracked product */
+    IMEIS: (id: string) => `/pos/products/${id}/imeis`,
+    VARIANTS: (id: string) => `/pos/products/${id}/variants`,
+    /** GET - Active product by barcode (retail scan). */
+    BY_BARCODE: (barcode: string) => `/pos/products/by-barcode/${encodeURIComponent(barcode)}`,
+    /** GET - Lodging rooms for beherbergung */
+    ROOMS: '/pos/rooms',
+    /** GET/POST - Guest folios for beherbergung */
+    FOLIOS: '/pos/folios',
+    FOLIO: (id: string) => `/pos/folios/${id}`,
+    FOLIO_CHARGE: (id: string) => `/pos/folios/${id}/charge`,
+    FOLIO_MOVE_ROOM: (id: string) => `/pos/folios/${id}/move-room`,
+    FOLIO_STAGE_CHECKOUT: (id: string) => `/pos/folios/${id}/stage-checkout`,
+    FOLIO_ITEMS: (id: string) => `/pos/folios/${id}/items`,
+    ROOM: (id: string) => `/pos/rooms/${id}`,
     /** PUT - Update product stock */
     STOCK: (id: string) => `/pos/stock/${id}`,
     /** GET - Debug: categories and products info */
@@ -46,5 +61,17 @@ export const API_PATHS = {
     BY_SLUG: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}`,
     /** GET - Live menu for website / customer app */
     MENU: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}/menu`,
+  },
+  POS_RECEIPTS: {
+    /** GET - Last receipts for the current cash register (alias) */
+    LIST: '/pos/receipts',
+    /** GET - Last receipts for the current cash register */
+    RECENT: '/pos/receipts/recent',
+    /** GET - Receipt detail (tenant + register scoped) */
+    BY_ID: (id: string) => `/pos/receipts/${encodeURIComponent(id)}`,
+    /** GET - Nachdruck payload (no new fiscal receipt) */
+    REPRINT: (id: string) => `/pos/receipts/${encodeURIComponent(id)}/reprint`,
+    /** POST - Belegliste storno (Fiskaly CANCELLATION) */
+    CANCEL: (id: string) => `/pos/receipts/${encodeURIComponent(id)}/cancel`,
   },
 } as const;

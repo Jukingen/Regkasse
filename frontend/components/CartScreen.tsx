@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Bu component, dokunmatik dostu, sade ve büyük butonlu bir sepet/kasa ekranı sunar. Tüm hesaplamalar backend'den gelir, frontend'de tekrar hesaplanmaz.
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useRef, useEffect } from 'react';
@@ -316,7 +317,7 @@ const CartScreen: React.FC = () => {
       setCurrentPaymentSessionId(sessionId);
 
       // Backend'e ödeme isteği gönder
-      console.log(`Processing ${method} payment for ${amount} with session ${sessionId}`);
+      safeLog(`Processing ${method} payment for ${amount} with session ${sessionId}`);
 
       // Ödeme ekranını aç
       setShowPayment(true);
@@ -332,7 +333,7 @@ const CartScreen: React.FC = () => {
   // Fiş yazdırma (placeholder)
   const printReceipt = async () => {
     try {
-      console.log('Printing receipt...');
+      safeLog('Printing receipt...');
       Alert.alert(
         t('cart:printSuccess', 'Başarılı'),
         t('cart:printSuccessMessage', 'Fiş yazdırılıyor...')

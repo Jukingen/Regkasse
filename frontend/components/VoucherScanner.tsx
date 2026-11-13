@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView } from 'expo-camera';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { PosCameraView } from './camera/PosCameraView';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { POS_QR_BARCODE_TYPES } from '../constants/posCameraScan';
@@ -158,7 +159,7 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
     const scanActive = scanning && !validating;
 
     return (
-      <CameraView
+      <PosCameraView
         style={styles.camera}
         facing="back"
         active={scanActive}
@@ -181,7 +182,7 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
             </View>
           ) : null}
         </View>
-      </CameraView>
+      </PosCameraView>
     );
   };
 

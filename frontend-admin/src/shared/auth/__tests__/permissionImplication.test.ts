@@ -20,6 +20,11 @@ describe('permissionImplied', () => {
     expect(permissionImplied('digital.orders.view', ['digital.orders.manage'])).toBe(true);
   });
 
+  it('grants fiskaly.history.view via retry', () => {
+    expect(permissionImplied('fiskaly.history.view', ['fiskaly.history.retry'])).toBe(true);
+    expect(permissionImplied('fiskaly.history.retry', ['fiskaly.history.view'])).toBe(false);
+  });
+
   it('system.critical satisfies any permission', () => {
     expect(permissionImplied('report.export', ['system.critical'])).toBe(true);
   });

@@ -3,10 +3,14 @@
  * Code-based translation: `registerApiErrorCodeTranslation` + backend `code` (normalizeApiError).
  */
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from '@/i18n/translationFallback';
-import { ensureDefaultApiErrorTranslations } from '@/lib/api/errorTranslator';
+import {
+  ensureDefaultApiErrorTranslations,
+  isUnsafeTechnicalErrorDetail,
+} from '@/lib/api/errorTranslator';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import { getRegisteredMessageKeyForApiErrorCode } from './apiErrorCodeRegistry';
+import { translateLimitExceededError } from './limitExceededMessage';
 import type { NormalizedApiError } from './normalizedApiError';
 import { normalizeApiError } from './normalizedApiError';
 import { buildTechnicalApiErrorPayload } from './technicalApiErrorLog';
@@ -57,6 +61,9 @@ export function getUserFacingApiErrorMessage(
     return normalized.rawMessage;
   }
 
+  const limitMsg = translateLimitExceededError(t, error);
+  if (limitMsg) return limitMsg;
+
   const byCode = tryCodeBasedUserMessage(t, normalized);
   if (byCode) return byCode;
 
@@ -64,7 +71,9 @@ export function getUserFacingApiErrorMessage(
     return t('common.auth.invalidCredentials');
   }
   if (normalized.httpStatus === 400) {
-    return normalized.rawMessage ?? t('common.errors.http400');
+    const raw = normalized.rawMessage;
+    if (raw && !isUnsafeTechnicalErrorDetail(raw)) return raw;
+    return t('common.errors.http400');
   }
   if (normalized.httpStatus === 401) return t('common.errors.http401');
   if (normalized.httpStatus === 403) return t('common.errors.http403');
@@ -73,7 +82,9 @@ export function getUserFacingApiErrorMessage(
   if (normalized.httpStatus === 422) return t('common.errors.http422');
   if (normalized.httpStatus === 429) return t('common.errors.http429');
   if (normalized.httpStatus === 500) {
-    return normalized.rawMessage ?? t('common.errors.http500');
+    const raw = normalized.rawMessage;
+    if (raw && !isUnsafeTechnicalErrorDetail(raw)) return raw;
+    return t('common.errors.http500');
   }
   if (normalized.httpStatus === 503) return t('common.errors.http503');
 

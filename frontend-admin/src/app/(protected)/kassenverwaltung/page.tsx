@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Checkbox, Empty, Space, Tag, Typography } from 'antd';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CashRegister } from '@/api/generated/model';
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
@@ -19,6 +19,7 @@ import {
 } from '@/features/cash-registers/api/cashRegisters';
 import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
+import { CashRegisterOpenRequestsPanel } from '@/features/cash-registers/components/CashRegisterOpenRequestsPanel';
 import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CashRegisterTenantSelector } from '@/features/cash-registers/components/CashRegisterTenantSelector';
@@ -39,6 +40,7 @@ import {
   rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
+import AdminRouteTableLoading from '@/components/ui/AdminRouteTableLoading';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
@@ -54,7 +56,7 @@ const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as co
 
 type CashRegisterViewItem = EnhancedCashRegister;
 
-export default function KassenverwaltungPage() {
+function KassenverwaltungPageContent() {
   const { message } = useAntdApp();
 
   const { t } = useI18n();
@@ -193,7 +195,7 @@ export default function KassenverwaltungPage() {
   const showGroupedTenantView = isSuperAdminUser && !selectedTenantId;
 
   useEffect(() => {
-    if (searchParams.get('create') !== '1' || !canCreate) return;
+    if (searchParams?.get('create') !== '1' || !canCreate) return;
     setCreateOpen(true);
     router.replace('/kassenverwaltung');
   }, [searchParams, canCreate, router]);
@@ -202,7 +204,7 @@ export default function KassenverwaltungPage() {
     if (deepLinkHandledRef.current || allRegisters.length === 0) {
       return;
     }
-    const fromQuery = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
+    const fromQuery = searchParams?.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
     const targetId = fromQuery || readQuickCashRegisterId(tenantId ?? null);
     if (!targetId) {
       return;
@@ -401,6 +403,8 @@ export default function KassenverwaltungPage() {
 
       <CashRegisterShiftRksvGuide />
 
+      {canOperate ? <CashRegisterOpenRequestsPanel tenantId={tenantId ?? selectedTenantId} /> : null}
+
       <Card>
         <Space style={{ marginBottom: 16 }} wrap align="center">
           <Button
@@ -574,5 +578,13 @@ export default function KassenverwaltungPage() {
         confirmLoading={hardDeleteMutation.isPending}
       />
     </AdminPageShell>
+  );
+}
+
+export default function KassenverwaltungPage() {
+  return (
+    <Suspense fallback={<AdminRouteTableLoading titleWidth="32%" />}>
+      <KassenverwaltungPageContent />
+    </Suspense>
   );
 }

@@ -11,6 +11,9 @@ public interface ICsrfTokenService
 {
     string GenerateToken();
     bool ValidateToken(string token, string cookieToken);
+
+    /// <summary>Removes a token from the server cache so it cannot be reused after logout.</summary>
+    void InvalidateToken(string? token);
 }
 
 /// <summary>
@@ -73,6 +76,14 @@ public sealed class CsrfTokenService : ICsrfTokenService
         }
 
         return true;
+    }
+
+    public void InvalidateToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return;
+
+        _cache.Remove(CacheKey(token.Trim()));
     }
 
     private static string CacheKey(string token) => $"csrf_{token}";

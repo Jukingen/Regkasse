@@ -11,9 +11,11 @@ import {
   ScrollView,
   Alert,
   TextInput,
-  Switch,
   Pressable,
   Platform,
+  Switch,
+  ActivityIndicator,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,6 +24,7 @@ import {
   PaymentRequest,
   PaymentItem,
   type VoucherValidateSuccess,
+  resolveGatewayChargeAmount,
 } from '../services/api/paymentService';
 import {
   isPaymentError,
@@ -29,29 +32,66 @@ import {
   getPaymentResponseFailureMessage,
 } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
+import { getPreorderByReceipt } from '../services/api/preorderService';
 import {
   customerService,
   isWalkInCustomerId,
   type BenefitEligibilityPreviewResponse,
 } from '../services/api/customerService';
 import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
+import { showAlert } from '../utils/alert';
 import { validateAmount } from '../utils/validation';
+import {
+  PAYMENT_COVERAGE_TOLERANCE_EUR,
+  cashChangeDue,
+  computeVoucherPlusCashCoversTotal,
+  resolveOptionalCashTender,
+} from '../utils/posPaymentCoverage';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import {
+  DEFAULT_POS_PAYMENT_METHOD,
   posCheckoutUiActions,
   selectPaymentMethodSubmitAttempted,
   selectSelectedPaymentMethodType,
   usePosCheckoutUiStore,
 } from '../stores/posCheckoutUiStore';
+import {
+  onlinePaymentStoreActions,
+  selectOnlinePaymentPhase,
+  useOnlinePaymentStore,
+} from '../stores/onlinePaymentStore';
+import {
+  isHostedOnlinePaymentMethod,
+  isOnlinePaymentDisabledOffline,
+  mergeHostedOnlinePaymentMethods,
+  type HostedOnlinePaymentCode,
+} from '../services/payment/onlinePaymentMethods';
+import {
+  OnlinePaymentFlowError,
+  runHostedOnlinePayment,
+} from '../services/payment/onlinePaymentFlow';
+import { logger } from '../lib/logger';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { printIssuedTicketsAsync } from '../services/ticketPrinter';
+import {
+  POS_RECEIPT_REPRINT_REASONS,
+  reprintReceipt,
+} from '../services/api/receiptService';
 import { VoucherScanner } from './VoucherScanner';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import CardPaymentModal from './CardPaymentModal';
+import { OfflineLimitReachedModal } from './OfflineLimitReachedModal';
+import { isOfflineQueueAtCap, isOfflineQueueLimitFailure } from '../utils/offlineQueueLimit';
+import { resolveEffectiveOfflineTenantLimit } from '../services/offline/offlineTenantLimit';
+import { retryOfflineQueuesNow } from '../services/offline/retryOfflineQueues';
+import { getPendingPaymentQueue } from '../services/payment/pendingPaymentQueue';
+import { IfVerticalFeature } from './IfVerticalFeature';
+import { parseTaxiKm, useOptionalTaxiTrip } from '../contexts/TaxiTripContext';
+import { useOptionalImeiSelections } from '../contexts/ImeiSelectionContext';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
-import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
-import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoiceService';
+import { normalizeReceiptDto, resolveReceiptNetAmount } from '../utils/normalizeReceiptDto';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import {
   buildPosRegisterGateContext,
@@ -63,8 +103,9 @@ import {
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
-import { checkTseStatus } from '../services/api/tseService';
 import { useTseHealth } from '../hooks/useTseHealth';
+import { shouldRequireTseForPosPayment } from '../utils/shouldRequireTseForPosPayment';
+import { TseStatusIndicator } from './TseStatusIndicator';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import StornoRefundSelection from './StornoRefundSelection';
 import {
@@ -81,6 +122,7 @@ import {
   POS_TSE_STATUS_FAILURE_WARN_STREAK,
   registerPosTseStatusCheckOutcome,
 } from '../constants/posOperatorWarnings';
+import { usePosPermissions } from '../hooks/usePosPermissions';
 import { canShowPosStornoRefundButton } from '../utils/posStornoRefundGate';
 import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSyncContact';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,8 +133,7 @@ import { usePayment } from '../hooks/usePayment';
 import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
 import { checkLicenseBeforePayment } from '../utils/checkLicenseBeforePayment';
 import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
-import { writeBase64ToDocumentFile } from '../utils/documentFile';
-import { isPrintCancelled, isShareUnavailable, shareDocumentAsync } from '../utils/expoPrintShare';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 import { formatPrice } from '../utils/formatPrice';
 import {
   areLicenseChecksBypassedInDevelopment,
@@ -162,44 +203,8 @@ function computeVoucherMaxForSale(
   return Math.max(0, Math.min(totalAmount, cap));
 }
 
-/** Cart gross tolerance for voucher + cash coverage (aligned with backend money rules). */
-const PAYMENT_COVERAGE_TOLERANCE_EUR = 0.02;
 
-/**
- * Whether applied voucher EUR plus cash tender covers cart gross total (German decimal input).
- * When settlement Restbetrag is ~0, only the voucher portion must cover the cart total.
- */
-function computeVoucherPlusCashCoversTotal(input: {
-  voucherEnabled: boolean;
-  appliedVoucherAmount: number;
-  totalCartAmount: number;
-  settlementAmountDue: number;
-  requiresCashAmount: boolean;
-  amountReceivedStr: string;
-}): { sumPaid: number; coversTotal: boolean } {
-  const v = input.voucherEnabled ? Math.max(0, input.appliedVoucherAmount) : 0;
-  const cashParsed = parseLocaleDecimal(input.amountReceivedStr);
-  const cashReceived = Number.isFinite(cashParsed) ? Math.max(0, cashParsed) : 0;
-
-  let sumPaid: number;
-  if (!input.voucherEnabled) {
-    sumPaid = input.requiresCashAmount ? cashReceived : input.totalCartAmount;
-  } else if (input.settlementAmountDue <= PAYMENT_COVERAGE_TOLERANCE_EUR) {
-    sumPaid = v;
-  } else if (input.requiresCashAmount) {
-    sumPaid = v + cashReceived;
-  } else {
-    // Card/transfer: cover Restbetrag without using cash TextInput.
-    sumPaid = v + Math.max(0, input.settlementAmountDue);
-  }
-
-  return {
-    sumPaid,
-    coversTotal: sumPaid >= input.totalCartAmount - PAYMENT_COVERAGE_TOLERANCE_EUR,
-  };
-}
-
-/** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
+/** ReceiptDTO veya payment response'taki receipt ? ReceiptSummary format?. */
 function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | null {
   if (!receipt?.items?.length) return null;
   const items = receipt.items.map((i) => ({
@@ -209,7 +214,13 @@ function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | n
     isModifier: i.isModifierLine ?? false,
   }));
   const totals = {
-    totalNet: receipt.totals?.totalNet ?? receipt.subtotal ?? 0,
+    totalNet: resolveReceiptNetAmount({
+      netTotal: receipt.netTotal,
+      totalNet: receipt.totals?.totalNet,
+      subtotal: receipt.subtotal,
+      grandTotal: receipt.grandTotal,
+      taxAmount: receipt.taxAmount ?? receipt.totals?.totalVat,
+    }),
     totalVat: receipt.totals?.totalVat ?? receipt.taxAmount ?? 0,
     totalGross: receipt.totals?.totalGross ?? receipt.grandTotal ?? 0,
   };
@@ -222,12 +233,12 @@ function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | n
   return { items, totals, vatBreakdown };
 }
 
-// Backend cevabını ReceiptDTO'ya normalize et (PascalCase/camelCase uyumu)
+// Backend cevab?n? ReceiptDTO'ya normalize et (PascalCase/camelCase uyumu)
 function normalizeReceiptDtoFromApi(r: unknown): ReceiptDTO {
   return normalizeReceiptDto(r);
 }
 
-// Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
+// T�rk�e A�?klama: �deme alma modal'? - Sepet i�eri?ini �deme i?lemine d�n�?t�r�r
 interface PaymentModalProps {
   visible: boolean;
   onClose: () => void;
@@ -243,10 +254,11 @@ interface PaymentModalProps {
     unitPrice: number;
     totalPrice: number;
     taxType?: string | number;
-    /** Extra Zutaten – ödeme/fiş için backend'e gönderilir (modifierId zorunlu; name/priceDelta opsiyonel) */
+    variantId?: string;
+    /** Extra Zutaten � �deme/fi? i�in backend'e g�nderilir (modifierId zorunlu; name/priceDelta opsiyonel) */
     modifiers?: { modifierId: string; name?: string; priceDelta?: number }[];
   }[];
-  /** Backend'den gelen brüt toplam - FE hesaplama yapmaz */
+  /** Backend'den gelen br�t toplam - FE hesaplama yapmaz */
   grandTotalGross?: number;
   customerId?: string;
   tableNumber?: number;
@@ -258,13 +270,23 @@ export default function PaymentModal({
   onSuccess,
   cartItems,
   grandTotalGross,
-  customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
+  customerId = '00000000-0000-0000-0000-000000000000', // Default Guid format?nda
   tableNumber,
   onPosToast,
 }: PaymentModalProps) {
-  const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings', 'system']);
+  const { t, i18n } = useTranslation([
+    'checkout',
+    'common',
+    'invoices',
+    'settings',
+    'system',
+    'receipts',
+    'verticalProfiles',
+    'offline',
+  ]);
   const { t: tLicense } = useTranslation('license');
   const { user } = useAuth();
+  const { canMakePayment, canReprintReceipt } = usePosPermissions();
   const { status: licenseSnapshot } = useLicenseStatus();
   const { isBlocking: maintenanceBlocksPayment } = useMaintenance();
   const showStornoRefundEntry = canShowPosStornoRefundButton(user);
@@ -272,41 +294,56 @@ export default function PaymentModal({
   const { isOnline } = useSystem();
   const tseHealth = useTseHealth();
   const tseServerOffline = String(tseHealth.status) === 'Offline';
+  const shouldRequireTse = shouldRequireTseForPosPayment(tseHealth.requiresFiscalSignature);
   const selectedPaymentMethod = usePosCheckoutUiStore(selectSelectedPaymentMethodType);
+  const onlinePaymentPhase = useOnlinePaymentStore(selectOnlinePaymentPhase);
   const paymentMethodSubmitAttempted = usePosCheckoutUiStore(selectPaymentMethodSubmitAttempted);
   const { setSelectedPaymentMethodType, setPaymentMethodSubmitAttempted, resetCheckoutPaymentUi } =
     posCheckoutUiActions;
   const [amountReceived, setAmountReceived] = useState<string>('');
-  /** Cash (Bar): true when operator entered or preset-selected amount &gt; 0 (drives inline ⚠️ hint). */
+  /** Cash (Bar): false only when a typed tender is present and below the rest amount. */
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [notes, setNotes] = useState<string>('');
+  const [isPrescription, setIsPrescription] = useState(false);
+  const taxiTrip = useOptionalTaxiTrip();
+  const imeiSelections = useOptionalImeiSelections();
+  const [isPreorder, setIsPreorder] = useState(false);
+  const [preorderRemainingText, setPreorderRemainingText] = useState('');
+  const [balanceQuery, setBalanceQuery] = useState('');
+  const [balanceOrder, setBalanceOrder] = useState<{
+    id: string;
+    preorderNumber?: string | null;
+    remainingAmount?: number;
+  } | null>(null);
+  const [balanceLookupError, setBalanceLookupError] = useState<string | null>(null);
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
   // State for Purchase Flow
   type PurchaseState = 'input' | 'processing' | 'printing' | 'completed' | 'print_error';
   const [purchaseState, setPurchaseState] = useState<PurchaseState>('input');
 
-  // Store paymentId and TSE/QR bilgisi for success ekranı ve retry
+  // Store paymentId and TSE/QR bilgisi for success ekran? ve retry
   const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
-  /** Receipt payload for summary — GET /api/pos/payment/{id}/receipt */
+  /** Receipt payload for summary � GET /api/pos/payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
   const [cardSimVisible, setCardSimVisible] = useState(false);
   const [cardPaymentIntentId, setCardPaymentIntentId] = useState<string | undefined>();
   const [paymentBusy, setPaymentBusy] = useState(false);
+  const onlinePaymentAbortRef = useRef<AbortController | null>(null);
 
-  /** RKSV: separate wizard for Storno vs Teilrückerstattung (elevated permissions). */
+  /** RKSV: separate wizard for Storno vs Teilr�ckerstattung (elevated permissions). */
   const [stornoRefundWizardVisible, setStornoRefundWizardVisible] = useState(false);
 
   /** Gutschein: code, validate snapshot, redeem amount (must match fiscal total for single-code flow). */
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherScannerVisible, setVoucherScannerVisible] = useState(false);
   const [voucherEnabled, setVoucherEnabled] = useState(false);
-  /** Gutschein: true when code has non-whitespace (inline ⚠️ when false while method is voucher). */
+  /** Gutschein: true when code has non-whitespace (inline ?? when false while method is voucher). */
   const [isVoucherCodeValid, setIsVoucherCodeValid] = useState(true);
   const [voucherRedeemAmountStr, setVoucherRedeemAmountStr] = useState('');
-  /** Writes `voucherRedeemAmountStr`; effective EUR is derived via `useMemo` below (empty → 0). */
+  /** Writes `voucherRedeemAmountStr`; effective EUR is derived via `useMemo` below (empty ? 0). */
   const setVoucherRedeemAmountEffective = useCallback((eur: number) => {
     const n = Number.isFinite(eur) ? Math.max(0, eur) : 0;
     setVoucherRedeemAmountStr(n > 0 ? n.toFixed(2) : '');
@@ -377,10 +414,6 @@ export default function PaymentModal({
     ]
   );
 
-  // DEV: TSE Simulation Toggle
-  // Default: AÇIK (Bypass) in Development
-  const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
-
   const [showStartbelegSaleModal, setShowStartbelegSaleModal] = useState(false);
   const [fiscalTseGateOk, setFiscalTseGateOk] = useState<boolean | null>(null);
   const [tseCheckFailureStreak, setTseCheckFailureStreak] = useState(0);
@@ -410,33 +443,23 @@ export default function PaymentModal({
       setFiscalTseGateOk(null);
       return;
     }
-    const needTse = __DEV__ ? !isTseSimulationEnabled : true;
+    const needTse = shouldRequireTse;
     if (!needTse) {
       setFiscalTseGateOk(true);
       const streak = registerPosTseStatusCheckOutcome(true);
       setTseCheckFailureStreak(streak);
       return;
     }
-    let cancelled = false;
-    setFiscalTseGateOk(null);
-    void checkTseStatus()
-      .then((s) => {
-        if (cancelled) return;
-        const ok = Boolean(s.isConnected && s.canCreateInvoices);
-        setFiscalTseGateOk(ok);
-        const streak = registerPosTseStatusCheckOutcome(ok);
-        setTseCheckFailureStreak(streak);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setFiscalTseGateOk(false);
-        const streak = registerPosTseStatusCheckOutcome(false);
-        setTseCheckFailureStreak(streak);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, isTseSimulationEnabled]);
+    if (tseHealth.loading && !tseHealth.lastCheck) {
+      setFiscalTseGateOk(null);
+      return;
+    }
+    const indicator = String(tseHealth.indicatorStatus);
+    const ok = indicator === 'Active' || indicator === 'Degraded';
+    setFiscalTseGateOk(ok);
+    const streak = registerPosTseStatusCheckOutcome(ok);
+    setTseCheckFailureStreak(streak);
+  }, [visible, shouldRequireTse, tseHealth.indicatorStatus, tseHealth.loading, tseHealth.lastCheck]);
 
   const {
     methodsLoading,
@@ -456,11 +479,18 @@ export default function PaymentModal({
   }, [paymentMethods, selectedPaymentMethod]);
 
   const settlementPaymentMethods = useMemo(() => {
-    let list = (paymentMethods ?? []).filter((m) => m.type !== 'voucher');
+    let list = mergeHostedOnlinePaymentMethods(paymentMethods ?? []).filter(
+      (m) => m.type !== 'voucher'
+    );
     if (tseServerOffline) {
       list = list.filter((m) => m.type === 'cash');
     }
-    return list;
+    // Bar stays the first chip so the cash default is visible next to Kreditkarte.
+    return [...list].sort((a, b) => {
+      if (a.type === DEFAULT_POS_PAYMENT_METHOD) return -1;
+      if (b.type === DEFAULT_POS_PAYMENT_METHOD) return 1;
+      return 0;
+    });
   }, [paymentMethods, tseServerOffline]);
 
   const selectedSettlementMethod = useMemo(
@@ -477,15 +507,6 @@ export default function PaymentModal({
   );
 
   useEffect(() => {
-    if (!requiresCashAmount) {
-      setIsAmountValid(true);
-      return;
-    }
-    const r = parseLocaleDecimal(amountReceived);
-    setIsAmountValid(Number.isFinite(r) && r > 0);
-  }, [amountReceived, requiresCashAmount]);
-
-  useEffect(() => {
     if (!voucherEnabled) {
       setIsVoucherCodeValid(true);
       return;
@@ -493,7 +514,7 @@ export default function PaymentModal({
     setIsVoucherCodeValid(voucherCode.trim().length > 0);
   }, [voucherEnabled, voucherCode]);
 
-  // Backend line toplamları kullan - FE hesaplama yapmaz (totalPrice = lineGross)
+  // Backend line toplamlar? kullan - FE hesaplama yapmaz (totalPrice = lineGross)
   const calculatedCartItems = useMemo(() => {
     return cartItems.map((item) => ({
       ...item,
@@ -503,7 +524,7 @@ export default function PaymentModal({
 
   const cartLineSumGross = calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
   /**
-   * Prefer backend `grandTotalGross` when > 0. When it is 0, treat as true €0 cart only if line gross is also ~0;
+   * Prefer backend `grandTotalGross` when > 0. When it is 0, treat as true �0 cart only if line gross is also ~0;
    * otherwise assume missing/default 0 from UI helpers and use line sum (matches legacy `> 0 ? gross : lines`).
    */
   const totalAmount = (() => {
@@ -548,7 +569,7 @@ export default function PaymentModal({
     : 0;
   const voucherMaxForSale = computeVoucherMaxForSale(totalAmount, voucherSnapshot, voucherEnabled);
 
-  /** Clamped EUR for POST / UI; empty redeem field → 0 (NaN-safe). Recalculates on every relevant change—same render as Restbetrag. */
+  /** Clamped EUR for POST / UI; empty redeem field ? 0 (NaN-safe). Recalculates on every relevant change�same render as Restbetrag. */
   const voucherRedeemAmountEffective = useMemo(() => {
     if (
       !voucherEnabled ||
@@ -576,8 +597,28 @@ export default function PaymentModal({
 
   const voucherRemainingToPay = Math.max(0, totalAmount - voucherRedeemAmountEffective);
   const settlementAmountDue = voucherEnabled ? voucherRemainingToPay : totalAmount;
+  const gatewayChargeAmount = resolveGatewayChargeAmount({
+    cartTotal: totalAmount,
+    remainderAfterVoucher: voucherEnabled ? settlementAmountDue : undefined,
+  });
   const shouldCollectCashAmount = requiresCashAmount && settlementAmountDue > 0;
-  const changeAmount = parseLocaleDecimal(amountReceived) - settlementAmountDue;
+  const cashTender = resolveOptionalCashTender(amountReceived, settlementAmountDue);
+  const changeAmount = cashTender.fieldEmpty
+    ? null
+    : cashChangeDue(cashTender.parsed, settlementAmountDue);
+  const showCashChange = changeAmount != null;
+
+  useEffect(() => {
+    if (!requiresCashAmount) {
+      setIsAmountValid(true);
+      return;
+    }
+    if (cashTender.fieldEmpty) {
+      setIsAmountValid(true);
+      return;
+    }
+    setIsAmountValid(!cashTender.isInsufficient);
+  }, [requiresCashAmount, cashTender.fieldEmpty, cashTender.isInsufficient]);
 
   const insets = useSafeAreaInsets();
 
@@ -622,8 +663,8 @@ export default function PaymentModal({
     !!voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim();
 
   /**
-   * Near-zero cart: Prüfen success + matching code is enough (no redeem EUR line). Positive carts: unchanged redeem rules.
-   * Full voucher coverage fix: when maxForThisCart is 0 the redeem field stays empty but settlement must still validate if cart total is ~€0.
+   * Near-zero cart: Pr�fen success + matching code is enough (no redeem EUR line). Positive carts: unchanged redeem rules.
+   * Full voucher coverage fix: when maxForThisCart is 0 the redeem field stays empty but settlement must still validate if cart total is ~�0.
    */
   const voucherSettlementValid =
     !voucherEnabled ||
@@ -641,11 +682,15 @@ export default function PaymentModal({
   /** Blocks payment method / cash / voucher controls (register decommissioned or NTP clock critical). */
   const paymentInteractionsLocked = registerHardStopDecommissioned || timeSyncCritical;
 
-  const needFiscalTseForPay = __DEV__ ? !isTseSimulationEnabled : true;
-  /** When backend health is Offline, cash-only queue is allowed — do not block on local device probe. */
+  const needFiscalTseForPay = shouldRequireTse;
+  /** When backend health is Offline, cash-only queue is allowed � do not block on local device probe. */
   const payGateTseBlocked = needFiscalTseForPay && !tseServerOffline && fiscalTseGateOk !== true;
   const offlineBlocksVoucher =
     (!isOnline && voucherEnabled) || (tseServerOffline && voucherEnabled);
+  const offlineBlocksOnlinePayment = isOnlinePaymentDisabledOffline(
+    selectedPaymentMethod,
+    isOnline
+  );
 
   const paymentCoverageOk =
     (totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR && voucherEnabled && voucherSettlementValid) || // FIX: full voucher coverage
@@ -667,6 +712,7 @@ export default function PaymentModal({
   );
 
   const paySubmitDisabled =
+    !canMakePayment ||
     purchaseState === 'processing' ||
     paymentBusy ||
     methodsLoading ||
@@ -678,33 +724,38 @@ export default function PaymentModal({
     (voucherEnabled && !voucherSettlementValid) ||
     timeSyncCritical ||
     licenseBlocksPaymentUi ||
-    maintenanceBlocksPayment;
+    maintenanceBlocksPayment ||
+    offlineBlocksOnlinePayment;
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
   const paySubmitBlockedHint =
     paySubmitDisabled && !showPayWorking
-      ? maintenanceBlocksPayment
-        ? t('system:maintenanceNotice.paymentBlocked')
-        : licenseBlocksPaymentUi
-        ? tLicense('criticalGuard.expiredBody')
-        : timeSyncCritical
-          ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
-          : methodsLoading
-            ? t('checkout:posFlow.payment.blockedHints.methodsLoading')
-            : !hasValidSettlementMethod
-              ? t('checkout:posFlow.payment.blockedHints.selectMethod')
-              : !paymentCoverageOk
-                ? t('checkout:posFlow.payment.blockedHints.coverageMissing')
-                : voucherEnabled && !voucherSettlementValid
-                  ? t('checkout:posFlow.payment.blockedHints.voucherInvalid')
-                  : isRegisterGateBlockingPayment
-                    ? registerGateFooterHint(registerGateCtx)
-                    : payGateTseBlocked
-                      ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
-                      : offlineBlocksVoucher
-                        ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
-                        : undefined
+      ? !canMakePayment
+        ? t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+        : maintenanceBlocksPayment
+          ? t('system:maintenanceNotice.paymentBlocked')
+          : licenseBlocksPaymentUi
+            ? tLicense('criticalGuard.expiredBody')
+            : timeSyncCritical
+              ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
+              : methodsLoading
+                ? t('checkout:posFlow.payment.blockedHints.methodsLoading')
+                : !hasValidSettlementMethod
+                  ? t('checkout:posFlow.payment.blockedHints.selectMethod')
+                  : !paymentCoverageOk
+                    ? t('checkout:posFlow.payment.blockedHints.coverageMissing')
+                    : voucherEnabled && !voucherSettlementValid
+                      ? t('checkout:posFlow.payment.blockedHints.voucherInvalid')
+                      : isRegisterGateBlockingPayment
+                        ? registerGateFooterHint(registerGateCtx)
+                        : payGateTseBlocked
+                          ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
+                          : offlineBlocksVoucher
+                            ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
+                            : offlineBlocksOnlinePayment
+                              ? t('checkout:posFlow.payment.blockedHints.onlinePaymentOffline')
+                            : undefined
       : undefined;
 
   useEffect(() => {
@@ -725,6 +776,7 @@ export default function PaymentModal({
     if (!visible) return;
     debugPosPaymentTrace('zahlen_button_disabled_snapshot', {
       paySubmitDisabled,
+      canMakePayment,
       purchaseState,
       paymentBusy,
       cashRegisterResolved,
@@ -734,6 +786,7 @@ export default function PaymentModal({
   }, [
     visible,
     paySubmitDisabled,
+    canMakePayment,
     purchaseState,
     paymentBusy,
     cashRegisterResolved,
@@ -767,12 +820,49 @@ export default function PaymentModal({
       });
   }, [visible, cashRegisterId, getPaymentMethods]);
 
+  const openedWithCashDefaultRef = useRef(false);
+
   useEffect(() => {
     if (!visible) {
+      openedWithCashDefaultRef.current = false;
       resetCheckoutPaymentUi();
       setVoucherEnabled(false);
+      setAmountReceived('');
+      return;
     }
-  }, [visible, resetCheckoutPaymentUi]);
+    if (settlementPaymentMethods.length === 0) return;
+
+    const cash = settlementPaymentMethods.find((m) => m.type === DEFAULT_POS_PAYMENT_METHOD);
+    // Hosted Kreditkarte/PayPal chips exist before the catalog returns. Do not lock
+    // the default until Bar can be chosen, otherwise Kreditkarte stays selected.
+    if (!openedWithCashDefaultRef.current) {
+      if (!cash && (methodsLoading || paymentMethods.length === 0)) return;
+      openedWithCashDefaultRef.current = true;
+      if (cash && selectedPaymentMethod !== cash.type) {
+        setSelectedPaymentMethodType(cash.type);
+      }
+      return;
+    }
+
+    const selectedIsAvailable =
+      !!selectedPaymentMethod &&
+      settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod);
+    if (selectedIsAvailable) return;
+    const catalogDefault = settlementPaymentMethods.find(
+      (m) => m.isDefault && m.type !== 'credit_card'
+    );
+    setSelectedPaymentMethodType(
+      cash?.type ?? catalogDefault?.type ?? settlementPaymentMethods[0].type
+    );
+  }, [
+    visible,
+    settlementPaymentMethods,
+    selectedPaymentMethod,
+    methodsLoading,
+    paymentMethods.length,
+    setSelectedPaymentMethodType,
+    resetCheckoutPaymentUi,
+  ]);
 
   useEffect(() => {
     if (selectedPaymentMethod === 'voucher') {
@@ -780,7 +870,7 @@ export default function PaymentModal({
     }
   }, [selectedPaymentMethod, setSelectedPaymentMethodType]);
 
-  /** Cart total changed after voucher validation — require a new check (keep typed code). */
+  /** Cart total changed after voucher validation � require a new check (keep typed code). */
   useEffect(() => {
     if (!visible) return;
     if (!voucherEnabled || !voucherSnapshot || voucherValidatedTotalRef.current == null) return;
@@ -840,7 +930,7 @@ export default function PaymentModal({
       });
   }, [visible, shouldFetchEligibility, customerId, cartSignature]);
 
-  // Ödeme başarılı olunca fiş verisini çek (ReceiptSummary için)
+  // �deme ba?ar?l? olunca fi? verisini �ek (ReceiptSummary i�in)
   useEffect(() => {
     if (!completedPaymentId) {
       setReceiptData(null);
@@ -859,81 +949,6 @@ export default function PaymentModal({
         setReceiptData(null);
       });
   }, [completedPaymentId]);
-
-  const handleOpenReceiptPdf = async () => {
-    if (!completedPaymentId || pdfLoading) return;
-    setPdfLoading(true);
-    try {
-      const blob = await downloadInvoicePdf(completedPaymentId);
-      debugPosPaymentTrace('success_flow_pdf_ready', {
-        paymentId: completedPaymentId,
-        bytes: blob.size,
-      });
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener,noreferrer');
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-        }, 120_000);
-      } else {
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const r = reader.result as string;
-            resolve(r.includes(',') ? r.split(',')[1] : r);
-          };
-          reader.onerror = () => {
-            reject(new Error('read failed'));
-          };
-          reader.readAsDataURL(blob);
-        });
-        const fileUri = writeBase64ToDocumentFile(`beleg_${completedPaymentId}.pdf`, base64);
-        await shareDocumentAsync(fileUri, {
-          mimeType: 'application/pdf',
-          dialogTitle: t('invoices:pdfDialogTitle'),
-          UTI: 'com.adobe.pdf',
-        });
-      }
-    } catch (e) {
-      console.warn('[PaymentModal] PDF open failed:', e);
-      if (isShareUnavailable(e)) {
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          t('checkout:posFlow.payment.errors.shareUnavailable')
-        );
-      } else if (e instanceof InvoicePdfHttpError) {
-        const prefix = t('checkout:posFlow.payment.pdfErrors.paymentSucceededPrefix');
-        if (e.status === 401) {
-          Alert.alert(
-            t('checkout:posFlow.payment.pdfErrors.title'),
-            t('checkout:posFlow.payment.pdfErrors.unauthorized', { prefix })
-          );
-        } else if (e.status === 403) {
-          Alert.alert(
-            t('checkout:posFlow.payment.pdfErrors.title'),
-            t('checkout:posFlow.payment.pdfErrors.forbidden', { prefix })
-          );
-        } else if (e.status === 404) {
-          Alert.alert(
-            t('checkout:posFlow.payment.pdfErrors.title'),
-            t('checkout:posFlow.payment.pdfErrors.notFound', { prefix })
-          );
-        } else {
-          Alert.alert(
-            t('checkout:posFlow.payment.pdfErrors.title'),
-            t('checkout:posFlow.payment.pdfErrors.httpGeneric', { prefix, status: e.status })
-          );
-        }
-      } else {
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          t('checkout:posFlow.payment.errors.printFailed')
-        );
-      }
-    } finally {
-      setPdfLoading(false);
-    }
-  };
 
   // Handler for preset buttons
   const handlePresetPress = (amount: number) => {
@@ -976,10 +991,10 @@ export default function PaymentModal({
     }
   };
 
-  /** POST /api/pos/payment — exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
+  /** POST /api/pos/payment � exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
   const executePaymentSubmission = async (confirmedCardIntentId?: string) => {
     const logPay = (step: string, detail?: Record<string, unknown>) => {
-      console.log(`[PaymentModal] ${step}`, detail ?? '');
+      debugPosPaymentTrace(step, detail);
     };
 
     if (timeSyncCritical) {
@@ -1033,9 +1048,27 @@ export default function PaymentModal({
       return;
     }
 
+    const localPending = await getPendingPaymentQueue().catch(() => []);
+    const offlineCap = await resolveEffectiveOfflineTenantLimit(localPending.length);
+    if (isOfflineQueueAtCap(offlineCap.current, offlineCap.limit)) {
+      debugPosPaymentTrace('submit_blocked_offline_limit', offlineCap);
+      logPay('Guard exit: offline tenant limit');
+      setLimitModalVisible(true);
+      return;
+    }
+
     if (offlineBlocksVoucher) {
       logPay('Guard exit: offline blocks voucher');
-      Alert.alert('Debug Error', 'Failed at: Gutschein offline nicht möglich');
+      Alert.alert('Debug Error', 'Failed at: Gutschein offline nicht m�glich');
+      return;
+    }
+
+    if (offlineBlocksOnlinePayment) {
+      logPay('Guard exit: offline blocks online payment');
+      Alert.alert(
+        t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+        t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+      );
       return;
     }
 
@@ -1048,14 +1081,17 @@ export default function PaymentModal({
       logPay('Guard exit: no settlement method');
       Alert.alert(
         'Debug Error',
-        'Failed at: keine gültige Zahlungsart (Schritt 2; nicht nur „Gutschein“ als Methodentyp)'
+        'Failed at: keine g�ltige Zahlungsart (Schritt 2; nicht nur �Gutschein� als Methodentyp)'
       );
       return;
     }
 
     if (needFiscalTseForPay && payGateTseBlocked) {
       logPay('Guard exit: TSE gate');
-      Alert.alert('Debug Error', 'Failed at: TSE nicht bereit');
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.errorTitle'),
+        resolveTseGateMessage()
+      );
       return;
     }
 
@@ -1079,7 +1115,7 @@ export default function PaymentModal({
       logPay('Guard exit: coverage');
       Alert.alert(
         'Debug Error',
-        `Failed at: Deckung — Gutschein+Bar=${submitCoverage.sumPaid.toFixed(2)} €, Gesamt=${totalAmount.toFixed(2)} €`
+        `Failed at: Deckung � Gutschein+Bar=${submitCoverage.sumPaid.toFixed(2)} �, Gesamt=${totalAmount.toFixed(2)} �`
       );
       return;
     }
@@ -1088,28 +1124,24 @@ export default function PaymentModal({
       logPay('Guard exit: voucher settlement invalid');
       Alert.alert(
         'Debug Error',
-        'Failed at: Gutschein nicht gültig / nicht eingelöst (Prüfen + Betrag)'
+        'Failed at: Gutschein nicht g�ltig / nicht eingel�st (Pr�fen + Betrag)'
       );
       return;
     }
 
-    if (shouldCollectCashAmount) {
-      const received = parseLocaleDecimal(amountReceived);
-      if (!Number.isFinite(received) || received <= 0) {
-        debugPosPaymentTrace('submit_blocked_cash_amount_empty', { received, settlementAmountDue });
-        logPay('Guard exit: cash amount empty');
-        Alert.alert('Debug Error', 'Failed at: Barbetrag fehlt oder ungültig');
-        return;
-      }
-      if (received + 0.001 < settlementAmountDue) {
-        debugPosPaymentTrace('submit_blocked_cash_amount', { received, settlementAmountDue });
-        logPay('Guard exit: cash below Restbetrag');
-        Alert.alert(
-          'Debug Error',
-          `Failed at: zu wenig Bargeld (Restbetrag ${settlementAmountDue.toFixed(2)} €, erhalten ${received.toFixed(2)} €)`
-        );
-        return;
-      }
+    if (shouldCollectCashAmount && !cashTender.fieldEmpty && cashTender.isInsufficient) {
+      debugPosPaymentTrace('submit_blocked_cash_amount', {
+        received: cashTender.parsed,
+        settlementAmountDue,
+      });
+      logPay('Guard exit: cash below Restbetrag');
+      Alert.alert(
+        t('checkout:posFlow.payment.cash.belowTotalTitle'),
+        t('checkout:posFlow.payment.cash.belowTotalMessage', {
+          amount: formatPrice(settlementAmountDue),
+        })
+      );
+      return;
     }
 
     if (!hasValidCashRegisterId || !cashRegisterId) {
@@ -1121,7 +1153,7 @@ export default function PaymentModal({
       logPay('Guard exit: cash register');
       Alert.alert(
         'Debug Error',
-        `Failed at: Kasse nicht bereit — ${registerGateAlertMessage(registerGateCtx)}`
+        `Failed at: Kasse nicht bereit � ${registerGateAlertMessage(registerGateCtx)}`
       );
       return;
     }
@@ -1133,7 +1165,7 @@ export default function PaymentModal({
     if (!validateAmount(totalAmount) && !allowZeroTotalWithValidatedVoucher) {
       debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
       logPay('Guard exit: validateAmount totalAmount');
-      Alert.alert('Debug Error', `Failed at: ungültiger Gesamtbetrag (${String(totalAmount)})`);
+      Alert.alert('Debug Error', `Failed at: ung�ltiger Gesamtbetrag (${String(totalAmount)})`);
       return;
     }
 
@@ -1169,14 +1201,22 @@ export default function PaymentModal({
     // REMOVED: voucher full balance confirmation dialog
     // User already confirmed by clicking "Zahlen" after voucher validation
     if (voucherEnabled && voucherSnapshot && totalAmount - voucherRedeemAmountEffective <= 0.02) {
-      console.log(
-        '[PaymentModal] Voucher full coverage - proceeding directly to payment (no dialog)'
-      );
-      // Continue to API call - do nothing here, just let flow continue
+      debugPosPaymentTrace('voucher_full_coverage_no_dialog', {
+        totalAmount,
+        voucherRedeemAmountEffective,
+      });
     }
 
     const effectiveCardIntentId = confirmedCardIntentId ?? cardPaymentIntentId;
-    if (selectedPaymentMethod === 'card' && !effectiveCardIntentId) {
+    const hostedOnlineSelected = isHostedOnlinePaymentMethod(selectedPaymentMethod);
+    if (hostedOnlineSelected && !isOnline) {
+      Alert.alert(
+        t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+        t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+      );
+      return;
+    }
+    if (!hostedOnlineSelected && selectedPaymentMethod === 'card' && !effectiveCardIntentId) {
       setCardSimVisible(true);
       return;
     }
@@ -1198,9 +1238,9 @@ export default function PaymentModal({
           message: cartErr instanceof Error ? cartErr.message : String(cartErr),
         });
         logPay('Guard exit: cart fetch');
-        Alert.alert(
+        showAlert(
           'Debug Error',
-          `Failed at: Warenkorb laden — ${cartErr instanceof Error ? cartErr.message : String(cartErr)}`
+          `Failed at: Warenkorb laden � ${cartErr instanceof Error ? cartErr.message : String(cartErr)}`
         );
         return;
       }
@@ -1211,20 +1251,81 @@ export default function PaymentModal({
           ? customerId
           : guestCustomerId;
 
-      // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
-      // Guard: flat items only — do not add modifierIds or modifiers (one item per cart line).
-      // taxType: paymentService.processPayment normalizes all items before POST / queue
-      const paymentItems: PaymentItem[] = cartItems.map((item) => ({
-        productId: item.productId,
-        quantity: (item as any).qty ?? item.quantity,
-        taxType: item.taxType as PaymentItem['taxType'],
-      }));
+      let hostedOnlinePaymentId: string | undefined;
+      if (hostedOnlineSelected && isHostedOnlinePaymentMethod(selectedPaymentMethod)) {
+        const methodCode = selectedPaymentMethod as HostedOnlinePaymentCode;
+        logger.info('online_payment.modal_flow_start', { method: methodCode });
+        onlinePaymentAbortRef.current?.abort();
+        const abort = new AbortController();
+        onlinePaymentAbortRef.current = abort;
+        try {
+          const gateway = await runHostedOnlinePayment({
+            method: methodCode,
+            cashRegisterId,
+            amount: gatewayChargeAmount,
+            customerId: finalCustomerId,
+            tableNumber: resolvedTableNumber,
+            signal: abort.signal,
+          });
+          hostedOnlinePaymentId = gateway.onlinePaymentId;
+        } catch (gatewayErr) {
+          if (gatewayErr instanceof Error && gatewayErr.message === 'ONLINE_PAYMENT_ABORTED') {
+            logger.info('online_payment.modal_flow_aborted', { method: methodCode });
+            setPurchaseState('input');
+            return;
+          }
+          const code =
+            gatewayErr instanceof OnlinePaymentFlowError
+              ? gatewayErr.code
+              : 'ONLINE_PAYMENT_FAILED';
+          logger.warn('online_payment.modal_flow_failed', { method: methodCode, errorCode: code });
+          const message =
+            code === 'ONLINE_PAYMENT_CANCELLED'
+              ? t('checkout:posFlow.payment.onlinePayment.cancelled')
+              : code === 'ONLINE_PAYMENT_TIMEOUT'
+                ? t('checkout:posFlow.payment.onlinePayment.timeout')
+                : code === 'HOSTED_PAGE_OPEN_FAILED'
+                  ? t('checkout:posFlow.payment.onlinePayment.openFailed')
+                  : t('checkout:posFlow.payment.onlinePayment.failed');
+          showAlert(t('checkout:posFlow.payment.alerts.errorTitle'), message);
+          setPurchaseState('input');
+          onlinePaymentStoreActions.reset();
+          return;
+        }
+      }
 
-      // NOTE: TSE Logic
-      // If Simulation Enabled (Bypass) -> tseRequired: false
-      // If Simulation Disabled (Real)  -> tseRequired: true
-      // In PROD, always true
-      const shouldRequireTse = __DEV__ ? !isTseSimulationEnabled : true;
+      // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
+      // Guard: flat items only � do not add modifierIds or modifiers (one item per cart line).
+      // taxType: paymentService.processPayment normalizes all items before POST / queue
+      const paymentItems: PaymentItem[] = [];
+      for (const item of cartItems) {
+        const quantity = (item as { qty?: number; quantity?: number }).qty ?? item.quantity;
+        const reserved = imeiSelections?.peek(item.productId) ?? [];
+        if (reserved.length > 0) {
+          if (reserved.length < quantity) {
+            showAlert(
+              t('verticalProfiles:screens.imei.title'),
+              t('verticalProfiles:screens.imei.missing')
+            );
+            return;
+          }
+          for (let index = 0; index < quantity; index += 1) {
+            paymentItems.push({
+              productId: item.productId,
+              quantity: 1,
+              taxType: item.taxType as PaymentItem['taxType'],
+              imei: reserved[index],
+            });
+          }
+        } else {
+            paymentItems.push({
+              productId: item.productId,
+              quantity,
+              taxType: item.taxType as PaymentItem['taxType'],
+              ...(item.variantId ? { variantId: item.variantId } : {}),
+            });
+        }
+      }
 
       // One idempotency key per submit; retries with same key return existing payment
       const idempotencyKey =
@@ -1235,7 +1336,7 @@ export default function PaymentModal({
       const settlementPaymentAmountNumeric = voucherEnabled
         ? settlementAmountDue
         : requiresCashAmount
-          ? parseLocaleDecimal(amountReceived)
+          ? cashTender.effectiveTender
           : undefined;
 
       const paymentRequest: PaymentRequest = {
@@ -1257,12 +1358,31 @@ export default function PaymentModal({
               }
             : {}),
           ...(effectiveCardIntentId ? { cardPaymentIntentId: effectiveCardIntentId } : {}),
+          ...(hostedOnlinePaymentId ? { onlinePaymentId: hostedOnlinePaymentId } : {}),
         },
         tableNumber: resolvedTableNumber,
         totalAmount,
         cashRegisterId,
         notes: notes || `Tisch ${resolvedTableNumber} - ${formatUserDateTime(new Date())}`,
         idempotencyKey,
+        isPreorder,
+        preorderCustomerNotes: isPreorder ? notes || undefined : undefined,
+        preorderRemainingAmount: isPreorder
+          ? Number(preorderRemainingText.replace(',', '.')) || 0
+          : undefined,
+        preorderBalanceOrderId:
+          !isPreorder && balanceOrder?.id ? balanceOrder.id : undefined,
+        ...(isPrescription
+          ? { prescriptionReference: 'Rezept' }
+          : {}),
+        ...(taxiTrip?.startedAtUtc
+          ? {
+              routeFrom: taxiTrip.routeFrom.trim() || undefined,
+              routeTo: taxiTrip.routeTo.trim() || undefined,
+              routeKm: parseTaxiKm(taxiTrip.routeKm) ?? undefined,
+              tripStartedAtUtc: taxiTrip.startedAtUtc,
+            }
+          : {}),
       };
 
       logPay('Step 4b: Payment payload fields', {
@@ -1284,20 +1404,10 @@ export default function PaymentModal({
         idempotencyKey: paymentRequest.idempotencyKey,
       });
 
-      const DEBUG_PAYLOAD = {
-        ...paymentRequest,
-        payment: {
-          ...paymentRequest.payment,
-          voucherRedemptions: paymentRequest.payment.voucherRedemptions?.map((line) => ({
-            amount: line.amount,
-            code: typeof line.code === 'string' ? `[redacted,len=${line.code.length}]` : line.code,
-          })),
-        },
-      };
-      console.log('DEBUG_PAYLOAD:', DEBUG_PAYLOAD);
-
-      logPay('Step 5: Calling processPayment → POST /api/pos/payment', {
+      logPay('Step 5: Calling processPayment ? POST /api/pos/payment', {
         idempotencyKey: paymentRequest.idempotencyKey,
+        tseIndicator: tseHealth.indicatorStatus,
+        tseEnvironment: tseHealth.environment,
       });
 
       const response = await processPayment(paymentRequest);
@@ -1343,6 +1453,17 @@ export default function PaymentModal({
         });
         console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
         const errorMsg = getPaymentResponseFailureMessage(response);
+        if (
+          isOfflineQueueLimitFailure({
+            error: response.error,
+            limitKey: response.limitKey,
+            message: response.message,
+          })
+        ) {
+          setLimitModalVisible(true);
+          setPurchaseState('input');
+          return;
+        }
         if (response.fiscalStatus === 'FAILED') {
           const hint = `${response.message || ''} ${response.error || ''}`.toLowerCase();
           if (hint.includes('tse') || hint.includes('signatur') || hint.includes('signature')) {
@@ -1355,7 +1476,11 @@ export default function PaymentModal({
         return;
       }
 
-      console.log('[PAYMENT] Success, paymentId:', response.paymentId);
+      debugPosPaymentTrace('payment_success', {
+        paymentId: response.paymentId,
+        isDemoFiscal: response.tse?.isDemoFiscal ?? null,
+        hasQrPayload: Boolean(response.tse?.qrPayload),
+      });
       {
         const streak = registerPosTseStatusCheckOutcome(true);
         setTseCheckFailureStreak(streak);
@@ -1374,14 +1499,14 @@ export default function PaymentModal({
         );
       }
 
-      // 7–8. Cart lifecycle: reset-after-payment marks the cart completed, clears lines, and opens a fresh cart.
-      // (Skip separate /complete — POST /payment can succeed while the persisted cart has no rows, which would make /complete fail with "empty cart".)
+      // 7�8. Cart lifecycle: reset-after-payment marks the cart completed, clears lines, and opens a fresh cart.
+      // (Skip separate /complete � POST /payment can succeed while the persisted cart has no rows, which would make /complete fail with "empty cart".)
       try {
         await cartService.resetCartAfterPayment(currentCartId, 'Payment completed');
-        console.log('[CART] Reset complete');
+        debugPosPaymentTrace('cart_reset_complete', {});
       } catch (resetErr) {
         console.warn('[CART] Reset warning:', resetErr);
-        Alert.alert(
+        showAlert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
           t('checkout:posFlow.payment.errors.completeCartFailed')
         );
@@ -1393,12 +1518,13 @@ export default function PaymentModal({
       // 9. START PRINTING (QR from GET /api/pos/payment/{id}/qr.png as base64 embed)
       setPurchaseState('printing');
       try {
-        await receiptPrinter.print(response.paymentId, {
-          isDemoFiscal: response.tse?.isDemoFiscal ?? false,
-        });
+        await receiptPrinter.print(response.paymentId);
+        if (response.issuedTickets && response.issuedTickets.length > 0) {
+          await printIssuedTicketsAsync(response.issuedTickets);
+        }
         setPurchaseState('completed');
       } catch (printErr) {
-        // iOS: closing print preview without printing — not a printer fault
+        // iOS: closing print preview without printing � not a printer fault
         if (isPrintCancelled(printErr)) {
           setPurchaseState('completed');
         } else {
@@ -1409,8 +1535,21 @@ export default function PaymentModal({
       }
     } catch (err) {
       console.error('Handle Payment Error:', err);
-      console.log('[PaymentModal] Step: processPayment or post-submit flow threw', err);
+      debugPosPaymentTrace('process_payment_or_post_submit_threw', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
       setPurchaseState('input');
+      if (
+        isPaymentError(err) &&
+        isOfflineQueueLimitFailure({
+          error: err.code,
+          limitKey: err.limitKey,
+          message: err.message,
+        })
+      ) {
+        setLimitModalVisible(true);
+        return;
+      }
       const message = getPaymentErrorDisplayMessage(err);
       const title =
         isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT'
@@ -1418,13 +1557,41 @@ export default function PaymentModal({
           : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED'
             ? t('checkout:posFlow.payment.alerts.hintTitle')
             : t('checkout:posFlow.payment.alerts.errorTitle');
-      Alert.alert(title, message);
+      showAlert(title, message);
     } finally {
       setPaymentBusy(false);
     }
   };
 
+  const resolveTseGateMessage = () => {
+    const indicator = String(tseHealth.indicatorStatus);
+    const message = (tseHealth.message ?? tseHealth.lastErrorMessageSafe ?? '').toLowerCase();
+    if (message.includes('disabled') || message.includes('deaktiviert')) {
+      return t('checkout:posFlow.payment.tseGate.disabled');
+    }
+    if (
+      indicator === 'Inactive' &&
+      (message.includes('initial') || message.includes('no tse') || !tseHealth.scuId)
+    ) {
+      return t('checkout:posFlow.payment.tseGate.notInitialized');
+    }
+    return t('checkout:posFlow.payment.tseGate.unavailable');
+  };
+
   const handlePayment = async () => {
+    if (!canMakePayment) {
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+      );
+      return;
+    }
+    const localPending = await getPendingPaymentQueue().catch(() => []);
+    const offlineCap = await resolveEffectiveOfflineTenantLimit(localPending.length);
+    if (isOfflineQueueAtCap(offlineCap.current, offlineCap.limit)) {
+      setLimitModalVisible(true);
+      return;
+    }
     if (timeSyncCritical) {
       return;
     }
@@ -1439,11 +1606,40 @@ export default function PaymentModal({
     if (!licenseOk) {
       return;
     }
+    if (needFiscalTseForPay && !tseServerOffline) {
+      try {
+        const latest = await tseHealth.refresh();
+        const indicator = String(latest?.status ?? tseHealth.indicatorStatus);
+        const ok = indicator === 'Active' || indicator === 'Degraded';
+        setFiscalTseGateOk(ok);
+        registerPosTseStatusCheckOutcome(ok);
+        debugPosPaymentTrace('tse_status_before_payment', {
+          indicator,
+          environment: latest?.environment ?? tseHealth.environment,
+          scuId: latest?.scuId ?? tseHealth.scuId,
+        });
+        if (!ok) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.errorTitle'),
+            t('checkout:posFlow.payment.tseGate.unavailable')
+          );
+          return;
+        }
+      } catch {
+        setFiscalTseGateOk(false);
+        registerPosTseStatusCheckOutcome(false);
+        showAlert(
+          t('checkout:posFlow.payment.alerts.errorTitle'),
+          t('checkout:posFlow.payment.tseGate.unavailable')
+        );
+        return;
+      }
+    }
     if (timeSyncWarningBand) {
       await new Promise<void>((resolve) => {
         Alert.alert(
           'Zeitabweichung',
-          'Zeitabweichung erkannt. Fortfahren trotz möglicher DEP-Probleme?',
+          'Zeitabweichung erkannt. Fortfahren trotz m�glicher DEP-Probleme?',
           [
             {
               text: 'Abbrechen',
@@ -1483,9 +1679,18 @@ export default function PaymentModal({
     if (!completedPaymentId) return;
     setPurchaseState('printing');
     try {
-      await receiptPrinter.print(completedPaymentId, {
-        isDemoFiscal: completedPaymentTse?.isDemoFiscal ?? false,
-      });
+      if (canReprintReceipt && cashRegisterId) {
+        try {
+          await reprintReceipt({
+            receiptId: completedPaymentId,
+            cashRegisterId,
+            reasonCode: POS_RECEIPT_REPRINT_REASONS.PRINTER_FAILURE,
+          });
+        } catch {
+          // Audit/reprint API must not block the local printer retry.
+        }
+      }
+      await receiptPrinter.print(completedPaymentId);
       setPurchaseState('completed');
     } catch (printErr) {
       if (isPrintCancelled(printErr)) {
@@ -1506,18 +1711,22 @@ export default function PaymentModal({
 
   // Modal kapat
   const handleClose = () => {
+    onlinePaymentAbortRef.current?.abort();
+    onlinePaymentAbortRef.current = null;
+    onlinePaymentStoreActions.reset();
     clearError();
     resetVoucherUi();
     setVoucherEnabled(false);
     resetCheckoutPaymentUi();
     setAmountReceived('');
     setNotes('');
+    setIsPrescription(false);
+    setIsPreorder(false);
     setPurchaseState('input');
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
     setReceiptData(null);
     setPaymentBusy(false);
-    setPdfLoading(false);
     setEligibilityPreview(null);
     setEligibilityPreviewLoading(false);
     onClose();
@@ -1555,7 +1764,7 @@ export default function PaymentModal({
                   <View key={index} style={styles.cartItem}>
                     <Text style={styles.itemName}>{item.productName}</Text>
                     <Text style={styles.itemDetails}>
-                      {item.quantity} × {formatPrice(item.unitPrice)} ={' '}
+                      {item.quantity} � {formatPrice(item.unitPrice)} ={' '}
                       {formatPrice(item.lineTotal)}
                     </Text>
                   </View>
@@ -1690,7 +1899,7 @@ export default function PaymentModal({
                         <View style={styles.benefitList}>
                           {eligibilityPreview.applicableBenefits.map((b, idx) => (
                             <Text key={idx} style={styles.benefitApplicable}>
-                              • {b.description}{' '}
+                              � {b.description}{' '}
                               {b.amount < 0 ? formatPrice(Math.abs(b.amount)) : ''}
                             </Text>
                           ))}
@@ -1700,7 +1909,7 @@ export default function PaymentModal({
                         <View style={styles.benefitList}>
                           {eligibilityPreview.blockedBenefits.map((b, idx) => (
                             <Text key={idx} style={styles.benefitBlocked}>
-                              • {formatBlockedReason(t, b)}
+                              � {formatBlockedReason(t, b)}
                             </Text>
                           ))}
                         </View>
@@ -1736,7 +1945,18 @@ export default function PaymentModal({
                     ) : settlementPaymentMethods && settlementPaymentMethods.length > 0 ? (
                       settlementPaymentMethods.map((method) => {
                         const isSelected = selectedPaymentMethod === method.type;
-                        const methodDisabled = paymentInteractionsLocked;
+                        const onlineOfflineDisabled = isOnlinePaymentDisabledOffline(
+                          method.type,
+                          isOnline
+                        );
+                        const methodDisabled =
+                          paymentInteractionsLocked || onlineOfflineDisabled;
+                        const methodLabel =
+                          method.type === 'credit_card'
+                            ? t('checkout:posFlow.payment.onlinePayment.kreditkarte')
+                            : method.type === 'paypal'
+                              ? t('checkout:posFlow.payment.onlinePayment.paypal')
+                              : method.name;
                         return (
                           <Pressable
                             key={method.id}
@@ -1749,13 +1969,20 @@ export default function PaymentModal({
                             disabled={methodDisabled}
                             onPress={() => {
                               if (paymentInteractionsLocked) return;
+                              if (onlineOfflineDisabled) {
+                                Alert.alert(
+                                  t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+                                  t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+                                );
+                                return;
+                              }
                               if (method.type !== selectedPaymentMethod) {
                                 setSelectedPaymentMethodType(method.type);
                               }
                             }}
                             accessibilityRole="button"
                             accessibilityState={{ selected: isSelected, disabled: methodDisabled }}
-                            accessibilityLabel={`${method.name}${isSelected ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}`}>
+                            accessibilityLabel={`${methodLabel}${isSelected ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}${onlineOfflineDisabled ? t('checkout:posFlow.payment.onlinePayment.offlineA11ySuffix') : ''}`}>
                             <Ionicons
                               name={method.icon as any}
                               size={24}
@@ -1766,7 +1993,7 @@ export default function PaymentModal({
                                 styles.paymentMethodText,
                                 isSelected && styles.selectedPaymentMethodText,
                               ]}>
-                              {method.name}
+                              {methodLabel}
                             </Text>
                           </Pressable>
                         );
@@ -1792,7 +2019,7 @@ export default function PaymentModal({
                 </View>
               </View>
 
-              {/* Step 3: Nakit – Betrag & Rückgeld */}
+              {/* Step 3: Nakit � Betrag & R�ckgeld */}
               {shouldCollectCashAmount && (
                 <View style={styles.section}>
                   <Text style={styles.stepLabel}>3</Text>
@@ -1818,7 +2045,7 @@ export default function PaymentModal({
                           }}
                           accessibilityRole="button"
                           accessibilityState={{ selected: isPresetSelected }}
-                          accessibilityLabel={`${formatPrice(preset)}${isPresetSelected ? ', ausgewählt' : ''}`}>
+                          accessibilityLabel={`${formatPrice(preset)}${isPresetSelected ? ', ausgew�hlt' : ''}`}>
                           <Text
                             style={[
                               styles.presetButtonText,
@@ -1840,8 +2067,8 @@ export default function PaymentModal({
                         <Text
                           style={styles.cashAmountWarnIcon}
                           accessibilityRole="image"
-                          accessibilityLabel="⚠">
-                          ⚠️
+                          accessibilityLabel="!">
+                          !
                         </Text>
                       ) : null}
                     </View>
@@ -1853,17 +2080,29 @@ export default function PaymentModal({
                       keyboardType="decimal-pad"
                       editable={!paymentInteractionsLocked}
                       accessibilityLabel={t('checkout:posFlow.payment.cash.receivedA11y')}
-                      accessibilityHint="Mindestens den zu zahlenden Betrag eingeben"
+                      accessibilityHint={t('checkout:posFlow.payment.cash.optionalHint')}
                     />
                   </View>
-                  {parseLocaleDecimal(amountReceived) >= settlementAmountDue && (
+                  <Text style={styles.cashOptionalHint}>
+                    {t('checkout:posFlow.payment.cash.optionalHint')}
+                  </Text>
+                  {!cashTender.fieldEmpty && cashTender.isInsufficient ? (
+                    <Text style={styles.cashBelowTotalHint} accessibilityRole="alert">
+                      {t('checkout:posFlow.payment.cash.belowTotalMessage', {
+                        amount: formatPrice(settlementAmountDue),
+                      })}
+                    </Text>
+                  ) : null}
+                  {showCashChange && changeAmount != null ? (
                     <View style={styles.changeRow}>
-                      <Text style={styles.changeLabel}>
-                        {t('checkout:posFlow.payment.cash.changeLabel')}
+                      <Text
+                        style={styles.changeAmount}
+                        testID="payment-wechselgeld"
+                        accessibilityRole="text">
+                        {`${t('checkout:posFlow.payment.cash.changeLabel')} ${formatPrice(changeAmount)}`}
                       </Text>
-                      <Text style={styles.changeAmount}>{formatPrice(changeAmount)}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               )}
 
@@ -1938,8 +2177,8 @@ export default function PaymentModal({
                           <Text
                             style={styles.cashAmountWarnIcon}
                             accessibilityRole="image"
-                            accessibilityLabel="⚠">
-                            ⚠️
+                            accessibilityLabel="?">
+                            ??
                           </Text>
                         ) : null}
                       </View>
@@ -2082,6 +2321,119 @@ export default function PaymentModal({
               )}
 
               <View style={styles.section}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View style={{ flex: 1, paddingRight: 12 }}>
+                    <Text style={styles.sectionTitle}>
+                      {t('checkout:posFlow.payment.preorder.checkbox')}
+                    </Text>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.hint')}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={isPreorder}
+                    onValueChange={(value) => {
+                      setIsPreorder(value);
+                      if (value) {
+                        setBalanceOrder(null);
+                        setBalanceQuery('');
+                        setBalanceLookupError(null);
+                      }
+                    }}
+                    accessibilityLabel={t('checkout:posFlow.payment.preorder.checkbox')}
+                  />
+                </View>
+                {isPreorder ? (
+                  <View>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.remainingLabel')}
+                    </Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      value={preorderRemainingText}
+                      onChangeText={setPreorderRemainingText}
+                      keyboardType="decimal-pad"
+                      placeholder="0,00"
+                      accessibilityLabel={t('checkout:posFlow.payment.preorder.remainingLabel')}
+                    />
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.remainingHint')}
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.balanceLabel')}
+                    </Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      value={balanceQuery}
+                      onChangeText={(value) => {
+                        setBalanceQuery(value);
+                        setBalanceOrder(null);
+                        setBalanceLookupError(null);
+                      }}
+                      onBlur={() => {
+                        const key = balanceQuery.trim();
+                        if (!key) return;
+                        void (async () => {
+                          try {
+                            const found = await getPreorderByReceipt(key);
+                            if ((found.remainingAmount ?? 0) <= 0.01) {
+                              setBalanceLookupError(t('checkout:posFlow.payment.preorder.balanceZero'));
+                              return;
+                            }
+                            setBalanceOrder(found);
+                          } catch {
+                            setBalanceLookupError(t('checkout:posFlow.payment.preorder.balanceNotFound'));
+                          }
+                        })();
+                      }}
+                      placeholder={t('checkout:posFlow.payment.preorder.balancePlaceholder')}
+                      autoCapitalize="characters"
+                    />
+                    {balanceOrder ? (
+                      <Text style={styles.voucherMuted}>
+                        {t('checkout:posFlow.payment.preorder.balanceFound', {
+                          number: balanceOrder.preorderNumber ?? '',
+                          amount: formatPrice(balanceOrder.remainingAmount ?? 0),
+                        })}
+                      </Text>
+                    ) : null}
+                    {balanceLookupError ? (
+                      <Text style={styles.voucherInlineError}>{balanceLookupError}</Text>
+                    ) : null}
+                  </View>
+                )}
+              </View>
+
+              <IfVerticalFeature feature="patientRecord">
+                <View style={styles.section}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text style={styles.sectionTitle}>
+                        {t('verticalProfiles:payment.prescription')}
+                      </Text>
+                      <Text style={styles.voucherMuted}>
+                        {t('verticalProfiles:payment.prescriptionHint')}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={isPrescription}
+                      onValueChange={setIsPrescription}
+                      accessibilityLabel={t('verticalProfiles:payment.prescription')}
+                    />
+                  </View>
+                </View>
+              </IfVerticalFeature>
+
+              <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.notes.title')}</Text>
                 <TextInput
                   style={styles.notesInput}
@@ -2094,43 +2446,22 @@ export default function PaymentModal({
                 />
               </View>
 
-              {/* Hata Mesajı */}
+              {/* Hata Mesaj? */}
               {error && (
                 <View style={styles.errorContainer}>
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
-              {/* DEV: TSE Simulation Toggle */}
-              {__DEV__ && (
-                <View style={styles.section}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      backgroundColor: '#fff3e0',
-                      padding: 10,
-                      borderRadius: 8,
-                    }}>
-                    <View>
-                      <Text style={{ fontWeight: 'bold', color: '#e65100' }}>
-                        {t('checkout:posFlow.payment.tseSimulation.title')}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: '#f57c00' }}>
-                        {isTseSimulationEnabled
-                          ? t('checkout:posFlow.payment.tseSimulation.enabled')
-                          : t('checkout:posFlow.payment.tseSimulation.disabled')}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={isTseSimulationEnabled}
-                      onValueChange={setIsTseSimulationEnabled}
-                      trackColor={{ false: '#767577', true: '#f57c00' }}
-                      thumbColor={isTseSimulationEnabled ? '#ffb74d' : '#f4f3f4'}
-                    />
-                  </View>
+              {needFiscalTseForPay ? (
+                <View style={styles.section} accessibilityRole="summary">
+                  <TseStatusIndicator />
+                  {payGateTseBlocked ? (
+                    <Text style={styles.paymentMethodRequiredHint} accessibilityRole="alert">
+                      {resolveTseGateMessage()}
+                    </Text>
+                  ) : null}
                 </View>
-              )}
+              ) : null}
             </ScrollView>
 
             {purchaseState === 'input' || purchaseState === 'processing' ? (
@@ -2199,73 +2530,90 @@ export default function PaymentModal({
                       </Text>
                     </Pressable>
                   ) : null}
-                  <Pressable
-                    onPress={handlePayment}
-                    style={({ pressed }) => [
-                      styles.payButton,
-                      showStornoRefundEntry && styles.payButtonWhenStornoPresent,
-                      paySubmitDisabled && styles.payButtonDisabled,
-                      pressed && !paySubmitDisabled && SoftState.pressedScale,
-                    ]}
-                    disabled={paySubmitDisabled}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityLabel={t('checkout:posFlow.payment.footer.payA11y', {
-                      amount: formatPrice(settlementAmountDue),
-                    })}
-                    accessibilityHint={paySubmitBlockedHint}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      disabled: paySubmitDisabled,
-                    }}>
-                    {showPayWorking ? (
-                      <View style={styles.payButtonContent}>
-                        <WaveLoader size={18} color={SoftColors.textInverse} />
-                        <Text style={styles.payButtonText}>
-                          {t('checkout:posFlow.payment.footer.processing')}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.payButtonContent}>
-                        {showPayTrialWarningIcon ? (
-                          <Ionicons
-                            name="warning"
-                            size={18}
-                            color="#FFB300"
-                            accessibilityLabel={t(
-                              'checkout:posFlow.payment.footer.licenseHintA11y'
-                            )}
+                  {canMakePayment ? (
+                    <Pressable
+                      onPress={handlePayment}
+                      style={({ pressed }) => [
+                        styles.payButton,
+                        showStornoRefundEntry && styles.payButtonWhenStornoPresent,
+                        paySubmitDisabled && styles.payButtonDisabled,
+                        pressed && !paySubmitDisabled && SoftState.pressedScale,
+                      ]}
+                      disabled={paySubmitDisabled}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityLabel={t('checkout:posFlow.payment.footer.payA11y', {
+                        amount: formatPrice(settlementAmountDue),
+                      })}
+                      accessibilityHint={paySubmitBlockedHint}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        disabled: paySubmitDisabled,
+                      }}>
+                      {showPayWorking ? (
+                        <View style={styles.payButtonContent}>
+                          <ActivityIndicator
+                            size="small"
+                            color={SoftColors.textInverse}
+                            testID="pay-button-spinner"
                           />
-                        ) : null}
-                        <Text style={styles.payButtonText} numberOfLines={2}>
-                          {voucherEnabled &&
-                          voucherSettlementValid &&
-                          paymentCoverageOk &&
-                          settlementAmountDue <= 0.01
-                            ? t('checkout:posFlow.payment.voucher.payCta', {
-                                amount: formatPrice(totalAmount),
-                              })
-                            : settlementAmountDue > 0.01 && selectedSettlementMethod
-                              ? t('checkout:posFlow.payment.footer.payMethodSuffix', {
-                                  amount: formatPrice(settlementAmountDue),
-                                  method: selectedSettlementMethod.name.toLowerCase(),
-                                })
-                              : t('checkout:posFlow.payment.footer.payGeneric', {
+                          <Text style={styles.payButtonText}>
+                            {onlinePaymentPhase === 'awaiting_action'
+                              ? t('checkout:posFlow.payment.onlinePayment.awaitingGateway')
+                              : t('checkout:posFlow.payment.footer.processing')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.payButtonContent}>
+                          {showPayTrialWarningIcon ? (
+                            <Ionicons
+                              name="warning"
+                              size={18}
+                              color="#FFB300"
+                              accessibilityLabel={t(
+                                'checkout:posFlow.payment.footer.licenseHintA11y'
+                              )}
+                            />
+                          ) : null}
+                          <Text style={styles.payButtonText} numberOfLines={2}>
+                            {voucherEnabled &&
+                            voucherSettlementValid &&
+                            paymentCoverageOk &&
+                            settlementAmountDue <= 0.01
+                              ? t('checkout:posFlow.payment.voucher.payCta', {
                                   amount: formatPrice(totalAmount),
-                                })}
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
+                                })
+                              : settlementAmountDue > 0.01 && selectedSettlementMethod
+                                ? t('checkout:posFlow.payment.footer.payMethodSuffix', {
+                                    amount: formatPrice(settlementAmountDue),
+                                    method: selectedSettlementMethod.name.toLowerCase(),
+                                  })
+                                : t('checkout:posFlow.payment.footer.payGeneric', {
+                                    amount: formatPrice(totalAmount),
+                                  })}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ) : (
+                    <View
+                      style={styles.payPermissionBanner}
+                      accessibilityRole="alert"
+                      accessibilityLiveRegion="polite">
+                      <Text style={styles.payPermissionBannerText}>
+                        {t('checkout:posFlow.payment.blockedHints.noPaymentPermission')}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                {!cashRegisterResolved ? (
+                {canMakePayment && !cashRegisterResolved ? (
                   <Text style={styles.footerBlockedHint}>
                     {t('checkout:posFlow.payment.footer.registerSettingsLoading')}
                   </Text>
-                ) : !hasValidCashRegisterId ? (
+                ) : canMakePayment && !hasValidCashRegisterId ? (
                   <Text style={styles.footerBlockedHint}>
                     {registerGateFooterHint(registerGateCtx)}
                   </Text>
-                ) : paySubmitBlockedHint ? (
+                ) : canMakePayment && paySubmitBlockedHint ? (
                   <Text style={styles.footerBlockedHint}>{paySubmitBlockedHint}</Text>
                 ) : null}
               </View>
@@ -2311,24 +2659,6 @@ export default function PaymentModal({
                     />
                     <View style={styles.successActionsRow}>
                       <Pressable
-                        onPress={handleOpenReceiptPdf}
-                        disabled={pdfLoading || !completedPaymentId}
-                        style={({ pressed }) => [
-                          styles.successSecondaryBtn,
-                          pressed && SoftState.pressed,
-                          (pdfLoading || !completedPaymentId) && styles.payButtonDisabled,
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('checkout:posFlow.payment.success.receiptPdf')}>
-                        {pdfLoading ? (
-                          <WaveLoader size={20} color={SoftColors.accent} />
-                        ) : (
-                          <Text style={styles.successSecondaryBtnText}>
-                            {t('checkout:posFlow.payment.success.receiptPdf')}
-                          </Text>
-                        )}
-                      </Pressable>
-                      <Pressable
                         onPress={() =>
                           completedPaymentId && handleSuccessAndClose(completedPaymentId)
                         }
@@ -2366,21 +2696,6 @@ export default function PaymentModal({
                       size={140}
                     />
                     <View style={styles.printErrorActions}>
-                      <Pressable
-                        onPress={handleOpenReceiptPdf}
-                        disabled={pdfLoading || !completedPaymentId}
-                        style={[
-                          styles.printErrorBtnSecondary,
-                          pdfLoading && styles.payButtonDisabled,
-                        ]}>
-                        {pdfLoading ? (
-                          <WaveLoader size={20} color={SoftColors.accent} />
-                        ) : (
-                          <Text style={styles.printErrorBtnSecondaryText}>
-                            {t('checkout:posFlow.payment.success.receiptPdf')}
-                          </Text>
-                        )}
-                      </Pressable>
                       <Pressable onPress={handleSkipPrint} style={styles.printErrorBtnSecondary}>
                         <Text style={styles.printErrorBtnSecondaryText}>
                           {t('checkout:posFlow.payment.print.skip')}
@@ -2388,7 +2703,9 @@ export default function PaymentModal({
                       </Pressable>
                       <Pressable onPress={handleRetryPrint} style={styles.payButton}>
                         <Text style={styles.payButtonText}>
-                          {t('checkout:posFlow.payment.print.retry')}
+                          {canReprintReceipt
+                            ? t('receipts:reprint')
+                            : t('checkout:posFlow.payment.print.retry')}
                         </Text>
                       </Pressable>
                     </View>
@@ -2466,7 +2783,7 @@ export default function PaymentModal({
       />
       <CardPaymentModal
         visible={cardSimVisible}
-        amount={settlementAmountDue > 0 ? settlementAmountDue : totalAmount}
+        amount={gatewayChargeAmount}
         cashRegisterId={cashRegisterId ?? ''}
         onClose={() => {
           setCardSimVisible(false);
@@ -2476,6 +2793,19 @@ export default function PaymentModal({
           setCardSimVisible(false);
           void executePaymentSubmission(intentId);
         }}
+      />
+      <OfflineLimitReachedModal
+        visible={limitModalVisible}
+        title={t('offline:limit.title')}
+        body={t('offline:limit.body')}
+        retryLabel={t('offline:limit.retryNow')}
+        cancelLabel={t('offline:limit.cancel')}
+        onRetryNow={() => {
+          void retryOfflineQueuesNow().finally(() => {
+            setLimitModalVisible(false);
+          });
+        }}
+        onCancel={() => setLimitModalVisible(false)}
       />
     </>
   );
@@ -2490,13 +2820,13 @@ const styles = StyleSheet.create({
     // fixed + high z-index keeps the payment sheet and Zahlen hit-target above the tab UI.
     ...(Platform.OS === 'web'
       ? ({
-          position: 'fixed' as const,
+          position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
           zIndex: 2147483646,
-        } as const)
+        } as unknown as ViewStyle)
       : {}),
   },
   modal: {
@@ -2763,6 +3093,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
   },
+  cashOptionalHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    marginTop: 4,
+  },
+  cashBelowTotalHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.error,
+    marginTop: 4,
+  },
   label: {
     ...SoftTypography.label,
     color: SoftColors.textPrimary,
@@ -2785,10 +3125,6 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.xs,
     borderTopWidth: 1,
     borderTopColor: SoftColors.borderLight,
-  },
-  changeLabel: {
-    ...SoftTypography.label,
-    color: SoftColors.textPrimary,
   },
   changeAmount: {
     ...SoftTypography.priceTotal,
@@ -2887,6 +3223,24 @@ const styles = StyleSheet.create({
     color: SoftColors.error,
     textAlign: 'center',
     paddingHorizontal: SoftSpacing.sm,
+  },
+  payPermissionBanner: {
+    flex: 2,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.errorBg,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payPermissionBannerText: {
+    ...SoftTypography.caption,
+    fontWeight: '700',
+    color: SoftColors.error,
+    textAlign: 'center',
   },
   cancelButton: {
     flex: 1,
@@ -3091,22 +3445,6 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.md,
     width: '100%',
     paddingHorizontal: SoftSpacing.xs,
-  },
-  successSecondaryBtn: {
-    flex: 1,
-    minHeight: 48,
-    paddingVertical: SoftSpacing.sm,
-    borderRadius: SoftRadius.md,
-    borderWidth: 1,
-    borderColor: SoftColors.accent,
-    backgroundColor: SoftColors.bgCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successSecondaryBtnText: {
-    ...SoftTypography.body,
-    fontWeight: '600',
-    color: SoftColors.accent,
   },
   successPrimaryBtn: {
     flex: 1,

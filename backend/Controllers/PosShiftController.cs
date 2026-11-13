@@ -6,6 +6,7 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
@@ -105,6 +106,12 @@ public sealed class PosShiftController : ControllerBase
         {
             return NotFound(new { error = ex.Message });
         }
+        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterNotAssigned)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { error = ex.Message, code = CashRegisterPermissionCodes.RegisterNotAssignedToActor });
+        }
         catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterOpenConflict)
         {
             return Conflict(new { error = ex.Message });
@@ -117,48 +124,53 @@ public sealed class PosShiftController : ControllerBase
     }
 
     /// <summary>
-    /// Auto-opens a cashier shift for the caller's resolved register (idempotent if already active).
-    /// Does not require a start balance; uses the register current balance.
+    /// Auto-opens a cashier shift for the caller's register (body id, else persisted default).
+    /// Idempotent if already active. Missing/unavailable registers return structured 400 codes
+    /// rather than a raw model-binding failure.
     /// </summary>
     [HttpPost("auto-open")]
     [HasPermission(AppPermissions.ShiftOpen)]
-    [ProducesResponseType(typeof(CashierShiftDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<CashierShiftDto>> AutoOpenShift(
-        [FromBody] AutoOpenShiftRequest request,
+    [ProducesResponseType(typeof(ShiftAutoOpenResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ShiftAutoOpenResult), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ShiftAutoOpenResult>> AutoOpenShift(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AutoOpenShiftRequest? request,
         CancellationToken cancellationToken)
     {
-        if (request == null)
-            return BadRequest(new { error = "Request body is required" });
-
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "User not authenticated" });
 
-        try
+        // Empty/invalid cashRegisterId must not become a raw model-binding 400.
+        if (!ModelState.IsValid)
         {
-            var shift = await _shiftService.AutoOpenShiftAsync(
-                userId,
-                User.Identity?.Name ?? string.Empty,
-                request.CashRegisterId,
-                cancellationToken);
-            return Ok(shift);
+            ModelState.Remove("request");
+            ModelState.Remove("CashRegisterId");
+            ModelState.Remove("request.CashRegisterId");
         }
-        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterNotFound)
-        {
-            return NotFound(new { error = ex.Message });
-        }
-        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterOpenConflict)
-        {
-            return Conflict(new { error = ex.Message });
-        }
-        catch (PosShiftStartException ex)
-        {
-            _logger.LogWarning(ex, "AutoOpenShift failed for user {UserId}", userId);
-            return BadRequest(new { error = ex.Message });
-        }
+
+        var registerId = TryParseOptionalRegisterId(request?.CashRegisterId);
+        var result = await _shiftService.AutoOpenShiftAsync(
+            userId,
+            User.Identity?.Name ?? string.Empty,
+            registerId,
+            cancellationToken);
+
+        if (result.Success)
+            return Ok(result);
+
+        _logger.LogInformation(
+            "AutoOpenShift declined for user {UserId} with code {Code}",
+            userId,
+            result.Code);
+        return BadRequest(result);
+    }
+
+    private static Guid? TryParseOptionalRegisterId(string? raw)
+    {
+        var trimmed = raw?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return null;
+        return Guid.TryParse(trimmed, out var id) && id != Guid.Empty ? id : null;
     }
 
     /// <summary>

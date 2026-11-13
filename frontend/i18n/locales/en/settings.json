@@ -39,6 +39,16 @@
     "noRegisterMessage": "Please select a cash register under \"Register\" first or start a shift.",
     "noRegisterHint": "Assign a register first (\"Register\" section above)."
   },
+  "receiptList": {
+    "title": "Receipt list",
+    "description": "View recent receipts for this cash register and reprint them.",
+    "open": "Open receipt list"
+  },
+  "fiskalyOps": {
+    "title": "Fiskaly / special receipts",
+    "description": "Startbeleg, Nullbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg and cancellation.",
+    "open": "Open operations"
+  },
   "appUpdate": {
     "title": "App update",
     "description": "Checks whether a newer version of the Regkasse POS app is available, downloads the APK and opens the system installer.",
@@ -169,7 +179,8 @@
       "deadlineWorkingHoursGeneric": "until closing time",
       "deadlineMidnight": "until 00:00 Europe/Vienna",
       "cta": "Perform now",
-      "countdownA11y": "Countdown {{countdown}}"
+      "countdownA11y": "Countdown {{countdown}}",
+      "cashCountHint": "Please count the cash drawer. Without a closing, automatic daily closing runs at {{time}}."
     }
   },
   "registerAssignment": {
@@ -184,6 +195,55 @@
     "savedMessage": "Register has been assigned.",
     "saveErrorTitle": "Error",
     "saveErrorMessage": "Assignment was rejected by the server (invalid register, missing permission, or register is not open)."
+  },
+  "registerSelect": {
+    "title": "Choose register",
+    "intro": "Please select a cash register. A closed register opens automatically when you select it.",
+    "introNoPermission": "Please select an open cash register. Closed registers must be opened by your Mandanten-Admin.",
+    "select": "Select",
+    "openingShift": "Opening shift…",
+    "noDescription": "No description",
+    "statusAvailable": "Available",
+    "statusOpen": "Open",
+    "onlyMine": "Only mine",
+    "statusClosed": "Closed",
+    "statusClosedOpensOnSelect": "Closed — opens when you select it",
+    "statusUnavailable": "Unavailable",
+    "mustBeOpenedByManager": "The register must be opened by your Mandanten-Admin.",
+    "requestOpen": "Request register opening",
+    "requestSent": "Request sent",
+    "requestDenied": "Request denied. You can send a new request.",
+    "requestFailed": "Could not send the request. Please try again.",
+    "listLoadFailed": "Could not load the register list. Please try again.",
+    "needRegisterTitle": "Select a register",
+    "needRegisterSelection": "Please select a cash register before continuing.",
+    "registerUnavailableTitle": "Register unavailable",
+    "registerUnavailable": "The selected cash register is not available. Please contact your Mandanten-Admin.",
+    "registerDecommissionedTitle": "Register decommissioned",
+    "registerDecommissioned": "This cash register has been decommissioned and can no longer be used.",
+    "noActiveRegistersTitle": "No registers",
+    "noActiveRegisters": "No active cash registers found. Please contact your Mandanten-Admin.",
+    "openShiftErrorTitle": "Could not open the shift",
+    "openShiftError": "Please try again or contact your Mandanten-Admin.",
+    "emptyNoneOpen": "All registers are closed. Select a register — the shift opens automatically.",
+    "emptyNoneAssigned": "You have no cash register assigned. Please contact your administrator.",
+    "emptyNoneSelectable": "No register is available for you. Please contact your Mandanten-Admin.",
+    "inUse": "In use",
+    "inUseHint": "Please ask the administrator to close the cash register.",
+    "registerMaintenance": "The cash register is in maintenance mode. Please contact the administrator.",
+    "registerDisabled": "The cash register is disabled. Please contact the administrator.",
+    "registerInactive": "The cash register is inactive. Please contact the administrator.",
+    "registerAssignedToOtherUser": "The cash register is assigned to another cashier. Please contact the administrator.",
+    "registerConflictOtherUser": "The cash register is already open by another cashier.",
+    "registerAlreadyOpenTitle": "Already open",
+    "registerActorHasOtherOpen": "You already have another cash register open. Please close it first.",
+    "closeOtherRegister": "Close the other register",
+    "registerStartbelegRequired": "The start receipt is missing. Please contact the administrator.",
+    "registerMonatsbelegRequired": "The monthly receipt is missing. Please contact the administrator.",
+    "contactManager": "Contact manager",
+    "registerInvalidState": "The cash register cannot be opened in this state. Please contact the administrator.",
+    "requestOpenShort": "Request opening",
+    "reload": "Reload"
   },
   "cashRegister": {
     "sectionTitle": "Register",
@@ -307,6 +367,18 @@
     "copiedMessage": "{{label}} copied to clipboard.",
     "offlineQueueIdLabel": "Offline queue ID",
     "supportHandoffLabel": "Support handoff",
-    "shareReplayTitle": "Support: replay batch"
+    "shareReplayTitle": "Support: replay batch",
+    "retryAll": "Retry all",
+    "deleteItem": "Delete",
+    "deleteConfirmTitle": "Delete entry?",
+    "deleteConfirmMessage": "Only non-fiscal local entries can be deleted.",
+    "deleteFiscalBlockedTitle": "Delete not allowed",
+    "deleteFiscalBlocked": "Fiscal offline entries cannot be deleted.",
+    "lastSuccessfulSync": "Last successful sync: {{time}}",
+    "lastSuccessfulSyncNever": "none yet",
+    "nextRetry": "Next auto-retry in {{time}}",
+    "nextRetryNone": "No auto-retry scheduled.",
+    "sourceOrder": "Order snapshot",
+    "sourceTransaction": "Payment intent"
   }
 }

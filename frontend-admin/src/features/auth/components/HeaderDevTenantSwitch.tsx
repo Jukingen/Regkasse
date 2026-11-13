@@ -24,6 +24,7 @@ import {
   dedupeAdminTenantsById,
   formatTenantDisplay,
   getTenantSwitcherLicenseBadge,
+  isTenantRemovedStatus,
   partitionTenantsForSwitcher,
   shouldShowHeaderDevTenantSwitch,
   tenantHeaderShowsNoAdminWarning,
@@ -32,6 +33,7 @@ import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
   type TenantListItemForSwitcher,
   filterTenantSwitcherItems,
+  isDevelopmentTenant,
   tenantNeedsNoAdminWarning,
   useTenantListForSwitcher,
 } from '@/features/tenancy/hooks/useTenantListForSwitcher';
@@ -95,7 +97,7 @@ function TenantSwitcherItem({ tenant, isActiveTenant, onSwitch }: TenantSwitcher
   const licenseBadge = getTenantSwitcherLicenseBadge(source, t);
   const showNoAdmin = tenantHeaderShowsNoAdminWarning(source);
   const { displayName, displaySlug } = formatTenantDisplay(source);
-  const isDeleted = source.status === 'deleted' || !source.isActive;
+  const isDeleted = isTenantRemovedStatus(source.status) || !source.isActive;
 
   return (
     <div
@@ -214,7 +216,11 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     [isSuperAdminUser, message, refreshTenantContext, refreshToken, setOpen, setTenant, t]
   );
 
-  /** Development DX: prefer `dev` mandant when Super Admin has no active context yet. */
+  /**
+   * Development DX: prefer `dev` when Super Admin has no usable context yet,
+   * or when JWT/bootstrap still points at platform / Test Bar / Test Cafe.
+   * Production/Staging: no auto-redirect — JWT tenant after login; switcher is hidden.
+   */
   useEffect(() => {
     if (!shouldShowHeaderDevTenantSwitch() || !isSuperAdminUser) {
       return;
@@ -222,16 +228,24 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     if (autoSelectAttemptedRef.current || isLoading) {
       return;
     }
-    if (apiTenant?.id || currentTenantId) {
+    if (tenants.length === 0) {
       return;
     }
-    if (tenants.length === 0) {
+
+    const currentSlug = (apiTenant?.slug ?? '').trim().toLowerCase();
+    const hasUsableContext =
+      Boolean(apiTenant?.id || currentTenantId) &&
+      currentSlug !== '' &&
+      currentSlug !== 'admin' &&
+      isDevelopmentTenant(currentSlug);
+    if (hasUsableContext) {
       return;
     }
 
     const preferred =
       tenants.find((row) => row.slug === 'dev' && row.isActive && row.status === 'active') ??
-      tenants.find((row) => row.isActive && row.status === 'active' && !tenantNeedsNoAdminWarning(row));
+      tenants.find((row) => row.isActive && row.status === 'active' && !tenantNeedsNoAdminWarning(row)) ??
+      tenants[0];
 
     if (!preferred) {
       return;
@@ -241,6 +255,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     void handleTenantChange(preferred, { skipNoAdminWarning: preferred.slug === 'dev' });
   }, [
     apiTenant?.id,
+    apiTenant?.slug,
     currentTenantId,
     handleTenantChange,
     isLoading,

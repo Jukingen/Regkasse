@@ -11,9 +11,7 @@ import { type CreateUserResult, fetchUsernameSuggestion } from '@/features/users
 import { TenantSelector } from '@/features/users/components/TenantSelector';
 import { UserTenantAssignmentModal } from '@/features/users/components/UserTenantAssignmentModal';
 import { useTenantAssignmentModal } from '@/features/users/hooks/useTenantAssignmentModal';
-import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
-import { copyTextToClipboard } from '@/lib/clipboard';
 import { queryCacheDynamic } from '@/lib/query/queryCachePolicy';
 
 import { CreateUserNormalForm } from './CreateUserNormalForm';
@@ -43,7 +41,6 @@ export function CreateUserModalContent({
   onAssignTenants,
   quickMode,
 }: CreateUserModalProps) {
-  const notify = useNotify();
   const { t } = useI18n();
   const [form] = Form.useForm<CreateUserFormValues>();
   const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
@@ -280,19 +277,6 @@ export function CreateUserModalContent({
     }
   };
 
-  const copyPassword = async () => {
-    if (!password) {
-      notify.errorKey('users.password.noPasswordToCopy');
-      return;
-    }
-    const copied = await copyTextToClipboard(password);
-    if (copied) {
-      notify.successKey('tenants.provisioning.copySuccess');
-    } else {
-      notify.errorKey('tenants.provisioning.copyFailed');
-    }
-  };
-
   const closePasswordModal = () => {
     setPasswordResult(null);
     setTenantAssignmentResult(null);
@@ -434,7 +418,6 @@ export function CreateUserModalContent({
         open={open && !!passwordResult}
         result={passwordResult}
         password={password}
-        onCopyPassword={() => void copyPassword()}
         onClose={closePasswordModal}
         t={t}
       />

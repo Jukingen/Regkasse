@@ -24,7 +24,7 @@ public class UserProfileControllerTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"UserProfile_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static UserManager<ApplicationUser> CreateUserManager(ApplicationUser? existingUser = null)

@@ -27,7 +27,7 @@ import {
 import type { ReceiptReprintRequest, ReceiptReprintResponse } from '@/api/generated/model';
 import { getApiReceiptsByPaymentPaymentId } from '@/api/generated/receipts/receipts';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 
 export const REPRINT_REASON_VALUES = [
   'CUSTOMER_REQUEST',
@@ -58,6 +58,7 @@ function ReceiptReprintWizardContent({
   receiptNumberHint,
 }: ReceiptReprintWizardProps) {
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
   const [effectivePaymentId, setEffectivePaymentId] = useState(paymentId);
   const [step, setStep] = useState(0);
   const [form] = Form.useForm<{
@@ -254,7 +255,7 @@ function ReceiptReprintWizardContent({
                       {receipt.date ?? '—'}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('adminShell.operationsCenter.grandTotalLabel')}>
-                      {formatEUR(receipt.grandTotal ?? 0)}
+                      {formatCurrency(receipt.grandTotal ?? 0)}
                     </Descriptions.Item>
                   </Descriptions>
                   <Alert

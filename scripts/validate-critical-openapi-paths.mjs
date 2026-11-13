@@ -18,6 +18,12 @@ const CRITICAL_PATHS = [
   { path: '/api/pos/payment', methods: ['post'] },
   { path: '/api/pos/payment/methods', methods: ['get'] },
   { path: '/api/pos/payment/{id}', methods: ['get'] },
+  { path: '/api/pos/payment/initiate', methods: ['post'] },
+  { path: '/api/pos/payment/initiate/{id}', methods: ['get'] },
+  { path: '/api/webhooks/payment/{provider}', methods: ['post'] },
+  { path: '/api/admin/online-payments', methods: ['get'] },
+  { path: '/api/admin/online-payments/{id}', methods: ['get'] },
+  { path: '/api/admin/online-payments/test', methods: ['post'] },
   { path: '/api/pos/cart/current', methods: ['get'] },
   { path: '/api/admin/payments', methods: ['get'] },
   { path: '/api/admin/payments/{id}', methods: ['get'] },
@@ -29,7 +35,12 @@ const CRITICAL_PATHS = [
   { path: '/api/admin/billing/license-sales/preview', methods: ['post'] },
   { path: '/api/admin/billing/license-sales', methods: ['get', 'post'] },
   { path: '/api/admin/billing/license-sales/{id}', methods: ['get'] },
+  { path: '/api/admin/billing/tenant-invoices', methods: ['get'] },
+  { path: '/api/admin/billing/tenant-invoices/{id}/pdf', methods: ['get'] },
   { path: '/api/admin/billing/stats', methods: ['get'] },
+  { path: '/api/license/activate', methods: ['post'] },
+  { path: '/api/license/validate', methods: ['post'] },
+  { path: '/api/license/info', methods: ['get'] },
   { path: '/api/license/billing/status', methods: ['get'] },
   { path: '/api/license/extend', methods: ['post'] },
   { path: '/api/admin/offline-orders', methods: ['get'] },
@@ -39,6 +50,11 @@ const CRITICAL_PATHS = [
   { path: '/api/pos/offline-orders/pending', methods: ['get'] },
   { path: '/api/pos/offline-orders/replay', methods: ['post'] },
   { path: '/api/pos/offline-orders/{offlineOrderId}/status', methods: ['get'] },
+  { path: '/api/pos/receipts', methods: ['get'] },
+  { path: '/api/pos/receipts/recent', methods: ['get'] },
+  { path: '/api/pos/receipts/{receiptId}', methods: ['get'] },
+  { path: '/api/pos/receipts/{receiptId}/reprint', methods: ['get'] },
+  { path: '/api/pos/receipts/{receiptId}/cancel', methods: ['post'] },
 ];
 
 const REQUIRED_SCHEMAS = [
@@ -59,6 +75,13 @@ const REQUIRED_SCHEMAS = [
   'ReplayOfflineOrderResult',
   'ReplayOfflineOrdersResult',
   'OfflineOrderRequest',
+  'InitiateOnlinePaymentRequest',
+  'OnlinePaymentDto',
+  'AdminOnlinePaymentDto',
+  'AdminOnlinePaymentListResponse',
+  'AdminOnlinePaymentTestRequest',
+  'AdminOnlinePaymentTestResponse',
+  'PaymentWebhookReceivedResponse',
 ];
 
 /**

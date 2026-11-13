@@ -62,6 +62,8 @@ public class RoleAdminMenuContractTests
     [InlineData(Roles.Manager, AppPermissions.ReportView)]
     [InlineData(Roles.Manager, AppPermissions.ReportExport)]
     [InlineData(Roles.Manager, AppPermissions.LicenseManage)]
+    [InlineData(Roles.Manager, AppPermissions.FiskalyOperationsView)]
+    [InlineData(Roles.Manager, AppPermissions.FiskalyHistoryView)]
     [InlineData(Roles.Accountant, AppPermissions.ReportExport)]
     [InlineData(Roles.ReportViewer, AppPermissions.AuditView)]
     public void AdminProfile_BackOfficeRoles_KeepAdminPermissions(string role, string permission)

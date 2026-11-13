@@ -29,6 +29,11 @@ export function getBreakpoint(width: number): BreakpointKey {
   return 'lg';
 }
 
+/** Tablet/desktop cash register: cart column beside the product grid. */
+export function isPosSplitLayout(width: number): boolean {
+  return width >= Breakpoints.lg;
+}
+
 /** Responsive padding (8px base): smaller on xs/sm so content doesn’t cramp */
 export function getContentPaddingHorizontal(width: number): number {
   const key = getBreakpoint(width);

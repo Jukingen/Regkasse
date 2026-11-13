@@ -6,12 +6,15 @@ namespace KasseAPI_Final.Services.Backup;
 /// <summary>
 /// Cost-oriented Hot / Warm / Cold classification for succeeded backup runs.
 /// Does not move fiscal data; persists <see cref="BackupArtifact.StorageTier"/> when applying.
-/// Cold recommends external archive (<c>Backup:ExternalArchiveRoot</c>) — no silent cloud Glacier API.
+/// Cold tags prefer external / cloud archive via <see cref="ICloudStorageService"/>.
 /// </summary>
 public interface IStorageTierService
 {
-    /// <summary>Classify by age only (no persistence).</summary>
-    BackupStorageTier CalculateOptimalTier(DateTime backupDateUtc, DateTime? utcNow = null);
+    /// <summary>Classify by age only (no persistence). Defaults: Hot ≤30d / Warm ≤90d.</summary>
+    BackupStorageTier CalculateOptimalTier(
+        DateTime backupDateUtc,
+        DateTime? utcNow = null,
+        BackupRetentionWindows? windows = null);
 
     /// <summary>
     /// Classify a run and persist the tier on its artifacts.
@@ -21,11 +24,13 @@ public interface IStorageTierService
         AppDbContext db,
         BackupRun run,
         CancellationToken ct = default,
-        DateTime? utcNow = null);
+        DateTime? utcNow = null,
+        BackupRetentionWindows? windows = null);
 
     /// <summary>Reclassify all succeeded runs that still have artifacts (post-success / ops pass).</summary>
     Task<int> ApplyOptimalTiersForSucceededRunsAsync(
         AppDbContext db,
         CancellationToken ct = default,
-        DateTime? utcNow = null);
+        DateTime? utcNow = null,
+        BackupRetentionWindows? windows = null);
 }

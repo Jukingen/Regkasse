@@ -198,7 +198,8 @@ public sealed class DashboardController : ControllerBase
             {
                 WidgetId = def.WidgetId,
                 Order = order++,
-                IsVisible = false,
+                // New catalog ids (e.g. migrated manager cards) follow catalog defaults so they appear after deploy.
+                IsVisible = def.DefaultVisible,
                 Settings = def.WidgetId == DashboardWidgetCatalog.TopSellingProducts
                     ? new Dictionary<string, JsonElement> { ["period"] = JsonSerializer.SerializeToElement("today") }
                     : null,
