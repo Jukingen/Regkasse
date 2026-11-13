@@ -13,6 +13,7 @@ import { apiClient } from '../services/api/config';
 import type { Customer } from '../services/api/customerService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { storage } from '../utils/storage';
+import { applyOptimisticCartAdd } from '../utils/optimisticCartAdd';
 import {
   createEmptyCart,
   getCartDisplayTotals,
@@ -475,12 +476,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         quantity: m.quantity ?? 1,
         groupId: m.groupId,
       }));
-      const modKey = getModifierKey(modifiers);
-      const variantKey = options?.variantId ?? '';
-      const productName = options?.productName ?? 'Loading...';
-      const baseUnitPrice = options?.unitPrice ?? 0;
-      const modifierTotal = modifiers.reduce((s, m) => s + m.price * m.quantity, 0);
-      const lineTotalPrice = baseUnitPrice * quantity + modifierTotal;
 
       safeLog(`➕ [CartContext] Adding item to table ${activeTableId}:`, {
         productId,
@@ -488,52 +483,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         modifiersCount: modifiers.length,
       });
 
-      // Aynı productId + aynı modifier set (id:qty) = mevcut satıra sadece ürün miktarı ekle; modifier miktarları değişmez
-      const existingItemIndex = currentCart.items.findIndex(
-        (item) =>
-          item.productId === productId &&
-          getModifierKey(item.modifiers) === modKey &&
-          (item.variantId ?? '') === variantKey
-      );
-      let optimisticCart: Cart;
-
-      if (existingItemIndex !== -1) {
-        const item = currentCart.items[existingItemIndex];
-        const newQty = item.qty + quantity;
-        const modTotal = (item.modifiers ?? []).reduce(
-          (s, m) => s + m.price * (m.quantity ?? 1),
-          0
-        );
-        const newTotal = (item.unitPrice ?? item.price ?? 0) * newQty + modTotal;
-        optimisticCart = {
-          ...currentCart,
-          items: currentCart.items.map((it, index) =>
-            index === existingItemIndex ? { ...it, qty: newQty, totalPrice: newTotal } : it
-          ),
-          updatedAt: Date.now(),
-        };
-      } else {
-        const clientId = `ci-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        optimisticCart = {
-          ...currentCart,
-          items: [
-            ...currentCart.items,
-            {
-              productId,
-              productName,
-              price: baseUnitPrice,
-              qty: quantity,
-              unitPrice: baseUnitPrice,
-              totalPrice: lineTotalPrice,
-              modifiers: modifiers.length ? modifiers : undefined,
-              variantId: options?.variantId,
-              itemId: undefined,
-              clientId,
-            },
-          ],
-          updatedAt: Date.now(),
-        };
-      }
+      const optimisticCart = applyOptimisticCartAdd(currentCart, {
+        productId,
+        quantity,
+        modifiers,
+        productName: options?.productName,
+        unitPrice: options?.unitPrice,
+        variantId: options?.variantId,
+        clientId: `ci-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      });
 
       setCartsByTable((prev) => ({
         ...prev,
@@ -643,7 +601,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(msg);
       }
     },
-    [activeTableId, cartsByTable, getModifierKey]
+    [activeTableId, cartsByTable]
   );
 
   /** Base + add-ons: one line for base (no modifiers), then one line per add-on. Flat cart; parent_product_id not in backend. */
