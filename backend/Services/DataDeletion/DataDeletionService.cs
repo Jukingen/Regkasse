@@ -265,7 +265,7 @@ public sealed class DataDeletionService : IDataDeletionService
             action: "TENANT_DATA_PURGED",
             entityType: AuditLogEntityTypes.SYSTEM_CONFIG,
             userId: actorUserId ?? "system",
-            userRole: executedVia == TenantDataDeletionExecutedVia.Auto ? "System" : "SuperAdmin",
+            userRole: executedVia == TenantDataDeletionExecutedVia.Auto ? "System" : KasseAPI_Final.Constants.Roles.SuperAdmin,
             description:
                 $"Non-RKSV customer data purged (irreversible). RKSV retention {RksvRetentionYears} years. Via={executedVia}.",
             status: AuditLogStatus.Success,

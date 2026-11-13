@@ -85,6 +85,7 @@ namespace KasseAPI_Final.Controllers
 
 
 
+        /// <summary>Lists product categories for the current tenant.</summary>
         [HttpGet]
 
         public async Task<ActionResult<List<CategoryDto>>> GetCategories()
@@ -125,6 +126,7 @@ namespace KasseAPI_Final.Controllers
 
 
 
+        /// <summary>Returns one product category by id. Unknown ids respond as not found.</summary>
         [HttpGet("{id}")]
 
         public async Task<ActionResult<CategoryDto>> GetCategory(Guid id)

@@ -1575,7 +1575,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     code = ApiError.ForbiddenPayload.Code,
                     reason = ApiError.ForbiddenPayload.Reason,
-                    requiredPolicy = "SuperAdmin",
+                    requiredPolicy = KasseAPI_Final.Constants.Roles.SuperAdmin,
                     missingRequirement = "Role",
                     correlationId,
                 });
@@ -1683,7 +1683,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     code = ApiError.ForbiddenPayload.Code,
                     reason = ApiError.ForbiddenPayload.Reason,
-                    requiredPolicy = "SuperAdmin",
+                    requiredPolicy = KasseAPI_Final.Constants.Roles.SuperAdmin,
                     missingRequirement = "Role",
                     correlationId,
                 });
@@ -1793,7 +1793,7 @@ namespace KasseAPI_Final.Controllers
                     {
                         code = ApiError.ForbiddenPayload.Code,
                         reason = ApiError.ForbiddenPayload.Reason,
-                        requiredPolicy = "SuperAdmin",
+                        requiredPolicy = KasseAPI_Final.Constants.Roles.SuperAdmin,
                         missingRequirement = "Role",
                         correlationId,
                     });

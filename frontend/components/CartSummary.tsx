@@ -11,7 +11,7 @@ import {
   SoftState,
   SoftTypography,
 } from '../constants/SoftTheme';
-import { getCartDisplayTotals } from '../contexts/CartContext';
+import { getCartDisplayTotals } from '../utils/tableCartUtils';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -34,18 +34,21 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 }) => {
   const { t } = useTranslation('cart');
   const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
+  const cartItems = Array.isArray(cart?.items) ? cart.items : [];
+  const isEmpty = cartItems.length === 0;
 
-  // Hide if no items
-  if (loading || error || !cart?.items || cart.items.length === 0) {
+  if (loading || error || (isEmpty && !onPayment)) {
     return null;
   }
 
-  const isDisabled = paymentProcessing || preventDoubleClick;
+  const isPaying = paymentProcessing || preventDoubleClick;
+  const isDisabled = isPaying || cartItems.length === 0;
   const payLabel = t('payWithAmount', { amount: formatPrice(totals.grandTotalGross) });
 
   return (
     <View style={styles.container}>
-      {/* Breakdown Section */}
+      {/* Breakdown Section — hidden while the cart is empty; the pay button stays visible and disabled. */}
+      {!isEmpty && (
       <View style={styles.breakdown}>
         {/* Subtotal */}
         <View style={styles.row}>
@@ -70,6 +73,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           <Text style={styles.totalValue}>{formatPrice(totals.grandTotalGross)}</Text>
         </View>
       </View>
+      )}
 
       {/* Payment Button (if onPayment provided) */}
       {onPayment && (
@@ -86,7 +90,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           accessibilityLabel={payLabel}
           accessibilityRole="button"
           accessibilityState={{ disabled: isDisabled }}>
-          {isDisabled ? (
+          {isPaying ? (
             <View style={styles.payContent}>
               <WaveLoader size={18} color={SoftColors.textInverse} />
               <Text style={styles.payText}>{t('processing')}</Text>

@@ -11,7 +11,7 @@ public static class SystemTenantIds
     public static readonly Guid Platform = Guid.Parse("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c");
 
     /// <summary>Canonical platform slug.</summary>
-    public const string PlatformSlug = "platform";
+    public const string PlatformSlug = KasseAPI_Final.Constants.TenantSlugs.Platform;
 
     /// <summary>
     /// Canonical platform slugs for EF Core LINQ (<c>Contains</c> translates to SQL <c>IN</c>).

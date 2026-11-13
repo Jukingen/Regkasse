@@ -1,4 +1,5 @@
 using KasseAPI_Final.Authorization;
+using TenantSlugs = KasseAPI_Final.Constants.TenantSlugs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -28,7 +29,7 @@ public static class DemoTenantAdminSeed
     {
         new(
             DemoTenantIds.Dev,
-            "dev",
+            TenantSlugs.Dev,
             "Development",
             DemoTenantAdminUserIds.Dev,
             "admin@dev.regkasse.at",
@@ -201,7 +202,7 @@ public static class DemoTenantAdminSeed
                    && string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase);
         }
 
-        return string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(slug, TenantSlugs.Dev, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -255,7 +256,7 @@ public static class DemoTenantAdminSeed
     }
 
     private static bool IsDevelopmentPresetSlug(string slug) =>
-        string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+        string.Equals(slug, TenantSlugs.Dev, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Local DX: keep seeded <c>dev</c> bindable. Does not resurrect archived/cancelled rows.

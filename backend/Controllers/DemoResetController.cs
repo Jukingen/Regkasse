@@ -47,7 +47,7 @@ public sealed class DemoResetController : ControllerBase
     }
 
     [HttpPost("demo/reset")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = KasseAPI_Final.Constants.Roles.SuperAdmin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

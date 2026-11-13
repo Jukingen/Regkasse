@@ -104,7 +104,7 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         if (token.RevokedAtUtc.HasValue || token.ConsumedAtUtc.HasValue)
         {
             // Token already rotated — reject without revoking the session (parallel/tab race or stale client).
-            _logger.LogDebug(
+            _logger.LogInformation(
                 "Refresh token already consumed or revoked for user {UserId}, session {SessionId}",
                 token.UserId,
                 token.SessionId);
@@ -128,7 +128,7 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         if (updated == 0)
         {
             // Concurrent first-use race — one caller won rotation; do not treat as reuse attack.
-            _logger.LogDebug(
+            _logger.LogInformation(
                 "Parallel refresh race lost for user {UserId}, session {SessionId}",
                 token.UserId,
                 token.SessionId);

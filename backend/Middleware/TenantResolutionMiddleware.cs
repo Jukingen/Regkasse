@@ -54,7 +54,7 @@ public sealed class TenantResolutionMiddleware
         CurrentTenantService currentTenantService,
         ICurrentTenantAccessor tenantAccessor)
     {
-        // Monitor accidental ?tenant= usage (Dev: Debug when query is the effective source; Prod: Warning / alert).
+        // Monitor accidental ?tenant= usage (Dev: Information when query is the effective source; Prod: Warning / alert).
         LogQueryParameterUsage(context);
 
         if (_environment.IsDevelopment() && TenantContextMiddleware.HasDevTenantOverride(context))
@@ -81,7 +81,7 @@ public sealed class TenantResolutionMiddleware
 
     /// <summary>
     /// Tracks <c>?tenant=</c> presence so Production misuse can be alerted via Warning logs.
-    /// Development logs Debug only when the query is the effective override (no header).
+    /// Development logs Information when the query is the effective override (no header).
     /// </summary>
     private void LogQueryParameterUsage(HttpContext context)
     {
@@ -103,7 +103,7 @@ public sealed class TenantResolutionMiddleware
             // Header wins over query; only treat query as the resolution source when header is absent.
             if (!hasHeader)
             {
-                _logger.LogDebug(
+                _logger.LogInformation(
                     "Development: Tenant resolved from query parameter: {Tenant}",
                     tenantFromQuery);
             }

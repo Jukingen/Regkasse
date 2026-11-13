@@ -68,7 +68,7 @@ public sealed class AdminMwstCanaryController : ControllerBase
             action: "CH_MWST_CANARY_ROLLED_BACK",
             entityType: "Tenant",
             userId: actor,
-            userRole: "SuperAdmin",
+            userRole: KasseAPI_Final.Constants.Roles.SuperAdmin,
             description: "Fiscal.MwstCh set false for the CH canary tenant",
             actionType: AuditEventType.ChMwstCanaryRolledBack,
             entityId: tenantId,

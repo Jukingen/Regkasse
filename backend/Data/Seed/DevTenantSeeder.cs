@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using TenantSlugs = KasseAPI_Final.Constants.TenantSlugs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Tenancy;
@@ -62,7 +63,7 @@ public static class DevTenantSeeder
     private static readonly IReadOnlyDictionary<string, string> SlugProfiles =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["dev"] = VerticalProfileIds.GastronomyTables,
+            [TenantSlugs.Dev] = VerticalProfileIds.GastronomyTables,
             ["dev-gastronomy-tables"] = VerticalProfileIds.GastronomyTables,
             ["dev-vet"] = VerticalProfileIds.Vet,
             ["dev-doctor"] = VerticalProfileIds.Doctor,
@@ -85,7 +86,7 @@ public static class DevTenantSeeder
         var tenants = await db.Tenants
             .IgnoreQueryFilters()
             .Where(row => row.IsActive && row.DeletedAtUtc == null && row.Slug != null
-                && (row.Slug == "dev" || row.Slug.StartsWith("dev-")))
+                && (row.Slug == TenantSlugs.Dev || row.Slug.StartsWith("dev-")))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -99,7 +100,7 @@ public static class DevTenantSeeder
             if (profileId is null)
                 continue;
 
-            if (!string.Equals(tenant.Slug, "dev", StringComparison.Ordinal))
+            if (!string.Equals(tenant.Slug, TenantSlugs.Dev, StringComparison.Ordinal))
             {
                 var (categories, products, protectedProducts) = await RemoveGenericAllgemeinAsync(db, tenant.Id, cancellationToken)
                     .ConfigureAwait(false);
@@ -132,7 +133,7 @@ public static class DevTenantSeeder
     {
         var devId = await db.Tenants
             .IgnoreQueryFilters()
-            .Where(row => row.Id == DemoTenantIds.Dev && row.Slug == "dev" && row.DeletedAtUtc == null)
+            .Where(row => row.Id == DemoTenantIds.Dev && row.Slug == TenantSlugs.Dev && row.DeletedAtUtc == null)
             .Select(row => (Guid?)row.Id)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -448,7 +449,7 @@ public static class DevTenantSeeder
     {
         var tenant = await db.Tenants
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(row => row.Slug == "dev" && row.IsActive, cancellationToken)
+            .FirstOrDefaultAsync(row => row.Slug == TenantSlugs.Dev && row.IsActive, cancellationToken)
             .ConfigureAwait(false);
         if (tenant is null)
             return;
@@ -559,7 +560,7 @@ public static class DevTenantSeeder
             membershipProvisioner,
             userName: "cashier1",
             userId: "demo-cashier-dev",
-            tenantSlug: "dev",
+            tenantSlug: TenantSlugs.Dev,
             role: Roles.Cashier,
             firstName: "Kasse",
             lastName: "Dev",
@@ -585,7 +586,7 @@ public static class DevTenantSeeder
             membershipProvisioner,
             userName: "cashier-gastro",
             userId: "demo-cashier-gastro",
-            tenantSlug: "dev",
+            tenantSlug: TenantSlugs.Dev,
             role: Roles.Cashier,
             firstName: "Cashier",
             lastName: "Gastro",
@@ -611,7 +612,7 @@ public static class DevTenantSeeder
             membershipProvisioner,
             userName: "admin1",
             userId: "demo-admin1-dev",
-            tenantSlug: "dev",
+            tenantSlug: TenantSlugs.Dev,
             role: Roles.Manager,
             firstName: "Admin",
             lastName: "Dev",
@@ -643,7 +644,7 @@ public static class DevTenantSeeder
     {
         var dev = await db.Tenants
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(row => row.Slug == "dev" && row.IsActive, cancellationToken)
+            .FirstOrDefaultAsync(row => row.Slug == TenantSlugs.Dev && row.IsActive, cancellationToken)
             .ConfigureAwait(false);
         if (dev is null)
             return;
@@ -868,7 +869,7 @@ public static class DevTenantSeeder
         Tenant tenant,
         CancellationToken cancellationToken)
     {
-        if (tenant.Id == DemoTenantIds.Dev || string.Equals(tenant.Slug, "dev", StringComparison.Ordinal))
+        if (tenant.Id == DemoTenantIds.Dev || string.Equals(tenant.Slug, TenantSlugs.Dev, StringComparison.Ordinal))
             return VerticalProfileIds.GastronomyTables;
 
         var stored = await db.CompanySettings
