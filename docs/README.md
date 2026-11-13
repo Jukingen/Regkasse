@@ -267,6 +267,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) | Online orders inbox |
 | [`ops-known-gaps.md`](ops-known-gaps.md) | Ops gaps |
 | [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) | Role × permission |
+| [`POSTMAN_GUIDE.md`](POSTMAN_GUIDE.md) | Import and run the Postman collection |
 | [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) | **Key** — single POS UI |
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | Product summary |
 | [`README.md`](README.md) | This index |

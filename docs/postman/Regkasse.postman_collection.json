@@ -1,0 +1,3282 @@
+{
+  "info": {
+    "name": "Regkasse API",
+    "_postman_id": "regkasse-api",
+    "description": "Critical Regkasse API requests generated from backend/swagger.json. POS uses /api/pos, /api/Auth, and /api/Receipts. Admin uses /api/admin and /api/Auth. Replace collection variables before sending. Do not store real passwords in this file.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5184"
+    },
+    {
+      "key": "jwt",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "twoFactorToken",
+      "value": ""
+    },
+    {
+      "key": "csrfToken",
+      "value": ""
+    },
+    {
+      "key": "tenantSlug",
+      "value": "dev"
+    },
+    {
+      "key": "tenantId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "cashRegisterId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    },
+    {
+      "key": "cartId",
+      "value": ""
+    },
+    {
+      "key": "itemId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "receiptId",
+      "value": ""
+    },
+    {
+      "key": "receiptNumber",
+      "value": ""
+    },
+    {
+      "key": "loginIdentifier",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "clientApp",
+      "value": "pos"
+    }
+  ],
+  "item": [
+    {
+      "name": "Getting Started",
+      "description": "Run these in order on a Development API. Login stores the JWT. The tenant header is the collection variable tenantSlug, sent as X-Tenant-Id. Health does not require a token.",
+      "item": [
+        {
+          "name": "Auth login (get JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "login"
+              ]
+            },
+            "description": "clientApp is pos or admin. The test script writes jwt, refreshToken, tenantId, and tenantSlug.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginIdentifier\": \"{{loginIdentifier}}\",\n  \"password\": \"{{password}}\",\n  \"clientApp\": \"{{clientApp}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set(\"jwt\", body.token);",
+                  "if (body.refreshToken) pm.collectionVariables.set(\"refreshToken\", body.refreshToken);",
+                  "if (body.user && body.user.tenantId) pm.collectionVariables.set(\"tenantId\", body.user.tenantId);",
+                  "if (body.user && body.user.tenantSlug) pm.collectionVariables.set(\"tenantSlug\", body.user.tenantSlug);",
+                  "if (body.user && body.user.id) pm.collectionVariables.set(\"userId\", body.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set tenant header",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tenants/switcher",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "switcher"
+              ],
+              "query": [
+                {
+                  "key": "includeDeleted",
+                  "value": "",
+                  "description": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Development resolves the mandant from X-Tenant-Id: {{tenantSlug}} (seeded demo slug: dev). Production api.regkasse.at ignores this header and uses the JWT tenant_id claim. Change the collection variable, then send this request."
+          }
+        },
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Liveness of the API process. /api/health/live and /api/health/ready are the probe split.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "CSRF token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/csrf/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "csrf",
+                "token"
+              ]
+            },
+            "description": "Development skips CSRF. When Security:Csrf is enabled, send the saved csrfToken as X-XSRF-TOKEN on POST, PUT, PATCH, and DELETE. Login, refresh, and /api/health are exempt.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set(\"csrfToken\", body.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Shared /api/Auth surface used by POS and Admin. Login is repeated here so the folder stands alone.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginIdentifier\": \"{{loginIdentifier}}\",\n  \"password\": \"{{password}}\",\n  \"clientApp\": \"{{clientApp}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set(\"jwt\", body.token);",
+                  "if (body.refreshToken) pm.collectionVariables.set(\"refreshToken\", body.refreshToken);",
+                  "if (body.user && body.user.tenantId) pm.collectionVariables.set(\"tenantId\", body.user.tenantId);",
+                  "if (body.user && body.user.tenantSlug) pm.collectionVariables.set(\"tenantSlug\", body.user.tenantSlug);",
+                  "if (body.user && body.user.id) pm.collectionVariables.set(\"userId\", body.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "me"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "refresh"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\",\n  \"clientApp\": \"{{clientApp}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify 2FA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/verify-2fa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "verify-2fa"
+              ]
+            },
+            "description": "Super Admin TOTP step after password. Development can bypass 2FA. Do not use a real backup code in this collection.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"twoFactorToken\": \"{{twoFactorToken}}\",\n  \"code\": \"123456\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "logout"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Logout all sessions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/logout-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "logout-all"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Revoke refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantSlug}}"
+              },
+              {
+                "key": "X-XSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/revoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "revoke"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "POS",
+      "description": "Cashier API. POS clients call /api/pos/*, /api/Auth/*, and /api/Receipts/* only.",
+      "item": [
+        {
+          "name": "Cart",
+          "description": "",
+          "item": [
+            {
+              "name": "Current cart",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/current",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "current"
+                  ],
+                  "query": [
+                    {
+                      "key": "tableNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Open cart",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tableNumber\": 1,\n  \"notes\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Add product",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/add-item",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "add-item"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"tableNumber\": 1,\n  \"cashRegisterId\": \"{{cashRegisterId}}\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Get cart",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/{{cartId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "{{cartId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Update line",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/items/{{itemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "items",
+                    "{{itemId}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"quantity\": 2\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Remove line",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/items/{{itemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "items",
+                    "{{itemId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Clear cart",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/cart/clear",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "cart",
+                    "clear"
+                  ],
+                  "query": [
+                    {
+                      "key": "tableNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment",
+          "description": "",
+          "item": [
+            {
+              "name": "Payment methods",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment/methods",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment",
+                    "methods"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Pay cash",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment"
+                  ]
+                },
+                "description": "totalAmount is a client hint. The server recomputes catalog totals and rejects a mismatch. Idempotency-Key retries return the existing payment.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"tableNumber\": 1,\n  \"totalAmount\": 12.5,\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"taxType\": \"standard\"\n    }\n  ],\n  \"payment\": {\n    \"method\": \"cash\",\n    \"tseRequired\": true,\n    \"amount\": 12.5\n  },\n  \"idempotencyKey\": \"postman-cash-001\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Get payment",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment/{{paymentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment",
+                    "{{paymentId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Receipt",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment/{{paymentId}}/receipt",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment",
+                    "{{paymentId}}",
+                    "receipt"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Receipt QR",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment/{{paymentId}}/qr.png",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment",
+                    "{{paymentId}}",
+                    "qr.png"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Storno",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/payment/storno",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "payment",
+                    "storno"
+                  ]
+                },
+                "description": "Full-receipt cancellation. stornoReason is the RKSV enum name (KundeStorniert, FalscherBetrag, TechnischerFehler, Anderes).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"tableNumber\": 1,\n  \"totalAmount\": 12.5,\n  \"originalReceiptNumber\": \"{{receiptNumber}}\",\n  \"stornoReason\": \"KundeStorniert\",\n  \"payment\": {\n    \"method\": \"cash\",\n    \"tseRequired\": true,\n    \"amount\": 12.5\n  }\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Shift",
+          "description": "",
+          "item": [
+            {
+              "name": "Current shift",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/shift/current",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "shift",
+                    "current"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Start shift",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/shift/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "shift",
+                    "start"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"startBalance\": 100\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "End shift",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/shift/end",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "shift",
+                    "end"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"endBalance\": 100,\n  \"notes\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Daily closing status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/shift/daily-closing/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "shift",
+                    "daily-closing",
+                    "status"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Daily closing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/pos/shift/daily-closing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "pos",
+                    "shift",
+                    "daily-closing"
+                  ]
+                },
+                "description": "Tagesabschluss. A closed day blocks further payments until the next business day.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashCount\": 100,\n  \"notes\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "FA API under /api/admin/*. Mandanten-Admin is role Manager. Cross-tenant reads return 404.",
+      "item": [
+        {
+          "name": "Users",
+          "description": "",
+          "item": [
+            {
+              "name": "List users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "type",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "scope",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "tenantId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Create user",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ]
+                },
+                "description": "role is the backend name (Cashier, Manager, SuperAdmin). The generated password is returned once.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"cashier@example.com\",\n  \"firstName\": \"E2E\",\n  \"lastName\": \"Kassierer\",\n  \"role\": \"Cashier\",\n  \"userName\": \"cashier1\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Get user",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{userId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Deactivate user",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}/deactivate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{userId}}",
+                    "deactivate"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Reset password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{userId}}",
+                    "reset-password"
+                  ]
+                },
+                "description": ""
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tenants",
+          "description": "",
+          "item": [
+            {
+              "name": "List tenants",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "licenseType",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20",
+                      "description": "",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Slug availability",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/slug-availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "slug-availability"
+                  ],
+                  "query": [
+                    {
+                      "key": "slug",
+                      "value": "wien-cafe",
+                      "description": "",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Create tenant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants"
+                  ]
+                },
+                "description": "Super Admin wizard. countryCode is ISO 3166-1 alpha-2. vatRegime must be allowed for that country. AT_RKSV_STANDARD is the Austrian default.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Wien Cafe\",\n  \"slug\": \"wien-cafe\",\n  \"countryCode\": \"AT\",\n  \"vatRegime\": \"AT_RKSV_STANDARD\",\n  \"email\": \"info@wien-cafe.example\",\n  \"adminEmail\": \"admin@wien-cafe.example\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Get tenant",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/{{tenantId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "{{tenantId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "List tenant users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "{{tenantId}}",
+                    "users"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Create cashier",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "{{tenantId}}",
+                    "users"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"cashier@example.com\",\n  \"userName\": \"cashier1\",\n  \"firstName\": \"E2E\",\n  \"lastName\": \"Kassierer\",\n  \"role\": \"Cashier\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Assign user role",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/users/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "{{tenantId}}",
+                    "users",
+                    "assign"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"role\": \"Cashier\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Impersonate tenant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/impersonate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tenants",
+                    "{{tenantId}}",
+                    "impersonate"
+                  ]
+                },
+                "description": "Super Admin only. The issued JWT carries the target tenant_id and tenant_impersonation=true."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Receipts",
+          "description": "",
+          "item": [
+            {
+              "name": "List receipts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/Receipts/list",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "Receipts",
+                    "list"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "sort",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "receiptNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "cashRegisterId",
+                      "value": "{{cashRegisterId}}",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "cashierId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "issuedFrom",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "issuedTo",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Get receipt",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/Receipts/{{receiptId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "Receipts",
+                    "{{receiptId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Receipt by payment",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/Receipts/by-payment/{{paymentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "Receipts",
+                    "by-payment",
+                    "{{paymentId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "List payments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/payments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "StartDate",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "EndDate",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "MinAmount",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "MaxAmount",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "PaymentMethods",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "Statuses",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "CashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "CustomerName",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "CustomerEmail",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "CashierId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ReceiptNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "IsStorno",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "IsRefund",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "Page",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "PageSize",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "SortBy",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "SortDirection",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "AfterCursor",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "IncludeTotalCount",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "method",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "pageNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "stornoReason",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Get payment",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/payments/{{paymentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "payments",
+                    "{{paymentId}}"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Download receipt PDF",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/payments/{{paymentId}}/reprint",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "payments",
+                    "{{paymentId}}",
+                    "reprint"
+                  ]
+                },
+                "description": "PDF reprint of the fiscal receipt. Save the response as a file."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fiscal",
+      "description": "TSE status and DEP / RKSV special receipts. These samples do not change signing rules. A forced Monatsbeleg is a past-month catch-up, not a normal sale.",
+      "item": [
+        {
+          "name": "TSE",
+          "description": "",
+          "item": [
+            {
+              "name": "TSE status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/tse/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "tse",
+                    "status"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "TSE health",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/tse/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "tse",
+                    "health"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Admin TSE health",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tse/health/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tse",
+                    "health",
+                    "status"
+                  ],
+                  "query": [
+                    {
+                      "key": "liveProbe",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "List TSE devices",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tse-management/devices",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tse-management",
+                    "devices"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Provision TSE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tse-management/provision",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tse-management",
+                    "provision"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tenantId\": \"{{tenantId}}\",\n  \"cashRegisterId\": \"{{cashRegisterId}}\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Offline queue status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tse/offline-queue/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tse",
+                    "offline-queue",
+                    "status"
+                  ],
+                  "query": [
+                    {
+                      "key": "tenantId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Ausfall episodes",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/tse/ausfall/episodes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "tse",
+                    "ausfall",
+                    "episodes"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "tenantId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            }
+          ]
+        },
+        {
+          "name": "DEP",
+          "description": "",
+          "item": [
+            {
+              "name": "RKSV status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "status"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "RKSV runtime config",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "config"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "DEP export",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/dep-export",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "dep-export"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "{{cashRegisterId}}",
+                      "description": "",
+                      "disabled": false
+                    },
+                    {
+                      "key": "fromUtc",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toUtc",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "includeSpecialReceipts",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "includeDailyClosings",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "includeEnvelope",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Datenerfassungsprotokoll JSON for the selected register and period."
+              }
+            },
+            {
+              "name": "Validate DEP export",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/dep-export/validate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "dep-export",
+                    "validate"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"exportJson\": \"{}\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DEP export history",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/dep-export/history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "dep-export",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "DEP export status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/dep-export/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "dep-export",
+                    "status"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Last DEP export",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/dep-export/last-export",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "dep-export",
+                    "last-export"
+                  ],
+                  "query": [
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "Nullbeleg",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/special-receipts/nullbeleg",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "special-receipts",
+                    "nullbeleg"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"reason\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Startbeleg",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/special-receipts/startbeleg",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "special-receipts",
+                    "startbeleg"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"reason\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Monatsbeleg (force past month)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/special-receipts/monatsbeleg",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "special-receipts",
+                    "monatsbeleg"
+                  ],
+                  "query": [
+                    {
+                      "key": "force",
+                      "value": "true",
+                      "description": "",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "force=true creates a late Monatsbeleg for a past month. The response includes the new BelegNr.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"year\": 2026,\n  \"month\": 10,\n  \"reason\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Jahresbeleg",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/special-receipts/jahresbeleg",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "special-receipts",
+                    "jahresbeleg"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"year\": 2026,\n  \"reason\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Schlussbeleg",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rksv/special-receipts/schlussbeleg",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rksv",
+                    "special-receipts",
+                    "schlussbeleg"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cashRegisterId\": \"{{cashRegisterId}}\",\n  \"reason\": \"Postman sample\"\n}\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Monatsbeleg list",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Tenant-Id",
+                    "value": "{{tenantSlug}}"
+                  },
+                  {
+                    "key": "X-XSRF-TOKEN",
+                    "value": "{{csrfToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/rksv/monatsbelege",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "rksv",
+                    "monatsbelege"
+                  ],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "cashRegisterId",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "pageNumber",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "",
+                      "description": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
