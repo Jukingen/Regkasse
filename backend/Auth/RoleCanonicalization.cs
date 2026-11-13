@@ -10,7 +10,8 @@ public static class RoleCanonicalization
     /// </summary>
     public static string GetCanonicalRole(string? role)
     {
-        if (string.IsNullOrWhiteSpace(role)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(role))
+            return string.Empty;
         return role.Trim();
     }
 }

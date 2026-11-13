@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- BaseIntermediateOutputPath Microsoft.Common.props'tan önce ayarlanmalı (MSB3539 uyarısını önlemek için) -->
+<!--
+  BaseIntermediateOutputPath must be set before Microsoft.Common.props (avoids MSB3539).
+  Import parent backend/Directory.Build.props so shared Nullable / NuGetAudit / etc. still apply
+  (nearest Directory.Build.props otherwise shadows the parent).
+-->
 <Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
+          Condition="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')) != ''" />
+
   <PropertyGroup>
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\obj\Tests\</BaseIntermediateOutputPath>
   </PropertyGroup>

@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Table, Tag, Button, Modal, Descriptions, Typography } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
+import { Button, Descriptions, Modal, Table, Tag, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import Link from 'next/link';
+import React, { useMemo, useState } from 'react';
+
+import { dateColumnRender } from '@/components/DateColumn';
+import { adminTableScrollXy } from '@/components/ui/adminTableVirtual';
 import type { AdminCardTransactionRow } from '@/features/payments/api/adminCardTransactionsQuery';
 import { useI18n } from '@/i18n';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
-import { adminTableScrollXy } from '@/components/ui/adminTableVirtual';
 
 const STATUS_COLORS: Record<string, string> = {
   Succeeded: 'success',
@@ -33,7 +35,11 @@ export function CardTransactionsTable({
   pagination,
 }: CardTransactionsTableProps) {
   const { t, formatLocale } = useI18n();
-  const ts = (key: string, fallback?: string) => t(`cardTransactions:${key}`, fallback ?? key);
+  const ts = (key: string, fallback?: string) => {
+    const fullKey = `cardTransactions:${key}`;
+    const value = t(fullKey);
+    return value === fullKey ? (fallback ?? key) : value;
+  };
   const [selected, setSelected] = useState<AdminCardTransactionRow | null>(null);
 
   const columns: ColumnsType<AdminCardTransactionRow> = useMemo(
@@ -43,14 +49,15 @@ export function CardTransactionsTable({
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
         width: 170,
-        render: (value: string) => formatDateTime(value, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: ts('columns.amount'),
         dataIndex: 'amount',
         key: 'amount',
         width: 120,
-        render: (amount: number, row) => formatCurrency(amount, formatLocale, { currency: row.currency }),
+        render: (amount: number, row) =>
+          formatCurrency(amount, formatLocale, { currency: row.currency }),
       },
       {
         title: ts('columns.card'),
@@ -97,7 +104,7 @@ export function CardTransactionsTable({
         ),
       },
     ],
-    [formatLocale, ts],
+    [formatLocale, ts]
   );
 
   return (
@@ -131,8 +138,12 @@ export function CardTransactionsTable({
                 {ts(`status.${selected.status}`, selected.status)}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label={ts('columns.gateway')}>{selected.gatewayProvider}</Descriptions.Item>
-            <Descriptions.Item label={ts('columns.transactionId')}>{selected.transactionId ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label={ts('columns.gateway')}>
+              {selected.gatewayProvider}
+            </Descriptions.Item>
+            <Descriptions.Item label={ts('columns.transactionId')}>
+              {selected.transactionId ?? '—'}
+            </Descriptions.Item>
             <Descriptions.Item label={ts('columns.card')}>
               {selected.cardBrand && selected.lastFourDigits
                 ? `${selected.cardBrand} **** ${selected.lastFourDigits}`

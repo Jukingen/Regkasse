@@ -1,17 +1,9 @@
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -27,6 +19,8 @@ public static class FinanzOnlineOutboxStatuses
     public const string PermanentFailure = "PermanentFailure";
     public const string ManualReviewRequired = "ManualReviewRequired";
     public const string DeadLetter = "DeadLetter";
+    /// <summary>Operator closed the row without another FON submit. The worker does not claim this status.</summary>
+    public const string Resolved = "Resolved";
 }
 
 public static class FinanzOnlineFailureCategories
@@ -42,13 +36,62 @@ public static class FinanzOnlineFailureCategories
 public sealed class FinanzOnlineOutboxOptions
 {
     public const string SectionName = "FinanzOnlineOutbox";
+    /// <summary>
+    /// Configuration default. Super Admin can overlay this from FA without rewriting appsettings.
+    /// Production must keep this <c>true</c>.
+    /// </summary>
     public bool Enabled { get; set; } = true;
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(10);
-    public int MaxAttempts { get; set; } = 8;
+    /// <summary>Max submit attempts before DeadLetter (AGENTS: exponential backoff, maximum 5).</summary>
+    public int MaxAttempts { get; set; } = 5;
     public int BaseDelaySeconds { get; set; } = 30;
     public int BackoffCapSeconds { get; set; } = 3600;
     public int JitterMaxSeconds { get; set; } = 15;
     public int ProcessingTimeoutSeconds { get; set; } = 300;
+
+    public FinanzOnlineOutboxOptions CloneWithEnabled(bool enabled) =>
+        CloneWith(enabled: enabled);
+
+    public FinanzOnlineOutboxOptions WithOverlay(FinanzOnlineOutboxOverlay? overlay)
+    {
+        if (overlay is null || !overlay.HasAny)
+            return this;
+
+        return CloneWith(
+            enabled: overlay.Enabled ?? Enabled,
+            pollInterval: overlay.PollIntervalSeconds is int poll
+                ? TimeSpan.FromSeconds(Math.Max(1, poll))
+                : PollInterval,
+            maxAttempts: overlay.MaxAttempts ?? MaxAttempts,
+            baseDelaySeconds: overlay.BaseDelaySeconds ?? BaseDelaySeconds,
+            backoffCapSeconds: overlay.BackoffCapSeconds ?? BackoffCapSeconds,
+            jitterMaxSeconds: overlay.JitterMaxSeconds ?? JitterMaxSeconds,
+            processingTimeoutSeconds: overlay.ProcessingTimeoutSeconds ?? ProcessingTimeoutSeconds);
+    }
+
+    /// <summary>
+    /// Applies the Super Admin overlay when present. Config remains the default when overlay is null.
+    /// </summary>
+    public FinanzOnlineOutboxOptions WithEffectiveEnabled(FinanzOnlineOutboxEnabledOverrideCache? cache) =>
+        WithOverlay(cache?.GetOverlay());
+
+    private FinanzOnlineOutboxOptions CloneWith(
+        bool? enabled = null,
+        TimeSpan? pollInterval = null,
+        int? maxAttempts = null,
+        int? baseDelaySeconds = null,
+        int? backoffCapSeconds = null,
+        int? jitterMaxSeconds = null,
+        int? processingTimeoutSeconds = null) => new()
+    {
+        Enabled = enabled ?? Enabled,
+        PollInterval = pollInterval ?? PollInterval,
+        MaxAttempts = maxAttempts ?? MaxAttempts,
+        BaseDelaySeconds = baseDelaySeconds ?? BaseDelaySeconds,
+        BackoffCapSeconds = backoffCapSeconds ?? BackoffCapSeconds,
+        JitterMaxSeconds = jitterMaxSeconds ?? JitterMaxSeconds,
+        ProcessingTimeoutSeconds = processingTimeoutSeconds ?? ProcessingTimeoutSeconds,
+    };
 }
 
 public sealed class FinanzOnlineOutboxPayload
@@ -139,12 +182,46 @@ public sealed class FinanzOnlineOutboxService : IFinanzOnlineOutboxService
         };
 
         _context.FinanzOnlineOutboxMessages.Add(item);
-        if (persistImmediately)
+        if (!persistImmediately)
+        {
+            _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId} PersistImmediately={PersistImmediately}",
+                messageType, aggregateType, aggregateId, item.CorrelationId, persistImmediately);
+            return item;
+        }
+
+        try
+        {
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // Concurrent enqueue: unique IdempotencyKey — return the winner, drop the local insert.
+            _context.Entry(item).State = EntityState.Detached;
+            var raced = await TryGetByIdempotencyKeyAsync(idempotencyKey, cancellationToken).ConfigureAwait(false);
+            if (raced != null)
+            {
+                _logger.LogInformation(
+                    "FinanzOnline outbox idempotent race resolved MessageType={MessageType} AggregateId={AggregateId} ExistingId={ExistingId}",
+                    messageType,
+                    aggregateId,
+                    raced.Id);
+                return raced;
+            }
+
+            throw;
+        }
+
         _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId} PersistImmediately={PersistImmediately}",
             messageType, aggregateType, aggregateId, item.CorrelationId, persistImmediately);
         return item;
     }
+
+    private async Task<FinanzOnlineOutboxMessage?> TryGetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        await _context.FinanzOnlineOutboxMessages.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken)
+            .ConfigureAwait(false);
 
     private static string ComputeSha256(string raw)
     {
@@ -158,59 +235,88 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IOptionsMonitor<FinanzOnlineOutboxOptions> _options;
     private readonly ILogger<FinanzOnlineOutboxHostedService> _logger;
+    private readonly FinanzOnlineOutboxEnabledOverrideCache? _enabledCache;
+    private readonly IFinanzOnlineOutboxWorkerSignal? _workerSignal;
     private long _cycleIndex;
+    private string? _lastLoggedFingerprint;
 
     public FinanzOnlineOutboxHostedService(
         IServiceProvider serviceProvider,
         IOptionsMonitor<FinanzOnlineOutboxOptions> options,
-        ILogger<FinanzOnlineOutboxHostedService> logger)
+        ILogger<FinanzOnlineOutboxHostedService> logger,
+        FinanzOnlineOutboxEnabledOverrideCache? enabledCache = null,
+        IFinanzOnlineOutboxWorkerSignal? workerSignal = null)
     {
         _serviceProvider = serviceProvider;
         _options = options;
         _logger = logger;
+        _enabledCache = enabledCache;
+        _workerSignal = workerSignal;
     }
+
+    private FinanzOnlineOutboxOptions EffectiveOptions() =>
+        _options.CurrentValue.WithEffectiveEnabled(_enabledCache);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var opts = _options.CurrentValue;
-        if (!opts.Enabled)
-        {
-            _logger.LogInformation("FinanzOnline outbox worker disabled (FinanzOnlineOutbox:Enabled=false).");
-            return;
-        }
-
-        _logger.LogInformation(
-            "FinanzOnline outbox worker started: PollInterval={PollInterval}s ProcessingTimeoutSeconds={ProcessingTimeoutSeconds} MaxAttempts={MaxAttempts}",
-            Math.Max(1, (int)opts.PollInterval.TotalSeconds),
-            opts.ProcessingTimeoutSeconds,
-            opts.MaxAttempts);
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
+            var opts = EffectiveOptions();
+            var enabled = opts.Enabled;
+            var fingerprint =
+                $"{enabled}:{(int)opts.PollInterval.TotalSeconds}:{opts.MaxAttempts}:{opts.ProcessingTimeoutSeconds}:{opts.BaseDelaySeconds}:{opts.BackoffCapSeconds}:{opts.JitterMaxSeconds}";
+            if (_lastLoggedFingerprint != fingerprint)
             {
-                await ProcessOneAsync(stoppingToken).ConfigureAwait(false);
-                await ReconcileOneAsync(stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "FinanzOnline outbox cycle failed.");
+                if (enabled)
+                {
+                    _logger.LogInformation(
+                        "FinanzOnline outbox worker started: PollInterval={PollInterval}s ProcessingTimeoutSeconds={ProcessingTimeoutSeconds} MaxAttempts={MaxAttempts} BaseDelaySeconds={BaseDelaySeconds} BackoffCapSeconds={BackoffCapSeconds} JitterMaxSeconds={JitterMaxSeconds}",
+                        Math.Max(1, (int)opts.PollInterval.TotalSeconds),
+                        opts.ProcessingTimeoutSeconds,
+                        opts.MaxAttempts,
+                        opts.BaseDelaySeconds,
+                        opts.BackoffCapSeconds,
+                        opts.JitterMaxSeconds);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "FinanzOnline outbox worker idle (effective Enabled=false). Super Admin overlay or FinanzOnlineOutbox:Enabled.");
+                }
+
+                _lastLoggedFingerprint = fingerprint;
             }
 
-            _cycleIndex++;
-            if (_cycleIndex == 1 || _cycleIndex % 60 == 0)
+            if (enabled)
             {
-                _logger.LogInformation(
-                    "FinanzOnline outbox worker heartbeat: completedCycles={Cycles} pollIntervalSeconds={PollIntervalSeconds}",
-                    _cycleIndex,
-                    Math.Max(1, (int)_options.CurrentValue.PollInterval.TotalSeconds));
+                try
+                {
+                    await ProcessOneAsync(stoppingToken).ConfigureAwait(false);
+                    await ReconcileOneAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "FinanzOnline outbox cycle failed.");
+                }
+
+                _cycleIndex++;
+                if (_cycleIndex == 1 || _cycleIndex % 60 == 0)
+                {
+                    _logger.LogInformation(
+                        "FinanzOnline outbox worker heartbeat: completedCycles={Cycles} pollIntervalSeconds={PollIntervalSeconds}",
+                        _cycleIndex,
+                        Math.Max(1, (int)opts.PollInterval.TotalSeconds));
+                }
             }
 
-            await Task.Delay(_options.CurrentValue.PollInterval, stoppingToken).ConfigureAwait(false);
+            if (_workerSignal != null)
+                await _workerSignal.DelayAsync(opts.PollInterval, stoppingToken).ConfigureAwait(false);
+            else
+                await Task.Delay(opts.PollInterval, stoppingToken).ConfigureAwait(false);
         }
     }
 
@@ -233,7 +339,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         var submissionService = scope.ServiceProvider.GetRequiredService<IFinanzOnlineSubmissionService>();
         var rksvSpecialReceiptOutboxHandler = scope.ServiceProvider.GetRequiredService<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
         var audit = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
-        var opts = _options.CurrentValue;
+        var opts = EffectiveOptions();
         var now = DateTime.UtcNow;
         var staleBefore = now.AddSeconds(-Math.Max(30, opts.ProcessingTimeoutSeconds));
 
@@ -381,6 +487,19 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                     payload,
                     opts,
                     isJahresbeleg: true,
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (FinanzOnlineRksvAusfallOutboxMessageTypes.IsAusfallFamily(active.MessageType))
+            {
+                var ausfallHandler = scope.ServiceProvider.GetRequiredService<RksvAusfallFinanzOnlineOutboxHandler>();
+                await ausfallHandler.ProcessAsync(
+                    context,
+                    audit,
+                    active,
+                    payload,
+                    opts,
                     cancellationToken).ConfigureAwait(false);
                 return;
             }

@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "overview": "Übersicht",
+    "list": "Mitarbeiterliste",
+    "performance": "Leistung",
+    "shifts": "Schichten"
+  },
+  "hub": {
+    "pageTitle": "Mitarbeiter",
+    "backLink": "Zurück zur Mitarbeiter-Übersicht",
+    "intro": "Personal im eigenen Mandanten einsehen: Teamübersicht, Kassenleistung und Schichten — ohne Benutzerverwaltung.",
+    "cardListTitle": "Mitarbeiterliste",
+    "cardListDescription": "Aktive und inaktive Mitarbeiter des Mandanten mit Rolle und letzter Anmeldung.",
+    "cardPerformanceTitle": "Mitarbeiterleistung",
+    "cardPerformanceDescription": "Umsatz, Transaktionen und Kennzahlen pro Kassierer im gewählten Zeitraum.",
+    "cardShiftsTitle": "Schichten & Arbeitszeiten",
+    "cardShiftsDescription": "Offene und abgeschlossene Schichten mit Öffnungs- und Schließzeiten.",
+    "accessDeniedTitle": "Kein Zugriff",
+    "accessDeniedDescription": "Sie benötigen mindestens eine Berechtigung für Personal (user.view, report.view oder shift.view)."
+  },
+  "list": {
+    "pageTitle": "Mitarbeiterliste",
+    "cardTitle": "Mitarbeiter",
+    "search": "Suchen…",
+    "roleFilter": "Rolle",
+    "statusFilter": "Status",
+    "refresh": "Aktualisieren",
+    "manageUsers": "Benutzer verwalten",
+    "empty": "Keine Mitarbeiter gefunden",
+    "view": "Anzeigen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "columnStaff": "Mitarbeiter",
+    "columnRole": "Rolle",
+    "columnStatus": "Status",
+    "columnLastActivity": "Letzte Aktivität",
+    "columnActions": "Aktionen",
+    "readOnlyTitle": "Nur-Lese-Ansicht",
+    "readOnlyDescription": "Als Manager können Sie Mitarbeiter einsehen. Anlegen, Bearbeiten und Löschen erfordert Benutzerverwaltung (user.manage).",
+    "accessDeniedTitle": "Kein Zugriff",
+    "accessDeniedDescription": "Sie benötigen die Berechtigung Benutzer anzeigen (user.view)."
+  }
+}

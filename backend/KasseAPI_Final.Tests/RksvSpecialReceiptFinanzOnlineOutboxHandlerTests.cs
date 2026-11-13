@@ -22,12 +22,14 @@ public sealed class RksvSpecialReceiptFinanzOnlineOutboxHandlerTests
             .UseInMemoryDatabase($"RksvFonHandler_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static async Task<RksvSpecialReceiptFinanzOnlineOutboxScenario> SeedMinimalScenarioAsync(AppDbContext db)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -43,7 +45,7 @@ public sealed class RksvSpecialReceiptFinanzOnlineOutboxHandlerTests
         db.CashRegisters.Add(new CashRegister
         {
             Id = regId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             RegisterNumber = "REG-99",
             Location = "T",
             StartingBalance = 0,

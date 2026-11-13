@@ -1,0 +1,46 @@
+'use client';
+
+import { Alert } from 'antd';
+import { useEffect } from 'react';
+
+import { isDevelopment } from '@/features/auth/services/devTenant';
+import { LicenseTestPanel } from '@/features/license/components/LicenseTestPanel';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { useI18n } from '@/i18n';
+import { NotFoundAccessView } from '@/shared/auth/NotFoundAccessView';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
+
+export default function LicenseTestPage() {
+  const { t } = useI18n();
+  const { tenant } = useTenant();
+
+  useEffect(() => {
+    if (!isDevelopment()) {
+      return;
+    }
+    technicalConsole.devLog('[License Test] page tenant:', tenant);
+    technicalConsole.devLog('[License Test] page tenantId:', tenant?.id ?? null);
+  }, [tenant]);
+
+  if (!isDevelopment()) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Alert type="warning" title={t('license.testPanel.productionBlocked')} showIcon />
+        <NotFoundAccessView compact />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Alert
+        title={t('license.testPanel.alertTitle')}
+        description={t('license.testPanel.alertDescription')}
+        type="warning"
+        showIcon
+      />
+      <Alert type="info" title={t('license.testPanel.overrideHint')} showIcon />
+      <LicenseTestPanel />
+    </div>
+  );
+}

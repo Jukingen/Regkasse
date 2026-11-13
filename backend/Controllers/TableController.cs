@@ -1,13 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Authorization;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [HasPermission(AppPermissions.TableManage)]
+    [HasPermission(AppPermissions.TableView)]
     public class TableController : ControllerBase
     {
         // Basit masa listesi - gerçek uygulamada veritabanından gelir
@@ -43,6 +41,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPost("{id}/status")]
+        [HasPermission(AppPermissions.TableManage)]
         public ActionResult UpdateTableStatus(int id, [FromBody] UpdateTableStatusRequest request)
         {
             var table = _tables.Find(t => t.Id == id);

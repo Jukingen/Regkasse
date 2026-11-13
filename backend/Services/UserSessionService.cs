@@ -32,14 +32,23 @@ public sealed class UserSessionService : IUserSessionService
         Guid? currentSessionId,
         CancellationToken cancellationToken = default)
     {
-        var sessions = await _db.AuthSessions
+        var rows = await _db.AuthSessions
             .AsNoTracking()
             .Where(s => s.UserId == userId && s.RevokedAtUtc == null)
             .OrderByDescending(s => s.LastActivityAtUtc ?? s.CreatedAtUtc)
+            .Select(s => new
+            {
+                Session = s,
+                ExpiresAtUtc = s.RefreshTokens
+                    .Where(rt => rt.RevokedAtUtc == null && rt.ConsumedAtUtc == null)
+                    .OrderByDescending(rt => rt.ExpiresAtUtc)
+                    .Select(rt => (DateTime?)rt.ExpiresAtUtc)
+                    .FirstOrDefault(),
+            })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return sessions.Select(s => ToDto(s, currentSessionId)).ToList();
+        return rows.Select(r => ToDto(r.Session, r.ExpiresAtUtc, currentSessionId)).ToList();
     }
 
     public async Task<bool> TerminateSessionAsync(string userId, Guid sessionId, CancellationToken cancellationToken = default)
@@ -92,16 +101,31 @@ public sealed class UserSessionService : IUserSessionService
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static ActiveSessionDto ToDto(AuthSession s, Guid? currentSessionId) => new()
+    private static ActiveSessionDto ToDto(AuthSession s, DateTime? expiresAtUtc, Guid? currentSessionId)
     {
-        Id = s.Id,
-        UserId = s.UserId,
-        ClientApp = s.ClientApp,
-        DeviceId = s.DeviceId,
-        IpAddress = s.IpAddress,
-        StartedAtUtc = s.CreatedAtUtc,
-        LastActivityAtUtc = s.LastActivityAtUtc ?? s.CreatedAtUtc,
-        IsActive = !s.RevokedAtUtc.HasValue,
-        IsCurrent = currentSessionId.HasValue && s.Id == currentSessionId.Value,
-    };
+        var parsed = UserAgentParser.Parse(s.UserAgent);
+        var deviceName = parsed.DeviceName;
+        if (string.IsNullOrEmpty(deviceName))
+        {
+            deviceName = string.IsNullOrWhiteSpace(s.ClientApp) ? null : s.ClientApp.Trim();
+        }
+
+        return new ActiveSessionDto
+        {
+            Id = s.Id,
+            UserId = s.UserId,
+            ClientApp = s.ClientApp,
+            DeviceId = s.DeviceId,
+            DeviceName = deviceName,
+            Browser = parsed.Browser,
+            OS = parsed.OS,
+            IpAddress = s.IpAddress,
+            UserAgent = s.UserAgent,
+            StartedAtUtc = s.CreatedAtUtc,
+            LastActivityAtUtc = s.LastActivityAtUtc ?? s.CreatedAtUtc,
+            ExpiresAtUtc = expiresAtUtc,
+            IsActive = !s.RevokedAtUtc.HasValue,
+            IsCurrent = currentSessionId.HasValue && s.Id == currentSessionId.Value,
+        };
+    }
 }

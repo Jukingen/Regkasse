@@ -1,0 +1,52 @@
+{
+  "title": "Mai 2027 Signaturkarte programı",
+  "subtitle": "Operasyonel zorunluluk — sertifika bitişinden (ExpiresAt) bağımsız.",
+  "separationTitle": "Sertifika bitişi ile aynı değil",
+  "separationBody": "Bu program Mai 2027 Signaturkarte son tarihini takip eder. \"Sertifika geçerli\" sütunu yalnızca teknik ExpiresAt bilgisidir; program uyumluluğunun yerine geçmez.",
+  "tableTitle": "Cihazlar (program durumu)",
+  "statOpen": "Açık (Open)",
+  "statCompliant": "Compliant",
+  "statExcluded": "Hariç (Demo/Soft)",
+  "statDays": "Son tarihe kalan gün",
+  "colTenant": "Kiracı",
+  "colSerial": "Seri numarası",
+  "colProvider": "Sağlayıcı",
+  "colExpiresAt": "Sertifika bitiş (ExpiresAt)",
+  "colProgramCompliantAt": "Program uyumlu olduğu tarih",
+  "colStatus": "Program durumu",
+  "colDays": "Gün",
+  "colActions": "İşlemler",
+  "filterStatus": "Durum filtrele",
+  "filterAll": "Tümü",
+  "exportCsv": "CSV dışa aktar",
+  "dualRisk": "Deadline öncesi bitiş",
+  "markAction": "Compliant işaretle",
+  "markConfirmTitle": "Program-compliant işaretlensin mi?",
+  "markConfirmBody": "{{serial}} cihazı Mai 2027 Signaturkarte programı için tamamlandı olarak işaretlensin mi?",
+  "markNotExpiry": "Bu bir sertifika yenilemesi değil — yalnızca program uyumluluk bayrağı.",
+  "markNotePlaceholder": "Bilet no. / not (isteğe bağlı)",
+  "markSuccess": "Cihaz program-compliant olarak işaretlendi",
+  "status": {
+    "Compliant": "Compliant",
+    "Open": "Open",
+    "Excluded": "Excluded",
+    "Revoked": "Revoked"
+  },
+  "banner": {
+    "info": {
+      "title": "Mai 2027 Signaturkarte — planlama",
+      "body": "{{deadline}} tarihine {{days}} gün kaldı. {{open}} cihaz açık."
+    },
+    "warning": {
+      "title": "Mai 2027 Signaturkarte — eylem gerekli",
+      "body": "{{deadline}} tarihine {{days}} gün kaldı. {{open}} cihaz henüz program-compliant değil."
+    },
+    "critical": {
+      "title": "Mai 2027 Signaturkarte — kritik",
+      "body": "Yalnızca {{days}} gün kaldı (son tarih {{deadline}}). {{open}} cihaz açık — sertifika bitişinden bağımsız."
+    },
+    "separationNote": "Sertifika bitişinden (ExpiresAt) bağımsız.",
+    "openReport": "Uyumluluk raporunu aç",
+    "dismiss": "7 gün gizle"
+  }
+}

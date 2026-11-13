@@ -24,7 +24,9 @@ public class RksvNullbelegServiceTests
             .UseInMemoryDatabase($"Nullbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -50,7 +52,7 @@ public class RksvNullbelegServiceTests
             tseMock.Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         return new RksvSpecialReceiptService(
             context,
@@ -62,12 +64,15 @@ public class RksvNullbelegServiceTests
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
-            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object),
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IOptionsMonitor<FinanzOnlineModeOptions>>(o => o.CurrentValue == new FinanzOnlineModeOptions { Mode = "Test" }),
+            Mock.Of<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>(o => o.CurrentValue == new FinanzOnlineCutoverGuardOptions()));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<ITseService> Tse, Mock<IReceiptSequenceService> Seq)> SeedAndBuildAsync(AppDbContext context)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -79,7 +84,7 @@ public class RksvNullbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -92,6 +97,7 @@ public class RksvNullbelegServiceTests
         });
         await context.SaveChangesAsync();
 
+        var demoJws = RksvTestSignatures.CreateDemoCompactJws();
         var tseMock = new Mock<ITseService>();
         tseMock.Setup(x => x.CreateInvoiceSignatureAsync(
                 It.IsAny<Guid>(),
@@ -102,7 +108,7 @@ public class RksvNullbelegServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<string?>(),
                 It.IsAny<IDbContextTransaction?>()))
-            .ReturnsAsync(new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.sign", "chain-prev"));
+            .ReturnsAsync(new TseSignatureResult(demoJws, "chain-prev"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 
@@ -181,6 +187,60 @@ public class RksvNullbelegServiceTests
     }
 
     [Fact]
+    public async Task Nullbeleg_WithFiskaly_CreatesZeroReceipt()
+    {
+        await using var context = CreateContext();
+        var (regId, _, _, receiptSeqMock) = await SeedAndBuildAsync(context);
+        const string fiskalyCode =
+            "_R1-AT1_KASSE-01_0_2026-01-31T12:00:00_0,00_0,00_0,00_0,00_0,00_abc_123_0_sig";
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDbContextTransaction?>()))
+            .ReturnsAsync(new TseSignatureResult(
+                fiskalyCode,
+                "fiskaly-prev",
+                CertificateThumbprint: "fiskaly-thumb",
+                FiskalyQrCodeData: fiskalyCode,
+                SigningProvider: "Fiskaly"));
+        tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
+            .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "fiskaly-cert" });
+
+        var service = CreateService(context, tseMock, receiptSeqMock);
+        var resp = await service.CreateNullbelegAsync(
+            new CreateNullbelegRequest
+            {
+                CashRegisterId = regId,
+                Year = 2026,
+                Month = 2,
+                Reason = "Fiskaly-Nullbeleg"
+            },
+            "manager-1");
+
+        var payment = await context.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == resp.PaymentId);
+        Assert.Equal(RksvSpecialReceiptKinds.Nullbeleg, payment.RksvSpecialReceiptKind);
+        Assert.Equal(0m, payment.TotalAmount);
+        Assert.Equal(fiskalyCode, payment.TseSignature);
+        tseMock.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                regId,
+                It.IsAny<string>(),
+                0m,
+                "KASSE-01",
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDbContextTransaction?>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task CreateNullbelegAsync_December_DefaultsActsAsJahresbeleg()
     {
         await using var context = CreateContext();
@@ -200,6 +260,22 @@ public class RksvNullbelegServiceTests
         Assert.True(resp.ActsAsJahresbeleg);
         var payment = await context.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == resp.PaymentId);
         Assert.True(payment.RksvNullbelegActsAsJahresbeleg);
+    }
+
+    [Fact]
+    public async Task CreateNullbelegAsync_OmitsYearAndMonth_DefaultsToCurrentViennaPeriod()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _, _) = await SeedAndBuildAsync(context);
+
+        var (viennaYear, viennaMonth) = KasseAPI_Final.Time.PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var resp = await service.CreateNullbelegAsync(
+            new CreateNullbelegRequest { CashRegisterId = regId, Reason = "default period" },
+            "manager-1");
+
+        var payment = await context.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == resp.PaymentId);
+        Assert.Equal(viennaYear, payment.RksvSpecialReceiptYear);
+        Assert.Equal(viennaMonth, payment.RksvSpecialReceiptMonth);
     }
 
     [Fact]

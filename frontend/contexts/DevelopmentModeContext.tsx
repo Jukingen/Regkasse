@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 
-import { useDevelopmentMode } from '../hooks/useDevelopmentMode';
 import { useConnectivity } from '../hooks/useConnectivity';
+import { useDevelopmentMode } from '../hooks/useDevelopmentMode';
 import type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
 
 type DevelopmentModeContextValue = {
@@ -19,12 +19,11 @@ export function DevelopmentModeProvider({ children }: { children: React.ReactNod
   const { settings, isLoading, refetch } = useDevelopmentMode();
   useConnectivity({ forceOnline: settings?.forceOnline === true });
 
-  const value = useMemo(
-    () => ({ settings, isLoading, refetch }),
-    [settings, isLoading, refetch],
-  );
+  const value = useMemo(() => ({ settings, isLoading, refetch }), [settings, isLoading, refetch]);
 
-  return <DevelopmentModeContext.Provider value={value}>{children}</DevelopmentModeContext.Provider>;
+  return (
+    <DevelopmentModeContext.Provider value={value}>{children}</DevelopmentModeContext.Provider>
+  );
 }
 
 export function useDevelopmentModeContext(): DevelopmentModeContextValue {

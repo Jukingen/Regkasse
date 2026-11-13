@@ -32,5 +32,5 @@ export function formatPrice(
  * - 0.13 → "13%"
  */
 export const formatPercent = (rate: number): string => {
-    return `${(rate * 100).toFixed(0)}%`;
+  return `${(rate * 100).toFixed(0)}%`;
 };

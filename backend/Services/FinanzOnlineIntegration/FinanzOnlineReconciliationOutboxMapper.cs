@@ -1,7 +1,3 @@
-using System;
-using System.Text.Json;
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 /// <summary>

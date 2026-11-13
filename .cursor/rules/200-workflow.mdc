@@ -1,0 +1,73 @@
+---
+description: Manual — PR workflow, commit messages, and branch rules. Read when preparing a commit or pull request.
+alwaysApply: false
+---
+
+# Workflow
+
+Apply this rule manually when committing or opening a pull request.
+
+## Commits
+- Git commit messages are English. Example: `feat: add username login support`.
+- Focus the message on why the change exists.
+- Do not commit secrets (`.env`, PEMs, production keys).
+- No `console.log` in production code. No TypeScript `any` (use `unknown`).
+- Sensitive operations need audit events where the domain already requires them.
+
+## Pull requests
+Land changes through a pull request. Do not push directly to `main` or `master`. A push to those branches starts staging deploy (`docs/CI_CD.md`).
+
+- Focused PRs; clear description of **why**.
+- Unit tests pass. Integration tests pass when applicable.
+- No hardcoded user-facing strings (use i18n). POS UI stays German (de-DE); Admin UI uses `frontend-admin/src/i18n/`.
+- For medium or large changes, include a short implementation plan, affected files, main risks, backward compatibility impact, and a test strategy.
+- After OpenAPI changes: `node scripts/generate-backend-openapi.mjs`, then `cd frontend-admin && npm run generate:api`, then `node scripts/verify-api-client.mjs`.
+
+## Development Workflow
+
+### Local Setup
+1. Start PostgreSQL (Docker or local)
+2. `npm install` at repo root (workspaces + Husky prepare)
+3. Configure backend user-secrets (see `backend/README.md`)
+4. `npm run dev` (API+Admin) — or `dev:all` / `dev:backend` / `dev:admin` / `dev:pos` / `dev:sites`
+
+## Quick Reference
+
+### Useful Commands
+```bash
+# From repo root (npm workspaces)
+npm install
+npm run dev                 # parallel RAM-safe: backend + admin (+ orphan cleanup)
+npm run dev:all             # parallel full: backend + admin + POS + sites
+npm run dev:cleanup         # kill leftover Next/Expo node workers
+npm run dev:cleanup:orphans # kill only `.next/dev/build` workers (safe while apps run)
+npm run dev:backend | dev:admin | dev:pos | dev:sites
+npm run test
+npm run verify:api-client
+npm run generate:api
+npm run install:git-hooks   # Husky → verify-api-client on commit
+
+# Backend
+dotnet run --project backend/KasseAPI_Final.csproj
+dotnet ef migrations add <Name> --project backend
+dotnet test backend/KasseAPI_Final.sln
+
+# Frontend Admin / POS / Sites
+cd frontend-admin && npm run dev
+cd frontend-admin && npm run generate:api
+cd frontend && npm run dev
+cd frontend-sites && npm run dev   # :3001
+```
+
+### Useful API Endpoints (dev)
+```bash
+curl http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/tenants/switcher
+curl -X POST http://localhost:5184/api/Auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"loginIdentifier":"admin","password":"***"}'
+curl -X POST http://localhost:5184/api/admin/backup/trigger \
+  -H "Authorization: Bearer ***"
+curl http://localhost:5184/api/admin/activities/unread-count \
+  -H "Authorization: Bearer ***"
+```

@@ -20,9 +20,9 @@ describe('buildLoginPayload', () => {
   });
 
   it('supports email-style identifiers', () => {
-    const payload = buildLoginPayload('cashier@cafe.regkasse.at', 'pass', 'pos');
+    const payload = buildLoginPayload('cashier@dev.regkasse.at', 'pass', 'pos');
 
-    expect(payload.loginIdentifier).toBe('cashier@cafe.regkasse.at');
+    expect(payload.loginIdentifier).toBe('cashier@dev.regkasse.at');
     expect(payload.clientApp).toBe('pos');
   });
 });

@@ -1,19 +1,20 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Descriptions, Form, Input, Modal, Space, Spin, Typography } from 'antd';
 /**
  * Second Super Admin: approve/reject manual restore with 6-digit OTP token.
  */
-
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Alert, Button, Descriptions, Form, Input, Space, Spin, Typography } from 'antd';
-import { useQueryClient } from '@tanstack/react-query';
+
+import { CardSkeleton } from '@/components/Skeleton';
 import { useManualRestoreStatusPoll } from '@/features/backup-dr/hooks/useManualRestoreStatusPoll';
 import {
-  postManualRestoreApproval,
   type RestoreRequestStatusDto,
+  postManualRestoreApproval,
 } from '@/features/backup-dr/logic/manualRestoreApi';
 import { manualRestoreErrorMessage } from '@/features/backup-dr/logic/manualRestoreErrorMessage';
+import { useAntdApp } from '@/hooks/useAntdApp';
 
 export interface RestoreApprovalModalProps {
   requestId: string;
@@ -137,9 +138,7 @@ export function RestoreApprovalModal({
   const showFailed = isFailedStatus(status?.status);
 
   const displayReason =
-    status?.reason?.trim() ||
-    (showFailed ? status?.rejectionReason : null) ||
-    '—';
+    status?.reason?.trim() || (showFailed ? status?.rejectionReason : null) || '—';
 
   return (
     <Modal
@@ -167,9 +166,7 @@ export function RestoreApprovalModal({
       destroyOnHidden
     >
       {statusQuery.isLoading && !status ? (
-        <div style={{ textAlign: 'center', padding: 24 }}>
-          <Spin />
-        </div>
+        <CardSkeleton count={1} />
       ) : (
         <Descriptions bordered size="small" column={1}>
           <Descriptions.Item label={t('backupDr.manualRestore.approvalModal.requestedBy')}>

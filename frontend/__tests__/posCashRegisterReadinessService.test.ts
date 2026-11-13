@@ -33,7 +33,7 @@ describe('parsePosCashRegisterContextDto', () => {
     expect(dto.messageCode).toBe('CASH_REGISTER_CLOSED');
   });
 
-  it('reads preferredRegisterId (persisted preference echo)', () => {
+    it('reads preferredRegisterId (persisted preference echo)', () => {
     const id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
     const dto = parsePosCashRegisterContextDto({
       preferredRegisterId: id,
@@ -42,5 +42,24 @@ describe('parsePosCashRegisterContextDto', () => {
       messageCode: 'CASH_REGISTER_CONFLICT',
     });
     expect(dto.preferredRegisterId).toBe(id);
+  });
+
+  it('reads Monatsbeleg sales-gate fields', () => {
+    const dto = parsePosCashRegisterContextDto({
+      nextAction: 'ready',
+      monatsbelegBlockingMode: 'GracePeriod',
+      monatsbelegWarningLevel: 'yellow',
+      monatsbelegSalesBlocked: false,
+      monatsbelegCanContinueWithWarning: true,
+      monatsbelegViennaDayOfMonth: 10,
+      monatsbelegWarningMessageDe: 'Monatsbeleg fehlt.',
+    });
+    expect(dto.nextAction).toBe('ready');
+    expect(dto.monatsbelegBlockingMode).toBe('GracePeriod');
+    expect(dto.monatsbelegWarningLevel).toBe('yellow');
+    expect(dto.monatsbelegSalesBlocked).toBe(false);
+    expect(dto.monatsbelegCanContinueWithWarning).toBe(true);
+    expect(dto.monatsbelegViennaDayOfMonth).toBe(10);
+    expect(dto.monatsbelegWarningMessageDe).toBe('Monatsbeleg fehlt.');
   });
 });

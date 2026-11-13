@@ -57,6 +57,7 @@ flowchart TB
 - **Purpose:** SaaS subscription for a **company** (tenant row); shown in Super Admin tenant list/detail and Manager header when on tenant host.
 - **Provisioning default:** new tenant create with `grantTrialLicense: true` → `license_valid_until_utc = now + 30 days` if not explicitly set (`TenantProvisioningService`).
 - **Super Admin ops:** extend key/date, activate trial, set tier — `LicenseManager` + `adminTenantLicense.ts`.
+- **Billing sales (2026-06):** Super Admin records paid periods in `license_sales`; Managers activate/extend with billing-format keys (`REGK-{yyyyMMdd}-{slug}-…`) via `Billing.TenantLicenseService`. See [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md).
 - **Does not replace** deployment license: FA shell explicitly states the admin UI itself is not license-gated (`license.badge.tenant.baseTooltip`).
 
 ---
@@ -145,15 +146,17 @@ Messages: `license.banner.expired.*`, `license.banner.warning.*` in `frontend-ad
 
 ## License extension process (manual key)
 
-**German UI:** tenant detail → **Lizenz** → *Lizenz verlängern / anpassen*.
+**German UI:** tenant detail → **Lizenz** → *Lizenz verlängern / anpassen* (Super Admin) or Manager license flow on tenant host.
 
 | Step | Action |
 |------|--------|
-| 1 | Open `/admin/tenants/{tenantId}?tab=license` (Super Admin) or tenant settings as Manager where permitted |
-| 2 | Enter **Lizenzschlüssel (Mandant)** (`licenseKey`) and/or **Gültig bis** (`validUntilUtc`) |
-| 3 | Save → `PUT` / extend endpoint on `/api/admin/tenants/{tenantId}/license` |
-| 4 | Optional: **30-Tage Demo aktivieren** if trial expired — `POST …/license/trial` |
-| 5 | Issued POS/deployment JWTs remain under **Lizenzen** (`/admin/license`) — separate from Mandanten row |
+| 1 | Super Admin: `/admin/tenants/{tenantId}?tab=license`. Manager: tenant license UI on `{slug}.*` |
+| 2 | Enter **Lizenzschlüssel (Mandant)** — billing key from Super Admin sale (`REGK-{date}-{slug}-…`) or legacy issued key |
+| 3 | **Super Admin:** `PUT` / `POST …/license/extend` on `/api/admin/tenants/{tenantId}/license` |
+| 4 | **Manager (billing, canonical):** `POST /api/admin/license/extend` (`settings.manage`) — see [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) |
+| 5 | **Manager (legacy FA client):** `POST /api/admin/license/mandant/extend` (`license.manage`) — still used by `tenantLicense.ts` until migrated |
+| 6 | Optional: **30-Tage Demo aktivieren** if trial expired — `POST …/license/trial` |
+| 7 | Issued POS/deployment JWTs remain under **Lizenzen** (`/admin/license`) — separate from Mandanten row |
 
 **Hint in UI (DE):** REGK-Schlüssel aus „Lizenzen“ oder manuelles Enddatum; issued licenses may require impersonation on tenant host.
 
@@ -187,6 +190,10 @@ Messages: `license.banner.expired.*`, `license.banner.warning.*` in `frontend-ad
 | Service | Scope |
 |---------|--------|
 | `LicenseService` | Deployment; startup snapshot; anonymous health/status |
+| `BillingService` | Super Admin `license_sales` CRUD, preview, invoice PDF |
+| `Billing.TenantLicenseService` | Mandant activate/extend/status via billing keys |
+| `AdminTenantLicenseService` | Super Admin + legacy Manager mandant overview/extend |
+| `AdminTenants.TenantLicenseService` | Billing key preview/resolve for legacy extend path |
 | `AdminTenantService` | Tenant CRUD; `ownerAdminEmail` on list |
 | `TenantProvisioningService` | Create-time assets + trial date |
 | Tenant license endpoints | Controllers under `/api/admin/tenants/{id}/license` (see OpenAPI) |
@@ -197,6 +204,7 @@ Messages: `license.banner.expired.*`, `license.banner.warning.*` in `frontend-ad
 
 | Document | Topic |
 |----------|--------|
+| [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) | `license_sales`, billing keys, Manager `POST /api/admin/license/extend` |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | CRUD, switcher, user management |
 | [`MULTI_TENANT.md`](MULTI_TENANT.md) | Isolation, impersonation, switcher API |
 | [`LICENSE_MANAGEMENT_DESIGN.md`](LICENSE_MANAGEMENT_DESIGN.md) | Target JWT/renewal architecture |

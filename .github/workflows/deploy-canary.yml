@@ -1,0 +1,165 @@
+# Manual canary deploy — progressive tenant filtering (one tenant → soak → next).
+#
+# Prefer a SINGLE tenant slug for progressive canary (e.g. cafe-1).
+# After 24–48h soak with no alerts, re-run with the next tenant.
+# Docs: docs/CANARY_DEPLOYMENT.md · DEPLOYMENT.md
+
+name: Deploy Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag (e.g. sha-abcdef1). Empty = build from current ref.
+        required: false
+        type: string
+        default: ''
+      tenant_ids:
+        description: 'Canary tenant slug(s)/UUID(s). Progressive: pass ONE tenant (e.g. cafe-1).'
+        required: true
+        type: string
+      soak_hours:
+        description: Canary soak window hours recorded in deployment_history (24–48 recommended)
+        required: false
+        type: string
+        default: '24'
+      git_ref:
+        description: Git ref to checkout when building (default current)
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: deploy-canary
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  IMAGE_NAME: regkasse-api
+
+jobs:
+  prepare:
+    name: Resolve image
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.out.outputs.image }}
+      git_sha: ${{ steps.out.outputs.git_sha }}
+      git_ref: ${{ steps.out.outputs.git_ref }}
+      soak_hours: ${{ steps.out.outputs.soak_hours }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.git_ref || github.sha }}
+
+      - name: Resolve
+        id: out
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER_LC}/${{ env.IMAGE_NAME }}"
+          TAG="${{ github.event.inputs.image_tag }}"
+          SHA="${{ github.sha }}"
+          REF="${{ github.ref_name }}"
+          SOAK="${{ github.event.inputs.soak_hours }}"
+          SOAK="${SOAK:-24}"
+          if [ -n "${{ github.event.inputs.git_ref }}" ]; then
+            REF="${{ github.event.inputs.git_ref }}"
+          fi
+          BUILD=false
+          if [ -z "${TAG}" ]; then
+            SHORT=$(echo "${SHA}" | cut -c1-7)
+            TAG="sha-${SHORT}"
+            BUILD=true
+            echo "Will build ${IMAGE}:${TAG}"
+          fi
+          TENANTS="${{ github.event.inputs.tenant_ids }}"
+          COUNT=$(echo "${TENANTS}" | tr ',' '\n' | sed '/^\s*$/d' | wc -l | tr -d ' ')
+          if [ "${COUNT}" -gt 1 ]; then
+            echo "::warning::Progressive canary prefers ONE tenant. You passed ${COUNT}. See docs/CANARY_DEPLOYMENT.md"
+          fi
+          echo "build=${BUILD}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}:${TAG}" >> "$GITHUB_OUTPUT"
+          echo "git_sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "git_ref=${REF}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "owner=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          echo "soak_hours=${SOAK}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup .NET
+        if: steps.out.outputs.build == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build + test
+        if: steps.out.outputs.build == 'true'
+        working-directory: backend
+        run: |
+          dotnet restore KasseAPI_Final.sln
+          dotnet build KasseAPI_Final.sln --configuration Release --no-restore
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj \
+            --configuration Release --no-build \
+            --filter "Category!=PostgreSql" --verbosity minimal
+
+      - name: Build and push image
+        if: steps.out.outputs.build == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        if: steps.out.outputs.build == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        if: steps.out.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.out.outputs.image }}
+            ghcr.io/${{ steps.out.outputs.owner }}/${{ env.IMAGE_NAME }}:canary
+
+  deploy:
+    name: Canary deploy + smoke
+    needs: prepare
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: canary
+      image: ${{ needs.prepare.outputs.image }}
+      git_sha: ${{ needs.prepare.outputs.git_sha }}
+      git_ref: ${{ needs.prepare.outputs.git_ref }}
+      github_environment: backend-canary
+      api_base_url: ${{ vars.BACKEND_CANARY_API_BASE_URL || vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: canary
+      tenant_ids: ${{ github.event.inputs.tenant_ids }}
+      soak_hours: ${{ needs.prepare.outputs.soak_hours }}
+      run_migrations: true
+      auto_rollback: true
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_ROLLBACK_WEBHOOK_URL }}
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_CANARY_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify on failure
+    needs: [prepare, deploy]
+    if: always() && (needs.prepare.result == 'failure' || needs.deploy.result == 'failure')
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Canary deploy failed
+    secrets: inherit

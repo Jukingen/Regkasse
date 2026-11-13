@@ -1,20 +1,20 @@
 /**
  * DR kanıt matrisi: operatör-visible gerçekler — snapshot değil anlamsal iddialar.
  */
-
 import { describe, expect, it } from 'vitest';
-import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
-import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
-} from '@/api/generated/model';
+
 import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
+import {
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
+} from '@/api/generated/model';
+import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
   buildDrProofPresentationModel,
   buildDrProofScanTags,
@@ -39,10 +39,10 @@ function truth(p: {
 function pgDumpLatest(id: string): BackupRunResponseDto {
   return {
     id,
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     artifacts: [
       {
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
     ],
@@ -57,8 +57,12 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
       latest,
       detailForPipeline: latest,
       verification: { status: 1, backupRunId: 'run-new' } as BackupVerificationResponseDto,
-      recoverability: { lastSuccessfulBackupAt: '2026-01-01T00:00:00Z' } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_1 } as RestoreVerificationRunResponseDto,
+      recoverability: {
+        lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
+      } as BackupRecoverabilitySummaryResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationStatus.Running,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.highestFullyProvenLevel).toBe(2);
@@ -68,7 +72,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('restore drill succeeded but dump list not OK: L3 partial, not full', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: false,
       pgRestoreListExitCode: 2,
     };
@@ -88,7 +92,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('restore + isolated pass + post-restore SQL pass: L4 even if fiscal SQL failed', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -102,7 +106,10 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
       verification: { status: 1, backupRunId: 'r1' } as BackupVerificationResponseDto,
       recoverability: {} as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: restore,
-      restoreExtended: { postRestoreContinuityChecksExecuted: true, postRestoreContinuityChecksPassed: true },
+      restoreExtended: {
+        postRestoreContinuityChecksExecuted: true,
+        postRestoreContinuityChecksPassed: true,
+      },
     });
     expect(m.highestFullyProvenLevel).toBe(4);
     expect(m.layers[4].state).toBe('proven');
@@ -112,7 +119,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('L4 post-restore SQL pass: L5 partial (restored-DB smoke not configured), L6 gap without external evidence', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -147,7 +154,9 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
         lastSuccessfulBackupRunId: 'older-good',
       } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationStatus.Succeeded,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.latestRealBackupArtifactSummary.isDistinctFromLatestRequest).toBe(true);
@@ -161,8 +170,12 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
       latest,
       detailForPipeline: latest,
       verification: { status: 1, backupRunId: 'x' } as BackupVerificationResponseDto,
-      recoverability: { lastSuccessfulBackupAt: '2026-01-01T00:00:00Z' } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+      recoverability: {
+        lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
+      } as BackupRecoverabilitySummaryResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationStatus.Succeeded,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.highestFullyProvenLevel).toBe(0);
@@ -185,7 +198,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('strongWithinApi success strip does not use fake healthy wording', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -199,10 +212,15 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
       verification: { status: 1, backupRunId: 'r1' } as BackupVerificationResponseDto,
       recoverability: {} as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: restore,
-      restoreExtended: { postRestoreContinuityChecksExecuted: true, postRestoreContinuityChecksPassed: true },
+      restoreExtended: {
+        postRestoreContinuityChecksExecuted: true,
+        postRestoreContinuityChecksPassed: true,
+      },
     });
     expect(m.decisionStrip.alertType).toBe('success');
-    expect(m.decisionStrip.titleKey).toBe('backupDr.confidenceDashboard.strip.strongWithinApiTitle');
+    expect(m.decisionStrip.titleKey).toBe(
+      'backupDr.confidenceDashboard.strip.strongWithinApiTitle'
+    );
     expect(m.decisionStrip.titleKey).not.toContain('health');
   });
 
@@ -238,7 +256,7 @@ describe('buildDrProofScanTags — operator scan ribbon', () => {
   it('failed latest drill: error tone and dominant over scope hints', () => {
     const tr = truth({ simulated: false, realPg: true, hasProofGaps: false });
     const restoreFailed = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      status: RestoreVerificationStatus.Failed,
     } as RestoreVerificationRunResponseDto;
     const m = buildDrProofPresentationModel({
       truth: tr,
@@ -255,7 +273,9 @@ describe('buildDrProofScanTags — operator scan ribbon', () => {
       truth: tr,
     });
     expect(tags.find((x) => x.labelKey === 'backupDr.scan.drill.latestFailed')?.tone).toBe('error');
-    expect(tags.some((x) => x.labelKey === 'backupDr.scan.scope.apiDbCentricNotFullSystem')).toBe(false);
+    expect(tags.some((x) => x.labelKey === 'backupDr.scan.scope.apiDbCentricNotFullSystem')).toBe(
+      false
+    );
   });
 
   it('simulated pipeline: warning tag present', () => {

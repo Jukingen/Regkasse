@@ -1,13 +1,14 @@
-import { Alert } from 'react-native';
 import type { TFunction } from 'i18next';
+import { Alert } from 'react-native';
 
-import { refreshPosStatusOverview } from '../services/pos/posStatusOverviewRefreshBridge';
-import { getCachedLicenseStatus } from '../services/license/licenseStatusCache';
+import i18n from '../i18n';
 import {
   areLicenseChecksBypassedInDevelopment,
   ensureLicenseAllowsCriticalAction,
   isLicenseExpiredForCriticalActions,
 } from './licenseCriticalActionGuard';
+import { getCachedLicenseStatus } from '../services/license/licenseStatusCache';
+import { refreshPosStatusOverview } from '../services/pos/posStatusOverviewRefreshBridge';
 
 /**
  * Fresh license gate for payment: refreshes overview once, then runs critical-action guards.
@@ -21,9 +22,12 @@ export async function checkLicenseBeforePayment(t: TFunction): Promise<boolean> 
   const status = getCachedLicenseStatus();
 
   if (status && isLicenseExpiredForCriticalActions(status)) {
-    Alert.alert('Lizenz abgelaufen', 'Bitte kontaktieren Sie Ihren Administrator');
+    Alert.alert(
+      i18n.t('payment:errors.licenseLockedTitle'),
+      i18n.t('payment:errors.licenseLocked')
+    );
     return false;
   }
 
-  return ensureLicenseAllowsCriticalAction(status, t, 'payment');
+  return await ensureLicenseAllowsCriticalAction(status, t, 'payment');
 }

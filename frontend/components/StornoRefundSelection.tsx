@@ -4,6 +4,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,20 +17,26 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
-import { formatPrice } from '../utils/formatPrice';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
+import { getPaymentErrorDisplayMessage, isPaymentError } from '../features/payment/paymentErrors';
+import { paymentService, type PaymentRequest } from '../services/api/paymentService';
 import {
   fetchPaymentRowForPos,
   fetchReceiptDtoByPayment,
   searchReceiptsByReceiptNumber,
   type ParsedPaymentRow,
 } from '../services/api/receiptListService';
-import { paymentService, type PaymentRequest } from '../services/api/paymentService';
-import { getPaymentErrorDisplayMessage, isPaymentError } from '../features/payment/paymentErrors';
 import type { ReceiptDTO, ReceiptItemDTO } from '../types/ReceiptDTO';
+import { formatPrice } from '../utils/formatPrice';
 
 export type StornoRefundSelectionProps = {
   visible: boolean;
@@ -122,13 +129,17 @@ export default function StornoRefundSelection({
         cashRegisterId,
         pageSize: 20,
       });
-      const exact = rows.filter((r) => r.receiptNumber.trim().toLowerCase() === trimmed.toLowerCase());
+      const exact = rows.filter(
+        (r) => r.receiptNumber.trim().toLowerCase() === trimmed.toLowerCase()
+      );
       if (exact.length === 0) {
         setLocalError(t('checkout:posFlow.stornoRefund.errors.receiptNotFound'));
         return null;
       }
       const saleRow =
-        exact.find((r) => !r.rksvSpecialReceiptKind) ?? exact.find((r) => r.grandTotal > 0) ?? exact[0];
+        exact.find((r) => !r.rksvSpecialReceiptKind) ??
+        exact.find((r) => r.grandTotal > 0) ??
+        exact[0];
       if (saleRow.rksvSpecialReceiptKind) {
         setLocalError(t('checkout:posFlow.stornoRefund.errors.specialReceipt'));
         return null;
@@ -231,9 +242,7 @@ export default function StornoRefundSelection({
       const res = await paymentService.processPayment(req);
       if (!res.success || !res.paymentId) {
         const msg =
-          res.message ||
-          res.error ||
-          t('checkout:posFlow.stornoRefund.errors.submitFailed');
+          res.message || res.error || t('checkout:posFlow.stornoRefund.errors.submitFailed');
         setLocalError(msg);
         return;
       }
@@ -285,7 +294,9 @@ export default function StornoRefundSelection({
       return;
     }
     if (amt > maxRefund + 0.01) {
-      setLocalError(t('checkout:posFlow.stornoRefund.errors.refundExceedsMax', { max: formatPrice(maxRefund) }));
+      setLocalError(
+        t('checkout:posFlow.stornoRefund.errors.refundExceedsMax', { max: formatPrice(maxRefund) })
+      );
       return;
     }
     if (selectedLineIdx.size === 0) {
@@ -312,9 +323,7 @@ export default function StornoRefundSelection({
       const res = await paymentService.processPayment(req);
       if (!res.success || !res.paymentId) {
         const msg =
-          res.message ||
-          res.error ||
-          t('checkout:posFlow.stornoRefund.errors.submitFailed');
+          res.message || res.error || t('checkout:posFlow.stornoRefund.errors.submitFailed');
         setLocalError(msg);
         return;
       }
@@ -329,20 +338,16 @@ export default function StornoRefundSelection({
         typeof refundReceiptNumber === 'string' && refundReceiptNumber.trim().length > 0
           ? `${refundMessage}\n${t('checkout:posFlow.stornoRefund.fields.receiptNumber')}: ${refundReceiptNumber.trim()}`
           : refundMessage;
-      Alert.alert(
-        'Erstattung erfolgreich',
-        successBody,
-        [
-          {
-            text: 'Zurück zur Kasse',
-            onPress: () => {
-              // Parent onSuccess callback can route back to payment/cart flow.
-              onSuccess?.(res.paymentId);
-              handleClose();
-            },
+      Alert.alert('Erstattung erfolgreich', successBody, [
+        {
+          text: 'Zurück zur Kasse',
+          onPress: () => {
+            // Parent onSuccess callback can route back to payment/cart flow.
+            onSuccess?.(res.paymentId);
+            handleClose();
           },
-        ]
-      );
+        },
+      ]);
     } catch (e: unknown) {
       const msg = isPaymentError(e)
         ? getPaymentErrorDisplayMessage(e)
@@ -371,25 +376,33 @@ export default function StornoRefundSelection({
       <Text style={styles.menuIntro}>{t('checkout:posFlow.stornoRefund.menu.intro')}</Text>
 
       <Pressable
-        onPress={() => setStep('storno')}
+        onPress={() => {
+          setStep('storno');
+        }}
         style={({ pressed }) => [styles.cardRed, pressed && SoftState.pressed]}
-        accessibilityRole="button"
-      >
+        accessibilityRole="button">
         <View style={styles.cardHeaderRow}>
           <Ionicons name="warning" size={28} color="#b71c1c" />
-          <Text style={styles.cardTitleRed}>{t('checkout:posFlow.stornoRefund.menu.optionFullStorno')}</Text>
+          <Text style={styles.cardTitleRed}>
+            {t('checkout:posFlow.stornoRefund.menu.optionFullStorno')}
+          </Text>
         </View>
-        <Text style={styles.cardHint}>{t('checkout:posFlow.stornoRefund.menu.hintFullStorno')}</Text>
+        <Text style={styles.cardHint}>
+          {t('checkout:posFlow.stornoRefund.menu.hintFullStorno')}
+        </Text>
       </Pressable>
 
       <Pressable
-        onPress={() => setStep('refund')}
+        onPress={() => {
+          setStep('refund');
+        }}
         style={({ pressed }) => [styles.cardYellow, pressed && SoftState.pressed]}
-        accessibilityRole="button"
-      >
+        accessibilityRole="button">
         <View style={styles.cardHeaderRow}>
           <Ionicons name="return-down-back" size={26} color="#f57f17" />
-          <Text style={styles.cardTitleYellow}>{t('checkout:posFlow.stornoRefund.menu.optionRefund')}</Text>
+          <Text style={styles.cardTitleYellow}>
+            {t('checkout:posFlow.stornoRefund.menu.optionRefund')}
+          </Text>
         </View>
         <Text style={styles.cardHint}>{t('checkout:posFlow.stornoRefund.menu.hintRefund')}</Text>
       </Pressable>
@@ -397,9 +410,10 @@ export default function StornoRefundSelection({
       <Pressable
         onPress={handleClose}
         style={({ pressed }) => [styles.cardNeutral, pressed && SoftState.pressed]}
-        accessibilityRole="button"
-      >
-        <Text style={styles.cardTitleNeutral}>{t('checkout:posFlow.stornoRefund.menu.optionBack')}</Text>
+        accessibilityRole="button">
+        <Text style={styles.cardTitleNeutral}>
+          {t('checkout:posFlow.stornoRefund.menu.optionBack')}
+        </Text>
       </Pressable>
     </View>
   );
@@ -428,9 +442,10 @@ export default function StornoRefundSelection({
             );
         }}
         style={({ pressed }) => [styles.secondaryBtn, pressed && SoftState.pressed]}
-        disabled={loading}
-      >
-        <Text style={styles.secondaryBtnText}>{t('checkout:posFlow.stornoRefund.actions.loadReceipt')}</Text>
+        disabled={loading}>
+        <Text style={styles.secondaryBtnText}>
+          {t('checkout:posFlow.stornoRefund.actions.loadReceipt')}
+        </Text>
       </Pressable>
 
       {resolvedPayment ? (
@@ -441,15 +456,18 @@ export default function StornoRefundSelection({
         </Text>
       ) : null}
 
-      <Text style={[styles.label, { marginTop: SoftSpacing.md }]}>{t('checkout:posFlow.stornoRefund.fields.stornoReason')}</Text>
+      <Text style={[styles.label, { marginTop: SoftSpacing.md }]}>
+        {t('checkout:posFlow.stornoRefund.fields.stornoReason')}
+      </Text>
       {STORNO_REASON_VALUES.map((v) => (
         <Pressable
           key={v}
-          onPress={() => setStornoReason(v)}
+          onPress={() => {
+            setStornoReason(v);
+          }}
           style={styles.reasonRow}
           accessibilityRole="radio"
-          accessibilityState={{ selected: stornoReason === v }}
-        >
+          accessibilityState={{ selected: stornoReason === v }}>
           <Ionicons
             name={stornoReason === v ? 'radio-button-on' : 'radio-button-off'}
             size={22}
@@ -461,33 +479,49 @@ export default function StornoRefundSelection({
 
       <View style={styles.warnBox}>
         <Ionicons name="alert-circle" size={22} color="#b71c1c" />
-        <Text style={styles.warnText}>{t('checkout:posFlow.stornoRefund.storno.irreversibleWarning')}</Text>
+        <Text style={styles.warnText}>
+          {t('checkout:posFlow.stornoRefund.storno.irreversibleWarning')}
+        </Text>
       </View>
 
       <Pressable
-        onPress={() => setStornoConfirm(!stornoConfirm)}
+        onPress={() => {
+          setStornoConfirm(!stornoConfirm);
+        }}
         style={styles.checkboxRow}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: stornoConfirm }}
-      >
+        accessibilityState={{ checked: stornoConfirm }}>
         <Ionicons
           name={stornoConfirm ? 'checkbox' : 'square-outline'}
           size={24}
           color={SoftColors.accent}
         />
-        <Text style={styles.checkboxLabel}>{t('checkout:posFlow.stornoRefund.storno.confirmCheckbox')}</Text>
+        <Text style={styles.checkboxLabel}>
+          {t('checkout:posFlow.stornoRefund.storno.confirmCheckbox')}
+        </Text>
       </Pressable>
 
       <View style={styles.rowButtons}>
-        <Pressable onPress={() => { resetAll(); }} style={styles.secondaryGhost}>
-          <Text style={styles.secondaryGhostText}>{t('checkout:posFlow.stornoRefund.actions.backToMenu')}</Text>
+        <Pressable
+          onPress={() => {
+            resetAll();
+          }}
+          style={styles.secondaryGhost}>
+          <Text style={styles.secondaryGhostText}>
+            {t('checkout:posFlow.stornoRefund.actions.backToMenu')}
+          </Text>
         </Pressable>
         <Pressable
           onPress={submitStorno}
-          style={({ pressed }) => [styles.dangerBtn, pressed && SoftState.pressed, loading && styles.btnDisabled]}
-          disabled={loading}
-        >
-          <Text style={styles.dangerBtnText}>{t('checkout:posFlow.stornoRefund.actions.executeStorno')}</Text>
+          style={({ pressed }) => [
+            styles.dangerBtn,
+            pressed && SoftState.pressed,
+            loading && styles.btnDisabled,
+          ]}
+          disabled={loading}>
+          <Text style={styles.dangerBtnText}>
+            {t('checkout:posFlow.stornoRefund.actions.executeStorno')}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -510,9 +544,10 @@ export default function StornoRefundSelection({
       <Pressable
         onPress={loadRefundReceiptLines}
         style={({ pressed }) => [styles.secondaryBtn, pressed && SoftState.pressed]}
-        disabled={loading}
-      >
-        <Text style={styles.secondaryBtnText}>{t('checkout:posFlow.stornoRefund.actions.loadReceiptLines')}</Text>
+        disabled={loading}>
+        <Text style={styles.secondaryBtnText}>
+          {t('checkout:posFlow.stornoRefund.actions.loadReceiptLines')}
+        </Text>
       </Pressable>
 
       {refundReceipt?.items?.length ? (
@@ -520,9 +555,18 @@ export default function StornoRefundSelection({
           <Text style={[styles.label, { marginTop: SoftSpacing.md }]}>
             {t('checkout:posFlow.stornoRefund.refund.selectLines')}
           </Text>
-          <Text style={styles.metaSmall}>{t('checkout:posFlow.stornoRefund.refund.selectedSum', { amount: formatPrice(selectedSum) })}</Text>
+          <Text style={styles.metaSmall}>
+            {t('checkout:posFlow.stornoRefund.refund.selectedSum', {
+              amount: formatPrice(selectedSum),
+            })}
+          </Text>
           {refundReceipt.items.map((it, idx) => (
-            <Pressable key={`${it.name}-${idx}`} onPress={() => toggleLine(idx)} style={styles.lineRow}>
+            <Pressable
+              key={`${it.name}-${idx}`}
+              onPress={() => {
+                toggleLine(idx);
+              }}
+              style={styles.lineRow}>
               <Ionicons
                 name={selectedLineIdx.has(idx) ? 'checkbox' : 'square-outline'}
                 size={22}
@@ -554,15 +598,26 @@ export default function StornoRefundSelection({
       ) : null}
 
       <View style={styles.rowButtons}>
-        <Pressable onPress={() => { resetAll(); }} style={styles.secondaryGhost}>
-          <Text style={styles.secondaryGhostText}>{t('checkout:posFlow.stornoRefund.actions.backToMenu')}</Text>
+        <Pressable
+          onPress={() => {
+            resetAll();
+          }}
+          style={styles.secondaryGhost}>
+          <Text style={styles.secondaryGhostText}>
+            {t('checkout:posFlow.stornoRefund.actions.backToMenu')}
+          </Text>
         </Pressable>
         <Pressable
           onPress={submitRefund}
-          style={({ pressed }) => [styles.accentBtn, pressed && SoftState.pressed, loading && styles.btnDisabled]}
-          disabled={loading}
-        >
-          <Text style={styles.payButtonText}>{t('checkout:posFlow.stornoRefund.actions.executeRefund')}</Text>
+          style={({ pressed }) => [
+            styles.accentBtn,
+            pressed && SoftState.pressed,
+            loading && styles.btnDisabled,
+          ]}
+          disabled={loading}>
+          <Text style={styles.payButtonText}>
+            {t('checkout:posFlow.stornoRefund.actions.executeRefund')}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -572,17 +627,22 @@ export default function StornoRefundSelection({
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <Pressable onPress={() => (step === 'menu' ? handleClose() : resetAll())} hitSlop={12}>
+          <Pressable
+            onPress={() => {
+              step === 'menu' ? handleClose() : resetAll();
+            }}
+            hitSlop={12}>
             <Ionicons name="close" size={28} color={SoftColors.textPrimary} />
           </Pressable>
           <Text style={styles.headerTitle}>{t('checkout:posFlow.stornoRefund.headerTitle')}</Text>
           <View style={{ width: 28 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
           {step === 'menu' && menu}
           {step === 'storno' && stornoPanel}
           {step === 'refund' && refundPanel}

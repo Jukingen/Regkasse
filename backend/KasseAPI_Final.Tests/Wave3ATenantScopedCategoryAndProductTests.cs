@@ -1,7 +1,7 @@
-using System.Linq;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
@@ -27,15 +27,24 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             .UseInMemoryDatabase($"Wave3A_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static AppDbContext CreateContextForTenant(Guid tenantId)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"Wave3A_{Guid.NewGuid()}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(tenantId));
+    }
+
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     private static void EnsureTwoTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
         {
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "wave3a-test-tenant-b" });
@@ -155,14 +164,14 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Food", VatRate = 10m });
         ctx.Categories.Add(new Category { TenantId = TenantB, Name = "Food", VatRate = 10m });
         await ctx.SaveChangesAsync();
-        Assert.Equal(2, await ctx.Categories.CountAsync(c => c.Name == "Food"));
+        Assert.Equal(2, await ctx.Categories.IgnoreQueryFilters().CountAsync(c => c.Name == "Food"));
     }
 
     [Fact]
     public async Task CreateCategory_DuplicateNameSameTenant_ReturnsConflict()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Existing", VatRate = 10m });
         await ctx.SaveChangesAsync();
 
@@ -171,7 +180,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "Existing", VatRate = 10m });
         var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -181,7 +191,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     public async Task CreateCategory_DuplicateNameInactiveCategorySameTenant_ReturnsConflict()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Archived", VatRate = 10m, IsActive = false });
         await ctx.SaveChangesAsync();
 
@@ -190,7 +200,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "archived", VatRate = 10m });
         var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -250,18 +261,24 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     [Fact]
     public async Task CategoriesController_CreateCategory_StampsEffectiveTenant()
     {
-        await using var ctx = CreateContext();
+        await using var ctx = CreateContextForTenant(TenantB);
         EnsureTwoTenants(ctx);
+        await ctx.SaveChangesAsync();
         var controller = new CategoriesController(
             ctx,
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.SettingsResolverReturning(TenantB),
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
         var res = await controller.CreateCategory(new CreateCategoryRequest { Name = "Fresh", VatRate = 10m });
         var created = Assert.IsType<CreatedAtActionResult>(res.Result);
-        var cat = Assert.IsType<Category>(created.Value);
-        Assert.Equal(TenantB, cat.TenantId);
+        var cat = Assert.IsType<CategoryDto>(created.Value);
+        var stored = await ctx.Categories.IgnoreQueryFilters().SingleAsync(c => c.Id == cat.Id);
+        Assert.Equal(TenantB, stored.TenantId);
     }
 
     [Fact]
@@ -278,7 +295,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.SettingsResolverReturning(TenantA),
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var res = await controller.GetCategory(catBId);
         Assert.IsType<NotFoundObjectResult>(res.Result);
     }
@@ -287,7 +305,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     public async Task LegacyPrimaryTenant_Data_StillQueryableByResolver()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var catId = Guid.NewGuid();
         var pId = Guid.NewGuid();
         ctx.Categories.Add(new Category { TenantId = TenantA, Id = catId, Name = "Legacy", VatRate = 10m });

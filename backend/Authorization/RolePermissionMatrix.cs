@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using System.Linq;
 
 namespace KasseAPI_Final.Authorization;
 
@@ -22,17 +21,18 @@ public static class RolePermissionMatrix
     private static readonly FrozenDictionary<string, FrozenSet<string>> RolePermissions = BuildMatrix();
 
     /// <summary>
-    /// Returns true if the role has the given permission. Role name is case-insensitive.
+    /// Returns true if the role effectively has the given permission (matrix grant + <see cref="PermissionImplication"/>).
+    /// Role name is case-insensitive.
     /// </summary>
     public static bool RoleHasPermission(string roleName, string permission)
     {
         if (string.IsNullOrEmpty(roleName) || string.IsNullOrEmpty(permission))
             return false;
 
-        if (RolePermissions.TryGetValue(roleName, out var set))
-            return set.Contains(permission);
+        if (!RolePermissions.TryGetValue(roleName, out var set))
+            return false;
 
-        return false;
+        return PermissionImplication.IsSatisfied(permission, set);
     }
 
     /// <summary>
@@ -60,7 +60,8 @@ public static class RolePermissionMatrix
 
         foreach (var role in roleNames)
         {
-            if (string.IsNullOrEmpty(role)) continue;
+            if (string.IsNullOrEmpty(role))
+                continue;
             if (RolePermissions.TryGetValue(role, out var set))
             {
                 foreach (var p in set)
@@ -109,7 +110,12 @@ public static class RolePermissionMatrix
 
             [Roles.Manager] = new[]
             {
-                AppPermissions.UserView, AppPermissions.RoleView,
+                // Tenant user lifecycle (Mandanten-Admin). user.reset.password / digital.view|preview|request /
+                // digital.orders.view / cash_register.view are implied (see PermissionImplication).
+                // Keep daily-closing.view explicit: FA sidebar/route guards use exact JWT claim match
+                // (execute→view implication is API-only; without the claim, /tagesabschluss stays hidden).
+                // Keep table.view explicit: table.manage is stripped from admin JWTs (POS terminal write strip).
+                AppPermissions.UserView, AppPermissions.UserManage, AppPermissions.RoleView,
                 AppPermissions.ProductView, AppPermissions.ProductManage,
                 AppPermissions.CategoryView, AppPermissions.CategoryManage,
                 AppPermissions.ModifierView, AppPermissions.ModifierManage,
@@ -120,14 +126,18 @@ public static class RolePermissionMatrix
                 AppPermissions.PaymentView, AppPermissions.PaymentCancel,
                 AppPermissions.RefundCreate,
                 AppPermissions.DiscountApply, AppPermissions.PriceOverride,
-                AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
+                AppPermissions.CashRegisterManage,
                 AppPermissions.CashRegisterDecommission,
                 AppPermissions.ShiftView, AppPermissions.ShiftManage,
+                AppPermissions.ShiftOpen, AppPermissions.ShiftClose,
+                AppPermissions.CashdrawerOpen, AppPermissions.CashdrawerClose,
+                AppPermissions.TseSign,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
                 AppPermissions.InventoryAdjust,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
+                AppPermissions.DailyClosingView, AppPermissions.DailyClosingExecute,
                 AppPermissions.FiscalExportCompliance,
                 AppPermissions.FinanzOnlineView,
                 AppPermissions.FinanzOnlineManage,
@@ -135,11 +145,38 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
                 AppPermissions.RksvSchlussbelegCreate,
+                AppPermissions.FiskalyOperationsView,
+                AppPermissions.FiskalyOperationsNormal,
+                AppPermissions.FiskalyOperationsCancel,
+                AppPermissions.FiskalyOperationsNullbeleg,
+                AppPermissions.FiskalyOperationsStartbeleg,
+                AppPermissions.FiskalyOperationsMonatsbeleg,
+                AppPermissions.FiskalyOperationsJahresbeleg,
+                AppPermissions.FiskalyOperationsSchlussbeleg,
+                AppPermissions.FiskalyOperationsTagesabschluss,
+                AppPermissions.FiskalyOperationsDepExport,
+                AppPermissions.FiskalyHistoryView,
+                AppPermissions.FiskalyHistoryRetry,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
+                AppPermissions.BackupManage,
+                AppPermissions.WebsiteManage,
+                // Online orders: manage implies view — not POS cart bridge (approve).
+                // online-payments.manage stays SuperAdmin-only (synthetic webhook test console).
+                AppPermissions.DigitalOrdersManage,
+                AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                AppPermissions.OfflineRead,
+                AppPermissions.RoomView, AppPermissions.RoomManage,
+                AppPermissions.TicketView, AppPermissions.TicketManage,
+                AppPermissions.AppointmentView, AppPermissions.AppointmentManage,
+                AppPermissions.PatientView, AppPermissions.PatientManage,
+                AppPermissions.ImeiView, AppPermissions.ImeiManage,
+                AppPermissions.TaxiTripView, AppPermissions.TaxiTripManage,
                 AppPermissions.VoucherRead,
                 AppPermissions.VoucherCreate,
                 AppPermissions.VoucherCancel,
@@ -163,12 +200,18 @@ public static class RolePermissionMatrix
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView,
                 AppPermissions.ReportView,
+                AppPermissions.DailyClosingView, AppPermissions.DailyClosingExecute,
+                AppPermissions.LicenseView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
                 AppPermissions.TseSign,
+                AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
                 AppPermissions.VoucherIssue,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
@@ -185,6 +228,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ShiftView, AppPermissions.ShiftClose,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Kitchen] = new[]
@@ -192,6 +236,10 @@ public static class RolePermissionMatrix
                 AppPermissions.OrderView, AppPermissions.OrderUpdate,
                 AppPermissions.ProductView, AppPermissions.CategoryView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                // POS shell polls offline health/limit on every login, including KDS.
+                AppPermissions.OfflineRead,
+                // POS login calls GET /api/license/status before the shell opens.
+                AppPermissions.LicenseView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.ReportViewer] = new[]
@@ -199,6 +247,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ReportView, AppPermissions.ReportExport,
                 AppPermissions.AuditView,
                 AppPermissions.SettingsView,
+                AppPermissions.CashRegisterView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Accountant] = new[]
@@ -212,7 +261,24 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
+            }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
+
+            // Compliance officer: read fiscal surfaces + production deploy sign-off only (no POS, no system.critical).
+            [Roles.ComplianceOfficer] = new[]
+            {
+                AppPermissions.DeploymentApprove,
+                AppPermissions.AuditView, AppPermissions.AuditExport,
+                AppPermissions.ReportView, AppPermissions.ReportExport,
+                AppPermissions.FiscalExportCompliance,
+                AppPermissions.FinanzOnlineView,
+                AppPermissions.CashRegisterView,
+                AppPermissions.SettingsView,
+                AppPermissions.RksvMonatsbelegView,
+                AppPermissions.RksvJahresbelegView,
+                AppPermissions.TenantView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 

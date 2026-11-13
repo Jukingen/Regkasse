@@ -16,14 +16,14 @@ public sealed class PaymentMethodDefinitionBootstrapServiceTests
             .UseInMemoryDatabase($"pmd_bootstrap_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task EnsureDefaultsForCashRegisterAsync_SeedsStandardCatalog_WhenEmpty()
     {
         await using var ctx = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
@@ -53,7 +53,7 @@ public sealed class PaymentMethodDefinitionBootstrapServiceTests
     public async Task EnsureDefaultsForCashRegisterAsync_CopiesFromSiblingRegister_WhenTenantHasCatalog()
     {
         await using var ctx = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var sourceReg = Guid.NewGuid();
         var targetReg = Guid.NewGuid();
         ctx.CashRegisters.AddRange(

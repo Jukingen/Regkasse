@@ -1,7 +1,9 @@
 {
   "page": {
     "newCustomer": "Neuer Kunde",
-    "searchPlaceholder": "Kunden suchen …"
+    "searchPlaceholder": "Kunden suchen …",
+    "exportCsv": "CSV exportieren",
+    "exportJson": "JSON exportieren"
   },
   "messages": {
     "created": "Kunde angelegt.",
@@ -9,7 +11,9 @@
     "updated": "Kunde aktualisiert.",
     "updateFailed": "Kunde konnte nicht aktualisiert werden.",
     "deleted": "Kunde gelöscht.",
-    "deleteFailed": "Kunde konnte nicht gelöscht werden."
+    "deleteFailed": "Kunde konnte nicht gelöscht werden.",
+    "exportSuccess": "Export heruntergeladen.",
+    "exportFailed": "Export fehlgeschlagen."
   },
   "form": {
     "titleNew": "Neuer Kunde",
@@ -24,7 +28,13 @@
     "phone": "Telefon",
     "phonePlaceholder": "+43 …",
     "address": "Adresse",
+    "addressDataTitle": "Strukturierte Adresse",
+    "street": "Straße",
+    "postalCode": "PLZ",
+    "city": "Ort",
+    "addressNotes": "Adresshinweis",
     "taxNumber": "Steuernummer",
+    "taxNumberTooltip": "Oesterreichische UID im Format ATU + 8 Ziffern (z. B. ATU12345678). Leer lassen, wenn nicht vorhanden.",
     "birthDate": "Geburtsdatum",
     "notes": "Notizen",
     "active": "Aktiv",
@@ -34,15 +44,20 @@
   "list": {
     "columnName": "Name",
     "columnContact": "Kontakt",
+    "columnAddress": "Adresse",
     "columnPoints": "Punkte",
     "columnTotalSpent": "Gesamt",
     "columnVisits": "Besuche",
     "columnBenefits": "Vorteile",
     "columnStatus": "Status",
+    "columnSystem": "System",
     "columnActions": "Aktionen",
     "statusActive": "Aktiv",
     "statusInactive": "Inaktiv",
     "tagVip": "VIP",
+    "tagSystem": "System",
+    "tagProtected": "Geschützt",
+    "systemCustomerProtected": "Systemkunden können nicht geändert oder gelöscht werden.",
     "benefitFallback": "Vorteil",
     "deleteConfirmTitle": "Kunde löschen?",
     "deleteConfirmDescription": "Möchten Sie diesen Kunden wirklich löschen?",

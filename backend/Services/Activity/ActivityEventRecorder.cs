@@ -1,5 +1,4 @@
 using KasseAPI_Final.Models;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Activity;
 
@@ -12,6 +11,10 @@ public interface IActivityEventPublisher
         object? metadata = null,
         string? actorUserId = null,
         string? dedupKey = null,
+        CancellationToken cancellationToken = default);
+
+    Task TryPublishAsync(
+        ActivityEventPublishRequest request,
         CancellationToken cancellationToken = default);
 }
 

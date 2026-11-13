@@ -1,22 +1,23 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import {
-    useAdminMonatsbelegOverview,
-    type RegisterMonatsbelegRow,
+  type RegisterMonatsbelegRow,
+  useAdminMonatsbelegOverview,
 } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
 
 function toErrorMessage(cause: unknown): string {
-    if (cause instanceof Error && cause.message.trim()) {
-        return cause.message;
+  if (cause instanceof Error && cause.message.trim()) {
+    return cause.message;
+  }
+  if (cause && typeof cause === 'object' && 'message' in cause) {
+    const message = (cause as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) {
+      return message;
     }
-    if (cause && typeof cause === 'object' && 'message' in cause) {
-        const message = (cause as { message?: unknown }).message;
-        if (typeof message === 'string' && message.trim()) {
-            return message;
-        }
-    }
-    return 'Die Monatsbeleg-Übersicht konnte nicht geladen werden.';
+  }
+  return 'Die Monatsbeleg-Übersicht konnte nicht geladen werden.';
 }
 
 /**
@@ -24,37 +25,37 @@ function toErrorMessage(cause: unknown): string {
  * For raw API access use {@link useMonatsbelegStatus} from `./useMonatsbeleg`.
  */
 export function useMonatsbelegDashboard(enabled = true) {
-    const {
-        rows,
-        registersLoading,
-        registersFetching,
-        statusPending,
-        loadError,
-        hasRegisters,
-        refetchAll,
-        overviewError,
-        registersQueryError,
-    } = useAdminMonatsbelegOverview(enabled);
+  const {
+    rows,
+    registersLoading,
+    registersFetching,
+    statusPending,
+    loadError,
+    hasRegisters,
+    refetchAll,
+    overviewError,
+    registersQueryError,
+  } = useAdminMonatsbelegOverview(enabled);
 
-    const isLoading = registersLoading || statusPending;
-    const isFetching = registersFetching || statusPending;
+  const isLoading = registersLoading || statusPending;
+  const isFetching = registersFetching || statusPending;
 
-    const error = useMemo(() => {
-        if (!loadError) return null;
-        const cause = overviewError ?? registersQueryError;
-        return new Error(toErrorMessage(cause));
-    }, [loadError, overviewError, registersQueryError]);
+  const error = useMemo(() => {
+    if (!loadError) return null;
+    const cause = overviewError ?? registersQueryError;
+    return new Error(toErrorMessage(cause));
+  }, [loadError, overviewError, registersQueryError]);
 
-    const refetch = useCallback(async () => {
-        await refetchAll();
-    }, [refetchAll]);
+  const refetch = useCallback(async () => {
+    await refetchAll();
+  }, [refetchAll]);
 
-    return {
-        data: rows as RegisterMonatsbelegRow[],
-        isLoading,
-        isFetching,
-        error,
-        refetch,
-        hasRegisters,
-    };
+  return {
+    data: rows as RegisterMonatsbelegRow[],
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    hasRegisters,
+  };
 }

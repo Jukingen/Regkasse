@@ -13,10 +13,10 @@ export type BackupVerificationRowDiff = {
 
 export function getSourceRowCount(
   report: BackupVerificationReport | undefined,
-  tableName: string,
+  tableName: string
 ): number | null {
   const source = report?.sourceStatistics?.tables.find(
-    (t) => t.tableName.toLowerCase() === tableName.toLowerCase(),
+    (t) => t.tableName.toLowerCase() === tableName.toLowerCase()
   );
   if (!source?.tableExists) return null;
   return source.rowCount;
@@ -24,7 +24,7 @@ export function getSourceRowCount(
 
 export function getBackupVerificationRowDiff(
   report: BackupVerificationReport | undefined,
-  record: BackupTableStatistics,
+  record: BackupTableStatistics
 ): BackupVerificationRowDiff {
   const sourceRowCount = getSourceRowCount(report, record.tableName);
   const missingSource = sourceRowCount === null;
@@ -51,14 +51,12 @@ export function getBackupVerificationRowDiff(
 
 export function isBackupVerificationRowMismatched(
   report: BackupVerificationReport | undefined,
-  record: BackupTableStatistics,
+  record: BackupTableStatistics
 ): boolean {
   return getBackupVerificationRowDiff(report, record).mismatched;
 }
 
-export function backupVerificationAlertType(
-  score: number,
-): 'success' | 'warning' | 'error' {
+export function backupVerificationAlertType(score: number): 'success' | 'warning' | 'error' {
   if (score >= 90) return 'success';
   if (score >= 70) return 'warning';
   return 'error';

@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -9,293 +10,688 @@ namespace KasseAPI_Final.Services;
 
 public sealed class PosShiftService : IPosShiftService
 {
-  private const decimal DiscrepancyThresholdEur = 5m;
+    private const decimal DiscrepancyThresholdEur = 5m;
 
-  private readonly AppDbContext _context;
-  private readonly ICashRegisterShiftService _cashRegisterShift;
-  private readonly ISettingsTenantResolver _tenantResolver;
-  private readonly IAuditLogService _auditLog;
-  private readonly UserManager<ApplicationUser> _userManager;
-  private readonly ILogger<PosShiftService> _logger;
+    private readonly AppDbContext _context;
+    private readonly ICashRegisterShiftService _cashRegisterShift;
+    private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly IAuditLogService _auditLog;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<PosShiftService> _logger;
 
-  public PosShiftService(
-      AppDbContext context,
-      ICashRegisterShiftService cashRegisterShift,
-      ISettingsTenantResolver tenantResolver,
-      IAuditLogService auditLog,
-      UserManager<ApplicationUser> userManager,
-      ILogger<PosShiftService> logger)
-  {
-    _context = context;
-    _cashRegisterShift = cashRegisterShift;
-    _tenantResolver = tenantResolver;
-    _auditLog = auditLog;
-    _userManager = userManager;
-    _logger = logger;
-  }
-
-  public async Task<CurrentShiftResponse> GetCurrentShiftAsync(
-      string cashierUserId,
-      CancellationToken cancellationToken = default)
-  {
-    var shift = await _context.CashierShifts.AsNoTracking()
-        .Where(s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive)
-        .OrderByDescending(s => s.StartedAt)
-        .FirstOrDefaultAsync(cancellationToken);
-
-    if (shift == null)
-      return new CurrentShiftResponse { HasActiveShift = false };
-
-    return new CurrentShiftResponse
+    public PosShiftService(
+        AppDbContext context,
+        ICashRegisterShiftService cashRegisterShift,
+        ISettingsTenantResolver tenantResolver,
+        IAuditLogService auditLog,
+        UserManager<ApplicationUser> userManager,
+        ILogger<PosShiftService> logger)
     {
-      HasActiveShift = true,
-      Shift = MapToDto(shift),
-    };
-  }
+        _context = context;
+        _cashRegisterShift = cashRegisterShift;
+        _tenantResolver = tenantResolver;
+        _auditLog = auditLog;
+        _userManager = userManager;
+        _logger = logger;
+    }
 
-  public async Task<CashierShiftDto> StartShiftAsync(
-      string cashierUserId,
-      string cashierDisplayName,
-      StartShiftRequest request,
-      CancellationToken cancellationToken = default)
-  {
-    var hasActive = await _context.CashierShifts.AsNoTracking()
-        .AnyAsync(
-            s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+    public async Task<CurrentShiftResponse> GetCurrentShiftAsync(
+        string cashierUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var shift = await _context.CashierShifts.AsNoTracking()
+            .Where(s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive)
+            .OrderByDescending(s => s.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (shift == null)
+            return new CurrentShiftResponse { HasActiveShift = false };
+
+        var liveTotals = await GetShiftTotalsAsync(
+            shift.CashRegisterId,
+            shift.StartedAt,
+            DateTime.UtcNow,
             cancellationToken);
 
-    if (hasActive)
-      throw new PosShiftStartException(PosShiftStartResultKind.AlreadyActive, "Already have an active shift");
-
-    var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-    var registerExists = await _context.CashRegisters.AsNoTracking()
-        .AnyAsync(r => r.Id == request.CashRegisterId && r.TenantId == tenantId, cancellationToken);
-
-    if (!registerExists)
-      throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
-
-    var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
-        request.CashRegisterId,
-        cashierUserId,
-        request.StartBalance,
-        "POS shift start",
-        allowIdempotentSameUser: true,
-        cancellationToken);
-
-    switch (openResult.Kind)
-    {
-      case CashRegisterOpenKind.SuccessOpened:
-      case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
-        break;
-      case CashRegisterOpenKind.FailedNotFound:
-        throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
-      case CashRegisterOpenKind.FailedConflictOtherUser:
-        throw new PosShiftStartException(
-            PosShiftStartResultKind.RegisterOpenConflict,
-            "Cash register is held by another user");
-      default:
-        throw new PosShiftStartException(
-            PosShiftStartResultKind.RegisterOpenFailed,
-            "Cash register could not be opened for this shift");
+        return new CurrentShiftResponse
+        {
+            HasActiveShift = true,
+            Shift = MapToDto(shift, liveTotals),
+        };
     }
 
-    var displayName = await ResolveCashierDisplayNameAsync(cashierUserId, cashierDisplayName, cancellationToken);
-    var startedAt = DateTime.UtcNow;
-    var shift = new CashierShift
+    public async Task<CashierShiftDto> StartShiftAsync(
+        string cashierUserId,
+        string cashierDisplayName,
+        StartShiftRequest request,
+        CancellationToken cancellationToken = default)
     {
-      TenantId = tenantId,
-      CashRegisterId = request.CashRegisterId,
-      CashierId = cashierUserId,
-      CashierName = displayName,
-      StartBalance = request.StartBalance,
-      StartedAt = startedAt,
-      Status = CashierShiftStatuses.Active,
-      CreatedAt = startedAt,
-      UpdatedAt = startedAt,
-      CreatedBy = cashierUserId,
-    };
+        var hasActive = await _context.CashierShifts.AsNoTracking()
+            .AnyAsync(
+                s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+                cancellationToken);
 
-    _context.CashierShifts.Add(shift);
-    await _context.SaveChangesAsync(cancellationToken);
+        if (hasActive)
+            throw new PosShiftStartException(PosShiftStartResultKind.AlreadyActive, "Already have an active shift");
 
-    _logger.LogInformation(
-        "Cashier shift {ShiftId} started by {UserId} on register {RegisterId}",
-        shift.Id,
-        cashierUserId,
-        request.CashRegisterId);
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
+                cancellationToken);
 
-    return MapToDto(shift);
-  }
+        if (register == null)
+            throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
 
-  public async Task<EndShiftResponse> EndShiftAsync(
-      string cashierUserId,
-      string actorRole,
-      EndShiftRequest request,
-      CancellationToken cancellationToken = default)
-  {
-    var shift = await _context.CashierShifts
-        .FirstOrDefaultAsync(
-            s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+        if (CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, register.AssignedUserId))
+        {
+            throw new PosShiftStartException(
+                PosShiftStartResultKind.RegisterNotAssigned,
+                "Cash register is assigned to another user");
+        }
+
+        var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
+            request.CashRegisterId,
+            cashierUserId,
+            request.StartBalance,
+            "POS shift start",
+            allowIdempotentSameUser: true,
             cancellationToken);
 
-    if (shift == null)
-      throw new PosShiftEndException(PosShiftEndResultKind.NoActiveShift, "No active shift found");
+        switch (openResult.Kind)
+        {
+            case CashRegisterOpenKind.SuccessOpened:
+            case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
+                break;
+            case CashRegisterOpenKind.FailedNotFound:
+                throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+            case CashRegisterOpenKind.FailedConflictOtherUser:
+                throw new PosShiftStartException(
+                    PosShiftStartResultKind.RegisterOpenConflict,
+                    "Cash register is held by another user");
+            default:
+                throw new PosShiftStartException(
+                    PosShiftStartResultKind.RegisterOpenFailed,
+                    "Cash register could not be opened for this shift");
+        }
 
-    var endedAt = DateTime.UtcNow;
-    var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
+        var displayName = await ResolveCashierDisplayNameAsync(cashierUserId, cashierDisplayName, cancellationToken);
+        var startedAt = DateTime.UtcNow;
+        var shift = new CashierShift
+        {
+            TenantId = tenantId,
+            CashRegisterId = request.CashRegisterId,
+            CashierId = cashierUserId,
+            CashierName = displayName,
+            StartBalance = request.StartBalance,
+            StartedAt = startedAt,
+            Status = CashierShiftStatuses.Active,
+            CreatedAt = startedAt,
+            UpdatedAt = startedAt,
+            CreatedBy = cashierUserId,
+        };
 
-    shift.EndBalance = request.EndBalance;
-    shift.TotalSales = totals.Sales;
-    shift.TotalCash = totals.Cash;
-    shift.TotalCard = totals.Card;
-    shift.Difference = request.EndBalance - shift.StartBalance - totals.Cash;
-    shift.EndedAt = endedAt;
-    shift.Status = Math.Abs(shift.Difference) > DiscrepancyThresholdEur
-        ? CashierShiftStatuses.Discrepancy
-        : CashierShiftStatuses.Completed;
-    shift.Notes = request.Notes;
-    shift.UpdatedAt = endedAt;
-    shift.UpdatedBy = cashierUserId;
+        _context.CashierShifts.Add(shift);
+        await _context.SaveChangesAsync(cancellationToken);
 
-    var closeResult = await _cashRegisterShift.TryCloseCashRegisterAsync(
-        shift.CashRegisterId,
-        cashierUserId,
-        request.EndBalance,
-        cancellationToken);
+        _logger.LogInformation(
+            "Cashier shift {ShiftId} started by {UserId} on register {RegisterId}",
+            shift.Id,
+            cashierUserId,
+            request.CashRegisterId);
 
-    switch (closeResult.Kind)
-    {
-      case CashRegisterCloseKind.Success:
-      case CashRegisterCloseKind.FailedAlreadyClosed:
-        break;
-      case CashRegisterCloseKind.FailedForbidden:
-        throw new PosShiftEndException(
-            PosShiftEndResultKind.RegisterCloseForbidden,
-            "You are not allowed to close this cash register");
-      default:
-        throw new PosShiftEndException(
-            PosShiftEndResultKind.RegisterCloseFailed,
-            "Cash register could not be closed");
+        return MapToDto(shift);
     }
 
-    await _context.SaveChangesAsync(cancellationToken);
-
-    var registerNumber = await _context.CashRegisters.AsNoTracking()
-        .Where(r => r.Id == shift.CashRegisterId)
-        .Select(r => r.RegisterNumber)
-        .FirstOrDefaultAsync(cancellationToken);
-
-    var receipt = BuildClosingReceipt(shift, registerNumber);
-
-    await _auditLog.LogSystemOperationAsync(
-        "ShiftEnded",
-        "cashier_shift",
-        cashierUserId,
-        actorRole,
-        description: $"Shift ended. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
-        notes: request.Notes,
-        actionType: AuditEventType.Other,
-        entityId: shift.Id,
-        tenantId: shift.TenantId);
-
-    _logger.LogInformation(
-        "Cashier shift {ShiftId} ended by {UserId}. Status={Status}, Difference={Difference}",
-        shift.Id,
-        cashierUserId,
-        shift.Status,
-        shift.Difference);
-
-    return new EndShiftResponse
+    public async Task<EndShiftResponse> EndShiftAsync(
+        string cashierUserId,
+        string actorRole,
+        EndShiftRequest request,
+        CancellationToken cancellationToken = default)
     {
-      Shift = MapToDto(shift),
-      Receipt = receipt,
-    };
-  }
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var shift = await _context.CashierShifts
+                .FirstOrDefaultAsync(
+                    s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+                    cancellationToken);
 
-  public async Task<ShiftTotalsDto> GetShiftTotalsAsync(
-      Guid cashRegisterId,
-      DateTime startedAtUtc,
-      DateTime endedAtUtc,
-      CancellationToken cancellationToken = default)
-  {
-    var payments = await _context.PaymentDetails.AsNoTracking()
-        .Where(p => p.CashRegisterId == cashRegisterId
-                    && p.CreatedAt >= startedAtUtc
-                    && p.CreatedAt <= endedAtUtc
-                    && p.IsActive
-                    && !p.IsRefund
-                    && !p.IsStorno
-                    && p.RksvSpecialReceiptKind == null)
-        .ToListAsync(cancellationToken);
+            if (shift == null)
+                throw new PosShiftEndException(PosShiftEndResultKind.NoActiveShift, "No active shift found");
 
-    static decimal SumForMethod(IEnumerable<PaymentDetails> rows, PaymentMethod method)
-    {
-      var raw = ((int)method).ToString();
-      return rows.Where(p => p.PaymentMethodRaw == raw).Sum(p => p.TotalAmount);
+            var endedAt = DateTime.UtcNow;
+            var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
+
+            shift.EndBalance = request.EndBalance;
+            shift.TotalSales = totals.Sales;
+            shift.TotalCash = totals.Cash;
+            shift.TotalCard = totals.Card;
+            shift.Difference = request.EndBalance - shift.StartBalance - totals.Cash;
+            shift.EndedAt = endedAt;
+            shift.Status = Math.Abs(shift.Difference) > DiscrepancyThresholdEur
+                ? CashierShiftStatuses.Discrepancy
+                : CashierShiftStatuses.Completed;
+            shift.Notes = request.Notes;
+            shift.UpdatedAt = endedAt;
+            shift.UpdatedBy = cashierUserId;
+
+            var closeResult = await _cashRegisterShift.TryCloseCashRegisterAsync(
+                shift.CashRegisterId,
+                cashierUserId,
+                request.EndBalance,
+                cancellationToken,
+                completeActiveShifts: false);
+
+            switch (closeResult.Kind)
+            {
+                case CashRegisterCloseKind.Success:
+                case CashRegisterCloseKind.FailedAlreadyClosed:
+                    break;
+                case CashRegisterCloseKind.FailedForbidden:
+                    throw new PosShiftEndException(
+                        PosShiftEndResultKind.RegisterCloseForbidden,
+                        "You are not allowed to close this cash register");
+                default:
+                    throw new PosShiftEndException(
+                        PosShiftEndResultKind.RegisterCloseFailed,
+                        "Cash register could not be closed");
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            var registerNumber = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.Id == shift.CashRegisterId)
+                .Select(r => r.RegisterNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var receipt = BuildClosingReceipt(shift, registerNumber);
+
+            await _auditLog.LogSystemOperationAsync(
+                "ShiftEnded",
+                "cashier_shift",
+                cashierUserId,
+                actorRole,
+                description: $"Shift ended. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
+                notes: request.Notes,
+                actionType: AuditEventType.Other,
+                entityId: shift.Id,
+                tenantId: shift.TenantId);
+
+            _logger.LogInformation(
+                "Cashier shift {ShiftId} ended by {UserId}. Status={Status}, Difference={Difference}",
+                shift.Id,
+                cashierUserId,
+                shift.Status,
+                shift.Difference);
+
+            return new EndShiftResponse
+            {
+                Shift = MapToDto(shift),
+                Receipt = receipt,
+            };
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
-    return new ShiftTotalsDto
+    public async Task<ShiftAutoOpenResult> AutoOpenShiftAsync(
+        string cashierUserId,
+        string cashierDisplayName,
+        Guid? cashRegisterId = null,
+        CancellationToken cancellationToken = default)
     {
-      Sales = payments.Sum(p => p.TotalAmount),
-      Cash = SumForMethod(payments, PaymentMethod.Cash),
-      Card = SumForMethod(payments, PaymentMethod.Card),
+        var existing = await _context.CashierShifts.AsNoTracking()
+            .Where(s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive)
+            .OrderByDescending(s => s.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existing != null)
+        {
+            var liveTotals = await GetShiftTotalsAsync(
+                existing.CashRegisterId,
+                existing.StartedAt,
+                DateTime.UtcNow,
+                cancellationToken);
+            return ShiftAutoOpenResult.AlreadyOpen(MapToDto(existing, liveTotals));
+        }
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        var resolvedRegisterId = await ResolveAutoOpenRegisterIdAsync(
+            cashierUserId,
+            cashRegisterId,
+            cancellationToken);
+
+        if (resolvedRegisterId == null)
+        {
+            var operationalCount = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.TenantId == tenantId)
+                .WhereCountsTowardPosOperationalCardinality()
+                .CountAsync(cancellationToken);
+
+            if (operationalCount == 0)
+            {
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.NoActiveRegisters,
+                    ShiftAutoOpenMessages.NoActiveRegisters);
+            }
+
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.NeedRegisterSelection,
+                ShiftAutoOpenMessages.NeedRegisterSelection);
+        }
+
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == resolvedRegisterId.Value && r.TenantId == tenantId,
+                cancellationToken);
+
+        if (register == null)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, resolvedRegisterId.Value, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterNotFound,
+                ShiftAutoOpenMessages.RegisterNotFound);
+        }
+
+        if (register.Status == RegisterStatus.Decommissioned)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterDecommissioned,
+                ShiftAutoOpenMessages.RegisterDecommissioned);
+        }
+
+        if (!register.IsActive)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterInactive,
+                ShiftAutoOpenMessages.RegisterInactive);
+        }
+
+        if (register.Status == RegisterStatus.Maintenance)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterMaintenance,
+                ShiftAutoOpenMessages.RegisterMaintenance);
+        }
+
+        if (register.Status == RegisterStatus.Disabled)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterDisabled,
+                ShiftAutoOpenMessages.RegisterDisabled);
+        }
+
+        if (CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, register.AssignedUserId))
+        {
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterAssignedToOtherUser,
+                ShiftAutoOpenMessages.RegisterAssignedToOtherUser);
+        }
+
+        var startBalance = register.CurrentBalance;
+        var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
+            register.Id,
+            cashierUserId,
+            startBalance,
+            "POS auto-open shift",
+            allowIdempotentSameUser: true,
+            cancellationToken);
+
+        switch (openResult.Kind)
+        {
+            case CashRegisterOpenKind.SuccessOpened:
+            case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
+                break;
+            case CashRegisterOpenKind.FailedNotFound:
+                await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterNotFound,
+                    ShiftAutoOpenMessages.RegisterNotFound);
+            case CashRegisterOpenKind.FailedInvalidState:
+                await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+                return ShiftAutoOpenResult.Fail(
+                    register.Status == RegisterStatus.Decommissioned
+                        ? ShiftAutoOpenCodes.RegisterDecommissioned
+                        : ShiftAutoOpenCodes.RegisterInvalidState,
+                    register.Status == RegisterStatus.Decommissioned
+                        ? ShiftAutoOpenMessages.RegisterDecommissioned
+                        : ShiftAutoOpenMessages.RegisterInvalidState);
+            case CashRegisterOpenKind.FailedConflictOtherUser:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterConflictOtherUser,
+                    ShiftAutoOpenMessages.RegisterConflictOtherUser);
+            case CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterActorHasOtherOpen,
+                    ShiftAutoOpenMessages.RegisterActorHasOtherOpen);
+            case CashRegisterOpenKind.FailedStartbelegRequired:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterStartbelegRequired,
+                    ShiftAutoOpenMessages.RegisterStartbelegRequired);
+            case CashRegisterOpenKind.FailedMonatsbelegRequired:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterMonatsbelegRequired,
+                    ShiftAutoOpenMessages.RegisterMonatsbelegRequired);
+            default:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterUnavailable,
+                    ShiftAutoOpenMessages.RegisterUnavailable);
+        }
+
+        // Re-read balance after open (may have been set by open path).
+        var balanceAfterOpen = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == register.Id)
+            .Select(r => r.CurrentBalance)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var displayName = await ResolveCashierDisplayNameAsync(cashierUserId, cashierDisplayName, cancellationToken);
+        var startedAt = DateTime.UtcNow;
+        var shift = new CashierShift
+        {
+            TenantId = tenantId,
+            CashRegisterId = register.Id,
+            CashierId = cashierUserId,
+            CashierName = displayName,
+            StartBalance = balanceAfterOpen,
+            StartedAt = startedAt,
+            Status = CashierShiftStatuses.Active,
+            IsAutoOpened = true,
+            CreatedAt = startedAt,
+            UpdatedAt = startedAt,
+            CreatedBy = cashierUserId,
+        };
+
+        _context.CashierShifts.Add(shift);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogSystemOperationAsync(
+            "ShiftStarted",
+            "cashier_shift",
+            cashierUserId,
+            Roles.FallbackUnknown,
+            description: $"Shift auto-opened with balance {shift.StartBalance:F2}",
+            actionType: AuditEventType.Other,
+            entityId: shift.Id,
+            tenantId: shift.TenantId);
+
+        _logger.LogInformation(
+            "Cashier shift {ShiftId} auto-opened by {UserId} on register {RegisterId}",
+            shift.Id,
+            cashierUserId,
+            register.Id);
+
+        return ShiftAutoOpenResult.Opened(MapToDto(shift));
+    }
+
+    /// <summary>
+    /// Picks the register auto-open should claim. An explicit id wins when it is missing, not operational,
+    /// or already assigned (to the caller or to someone else — the caller then gets the specific error).
+    /// An operational register with no assignee is ignored so POS cannot open a till the admin did not assign.
+    /// When the caller has exactly one operable assigned register, that id is used even if settings still
+    /// point at a different till. Multiple assignments fall back to settings only when that id is one of them.
+    /// </summary>
+    private async Task<Guid?> ResolveAutoOpenRegisterIdAsync(
+        string cashierUserId,
+        Guid? requestedRegisterId,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+
+        if (requestedRegisterId is { } requested && requested != Guid.Empty)
+        {
+            var explicitRow = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    r => r.Id == requested && r.TenantId == tenantId,
+                    cancellationToken);
+
+            if (explicitRow == null
+                || !CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(explicitRow)
+                || CashRegisterAssignment.IsAssignedTo(cashierUserId, explicitRow.AssignedUserId)
+                || CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, explicitRow.AssignedUserId))
+            {
+                return requested;
+            }
+        }
+
+        var operableAssigned = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId && r.AssignedUserId == cashierUserId)
+            .WhereCountsTowardPosOperationalCardinality()
+            .Where(r => r.Status != RegisterStatus.Open
+                || r.CurrentUserId == null
+                || r.CurrentUserId == cashierUserId)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        if (operableAssigned.Count == 1)
+            return operableAssigned[0];
+
+        var settingsId = await ReadSettingsRegisterIdAsync(cashierUserId, cancellationToken);
+
+        if (operableAssigned.Count > 1)
+        {
+            if (settingsId is { } chosen && operableAssigned.Contains(chosen))
+                return chosen;
+            return null;
+        }
+
+        if (await CallerIsSuperAdminAsync(cashierUserId))
+        {
+            if (requestedRegisterId is { } superRequested && superRequested != Guid.Empty)
+                return superRequested;
+            return settingsId;
+        }
+
+        // No assignment: still surface a stale non-operational default so decommissioned / inactive errors can clear it.
+        if (settingsId is { } stale)
+        {
+            var staleRow = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == stale && r.TenantId == tenantId, cancellationToken);
+            if (staleRow != null
+                && !CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(staleRow))
+            {
+                return stale;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<Guid?> ReadSettingsRegisterIdAsync(
+        string cashierUserId,
+        CancellationToken cancellationToken)
+    {
+        var settings = await _context.UserSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == cashierUserId, cancellationToken);
+        var raw = settings?.CashRegisterId?.Trim();
+        if (string.IsNullOrEmpty(raw))
+            return null;
+        if (!Guid.TryParse(raw, out var fromSettings) || fromSettings == Guid.Empty)
+            return null;
+        return fromSettings;
+    }
+
+    private async Task<bool> CallerIsSuperAdminAsync(string cashierUserId)
+    {
+        var user = await _userManager.FindByIdAsync(cashierUserId);
+        if (user == null)
+            return false;
+        return await _userManager.IsInRoleAsync(user, Roles.SuperAdmin);
+    }
+
+    private async Task ClearStaleDefaultRegisterAsync(
+        string cashierUserId,
+        Guid registerId,
+        CancellationToken cancellationToken)
+    {
+        var settings = await _context.UserSettings
+            .FirstOrDefaultAsync(s => s.UserId == cashierUserId, cancellationToken);
+        if (settings == null)
+            return;
+        if (!Guid.TryParse(settings.CashRegisterId, out var stored) || stored != registerId)
+            return;
+
+        settings.CashRegisterId = null;
+        settings.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Cleared stale default cash register {RegisterId} for user {UserId}",
+            registerId,
+            cashierUserId);
+    }
+
+    public async Task<CashierShiftDto?> AutoCloseShiftAsync(
+        string cashierUserId,
+        string actorRole,
+        CancellationToken cancellationToken = default)
+    {
+        var shift = await _context.CashierShifts
+            .FirstOrDefaultAsync(
+                s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+                cancellationToken);
+
+        if (shift == null)
+            return null;
+
+        var endedAt = DateTime.UtcNow;
+        var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
+
+        var endBalance = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == shift.CashRegisterId)
+            .Select(r => (decimal?)r.CurrentBalance)
+            .FirstOrDefaultAsync(cancellationToken) ?? shift.StartBalance + totals.Cash;
+
+        shift.EndBalance = endBalance;
+        shift.TotalSales = totals.Sales;
+        shift.TotalCash = totals.Cash;
+        shift.TotalCard = totals.Card;
+        shift.Difference = endBalance - shift.StartBalance - totals.Cash;
+        shift.EndedAt = endedAt;
+        shift.Status = CashierShiftStatuses.Completed;
+        shift.IsAutoClosed = true;
+        shift.Notes = string.IsNullOrWhiteSpace(shift.Notes)
+            ? "Auto-closed on logout"
+            : $"{shift.Notes}; Auto-closed on logout";
+        shift.UpdatedAt = endedAt;
+        shift.UpdatedBy = cashierUserId;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogSystemOperationAsync(
+            "ShiftEnded",
+            "cashier_shift",
+            cashierUserId,
+            actorRole,
+            description: $"Shift auto-closed. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
+            notes: "Auto-closed on logout",
+            actionType: AuditEventType.Other,
+            entityId: shift.Id,
+            tenantId: shift.TenantId);
+
+        _logger.LogInformation(
+            "Cashier shift {ShiftId} auto-closed for {UserId}. Sales={Sales}, Difference={Difference}",
+            shift.Id,
+            cashierUserId,
+            shift.TotalSales,
+            shift.Difference);
+
+        return MapToDto(shift);
+    }
+
+    public async Task<ShiftTotalsDto> GetShiftTotalsAsync(
+        Guid cashRegisterId,
+        DateTime startedAtUtc,
+        DateTime endedAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var payments = await _context.PaymentDetails.AsNoTracking()
+            .Where(p => p.CashRegisterId == cashRegisterId
+                        && p.CreatedAt >= startedAtUtc
+                        && p.CreatedAt <= endedAtUtc
+                        && p.IsActive
+                        && !p.IsRefund
+                        && !p.IsStorno
+                        && p.RksvSpecialReceiptKind == null)
+            .ToListAsync(cancellationToken);
+
+        static decimal SumForMethod(IEnumerable<PaymentDetails> rows, PaymentMethod method)
+        {
+            var raw = ((int)method).ToString();
+            return rows.Where(p => p.PaymentMethodRaw == raw).Sum(p => p.TotalAmount);
+        }
+
+        return new ShiftTotalsDto
+        {
+            Sales = payments.Sum(p => p.TotalAmount),
+            Cash = SumForMethod(payments, PaymentMethod.Cash),
+            Card = SumForMethod(payments, PaymentMethod.Card),
+        };
+    }
+
+    private async Task<string> ResolveCashierDisplayNameAsync(
+        string cashierUserId,
+        string fallback,
+        CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(cashierUserId);
+        if (user == null)
+            return string.IsNullOrWhiteSpace(fallback) ? "Unknown" : fallback;
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(fullName))
+            return fullName;
+
+        if (!string.IsNullOrWhiteSpace(user.UserName))
+            return user.UserName;
+
+        return string.IsNullOrWhiteSpace(fallback) ? "Unknown" : fallback;
+    }
+
+    private static CashierShiftDto MapToDto(CashierShift shift, ShiftTotalsDto? liveTotals = null) => new()
+    {
+        Id = shift.Id,
+        TenantId = shift.TenantId,
+        CashRegisterId = shift.CashRegisterId,
+        CashierId = shift.CashierId,
+        CashierName = shift.CashierName,
+        StartBalance = shift.StartBalance,
+        EndBalance = shift.EndBalance,
+        TotalSales = liveTotals?.Sales ?? shift.TotalSales,
+        TotalCash = liveTotals?.Cash ?? shift.TotalCash,
+        TotalCard = liveTotals?.Card ?? shift.TotalCard,
+        Difference = shift.Difference,
+        StartedAt = shift.StartedAt,
+        EndedAt = shift.EndedAt,
+        Status = shift.Status,
+        Notes = shift.Notes,
+        DailyClosingId = shift.DailyClosingId,
+        CashCount = shift.CashCount,
+        IsAutoOpened = shift.IsAutoOpened,
+        IsAutoClosed = shift.IsAutoClosed,
     };
-  }
 
-  private async Task<string> ResolveCashierDisplayNameAsync(
-      string cashierUserId,
-      string fallback,
-      CancellationToken cancellationToken)
-  {
-    var user = await _userManager.FindByIdAsync(cashierUserId);
-    if (user == null)
-      return string.IsNullOrWhiteSpace(fallback) ? "Unknown" : fallback;
-
-    var fullName = $"{user.FirstName} {user.LastName}".Trim();
-    if (!string.IsNullOrWhiteSpace(fullName))
-      return fullName;
-
-    if (!string.IsNullOrWhiteSpace(user.UserName))
-      return user.UserName;
-
-    return string.IsNullOrWhiteSpace(fallback) ? "Unknown" : fallback;
-  }
-
-  private static CashierShiftDto MapToDto(CashierShift shift) => new()
-  {
-    Id = shift.Id,
-    TenantId = shift.TenantId,
-    CashRegisterId = shift.CashRegisterId,
-    CashierId = shift.CashierId,
-    CashierName = shift.CashierName,
-    StartBalance = shift.StartBalance,
-    EndBalance = shift.EndBalance,
-    TotalSales = shift.TotalSales,
-    TotalCash = shift.TotalCash,
-    TotalCard = shift.TotalCard,
-    Difference = shift.Difference,
-    StartedAt = shift.StartedAt,
-    EndedAt = shift.EndedAt,
-    Status = shift.Status,
-    Notes = shift.Notes,
-    DailyClosingId = shift.DailyClosingId,
-    CashCount = shift.CashCount,
-  };
-
-  private static ShiftClosingReceiptDto BuildClosingReceipt(CashierShift shift, string? registerNumber) => new()
-  {
-    ShiftId = shift.Id,
-    CashierName = shift.CashierName,
-    RegisterNumber = registerNumber,
-    StartedAt = shift.StartedAt,
-    EndedAt = shift.EndedAt ?? DateTime.UtcNow,
-    StartBalance = shift.StartBalance,
-    EndBalance = shift.EndBalance,
-    TotalSales = shift.TotalSales,
-    TotalCash = shift.TotalCash,
-    TotalCard = shift.TotalCard,
-    Difference = shift.Difference,
-    Status = shift.Status,
-    Notes = shift.Notes,
-  };
+    private static ShiftClosingReceiptDto BuildClosingReceipt(CashierShift shift, string? registerNumber) => new()
+    {
+        ShiftId = shift.Id,
+        CashierName = shift.CashierName,
+        RegisterNumber = registerNumber,
+        StartedAt = shift.StartedAt,
+        EndedAt = shift.EndedAt ?? DateTime.UtcNow,
+        StartBalance = shift.StartBalance,
+        EndBalance = shift.EndBalance,
+        TotalSales = shift.TotalSales,
+        TotalCash = shift.TotalCash,
+        TotalCard = shift.TotalCard,
+        Difference = shift.Difference,
+        Status = shift.Status,
+        Notes = shift.Notes,
+    };
 }

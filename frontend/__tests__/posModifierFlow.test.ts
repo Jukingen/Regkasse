@@ -64,8 +64,8 @@ function toSelectionShape(g: ModifierGroupDto): ModifierGroupSelectionShape {
 function getSelectedAddOns(
   groups: ModifierGroupDto[],
   selectedIds: Set<string>
-): Array<{ productId: string; productName: string; price: number }> {
-  const out: Array<{ productId: string; productName: string; price: number }> = [];
+): { productId: string; productName: string; price: number }[] {
+  const out: { productId: string; productName: string; price: number }[] = [];
   for (const g of groupsWithProducts(groups)) {
     for (const p of g.products ?? []) {
       if (selectedIds.has(p.productId)) {
@@ -135,7 +135,7 @@ describe('POS modifier UI flow', () => {
           { id: 'g1', name: 'Legacy', minSelections: 0, maxSelections: null, products: [] },
         ],
       };
-      expect(hasAddOnProducts(product.modifierGroups!)).toBe(false);
+      expect(hasAddOnProducts(product.modifierGroups)).toBe(false);
       expect(getAddBehavior(product)).toBe('direct');
     });
 
@@ -246,7 +246,11 @@ describe('POS modifier UI flow', () => {
       const selectedIds = new Set(['p-mayo']);
       const addOns = getSelectedAddOns(groups, selectedIds);
 
-      const base = { productId: baseProduct.id, productName: baseProduct.name, price: baseProduct.price };
+      const base = {
+        productId: baseProduct.id,
+        productName: baseProduct.name,
+        price: baseProduct.price,
+      };
       expect(addOns).toHaveLength(1);
       expect(addOns[0].productId).toBe('p-mayo');
       expect(addOns[0].productName).toBe('Mayo');

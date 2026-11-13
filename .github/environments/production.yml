@@ -1,0 +1,61 @@
+# =============================================================================
+# GitHub Environment template — PRODUCTION
+# =============================================================================
+# This file is documentation / checklist only. Create Environments in the UI:
+#   - backend-production-compliance   (required reviewers — ComplianceOfficer)
+#   - backend-production-migrations   (required reviewers — schema)
+#   - backend-production              (required reviewers — app deploy)
+#   - frontend-admin-production       (required reviewers)
+#
+# Protection rules (required for fiscal safety):
+#   - Required reviewers on all production Environments
+#   - Deployment branches: main / master / tags v* only
+#
+# Prefer workflow: Actions → "Deploy Production" (compliance phrase) over raw
+# "Deploy" workflow production target for RKSV cutover.
+#
+# Docs: docs/CI_CD.md · docs/DEPLOYMENT_COMPLIANCE.md · DEPLOYMENT.md
+# =============================================================================
+
+name: production
+display_name: Production
+url: https://api.regkasse.at
+
+variables:
+  BACKEND_PRODUCTION_API_BASE_URL: https://api.regkasse.at
+  BACKEND_CANARY_API_BASE_URL: https://api.regkasse.at
+  BACKEND_COMPLIANCE_API_BASE_URL: https://api.regkasse.at
+  FA_PRODUCTION_API_BASE_URL: https://api.regkasse.at
+  FA_PRODUCTION_RKSV_ENVIRONMENT: PROD
+  BACKEND_FA_BASE_URL: https://admin.regkasse.at
+  BACKEND_POS_BASE_URL: https://pos.regkasse.at
+  BACKEND_CANARY_TENANT_IDS: canary
+  BACKEND_SMOKE_TENANT_ID: smoke
+
+secrets:
+  BACKEND_PRODUCTION_DEPLOY_WEBHOOK_URL: 'https://…/hooks/deploy-production'
+  BACKEND_PRODUCTION_ROLLBACK_WEBHOOK_URL: 'https://…/hooks/rollback-production'
+  BACKEND_PRODUCTION_MIGRATE_WEBHOOK_URL: 'https://…/hooks/migrate-production'
+  BACKEND_PRODUCTION_DATABASE_CONNECTION: 'Host=…;Database=…;Username=…;Password=…'
+  BACKEND_CANARY_DEPLOY_WEBHOOK_URL: 'https://…/hooks/deploy-canary'
+  BACKEND_CANARY_ROLLBACK_WEBHOOK_URL: 'https://…/hooks/rollback-canary'
+  BACKEND_CANARY_MIGRATE_WEBHOOK_URL: 'https://…/hooks/migrate-canary'
+  BACKEND_CANARY_DATABASE_CONNECTION: '…'
+  FA_PRODUCTION_DEPLOY_WEBHOOK_URL: 'https://…/hooks/fa-production'
+  DEPLOYMENT_STATUS_URL: 'https://api.regkasse.at/api/webhooks/deployments/ci-report'
+  DEPLOYMENT_STATUS_TOKEN: 'same as Deployment__StatusReportToken'
+  SMOKE_LOGIN_IDENTIFIER: '…'
+  SMOKE_LOGIN_PASSWORD: '…'
+  ONCALL_WEBHOOK_URL: 'https://hooks.slack.com/…'
+  SLACK_WEBHOOK_URL: 'https://hooks.slack.com/…'
+
+gates:
+  confirm_phrase: deploy-production
+  compliance_phrase: approved-by-compliance-officer
+  auto_rollback_on_smoke_fail: false
+  note: Additive EF migrations are NOT rolled back — app image only.
+
+notes:
+  - TSE Device/Real fail-closed — see docs/TSE_PRODUCTION_CONFIG_LOCK.md
+  - Pre-deploy: System/Tenant backup via FA/API
+  - Host Compose alternative: deploy-docker.bat (docs/DOCKER_PRODUCTION.md)

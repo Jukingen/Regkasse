@@ -1,25 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Card,
-  Descriptions,
-  Divider,
-  Form,
-  Input,
-  Space,
-  Spin,
-} from 'antd';
 import { IdcardOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Descriptions, Divider, Form, Input, Space, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 
+import { FormSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ProfileTechnicalDetailsCard } from '@/features/user/components/ProfileTechnicalDetailsCard';
 import { ProfileUsernamePolicyAlert } from '@/features/user/components/ProfileUsernamePolicyAlert';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
-import { useUpdateProfile, useProfile } from '@/features/user/hooks/useProfile';
+import { useProfile, useUpdateProfile } from '@/features/user/hooks/useProfile';
 import { useUsernameChangePolicy } from '@/features/user/hooks/useUsernameChangePolicy';
+import { ProfilePermissionRequestCard } from '@/features/users/components/ProfilePermissionRequestCard';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -54,7 +47,7 @@ export default function ProfilePage() {
 
   const breadcrumbs = useMemo(
     () => [adminOverviewCrumb(t), { title: t('profile.pageTitle') }],
-    [t],
+    [t]
   );
 
   useEffect(() => {
@@ -78,25 +71,30 @@ export default function ProfilePage() {
       message.success(t('profile.saveSuccess'));
     } catch (error) {
       openApiErrorMessage(message.open, t, error, {
-        fallbackMessage: t('profile.saveError'),
+        fallbackKey: 'profile.saveError',
+        logContext: 'ProfilePage.update',
       });
     }
   };
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-        <Spin size="large" description={t('profile.loading')} />
-      </div>
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <FormSkeleton fields={5} />
+      </>
     );
   }
 
   if (isError || !profile) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <AdminPageHeader title={t('profile.pageTitle')} breadcrumbs={breadcrumbs} />
-        <Card variant="borderless">{t('profile.loadError')}</Card>
-      </div>
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <AdminPageHeader title={t('profile.pageTitle')} breadcrumbs={breadcrumbs} />
+          <Card variant="borderless">{t('profile.loadError')}</Card>
+        </div>
+      </>
     );
   }
 
@@ -117,18 +115,14 @@ export default function ProfilePage() {
               <MailOutlined /> {displayValue(profile.email, t('profile.notProvided'))}
             </p>
             <p style={{ margin: '4px 0 0' }}>
-              <IdcardOutlined />{' '}
-              {displayValue(profile.employeeNumber, t('profile.notProvided'))}
+              <IdcardOutlined /> {displayValue(profile.employeeNumber, t('profile.notProvided'))}
             </p>
           </div>
         </div>
 
         <Divider />
 
-        <ProfileUsernamePolicyAlert
-          policy={usernamePolicy}
-          isLoading={isUsernamePolicyLoading}
-        />
+        <ProfileUsernamePolicyAlert policy={usernamePolicy} isLoading={isUsernamePolicyLoading} />
 
         <Descriptions bordered column={{ xs: 1, sm: 2 }} style={{ marginBottom: 24 }}>
           <Descriptions.Item label={t('profile.fields.userName')}>
@@ -145,6 +139,15 @@ export default function ProfilePage() {
           </Descriptions.Item>
           <Descriptions.Item label={t('profile.fields.role')}>
             {resolveRoleLabel(profile.role, t)}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('profile.fields.userId')} span={2}>
+            <Typography.Text
+              code
+              copyable={{ text: profile.id }}
+              style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}
+            >
+              {profile.id}
+            </Typography.Text>
           </Descriptions.Item>
           <Descriptions.Item label={t('profile.fields.employeeNumber')}>
             {displayValue(profile.employeeNumber, emptyLabel)}
@@ -208,6 +211,10 @@ export default function ProfilePage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <ProfileTechnicalDetailsCard userId={profile.id} />
+
+      <ProfilePermissionRequestCard />
 
       <SelfServiceUsernameModal
         open={usernameModalOpen}

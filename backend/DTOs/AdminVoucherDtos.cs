@@ -66,7 +66,7 @@ public sealed class AdminVoucherListResponse
 
 public sealed class CreateAdminVoucherRequest
 {
-    [Range(0.01, 999_999.99)]
+    [Range(typeof(decimal), "0.01", "999999.99", ParseLimitsInInvariantCulture = true)]
     public decimal InitialAmount { get; set; }
 
     [Required]

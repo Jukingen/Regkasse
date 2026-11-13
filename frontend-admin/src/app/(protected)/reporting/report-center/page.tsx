@@ -4,7 +4,7 @@
  * Report Center: formelle Berichte, eingefrorene Perioden, X/Z-Referenz und Meldungs-Sicht.
  * Kurztexte für Operatoren (de-DE); technische Details nur in Diagnose-Bereichen.
  */
-import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -12,6 +12,7 @@ import {
   Col,
   DatePicker,
   Descriptions,
+  Form,
   Modal,
   Row,
   Segmented,
@@ -23,41 +24,39 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
+import Link from 'next/link';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { useGetApiAdminFinanzonlineOutbox } from '@/api/generated/admin/admin';
+import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnlineOutboxItemDto';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
+import { type ReportFilterValues, ReportFilters } from '@/components/ReportFilters';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
-import { formatDate, formatDateTime } from '@/i18n/formatting';
-import { DAYJS_DATE_FORMAT, formatUserMonthYear } from '@/lib/dateFormatter';
-import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useGetApiAdminFinanzonlineOutbox } from '@/api/generated/admin/admin';
-import type { CashRegister } from '@/api/generated/model';
-import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnlineOutboxItemDto';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { ReportChainTimelineDrawer, type FormalReportTypeKey } from '@/components/reporting/ReportChainTimelineDrawer';
+import {
+  type FormalReportTypeKey,
+  ReportChainTimelineDrawer,
+} from '@/components/reporting/ReportChainTimelineDrawer';
 import { ReportDualBadges } from '@/components/reporting/ReportWorkspaceBadges';
 import {
-  matchesReportDocFilter,
-  matchesSubmissionFilter,
   type ReportDocFilterKey,
   type SubmissionFilterKey,
+  matchesReportDocFilter,
+  matchesSubmissionFilter,
 } from '@/components/reporting/reportWorkspaceLabels';
-
-const { RangePicker } = DatePicker;
+import { DateColumn, dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n/I18nProvider';
+import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { AXIOS_INSTANCE } from '@/lib/axios';
+import { DAYJS_DATE_FORMAT, formatUserMonthYear } from '@/lib/dateFormatter';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 
 type WorkspaceTab =
-  | 'tagesbericht'
-  | 'monatsbericht'
-  | 'jahresbericht'
-  | 'periodenbericht'
-  | 'xz'
-  | 'submissionQueue';
+  'tagesbericht' | 'monatsbericht' | 'jahresbericht' | 'periodenbericht' | 'xz' | 'submissionQueue';
 
 type TagesRow = {
   id: string;
@@ -129,7 +128,11 @@ type XzBundleDto = {
   informationalWarnings: string[];
   parts: { kind: string; label: string; description?: string }[];
   linkedClosingIds: string[];
-  interimVsFullDaySnapshot?: { interimGrossTotal: number; fullDayGrossTotal: number; deltaGross: number };
+  interimVsFullDaySnapshot?: {
+    interimGrossTotal: number;
+    fullDayGrossTotal: number;
+    deltaGross: number;
+  };
   operationalVsClosing?: {
     primaryClosingId: string;
     operationalGrossTotal: number;
@@ -137,7 +140,9 @@ type XzBundleDto = {
     deltaGross: number;
     note: string;
   };
-  interimXLike?: { summary?: { grossTotalAmount: number; taxTotalAmount: number; paymentRowCount: number } };
+  interimXLike?: {
+    summary?: { grossTotalAmount: number; taxTotalAmount: number; paymentRowCount: number };
+  };
   fullDayOperationalSummary: {
     grossTotalAmount: number;
     taxTotalAmount: number;
@@ -148,7 +153,10 @@ type XzBundleDto = {
   closingReference: { dailyClosings: XzClosingRow[]; operatorNote?: string };
 };
 
-function formalReportHref(aggregateType: string | null | undefined, aggregateId: string | null | undefined): string | null {
+function formalReportHref(
+  aggregateType: string | null | undefined,
+  aggregateId: string | null | undefined
+): string | null {
   if (!aggregateType || !aggregateId) return null;
   switch (aggregateType) {
     case 'TagesberichtReport':
@@ -162,8 +170,11 @@ function formalReportHref(aggregateType: string | null | undefined, aggregateId:
   }
 }
 
-function workspaceCategoryForTab(tab: WorkspaceTab): 'accounting' | 'legal' | 'operational' | 'diagnostic' {
-  if (tab === 'tagesbericht' || tab === 'monatsbericht' || tab === 'jahresbericht') return 'accounting';
+function workspaceCategoryForTab(
+  tab: WorkspaceTab
+): 'accounting' | 'legal' | 'operational' | 'diagnostic' {
+  if (tab === 'tagesbericht' || tab === 'monatsbericht' || tab === 'jahresbericht')
+    return 'accounting';
   if (tab === 'periodenbericht') return 'legal';
   if (tab === 'xz') return 'operational';
   return 'diagnostic';
@@ -175,8 +186,14 @@ export default function ReportCenterPage() {
   const canFinanzOnlineView = hasPermission(PERMISSIONS.FINANZONLINE_VIEW);
 
   const [tab, setTab] = useState<WorkspaceTab>('tagesbericht');
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(30, 'day'), dayjs()]);
-  const [periodenRange, setPeriodenRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(60, 'day'), dayjs()]);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
+    dayjs().subtract(30, 'day'),
+    dayjs(),
+  ]);
+  const [periodenRange, setPeriodenRange] = useState<[Dayjs, Dayjs]>([
+    dayjs().subtract(60, 'day'),
+    dayjs(),
+  ]);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
   const [scopeKind, setScopeKind] = useState<'all' | 'Register' | 'Company'>('all');
   const [reportDocFilter, setReportDocFilter] = useState<ReportDocFilterKey>('all');
@@ -195,15 +212,42 @@ export default function ReportCenterPage() {
 
   const [outboxAggregateFilter, setOutboxAggregateFilter] = useState<string | undefined>(undefined);
 
-  const { data: registers } = useGetApiCashRegister();
-  const registersData = registers as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
-
   const pickerMode = tab === 'monatsbericht' ? 'month' : tab === 'jahresbericht' ? 'year' : 'date';
+
+  const applyFormalFilters = useCallback((values: ReportFilterValues) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setDateRange(values.dateRange);
+    }
+    setCashRegisterId(values.registerId);
+    setXzCashRegisterId((prev) => prev ?? values.registerId);
+  }, []);
+
+  const applyPeriodenFilters = useCallback((values: ReportFilterValues) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setPeriodenRange(values.dateRange);
+    }
+    setCashRegisterId(values.registerId);
+  }, []);
+
+  const workspaceTabOptions = useMemo((): Array<{ label: string; value: WorkspaceTab }> => {
+    const options: Array<{ label: string; value: WorkspaceTab }> = [
+      { label: t('adminShell.reporting.reportCenter.tabTages'), value: 'tagesbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabMonats'), value: 'monatsbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabJahres'), value: 'jahresbericht' as const },
+      {
+        label: t('adminShell.reporting.reportCenter.tabPerioden'),
+        value: 'periodenbericht' as const,
+      },
+      { label: t('adminShell.reporting.reportCenter.tabXz'), value: 'xz' as const },
+    ];
+    if (canFinanzOnlineView) {
+      options.push({
+        label: t('adminShell.reporting.reportCenter.tabQueue'),
+        value: 'submissionQueue' as const,
+      });
+    }
+    return options;
+  }, [canFinanzOnlineView, t]);
 
   const tagesParams = useMemo(() => {
     const fromDate = dateRange[0].format('YYYY-MM-DD');
@@ -236,7 +280,9 @@ export default function ReportCenterPage() {
   const tagesQ = useQuery({
     queryKey: ['report-center', 'tages', tagesParams],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<TagesRow[]>('/api/reports/tagesbericht', { params: tagesParams });
+      const { data } = await AXIOS_INSTANCE.get<TagesRow[]>('/api/reports/tagesbericht', {
+        params: tagesParams,
+      });
       return data;
     },
     enabled: tab === 'tagesbericht',
@@ -245,7 +291,9 @@ export default function ReportCenterPage() {
   const monatsQ = useQuery({
     queryKey: ['report-center', 'monats', monatsParams],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<MonatsRow[]>('/api/reports/monatsbericht', { params: monatsParams });
+      const { data } = await AXIOS_INSTANCE.get<MonatsRow[]>('/api/reports/monatsbericht', {
+        params: monatsParams,
+      });
       return data;
     },
     enabled: tab === 'monatsbericht',
@@ -254,7 +302,9 @@ export default function ReportCenterPage() {
   const jahresQ = useQuery({
     queryKey: ['report-center', 'jahres', jahresParams],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<JahresRow[]>('/api/reports/jahresbericht', { params: jahresParams });
+      const { data } = await AXIOS_INSTANCE.get<JahresRow[]>('/api/reports/jahresbericht', {
+        params: jahresParams,
+      });
       return data;
     },
     enabled: tab === 'jahresbericht',
@@ -269,9 +319,12 @@ export default function ReportCenterPage() {
   const periodenQ = useQuery({
     queryKey: ['report-center', 'perioden-frozen', periodenParams],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<PeriodenRunRow[]>('/api/reports/operational/periodic/frozen', {
-        params: periodenParams,
-      });
+      const { data } = await AXIOS_INSTANCE.get<PeriodenRunRow[]>(
+        '/api/reports/operational/periodic/frozen',
+        {
+          params: periodenParams,
+        }
+      );
       return data;
     },
     enabled: tab === 'periodenbericht',
@@ -289,15 +342,24 @@ export default function ReportCenterPage() {
   });
 
   const xzQ = useQuery({
-    queryKey: ['report-center', 'xz-bundle', xzBusinessDate.format('YYYY-MM-DD'), xzCashRegisterId ?? '', xzActiveOnly],
+    queryKey: [
+      'report-center',
+      'xz-bundle',
+      xzBusinessDate.format('YYYY-MM-DD'),
+      xzCashRegisterId ?? '',
+      xzActiveOnly,
+    ],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<XzBundleDto>('/api/reports/operational/xz-reference-bundle', {
-        params: {
-          businessDate: xzBusinessDate.format('YYYY-MM-DD'),
-          cashRegisterId: xzCashRegisterId,
-          activeOnly: xzActiveOnly,
-        },
-      });
+      const { data } = await AXIOS_INSTANCE.get<XzBundleDto>(
+        '/api/reports/operational/xz-reference-bundle',
+        {
+          params: {
+            businessDate: xzBusinessDate.format('YYYY-MM-DD'),
+            cashRegisterId: xzCashRegisterId,
+            activeOnly: xzActiveOnly,
+          },
+        }
+      );
       return data;
     },
     enabled: tab === 'xz',
@@ -343,17 +405,6 @@ export default function ReportCenterPage() {
     );
   }, [jahresQ.data, reportDocFilter, submissionFilter]);
 
-  const registerOptions = useMemo(
-    () =>
-      registerRows
-        .filter((r: CashRegister) => r.id)
-        .map((r: CashRegister) => ({
-          value: r.id as string,
-          label: `${r.registerNumber} — ${r.location}`,
-        })),
-    [registerRows]
-  );
-
   const openChain = (kind: FormalReportTypeKey, id: string) => {
     setChainType(kind);
     setChainReportId(id);
@@ -380,7 +431,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.reportCenter.colPeriod'),
         dataIndex: 'viennaBusinessDate',
-        render: (v: string) => formatDate(v, ''),
+        render: dateColumnRender('short'),
       },
       {
         title: t('adminShell.reporting.reportCenter.colRegister'),
@@ -390,7 +441,13 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.reportCenter.filterReport'),
         key: 'doc',
-        render: (_, r) => <ReportDualBadges reportStatus={r.reportStatus} lifecycle={r.submission?.lifecycle} t={t} />,
+        render: (_, r) => (
+          <ReportDualBadges
+            reportStatus={r.reportStatus}
+            lifecycle={r.submission?.lifecycle}
+            t={t}
+          />
+        ),
       },
       { title: t('adminShell.reporting.reportCenter.colCorrection'), dataIndex: 'correctionKind' },
       {
@@ -398,8 +455,15 @@ export default function ReportCenterPage() {
         key: 'a',
         render: (_, r) => (
           <Space size="small" wrap>
-            <Link href={`/reporting/tagesbericht/${r.id}`}>{t('adminShell.reporting.reportCenter.actionDetail')}</Link>
-            <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openChain('tagesbericht', r.id)}>
+            <Link href={`/reporting/tagesbericht/${r.id}`}>
+              {t('adminShell.reporting.reportCenter.actionDetail')}
+            </Link>
+            <Button
+              type="link"
+              size="small"
+              style={{ padding: 0 }}
+              onClick={() => openChain('tagesbericht', r.id)}
+            >
               {t('adminShell.reporting.reportCenter.actionChain')}
             </Button>
           </Space>
@@ -420,12 +484,20 @@ export default function ReportCenterPage() {
         title: t('adminShell.reporting.reportCenter.colScope'),
         dataIndex: 'scopeKind',
         render: (s: string) =>
-          s === 'Company' ? t('adminShell.reporting.reportCenter.scopeCompany') : t('adminShell.reporting.reportCenter.scopeRegister'),
+          s === 'Company'
+            ? t('adminShell.reporting.reportCenter.scopeCompany')
+            : t('adminShell.reporting.reportCenter.scopeRegister'),
       },
       {
         title: t('adminShell.reporting.reportCenter.filterReport'),
         key: 'doc',
-        render: (_, r) => <ReportDualBadges reportStatus={r.reportStatus} lifecycle={r.submission?.lifecycle} t={t} />,
+        render: (_, r) => (
+          <ReportDualBadges
+            reportStatus={r.reportStatus}
+            lifecycle={r.submission?.lifecycle}
+            t={t}
+          />
+        ),
       },
       { title: t('adminShell.reporting.reportCenter.colCorrection'), dataIndex: 'correctionKind' },
       {
@@ -433,8 +505,15 @@ export default function ReportCenterPage() {
         key: 'a',
         render: (_, r) => (
           <Space size="small" wrap>
-            <Link href={`/reporting/monatsbericht/${r.id}`}>{t('adminShell.reporting.reportCenter.actionDetail')}</Link>
-            <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openChain('monatsbericht', r.id)}>
+            <Link href={`/reporting/monatsbericht/${r.id}`}>
+              {t('adminShell.reporting.reportCenter.actionDetail')}
+            </Link>
+            <Button
+              type="link"
+              size="small"
+              style={{ padding: 0 }}
+              onClick={() => openChain('monatsbericht', r.id)}
+            >
               {t('adminShell.reporting.reportCenter.actionChain')}
             </Button>
           </Space>
@@ -455,12 +534,20 @@ export default function ReportCenterPage() {
         title: t('adminShell.reporting.reportCenter.colScope'),
         dataIndex: 'scopeKind',
         render: (s: string) =>
-          s === 'Company' ? t('adminShell.reporting.reportCenter.scopeCompany') : t('adminShell.reporting.reportCenter.scopeRegister'),
+          s === 'Company'
+            ? t('adminShell.reporting.reportCenter.scopeCompany')
+            : t('adminShell.reporting.reportCenter.scopeRegister'),
       },
       {
         title: t('adminShell.reporting.reportCenter.filterReport'),
         key: 'doc',
-        render: (_, r) => <ReportDualBadges reportStatus={r.reportStatus} lifecycle={r.submission?.lifecycle} t={t} />,
+        render: (_, r) => (
+          <ReportDualBadges
+            reportStatus={r.reportStatus}
+            lifecycle={r.submission?.lifecycle}
+            t={t}
+          />
+        ),
       },
       { title: t('adminShell.reporting.reportCenter.colCorrection'), dataIndex: 'correctionKind' },
       {
@@ -468,8 +555,15 @@ export default function ReportCenterPage() {
         key: 'a',
         render: (_, r) => (
           <Space size="small" wrap>
-            <Link href={`/reporting/jahresbericht/${r.id}`}>{t('adminShell.reporting.reportCenter.actionDetail')}</Link>
-            <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openChain('jahresbericht', r.id)}>
+            <Link href={`/reporting/jahresbericht/${r.id}`}>
+              {t('adminShell.reporting.reportCenter.actionDetail')}
+            </Link>
+            <Button
+              type="link"
+              size="small"
+              style={{ padding: 0 }}
+              onClick={() => openChain('jahresbericht', r.id)}
+            >
               {t('adminShell.reporting.reportCenter.actionChain')}
             </Button>
           </Space>
@@ -484,8 +578,12 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.dateRange'),
         key: 'p',
-        render: (_, r) =>
-          `${formatDate(r.periodStartLocalDate, '')} – ${formatDate(r.periodEndLocalDate, '')}`,
+        render: (_, r) => (
+          <>
+            <DateColumn date={r.periodStartLocalDate} format="short" /> –{' '}
+            <DateColumn date={r.periodEndLocalDate} format="short" />
+          </>
+        ),
       },
       { title: t('adminShell.reporting.periodPreset'), dataIndex: 'periodPreset' },
       {
@@ -521,9 +619,21 @@ export default function ReportCenterPage() {
 
   const xzClosingCols: ColumnsType<XzClosingRow> = useMemo(
     () => [
-      { title: 'ID', dataIndex: 'id', render: (v: string) => <Typography.Text style={{ fontSize: 12 }}>{v}</Typography.Text> },
-      { title: t('adminShell.reporting.reportCenter.register'), dataIndex: 'cashRegisterId', render: (v: string) => v.slice(0, 8) },
-      { title: t('adminShell.reporting.closingTime'), dataIndex: 'closingDateUtc', render: (v: string) => formatDateTime(v, '') },
+      {
+        title: 'ID',
+        dataIndex: 'id',
+        render: (v: string) => <Typography.Text style={{ fontSize: 12 }}>{v}</Typography.Text>,
+      },
+      {
+        title: t('adminShell.reporting.reportCenter.register'),
+        dataIndex: 'cashRegisterId',
+        render: (v: string) => v.slice(0, 8),
+      },
+      {
+        title: t('adminShell.reporting.closingTime'),
+        dataIndex: 'closingDateUtc',
+        render: dateColumnRender('datetime'),
+      },
       { title: t('adminShell.reporting.closingStatus'), dataIndex: 'status' },
       { title: t('adminShell.reporting.closingAmount'), dataIndex: 'totalAmount' },
       { title: t('adminShell.reporting.closingTx'), dataIndex: 'transactionCount' },
@@ -569,7 +679,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.closingTime'),
         dataIndex: 'createdAtUtc',
-        render: (v: string | undefined) => (v ? formatDateTime(v, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
     ],
     [t]
@@ -586,90 +696,68 @@ export default function ReportCenterPage() {
           : t('adminShell.reporting.reportCenter.workspaceStripDiagnostic');
 
   const formalFilters = (
-    <Card size="small" style={{ marginBottom: 12 }} title={t('adminShell.reporting.reportCenter.filtersTitle')}>
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={8}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.dateRange')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
-            <RangePicker
-              style={{ width: '100%' }}
-              picker={pickerMode as 'date' | 'month' | 'year'}
-              format={pickerMode === 'date' ? DAYJS_DATE_FORMAT : undefined}
-              value={dateRange}
-              onChange={(v) => {
-                if (v?.[0] && v[1]) setDateRange([v[0], v[1]]);
-              }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} lg={6}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
-            <Select
-              allowClear
-              placeholder={t('adminShell.reporting.reportCenter.registerAll')}
-              style={{ width: '100%' }}
-              options={registerOptions}
-              value={cashRegisterId}
-              onChange={(v) => setCashRegisterId(v)}
-            />
-          </div>
-        </Col>
-        {(tab === 'monatsbericht' || tab === 'jahresbericht') && (
-          <Col xs={24} lg={5}>
-            <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.scope')}</Typography.Text>
-            <div style={{ marginTop: 4 }}>
+    <ReportFilters
+      key={`formal-${tab}-${pickerMode}`}
+      mode="live"
+      cardTitle={t('adminShell.reporting.reportCenter.filtersTitle')}
+      registerRequired={false}
+      registerAllowClear
+      pickerMode={pickerMode}
+      onGenerate={applyFormalFilters}
+      initialValues={{ dateRange, registerId: cashRegisterId }}
+      extra={
+        <>
+          {(tab === 'monatsbericht' || tab === 'jahresbericht') && (
+            <Form.Item label={t('adminShell.reporting.reportCenter.scope')}>
               <Select
-                style={{ width: '100%' }}
+                style={{ minWidth: 160 }}
                 value={scopeKind}
                 onChange={(v) => setScopeKind(v)}
                 options={[
                   { value: 'all', label: t('adminShell.reporting.reportCenter.scopeAll') },
-                  { value: 'Register', label: t('adminShell.reporting.reportCenter.scopeRegister') },
+                  {
+                    value: 'Register',
+                    label: t('adminShell.reporting.reportCenter.scopeRegister'),
+                  },
                   { value: 'Company', label: t('adminShell.reporting.reportCenter.scopeCompany') },
                 ]}
               />
-            </div>
-          </Col>
-        )}
-        <Col xs={24} lg={5}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.filterReport')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
+            </Form.Item>
+          )}
+          <Form.Item label={t('adminShell.reporting.reportCenter.filterReport')}>
             <Select
-              style={{ width: '100%' }}
+              style={{ minWidth: 160 }}
               value={reportDocFilter}
               onChange={(v) => setReportDocFilter(v)}
               options={docFilterOptions}
             />
-          </div>
-        </Col>
-        <Col xs={24} lg={5}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.filterSubmission')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
+          </Form.Item>
+          <Form.Item label={t('adminShell.reporting.reportCenter.filterSubmission')}>
             <Select
-              style={{ width: '100%' }}
+              style={{ minWidth: 160 }}
               value={submissionFilter}
               onChange={(v) => setSubmissionFilter(v)}
               options={subFilterOptions}
             />
-          </div>
-        </Col>
-      </Row>
-    </Card>
+          </Form.Item>
+        </>
+      }
+    />
   );
 
   return (
     <div style={{ paddingBottom: 24 }}>
       <AdminPageHeader
         title={t('adminShell.reporting.reportCenter.pageTitle')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.reportCenter'), href: '/reporting/report-center' }]}
+        breadcrumbs={[
+          adminOverviewCrumb(t),
+          { title: t('nav.reportCenter'), href: '/reporting/report-center' },
+        ]}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
           {t('adminShell.reporting.reportCenter.pageIntro')}
         </Typography.Paragraph>
-        <Typography.Text type="secondary">
-          {stripLabel}
-        </Typography.Text>
+        <Typography.Text type="secondary">{stripLabel}</Typography.Text>
       </AdminPageHeader>
 
       <FormalReportLanguageNotice />
@@ -679,14 +767,7 @@ export default function ReportCenterPage() {
           block
           value={tab}
           onChange={(v) => setTab(v as WorkspaceTab)}
-          options={[
-            { label: t('adminShell.reporting.reportCenter.tabTages'), value: 'tagesbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabMonats'), value: 'monatsbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabJahres'), value: 'jahresbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabPerioden'), value: 'periodenbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabXz'), value: 'xz' },
-            { label: t('adminShell.reporting.reportCenter.tabQueue'), value: 'submissionQueue' },
-          ]}
+          options={workspaceTabOptions}
         />
       </Card>
 
@@ -697,7 +778,9 @@ export default function ReportCenterPage() {
             title={
               <Space wrap>
                 <span>{t('adminShell.reporting.reportCenter.listTitleTages')}</span>
-                <Link href="/reporting/tagesbericht">{t('adminShell.reporting.reportCenter.linkFullList')}</Link>
+                <Link href="/reporting/tagesbericht">
+                  {t('adminShell.reporting.reportCenter.linkFullList')}
+                </Link>
               </Space>
             }
           >
@@ -719,7 +802,9 @@ export default function ReportCenterPage() {
             title={
               <Space wrap>
                 <span>{t('adminShell.reporting.reportCenter.listTitleMonats')}</span>
-                <Link href="/reporting/monatsbericht">{t('adminShell.reporting.reportCenter.linkFullList')}</Link>
+                <Link href="/reporting/monatsbericht">
+                  {t('adminShell.reporting.reportCenter.linkFullList')}
+                </Link>
               </Space>
             }
           >
@@ -741,7 +826,9 @@ export default function ReportCenterPage() {
             title={
               <Space wrap>
                 <span>{t('adminShell.reporting.reportCenter.listTitleJahres')}</span>
-                <Link href="/reporting/jahresbericht">{t('adminShell.reporting.reportCenter.linkFullList')}</Link>
+                <Link href="/reporting/jahresbericht">
+                  {t('adminShell.reporting.reportCenter.linkFullList')}
+                </Link>
               </Space>
             }
           >
@@ -758,36 +845,20 @@ export default function ReportCenterPage() {
 
       {tab === 'periodenbericht' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabPerioden')}>
-          <Alert type="info" showIcon title={t('adminShell.reporting.reportCenter.periodenSectionIntro')} style={{ marginBottom: 12 }} />
-          <Card size="small" style={{ marginBottom: 12 }} title={t('adminShell.reporting.reportCenter.filtersTitle')}>
-            <Row gutter={[12, 12]}>
-              <Col xs={24} md={12}>
-                <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.dateRange')}</Typography.Text>
-                <div style={{ marginTop: 4 }}>
-                  <RangePicker format={DAYJS_DATE_FORMAT}
-                    style={{ width: '100%' }}
-                    value={periodenRange}
-                    onChange={(v) => {
-                      if (v?.[0] && v[1]) setPeriodenRange([v[0], v[1]]);
-                    }}
-                  />
-                </div>
-              </Col>
-              <Col xs={24} md={12}>
-                <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
-                <div style={{ marginTop: 4 }}>
-                  <Select
-                    allowClear
-                    placeholder={t('adminShell.reporting.reportCenter.registerAll')}
-                    style={{ width: '100%' }}
-                    options={registerOptions}
-                    value={cashRegisterId}
-                    onChange={(v) => setCashRegisterId(v)}
-                  />
-                </div>
-              </Col>
-            </Row>
-          </Card>
+          <Alert
+            type="info"
+            showIcon
+            title={t('adminShell.reporting.reportCenter.periodenSectionIntro')}
+            style={{ marginBottom: 12 }}
+          />
+          <ReportFilters
+            mode="live"
+            cardTitle={t('adminShell.reporting.reportCenter.filtersTitle')}
+            registerRequired={false}
+            registerAllowClear
+            onGenerate={applyPeriodenFilters}
+            initialValues={{ dateRange: periodenRange, registerId: cashRegisterId }}
+          />
           <Space style={{ marginBottom: 12 }} wrap>
             <Button type="default" href="/reporting?tab=periodic">
               {t('adminShell.reporting.reportCenter.periodenLinkLive')}
@@ -805,15 +876,23 @@ export default function ReportCenterPage() {
 
       {tab === 'xz' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabXz')}>
-          <Alert type="warning" showIcon title={t('adminShell.reporting.reportCenter.xzLegalNote')} style={{ marginBottom: 8 }} />
+          <Alert
+            type="warning"
+            showIcon
+            title={t('adminShell.reporting.reportCenter.xzLegalNote')}
+            style={{ marginBottom: 8 }}
+          />
           <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
             {t('adminShell.reporting.reportCenter.xzOperationalNote')}
           </Typography.Paragraph>
           <Row gutter={[16, 12]} style={{ marginBottom: 16 }}>
             <Col xs={24} md={8}>
-              <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('adminShell.reporting.dateRange')}
+              </Typography.Text>
               <div style={{ marginTop: 4 }}>
-                <DatePicker format={DAYJS_DATE_FORMAT}
+                <DatePicker
+                  format={DAYJS_DATE_FORMAT}
                   style={{ width: '100%' }}
                   value={xzBusinessDate}
                   onChange={(d) => {
@@ -823,20 +902,25 @@ export default function ReportCenterPage() {
               </div>
             </Col>
             <Col xs={24} md={10}>
-              <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('adminShell.reporting.reportCenter.register')}
+              </Typography.Text>
               <div style={{ marginTop: 4 }}>
-                <Select
+                <CashRegisterSelector
+                  value={xzCashRegisterId}
+                  onChange={setXzCashRegisterId}
+                  showFormItem={false}
+                  required={false}
                   allowClear
                   placeholder={t('adminShell.reporting.reportCenter.registerAll')}
                   style={{ width: '100%' }}
-                  options={registerOptions}
-                  value={xzCashRegisterId}
-                  onChange={(v) => setXzCashRegisterId(v)}
                 />
               </div>
             </Col>
             <Col xs={24} md={6}>
-              <Typography.Text type="secondary">{t('adminShell.reporting.activeOnly')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('adminShell.reporting.activeOnly')}
+              </Typography.Text>
               <div style={{ marginTop: 4 }}>
                 <Switch checked={xzActiveOnly} onChange={setXzActiveOnly} />
               </div>
@@ -879,22 +963,32 @@ export default function ReportCenterPage() {
                 {xzQ.data?.schemaVersion ?? '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelUtc')}>
-                {xzQ.data?.generatedAtUtc ? formatDateTime(xzQ.data.generatedAtUtc, '', { second: '2-digit' }) : '—'}
+                {xzQ.data?.generatedAtUtc
+                  ? formatDateTime(xzQ.data.generatedAtUtc, '', { second: '2-digit' })
+                  : '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.dateRange')}>
                 {xzQ.data?.viennaBusinessDate ? formatDate(xzQ.data.viennaBusinessDate, '') : '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.tabInterim')}>
-                {xzQ.data?.isCurrentBusinessDay ? t('adminShell.reporting.yes') : t('adminShell.reporting.no')}
+                {xzQ.data?.isCurrentBusinessDay
+                  ? t('adminShell.reporting.yes')
+                  : t('adminShell.reporting.no')}
               </Descriptions.Item>
-              <Descriptions.Item label={t('adminShell.reporting.reportCenter.colScope')}>{xzQ.data?.scopeKind ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label={t('adminShell.reporting.reportCenter.colScope')}>
+                {xzQ.data?.scopeKind ?? '—'}
+              </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelClosings')}>
                 {xzQ.data?.linkedClosingIds?.length ?? 0}
               </Descriptions.Item>
             </Descriptions>
 
             {xzQ.data?.parts?.length ? (
-              <Card size="small" title={t('adminShell.reporting.totalsTitle')} style={{ marginBottom: 16 }}>
+              <Card
+                size="small"
+                title={t('adminShell.reporting.totalsTitle')}
+                style={{ marginBottom: 16 }}
+              >
                 <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                   {xzQ.data.parts.map((p) => (
                     <div key={p.kind}>
@@ -913,10 +1007,17 @@ export default function ReportCenterPage() {
                 <Card size="small" title={t('adminShell.reporting.tabSummary')}>
                   <Typography.Paragraph>
                     {t('adminShell.reporting.gross')}:{' '}
-                    <strong>{Number(xzQ.data?.fullDayOperationalSummary?.grossTotalAmount ?? 0).toFixed(2)}</strong> ·{' '}
-                    {t('adminShell.reporting.tax')}:{' '}
-                    <strong>{Number(xzQ.data?.fullDayOperationalSummary?.taxTotalAmount ?? 0).toFixed(2)}</strong> ·{' '}
-                    {t('adminShell.reporting.rows')}: <strong>{xzQ.data?.fullDayOperationalSummary?.paymentRowCount ?? 0}</strong>
+                    <strong>
+                      {Number(xzQ.data?.fullDayOperationalSummary?.grossTotalAmount ?? 0).toFixed(
+                        2
+                      )}
+                    </strong>{' '}
+                    · {t('adminShell.reporting.tax')}:{' '}
+                    <strong>
+                      {Number(xzQ.data?.fullDayOperationalSummary?.taxTotalAmount ?? 0).toFixed(2)}
+                    </strong>{' '}
+                    · {t('adminShell.reporting.rows')}:{' '}
+                    <strong>{xzQ.data?.fullDayOperationalSummary?.paymentRowCount ?? 0}</strong>
                   </Typography.Paragraph>
                   <Table
                     size="small"
@@ -936,12 +1037,16 @@ export default function ReportCenterPage() {
                   <Card size="small" title={t('adminShell.reporting.tabInterim')}>
                     <Typography.Paragraph>
                       {t('adminShell.reporting.gross')}:{' '}
-                      <strong>{Number(xzQ.data.interimXLike.summary?.grossTotalAmount ?? 0).toFixed(2)}</strong> ·{' '}
-                      {t('adminShell.reporting.rows')}: <strong>{xzQ.data.interimXLike.summary?.paymentRowCount ?? 0}</strong>
+                      <strong>
+                        {Number(xzQ.data.interimXLike.summary?.grossTotalAmount ?? 0).toFixed(2)}
+                      </strong>{' '}
+                      · {t('adminShell.reporting.rows')}:{' '}
+                      <strong>{xzQ.data.interimXLike.summary?.paymentRowCount ?? 0}</strong>
                     </Typography.Paragraph>
                     {xzQ.data.interimVsFullDaySnapshot ? (
                       <Typography.Paragraph type="secondary">
-                        Δ {t('adminShell.reporting.gross')}: {Number(xzQ.data.interimVsFullDaySnapshot.deltaGross).toFixed(2)}
+                        Δ {t('adminShell.reporting.gross')}:{' '}
+                        {Number(xzQ.data.interimVsFullDaySnapshot.deltaGross).toFixed(2)}
                       </Typography.Paragraph>
                     ) : null}
                   </Card>
@@ -957,15 +1062,17 @@ export default function ReportCenterPage() {
                 title={
                   <div>
                     <div>{xzQ.data.operationalVsClosing.note}</div>
-                    <div>
-                      Δ: {Number(xzQ.data.operationalVsClosing.deltaGross).toFixed(2)}
-                    </div>
+                    <div>Δ: {Number(xzQ.data.operationalVsClosing.deltaGross).toFixed(2)}</div>
                   </div>
                 }
               />
             ) : null}
 
-            <Card size="small" title={t('adminShell.reporting.closingsTableTitle')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('adminShell.reporting.closingsTableTitle')}
+              style={{ marginBottom: 12 }}
+            >
               <Table
                 size="small"
                 rowKey="id"
@@ -996,9 +1103,16 @@ export default function ReportCenterPage() {
 
       {tab === 'submissionQueue' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabQueue')}>
-          <Typography.Paragraph type="secondary">{t('adminShell.reporting.reportCenter.queueSectionIntro')}</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">
+            {t('adminShell.reporting.reportCenter.queueSectionIntro')}
+          </Typography.Paragraph>
           {!canFinanzOnlineView ? (
-            <Alert type="warning" showIcon title={t('adminShell.reporting.reportCenter.queueNoPermission')} style={{ marginBottom: 12 }} />
+            <Alert
+              type="warning"
+              showIcon
+              title={t('adminShell.reporting.reportCenter.queueNoPermission')}
+              style={{ marginBottom: 12 }}
+            />
           ) : null}
           {canFinanzOnlineView ? (
             <>
@@ -1031,7 +1145,12 @@ export default function ReportCenterPage() {
         </Card>
       ) : null}
 
-      <ReportChainTimelineDrawer open={chainOpen} onClose={() => setChainOpen(false)} reportType={chainType} reportId={chainReportId} />
+      <ReportChainTimelineDrawer
+        open={chainOpen}
+        onClose={() => setChainOpen(false)}
+        reportType={chainType}
+        reportId={chainReportId}
+      />
 
       <Modal
         title={t('adminShell.reporting.reportCenter.periodenModalTitle')}
@@ -1054,7 +1173,9 @@ export default function ReportCenterPage() {
                 <Descriptions.Item label={t('adminShell.reporting.tax')}>
                   {Number(periodenDetailQ.data.summary?.taxTotalAmount ?? 0).toFixed(2)}
                 </Descriptions.Item>
-                <Descriptions.Item label={t('adminShell.reporting.rows')}>{periodenDetailQ.data.summary?.paymentRowCount ?? 0}</Descriptions.Item>
+                <Descriptions.Item label={t('adminShell.reporting.rows')}>
+                  {periodenDetailQ.data.summary?.paymentRowCount ?? 0}
+                </Descriptions.Item>
               </Descriptions>
               {periodenDetailQ.data.warnings?.length ? (
                 <Alert

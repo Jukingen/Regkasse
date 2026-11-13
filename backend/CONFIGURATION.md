@@ -1,16 +1,200 @@
 # Backend configuration (secrets and environment)
 
-Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design.
+Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design. Tracked sources of truth: `appsettings.example.json`, `appsettings.Development.example.json`, `appsettings.Staging.example.json`, `appsettings.Production.example.json`.
 
+## Environment layering (`ASPNETCORE_ENVIRONMENT` + `RELEASE_STAGE`)
+
+| Layer | File | Role |
+|-------|------|------|
+| Base | `appsettings.json` | Safe shared defaults (no DB password, no JWT secret, no PEM/API keys) |
+| Development | `appsettings.Development.json` | Demo/Fake TSE, FinanzOnline simulation, 2FA off + bypass, CSRF off, NTP bypass; `Deployment:ReleaseStage=dev` |
+| Staging | `appsettings.Staging.json` | Production-like fiscal lock, CSRF/2FA on, staging CORS/Redis; `ReleaseStage=staging` |
+| Production | `appsettings.Production.json` | Real RKSV/FO flags, CSRF on, rate limit on, SuperAdmin 2FA on — **still no secrets**; `ReleaseStage=production` or `canary` |
+| Secrets | User secrets / env vars | `ConnectionStrings:DefaultConnection`, `JwtSettings:SecretKey`, Fiskaly keys, license PEMs (or `LicenseSettings` file paths under gitignored `App_Data/`) |
+
+Also set `RELEASE_STAGE=dev|staging|canary|production` (or `Deployment__ReleaseStage`). Details: [`docs/ENVIRONMENT_CONFIGURATION.md`](../docs/ENVIRONMENT_CONFIGURATION.md).
+
+Load order (ASP.NET Core): base → environment overlay → user secrets (Development by default; Staging via `ApplicationHost`) → environment variables. Production does not load user secrets.
+
+### Hosting model (Program / ApplicationHost)
+
+- **No `Startup.cs`** — .NET 10 `WebApplication.CreateBuilder` / `WebApplication` pipeline in `ApplicationHost.cs`; `Program.cs` only builds and runs the host.
+- Controllers for domain APIs; health probes via `HealthController` + `HealthChecks/*` (see `docs/HEALTH_GUARDRAILS.md`).
+- Auth: `AddAuthentication().AddJwtBearer` + `AddAppAuthorization()` (`AddAuthorization` with permission policies).
+- EF: `AddDbContext` + scoped `AddDbContextFactory` (required for singleton services that open scopes).
+- CORS policy `RegkasseClients`: Development trusts local/LAN/`*.local`; Production requires `Cors:AllowedOrigins` and also allows HTTPS `*.regkasse.at` (POS / FA / Sites / tenant slug hosts). Custom website domains must be listed in `Cors:AllowedOrigins`.
+
+### Required sections (presence checklist)
+
+| Section | Base | Development | Production | Notes |
+|---------|------|-------------|------------|--------|
+| `TwoFactorAuth` | yes | yes (Enabled=false) | yes (Enabled=true) | See `docs/AUTH_TWO_FACTOR.md` |
+| `Backup` | yes (Fake) | yes (Fake) | yes (PgDump paths) | Staging/archive roots via secrets in Dev |
+| `FinanzOnline` (+ Outbox/RetryJob) | yes | simulation | real | Credentials from DB / secrets, not tracked JSON |
+| `Security:Csrf` | yes | disabled | enabled (startup fail-closed) | |
+| `GoLive` | yes (all false) | inherit | all false until humans attest | Super Admin GO/NO-GO dashboard |
+| `PaymentGateway` | Mock | Mock | **None or Stripe** (Mock rejected at startup) | Card/PayPal intents; cash-only use `None`. Operator guide: [`docs/ONLINE_PAYMENTS.md`](../docs/ONLINE_PAYMENTS.md) |
+| `JwtSettings` Issuer/Audience | yes | inherit | yes | **SecretKey never in JSON** |
+| `ConnectionStrings` | omit | omit | omit | User secrets / env only |
 ## Required secrets (local, staging, production)
 
 | Setting | JSON path | Environment variable (override) | Notes |
 |--------|------------|-----------------------------------|--------|
-| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. |
+| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. Production should include `Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;` (ApplicationHost also applies these defaults in Production when omitted). |
 | JWT signing key | `JwtSettings:SecretKey` | `JwtSettings__SecretKey` | Minimum 32 characters; rotate if ever exposed. |
 | JWT issuer / audience | `JwtSettings:Issuer`, `JwtSettings:Audience` | `JwtSettings__Issuer`, `JwtSettings__Audience` | Non-secret values may live in example config. |
+| Redis (distributed cache) | `Redis:ConnectionString` | `Redis__ConnectionString` | Default `localhost:6379`. Used by `ICacheService` (`RedisCacheService`). On Redis failure the service falls back to process-local `IMemoryCache` (Error logged; `IsRedisAvailable=false`). Process-local `IMemoryCache` also remains for lockout/rate-limit/QR. |
+| Redis enabled | `Redis:Enabled` | `Redis__Enabled` | Development default `false` (memory). Production/Staging default on when unset (`true` recommended). |
+| Redis key prefix | `Redis:InstanceName` | `Redis__InstanceName` | e.g. `Regkasse_Dev` / `Regkasse_Prod`. Applied by `AddStackExchangeRedisCache`. |
+| Domain cache TTLs | `CacheSettings:*` | `CacheSettings__*` | See § CacheSettings below. |
+
+### Cache Settings (domain `ICacheService`)
+
+Bound from section `CacheSettings` (`KasseAPI_Final.Configuration.CacheSettings`). Env overrides use double-underscore (`CacheSettings__LicenseCacheMinutes`).
+
+| Key | Default | Env override | Description |
+|-----|---------|--------------|-------------|
+| `CacheSettings:LicenseCacheMinutes` | `5` | `CacheSettings__LicenseCacheMinutes` | Mandant license status TTL |
+| `CacheSettings:ProductCacheMinutes` | `15` | `CacheSettings__ProductCacheMinutes` | Product list TTL |
+| `CacheSettings:PermissionCacheMinutes` | `30` | `CacheSettings__PermissionCacheMinutes` | Effective user permissions TTL |
+| `CacheSettings:TenantSettingsCacheMinutes` | `60` | `CacheSettings__TenantSettingsCacheMinutes` | Tenant settings snapshot TTL |
+| `CacheSettings:TenantLimitsCacheMinutes` | `5` | `CacheSettings__TenantLimitsCacheMinutes` | Per-tenant operational caps (`tenant_limits_{tenantId}`) |
+| `CacheSettings:TseHealthCacheSeconds` | `30` | `CacheSettings__TseHealthCacheSeconds` | Reserved for domain TSE health via `CacheKeys.TseHealth` (process TSE monitor stays in-memory today) |
+
+**Environment-specific TTL guidance:**
+
+| Environment | Guidance |
+|-------------|----------|
+| Development | Shorter TTLs (example: products ~10m, permissions ~15m, tenant settings ~30m) for faster feedback after writes |
+| Staging | Production-like or slightly longer TTLs for realistic hit/miss observation (`docs/CACHE_OPTIMIZATION.md`) |
+| Production | Defaults or longer (15–60m for catalogs/settings) after Staging confirms freshness; keep **license** short (`5`) |
+
+Related Redis keys (same process):
+
+| Key | Default / example | Env override | Description |
+|-----|-------------------|--------------|-------------|
+| `Redis:Enabled` | Dev `false`; Prod/Staging `true` | `Redis__Enabled` | When false, domain cache uses `MemoryCacheService` |
+| `Redis:ConnectionString` | `localhost:6379` | `Redis__ConnectionString` | StackExchange Redis endpoint |
+| `Redis:InstanceName` | e.g. `Regkasse_Prod` | `Redis__InstanceName` | Key prefix via `AddStackExchangeRedisCache` |
+
+#### Redis vs MemoryCache fallback
+
+| Mode | When | Behavior |
+|------|------|----------|
+| Memory | Development default, or `Redis:Enabled=false` | `MemoryCacheService` only |
+| Redis | Staging/Production when enabled | `RedisCacheService` over `IDistributedCache` |
+| Fallback | Redis unreachable / op failure | Same process serves from in-process `IMemoryCache`; **Error** logged; callers of `ICacheService` see no exception |
+
+**Transparent fallback (`RedisCacheService`):** Every Get/Set/Remove/Exists/`GetOrCreate` Redis call is try/catch’d. On transient Redis failure the service:
+
+1. Sets **`IsRedisAvailable = false`** (returns to `true` after a later successful Redis round-trip).
+2. Logs at **Error** (`Redis cache unavailable; falling back to in-process IMemoryCache…`).
+3. Serves/writes via injected **`IMemoryCache`** (and keeps a memory mirror on successful Redis writes for blip resilience).
+
+Domain services keep depending only on `ICacheService` — they do not branch on Redis vs memory.
+
+**Health:** `GET /api/health/ready` check `cache` (`RedisCacheHealthCheck`) reads `RedisCacheService.IsRedisAvailable`. A ping that only succeeds via memory fallback still yields **`redisStatus`: `Degraded`** (never Unhealthy / HTTP 503 for Redis alone). Entry data includes `isRedisAvailable`.
+
+Process-local `IMemoryCache` remains separately for CSRF, lockout, rate-limit, QR — never move those onto `ICacheService`.
+
+#### Cache key naming conventions
+
+Use `CacheKeys` helpers only (`backend/Services/Caching/CacheKeys.cs`) — no ad-hoc strings.
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `CacheKeys.LicenseStatus` → `license_status_{tenantId}` | `license_status_a1b2-…` | Billing/mandant license Cache-Aside |
+| `CacheKeys.ProductList` → `product_list_{tenantId}` | `product_list_a1b2-…` | Unfiltered list; also **prefix** for category variants |
+| `CacheKeys.ProductListByCategory` → `product_list_{tenantId}_cat_{categoryId}` | `product_list_…_cat_…` | Category-filtered list |
+| `CacheKeys.ProductDetail` → `product_detail_{productId}` | `product_detail_…` | Optional single-product projection |
+| `CacheKeys.UserPermissions` → `user_permissions_{userId}` | `user_permissions_…` | Effective permission snapshot |
+| `CacheKeys.TenantSettings` → `tenant_settings_{tenantId}` | `tenant_settings_…` | Tenant settings snapshot |
+| `CacheKeys.TenantLimits` → `tenant_limits_{tenantId}` | `tenant_limits_…` | Per-tenant operational caps |
+| `CacheKeys.TseHealth` → `tse_health_{scopeId}` | `tse_health_…` | Reserved template for TSE health via `ICacheService` |
+| `CacheKeys.HealthPing` | `health_check_ping` | Ready probe only — not business data |
+
+Build keys with `CacheKeys.Format(CacheKeys.LicenseStatus, tenantId)` (never interpolate magic strings).
+
+Invalidation: `CacheInvalidationHelper` (event-based after writes). Never store passwords, voucher codes, or payment details in domain cache keys/values.
+
+#### Cache Tuning (Staging)
+
+Full observation worksheet: [`docs/CACHE_OPTIMIZATION.md`](../docs/CACHE_OPTIMIZATION.md). Summary:
+
+| Rule of thumb | Action |
+|---------------|--------|
+| Hit rate &gt; ~80% + event invalidation on writes | Consider **increasing** TTL (Staging products → 30m, permissions → 60m) |
+| Hit rate &lt; ~50% | Consider **decreasing** TTL or dropping that key later |
+| License / SaaS gate | Keep **short** TTL (`5`) even if hit rate is only moderate |
+
+**Observation (~1 week on Staging):** set `Logging:LogLevel:KasseAPI_Final.Services.Caching` to **`Debug`** (hit/miss lines are Debug-level; `Information` alone will **not** show them), then revert to **`Warning`**.
+
+**Provisional Staging TTLs** (applied in `appsettings.Staging.example.json` pending live hit/miss fill-in):
+
+| Domain | Staging TTL | Rationale |
+|--------|-------------|-----------|
+| License | **5** min | Freshness-critical SaaS gate; event invalidation on sale/activate |
+| Products | **30** min | Expect high list-read hit rate; writes invalidate prefix |
+| Permissions | **60** min (1h) | Expect high authz hit rate; role change invalidates key |
+| Tenant settings | **90** min | Low write frequency |
+
+Live hit rates: fill the table in `docs/CACHE_OPTIMIZATION.md` §2 after the observation week, then revise TTLs here if measured rates disagree. Do not copy Staging TTLs to Production until Demo & QA confirms freshness.
+
+**Fallback note:** The system automatically falls back to `IMemoryCache` if Redis becomes unavailable. This ensures continued operation, though cache effectiveness may decrease. When Redis is unavailable, cache entries are stored **in memory per instance**, not shared across instances, until Redis recovers. When Redis recovers, `RedisCacheService` logs **Information** (`Redis is available again, switching back from MemoryCache`) and sets `IsRedisAvailable=true` again.
+
+**Local Redis (Windows):** Docker/WSL optional. Portable build under `tools/redis` (gitignored). Start with:
+
+```powershell
+.\scripts\start-redis-dev.ps1
+.\scripts\start-redis-dev.ps1 -PingOnly
+```
+
+### Authentication (`Auth`)
+
+| Setting | JSON path | Environment variable | Notes |
+|--------|------------|----------------------|--------|
+| Require membership on login | `Auth:RequireTenantMembershipForLogin` | `Auth__RequireTenantMembershipForLogin` | **Staging/Production: `true` (ValidateOnStart).** Development template may use `false` for DX. When enabled, password login returns `400` + `TENANT_MEMBERSHIP_REQUIRED` if the user has no active `user_tenant_memberships` row. SuperAdmin is exempt. |
+| JWT↔Host match | `Auth:RequireTenantHostMatch` | `Auth__RequireTenantHostMatch` | Default/`AuthOptions`: `true`. Development overlay: `false`. Staging/Production templates: `true`. On mandant subdomain / custom domain, JWT `tenant_id` must equal Host-resolved tenant (**HTTP 403** + `TENANT_HOST_MISMATCH` on mismatch). Shared hosts (`api`/`pos`/`admin`/`www`/`regkasse.at`/loopback) and SuperAdmin impersonation (`tenant_impersonation=true`) are exempt. Emergency kill-switch: set `false`. |
+| Access token lifetime | `Auth:AccessTokenLifetimeMinutes` | `Auth__AccessTokenLifetimeMinutes` | Default 1440 (24h). |
+| Refresh token lifetime | `Auth:RefreshTokenLifetimeDays` | `Auth__RefreshTokenLifetimeDays` | Default 14. |
+| Legacy login without clientApp | `Auth:AllowLegacyLoginWithoutClientApp` | `Auth__AllowLegacyLoginWithoutClientApp` | Production/Staging: `false`. |
+
+### Auth cookies (`AuthCookies`)
+
+HttpOnly cookies for **browser** sessions, split by `clientApp` so FA and POS in the same browser do not overwrite each other:
+
+| App | Access cookie | Refresh cookie |
+|-----|---------------|----------------|
+| FA (`admin`) | `rk_admin_access_token` | `rk_admin_refresh_token` |
+| POS (`pos`) | `rk_pos_access_token` | `rk_pos_refresh_token` |
+
+POS/native still uses JSON `token` / `refreshToken` (SecureStore) as the source of truth; Bearer header wins when present. Legacy `access_token` / `refresh_token` are still **read and expired** so leftover shared cookies do not collide. JWT Bearer header wins when present. Cookie pick when both apps are logged in: `X-App-Context` / `RefreshRequest.clientApp` / Origin (`admin.*` vs `pos.*`), else admin then POS.
+
+**Logout security (cookie scope, SecurityStamp, CSRF, client cleanup):** [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
+
+| Setting | JSON path | Notes |
+|--------|------------|--------|
+| Enabled | `AuthCookies:Enabled` | Default `true`. |
+| Legacy aliases | `AuthCookies:AccessCookieName` / `RefreshCookieName` | Extra names to read/clear (defaults `access_token` / `refresh_token`). Writes always use `rk_admin_*` / `rk_pos_*`. |
+| Domain | `AuthCookies:Domain` | Production: `.regkasse.at` so Edge `proxy.ts` can read the HttpOnly **admin** access cookie (`rk_admin_access_token`). Empty = host-only (API origin). |
+| SameSite | `AuthCookies:SameSite` | Production `Lax` (same-site admin↔api). Development `None` so cross-site `admin.regkasse.local` → `localhost` XHR sends cookies (`Secure` is forced). |
+| Secure | `AuthCookies:Secure` | Default off in Development / on otherwise. `SameSite=None` always forces `Secure=true`. |
+
+### SuperAdmin two-factor authentication (`TwoFactorAuth`)
+
+Hub: [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md).
+
+| Setting | JSON path | Environment variable | Notes |
+|--------|------------|----------------------|--------|
+| Master switch | `TwoFactorAuth:Enabled` | `TwoFactorAuth__Enabled` | Production: `true`. Local Dev template may use `false`. |
+| Dev login bypass | `TwoFactorAuth:BypassInDevelopment` | `TwoFactorAuth__BypassInDevelopment` | Only honored when `ASPNETCORE_ENVIRONMENT=Development`. |
+| Dev test code | `TwoFactorAuth:TestToken` | `TwoFactorAuth__TestToken` | Accepted only in Development (with `DEV-2FA-BYPASS`). Leave empty in Production. |
+
+Legacy override: `Auth:RequireSuperAdminTwoFactor` (`null` = follow `TwoFactorAuth` rules). Prefer the `TwoFactorAuth` section for new config.
 
 FinanzOnline **user/password** for SOAP are expected from **company settings in the database** (or optional `FinanzOnline:Session` binding in non-tracked config). Do not put production FinanzOnline credentials in tracked files.
+
+Development Soft FON (`UseSimulation=true`) leaves `Session:BaseUrl`, `Registrierkassen:BaseUrl`, and `Session:DefaultCredential` empty on purpose. Startup readiness warnings for those keys are Development-only. Production/Staging must set them (or `Connectivity:UseCompanySettings` + `company_settings`). See [`docs/ENVIRONMENT_CONFIGURATION.md`](../docs/ENVIRONMENT_CONFIGURATION.md) § Common Warnings.
 
 ### Manual restore approval (Super Admin)
 
@@ -34,7 +218,7 @@ Product rows keep `StockQuantity` / `MinStockLevel` in the database; this sectio
 
 | Setting | JSON path | Environment variable | Default | Effect when `false` |
 |--------|------------|----------------------|---------|---------------------|
-| Enforce stock on payment | `Inventory:EnforceStockAvailability` | `Inventory__EnforceStockAvailability` | `true` | POS payment does **not** reject for low stock and does **not** change `Product.StockQuantity` on payment, storno, or refund (symmetric). |
+| Enforce stock on payment | `Inventory:EnforceStockOnSales` | `Inventory__EnforceStockOnSales` | `false` | When `false`, POS payment does **not** reject for low stock and does **not** change `Product.StockQuantity` on payment, storno, or refund. |
 
 Operator-facing Lager UI in **frontend-admin** is controlled separately via **Next.js** `NEXT_PUBLIC_*` variables (baked at build). See repository `docs/inventory-lager-optional.md` (includes smoke checklist and restart/rebuild table).
 
@@ -51,13 +235,27 @@ Operator-facing Lager UI in **frontend-admin** is controlled separately via **Ne
 
    ```bash
    cd backend
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD"
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD;Include Error Detail=true"
    dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_RANDOM_KEY_AT_LEAST_32_CHARS"
    ```
+
+   Development tip: `Include Error Detail=true` surfaces PostgreSQL exception details in EF logs (helpful for type mismatches such as `character varying = uuid`). Do **not** enable this in Production.
 
 The project defines `<UserSecretsId>` in `KasseAPI_Final.csproj` so `dotnet user-secrets` targets this API automatically.
 
 Alternative: set the same keys as **User** or **Machine** environment variables (names use `__` for `:`).
+
+### Weekly backup drill summary
+
+Section `BackupDrillReport` (`BackupDrillReport__*` env vars). Hosted service: `BackupDrillReportHostedService`. SMTP stays `Email:Smtp`. Default is off, Monday 06:00 UTC. An empty `Recipients` logs at Information and does not send or write an audit row.
+
+| Setting | Default | Notes |
+|---------|---------|--------|
+| `BackupDrillReport:Enabled` | `false` | |
+| `BackupDrillReport:DayOfWeekUtc` | `1` | 0 = Sunday … 6 = Saturday |
+| `BackupDrillReport:RunHourUtc` | `6` | |
+| `BackupDrillReport:RunMinuteUtc` | `0` | |
+| `BackupDrillReport:Recipients` | empty | Comma- or semicolon-separated addresses |
 
 ### Backup & DR (optional — RealPgDump selectable in Development)
 
@@ -80,6 +278,56 @@ dotnet user-secrets set "Backup:ExternalArchiveRoot" "C:\data\regkasse-backup-ar
 
 `ConnectionStrings:DefaultConnection` is already required for API startup; `Backup:VerifyLogicalDumpFileOnDisk` defaults to `true`. Set `Backup:PgDumpExecutablePath` only if `pg_dump` is not on `PATH`. See `docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`.
 
+### Production backup (required environment variables)
+
+Production must **not** use `ProductionStub` or `Fake`. Set real PostgreSQL logical backups via environment variables (or equivalent entries in untracked `appsettings.Production.json`). Do not commit machine paths or credentials to tracked files.
+
+**Minimum production backup env block:**
+
+```bash
+# PostgreSQL (required for pg_dump; use a least-privilege backup role in production)
+# Pooling: Min 5 / Max 20 / Connection Lifetime 300s (ApplicationHost also applies these in Production if omitted)
+ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=...;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;"
+
+# Real pg_dump adapter (mandatory in production)
+Backup__ExecutionAdapterKind=PgDump
+Backup__ArtifactStagingRoot=/var/backups/regkasse/staging
+Backup__ExternalArchiveRoot=/var/backups/regkasse/archive
+Backup__PgDumpExecutablePath=/usr/bin/pg_dump
+Backup__WorkerEnabled=true
+Backup__AcknowledgePhase1NoRealBackup=false
+```
+
+| Setting (JSON) | Environment variable | Production notes |
+|----------------|----------------------|------------------|
+| `Backup:ExecutionAdapterKind` | `Backup__ExecutionAdapterKind` | Must be `PgDump`. `ProductionStub` performs no PostgreSQL I/O. |
+| `Backup:ArtifactStagingRoot` | `Backup__ArtifactStagingRoot` | Absolute path; API user must be able to write `.dump` + manifest files. |
+| `Backup:ExternalArchiveRoot` | `Backup__ExternalArchiveRoot` | Absolute path; mandatory for PgDump outside Development. |
+| `Backup:PgDumpExecutablePath` | `Backup__PgDumpExecutablePath` | Full path when `pg_dump` is not on `PATH` (typical Linux: `/usr/bin/pg_dump`). |
+| `Backup:WorkerEnabled` | `Backup__WorkerEnabled` | Must be `true` for automated dequeue and scheduled runs. |
+| `Backup:AcknowledgePhase1NoRealBackup` | `Backup__AcknowledgePhase1NoRealBackup` | Must be `false` when using real backups. |
+
+**Recommended additional production keys** (also in `appsettings.Production.json` template):
+
+| Setting (JSON) | Environment variable | Example |
+|----------------|----------------------|---------|
+| `Backup:LogicalDumpConnectionStringName` | `Backup__LogicalDumpConnectionStringName` | `DefaultConnection` |
+| `Backup:ExternalArchiveMutableTargetAccepted` | `Backup__ExternalArchiveMutableTargetAccepted` | `true` (local filesystem archive; use immutability flags for WORM/S3 Object Lock instead) |
+| `Backup:ScheduledBackupEnabled` | `Backup__ScheduledBackupEnabled` | `true` |
+| `Backup:ScheduledBackupCron` | `Backup__ScheduledBackupCron` | `0 2 * * *` (daily 02:00 UTC) |
+| `Backup:RetentionPolicyMode` | `Backup__RetentionPolicyMode` | `ReportOnly` |
+| `Backup:ArtifactRetentionDays` | `Backup__ArtifactRetentionDays` | `30` |
+
+**Host prep (Linux example):**
+
+```bash
+sudo mkdir -p /var/backups/regkasse/staging /var/backups/regkasse/archive
+sudo chown <api-user>:<api-group> /var/backups/regkasse/staging /var/backups/regkasse/archive
+which pg_dump   # expect /usr/bin/pg_dump
+```
+
+Verify readiness in admin **Backup & DR** UI or trigger a manual backup after deploy; run a restore drill before go-live. See [`docs/BACKUP_PERMISSIONS.md`](../docs/BACKUP_PERMISSIONS.md) and [`backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`](docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md).
+
 ## `dotnet ef` and design-time DbContext
 
 The design-time factory loads, in order: optional `appsettings.json`, optional `appsettings.Development.json`, user secrets, then environment variables. CI agents without local JSON files should set `ConnectionStrings__DefaultConnection`.
@@ -94,26 +342,209 @@ If a password or JWT key was ever stored in a tracked file, shared screenshot, o
 
 ## Email and user management
 
+> **Full guide:** [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) — SMTP keys, dev capture, feature matrix, production checklist, troubleshooting.
+
 **Email is no longer required for day-to-day user management.** Tenant and platform users are created via admin APIs; a one-time generated password is returned in the HTTP response and must be delivered to the operator out of band. Audit logs record `USER_CREATED` with `createdByUserId`, `tenantId`, and `role` — never the password value.
 
-Optional SMTP (`Email:Smtp` in `appsettings`) may be used for **tenant onboarding welcome mail** (`WelcomeEmailService`), **username change notifications** (`UsernameChangeEmailService`), and **forgot-username recovery** (`ForgotUsernameEmailService` on `POST /api/Auth/forgot-username`). Optional `SupportContact` is shown in transactional user emails (falls back to `From`). It is **not** used for user invitations (removed) or for tenant user password reset (password returned in API/UI only).
+Optional SMTP (`Email:Smtp`) powers welcome mail, username change notices, forgot-username/password (admin app), activity alerts, license reports, invoice resend, restore approval, and payment-reversal approval. Optional `SupportContact` is shown in transactional user emails (falls back to `From`).
 
-Username changes are stored in `user_username_history` for compliance review (`UserUsernameHistoryService`).
+Username changes are stored in `user_username_history` for compliance review (`UserUsernameHistoryService`). Forgot-username emails include the **current** username only (not history).
 
-Example shape (welcome/onboarding only — do not commit real credentials):
+### Local dev (quick start)
 
-```json
-"Email": {
-  "Smtp": {
-    "Host": "smtp.example.com",
-    "Port": 587,
-    "From": "noreply@regkasse.at"
-  }
-}
+In **Development**, forgot-username / forgot-password emails are written to `backend/App_Data/dev-mail/*.txt` when `Email:DevCapture:Enabled` is `true` (default). Real inbox delivery requires separate `Email:Smtp` configuration.
+
+```powershell
+cd backend && dotnet run
+.\scripts\dev-mail-test.bat
 ```
 
-If `Host` or `From` is empty, welcome email is skipped; onboarding success UI shows credentials once instead.
+See [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) for all settings, verification steps, and production setup.
+
+## CSRF protection
+
+Section `Security:Csrf` (`Security__Csrf__*` env vars). Middleware: `CsrfMiddleware`. Token endpoint: `GET /api/csrf/token` (anonymous).
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Enabled` | `true` | When `true`, state-changing methods require a valid CSRF token (unless Development bypass applies). Production startup **throws** if this is `false`; `ProductionCsrfPostConfigure` also turns it on if options still load as disabled. |
+| `BypassInDevelopment` | `true` | When `true` **and** `ASPNETCORE_ENVIRONMENT=Development`, skip CSRF validation. Ignored outside Development. |
+| `HeaderName` | `X-XSRF-TOKEN` | Request header carrying the token from `GET /api/csrf/token`. |
+| `CookieName` | `XSRF-TOKEN` | Cookie set by the token endpoint (not HttpOnly — FA reads via `document.cookie` and sends `X-XSRF-TOKEN`). |
+| `TokenLifetimeHours` | `24` | Cache + cookie lifetime (clamped 1–168). |
+
+**Production lock:** `ProductionRuntimeConfigurationGuard` fails startup when CSRF, SuperAdmin 2FA, rate limiting, Redis, Backup `PgDump`, or a non-Mock payment gateway are missing. FON simulation is also rejected here (TSE fiscal lock remains in `TseProductionOptionsValidator`).
+
+**Templates:** Development example may disable CSRF + bypass; Production example enables CSRF with `BypassInDevelopment=false`. Copy into local `appsettings.Development.json` / `appsettings.Production.json` (gitignored).
+
+**Exempt paths:** `/api/Auth/login`, `/api/Auth/refresh`, health, swagger, metrics, `/api/webhooks/*`, `/api/csrf/token`. Native clients without a cookie jar may send the same value in `X-CSRF-COOKIE`. Response on failure: HTTP 403 with message to refresh the page.
+
+## Go-live automated NO-GO (`GoLive`)
+
+Super Admin dashboard: FA `/admin/deployments/go-live` → `GET /api/admin/deployments/go-live-status` (`system.critical`). Service: `GoLiveCheckService`.
+
+Config-only gates (Fiskaly LIVE, TSE Device/Real, FON not Simulation, CSRF/2FA/Redis/gateway, backup `PgDump` + recent System dump + restore drill, Prometheus) are evaluated from the running host. Human-only items stay **fail-closed** until ops set these after named evidence (`docs/GO_LIVE_CHECKLIST.md` §8 — agents must not set them true):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `GoLive:AlertmanagerReceiversConfigured` | `false` | Host Alertmanager receivers rendered + routing test acknowledged |
+| `GoLive:AvvSignedForPilots` | `false` | AVV signed for first paying pilots |
+| `GoLive:OnCallNamed` | `false` | On-call rota named |
+| `GoLive:Section8Signed` | `false` | Checklist §8 signed by named humans |
+
+Env: `GoLive__Section8Signed=true` (and siblings) only after wet-ink / named digital signatures.
+
+## Trial (SaaS mandant demo)
+
+Bound from section `Trial` (`KasseAPI_Final.Configuration.TrialOptions`). Env overrides: `Trial__Enabled`, `Trial__DefaultDurationDays`, etc.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Trial:Enabled` | `true` | When `false`, grant/reminder/cleanup hosted jobs no-op. |
+| `Trial:DefaultDurationDays` | `14` | Used when Super Admin does not override. |
+| `Trial:AllowedDurationDays` | `[14,30,60,90]` | Wizard / grant overrides; other values fall back to default. |
+| `Trial:GracePeriodDays` | `7` | After trial end before operational lockdown escalates. |
+| `Trial:AutoDeleteAfterGraceDays` | `30` | Soft-archive (`trial_status=deleted`) after grace; RKSV rows retained. |
+| `Trial:ReminderDays` | `[7,3,1]` | Email reminder anchors (days remaining). |
+| `Trial:MaxRegistersInTrial` | `1` | Enforced by `TrialLimitGuard`. |
+| `Trial:MaxUsersInTrial` | `3` | Enforced by `TrialLimitGuard`. |
+| `Trial:DemoCatalogImport` | `true` | Default demo catalog import on trial tenant create. |
+| `Trial:ReminderIntervalHours` | `6` | `TrialReminderHostedService` tick. |
+| `Trial:CleanupHourUtc` / `CleanupMinuteUtc` | `2` / `0` | Daily `TrialCleanupHostedService` tick. |
+
+APIs: `GET/POST /api/admin/trials*` (Super Admin). FA: `/admin/trials`. See `AGENTS.md` § Trial / Demo system.
+
+## Support tickets
+
+No dedicated `Support:` config section. Tickets persist in `support_tickets` / messages. Notifications use existing `IActivityEventPublisher` + Super Admin email (`IDataDeletionNotificationSender` / SMTP).
+
+| Surface | Route |
+|---------|-------|
+| Mandanten-Admin | `GET/POST /api/admin/support/tickets` (`license.manage`) |
+| Super Admin inbox | `/api/admin/support/admin/tickets` (`system.critical`; ambient-tenant exempt) |
+
+Cross-tenant access → HTTP 404. Internal staff notes are omitted from tenant GET.
+
+## Tenant Limits
+
+Per-mandant caps in table `tenant_limits` (one row per tenant). Lazy-created with defaults on first read. Full reference: [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md).
+
+There is **no** `TenantLimits:` appsettings section — Super Admin sets values via `PUT /api/admin/tenants/{id}/limits`. Cache TTL is `CacheSettings:TenantLimitsCacheMinutes` (default **5**).
+
+| Key | Default | Enforcement |
+|-----|---------|-------------|
+| `maxActiveRegistersPerUser` | 5 | Cash-register assignment |
+| `maxProductsPerTenant` | 10000 | Product create |
+| `maxUsersPerTenant` | 50 | User create / invite |
+| `dailyMaxTransactions` | 1000 | POS sale (UTC day) |
+| `maxTransactionAmount` | 10000 EUR | POS sale |
+| `dailyMaxRevenue` | 50000 EUR | POS sale (UTC day) |
+| `maxBackupsPerTenant` | 50 | Tenant backup trigger (succeeded runs) |
+| `maxBackupSizeMB` | 500 | Tenant backup — **cumulative** LogicalDump size |
+| `maxOfflineTransactions` | 50 | TSE offline intent queue (tenant-wide) |
+
+`maxUsersPerRegister` was removed (assignment is 1:1 on `AssignedUserId`).
+
+`Tse:MaxOfflineTransactionsPerCashRegister` still binds but is **obsolete** — queue size is `tenant_limits.max_offline_transactions`. HTTP 409 bodies use `LimitErrorDto` (`code=LIMIT_EXCEEDED`). SuperAdmin `force=true` applies **only** to cash-register assignment.
+
+Do not confuse with `Trial:*` trial caps or `TenantOperationLimits`.
+
+### Development Limit Test Panel
+
+No extra `appsettings` key. The panel is **environment-gated**:
+
+| Layer | Gate |
+|-------|------|
+| FA menu `/admin/development/limits` | `NODE_ENV=development` + SuperAdmin (`system.critical`, `developmentOnly`) |
+| FA page | Production SuperAdmin → UI 404 (`NotFoundAccessView`). Mandanten-Admin / Cashier → **403** |
+| API `/api/dev/limits/*` | `IHostEnvironment.IsDevelopment()`; otherwise HTTP **404**. Role SuperAdmin; others **403** |
+
+Usage (Development only):
+
+1. Sign in as SuperAdmin (ambient tenant required — `/api/dev/limits` is **not** a `TenantValidationMiddleware` exemption).
+2. FA: **Entwicklung → Limit Test**.
+3. Pick a mandant, lower caps or run `near` / `at` / `tiny` / `reset`, then clear the limit cache and watch usage.
+
+Full behaviour: [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md) § Development Limit Test Panel.
+
+## Unified license keys
+
+`LicenseKeyGenerator` produces `REGK-{yyyyMMdd}-{slug}-{8 alnum}`. Mandant slug is the tenant; deployment keys use slug `system`. Legacy on-prem `REGK-XXXXX-XXXXX-XXXXX` still validates (`RegkTenantLicenseKeyFormat`). Activate: `POST /api/license/activate`. Status cache: `CacheSettings:LicenseCacheMinutes` (5).
+
+Offline PEM verify remains `LicenseSettings` / `License__OfflineVerificationPublicKeyPem` (unchanged).
+
+Enable in Production only after FA/POS/sites attach the token on mutations.
+
+## RKSV cold-archive cleanup (optional)
+
+Section `RksvDataCleanup` (`RksvDataCleanup__*` env vars). Hosted service: `RksvDataCleanupHostedService`.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Enabled` | `false` | When `false`, the daily sweep is a no-op. |
+| `RetentionYears` | `7` | Payments older than this are eligible for cold-archive ZIP copies. |
+| `ExtraArchiveYears` | `3` | After retention+extra years, old archive **files** may be pruned from disk. |
+| `HardDeleteEnabled` | `false` | Even when `true`, **live** fiscal payment rows are **not** deleted (TSE/RKSV signature-chain integrity). |
+| `ArchiveRootRelativeDirectory` | `App_Data/rksv-cold-archives` | ZIP output directory (relative to content root unless rooted). |
+| `MaxBatchSize` | `500` | Max payments archived per sweep. |
+| `IntervalHours` | `24` | Delay between sweeps. |
+| `StartupGraceMinutes` | `5` | Boot delay before the first sweep. |
+
+Tracking tables: `rksv_cold_archive_runs`, `rksv_cold_archive_items`. Live `payment_details` rows remain in the database after archive.
+
+## Automatic Tagesabschluss fallback (`AutoTagesabschluss`)
+
+Hosted worker `AutoTagesabschlussHostedService` closes the **previous** Europe/Vienna business day when the cashier did not. Per-tenant time and open-order policy live on `CompanySettings.AutoTagesabschluss` (FA `/tagesabschluss`). This is **not** `WorkingHours.AutoClosePOSAtClosing` (POS display prompt only).
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `AutoTagesabschluss:Enabled` | `true` | Deployment-wide kill switch. When `false`, no tenant is auto-closed. |
+| `AutoTagesabschluss:DefaultHourVienna` | `3` | Fallback Europe/Vienna hour (0–23) when the tenant has no company-settings row. |
+| `AutoTagesabschluss:DefaultMinuteVienna` | `0` | Fallback minute (0–59). |
+| `AutoTagesabschluss:CheckIntervalMinutes` | `15` | Hosted poll interval (minimum 5). |
+
+Empty days are skipped. Auto closings are backdated (`trigger=Automatic`, audit actor `system`). On the last day of the month / year the worker also attempts Monatsbeleg / Jahresbeleg. See [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](../docs/RKSV_AFTER_TAGESABSCHLUSS.md).
+
+## Monatsbeleg POS sales policy (`MonatsbelegOps` + company settings)
+
+RKSV requires creating the Monatsbeleg within 7 days of month end. **Blocking POS sales** when last month’s receipt is missing is a **tenant product policy**, not a legal requirement.
+
+Tenant fields on `company_settings` (FA: Einstellungen → Monatsbeleg policy, `GET/PUT /api/admin/rksv/monatsbeleg-policy`):
+
+| Column | Default | Description |
+|--------|---------|-------------|
+| `monatsbeleg_blocking_mode` | `Strict` | `Strict` — block sales until previous-month Monatsbeleg exists. `GracePeriod` — allow sales Vienna days 1–14 (red 1–7, yellow 8–14), block from day 15. `WarningOnly` — never block, always warn. |
+| `auto_monatsbeleg_enabled` | `true` | When true, hosted worker creates previous-month Monatsbeleg on Vienna day 1 at 00:01 (catch-up through day 14), TSE-signs it, stores it in DEP (`payment_details`), and notifies Mandanten-Admin. Days 8–14 are a late product catch-up (RKSV legal window remains 7 days; no backdating). |
+| `monatsbeleg_retry_count` | `3` | Auto-create attempts per register/month (1–5) with exponential backoff; then Manager alert + FA red warning. |
+
+Hosted worker section `MonatsbelegOps` (`MonatsbelegOps__*` env vars). Service: `MonatsbelegSchedulerHostedService`.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `ReminderEnabled` | `true` | Daily missing-Monatsbeleg reminder to Mandanten-Admin activity feed (deduped per register/day). Jahresbeleg FON Belegcheck reminder through 15 February. |
+| `AutoCreateEnabled` | `true` | Master switch; each tenant still needs `auto_monatsbeleg_enabled`. |
+| `CheckIntervalMinutes` | `15` | Hosted poll interval (minimum 5). On day 1 before 00:01 Vienna, waits until 00:01. |
+| `CatchUpThroughDay` | `14` | Inclusive Vienna calendar day for auto-create. Days 1–7 match the RKSV legal window; days 8–14 are a late product catch-up (TSE-signed, no backdating). Day 15+ emits `MonatsbelegAutoCreateMissed` instead of creating. Distinct from GracePeriod sales-block days. |
+
+Sales gate is evaluated in `IRksvMonatsbelegPolicy.EvaluateSalesGateAsync` and applied by shift open, payment register validation, and POS `ensure-ready` (not a separate payment controller). Demo / Off TSE never blocks (`SessionGateApplies`). Detail: [`docs/RKSV_CASH_REGISTER_OPERATIONS.md`](../docs/RKSV_CASH_REGISTER_OPERATIONS.md) §4.3.
 
 ## Logging
 
 Connection strings printed at startup use `ConnectionStringMasking`; raw passwords must not appear in logs. Do not enable verbose logging of HTTP bodies or SOAP envelopes that might contain session tokens in production without redaction.
+
+| Environment | Console format | Notes |
+|-------------|----------------|-------|
+| Development | `FormatterName=readable` (`ReadableConsoleFormatter`) | `[HH:mm:ss] LEVEL [Category] message \| Tenant: … \| User: …` |
+| Production | `FormatterName=json` | Promtail/Loki aggregation — see [`docs/MONITORING.md`](../docs/MONITORING.md) |
+
+**Noise reduction (defaults in example configs):**
+
+- JWT validation success → **Debug** (failures stay Warning)
+- Cart statistics → **Debug**
+- Per-request duration → **Debug**; slow requests (≥ `Monitoring:SlowRequestThresholdMs`, default 1000) → **Warning**
+- API exceptions / HTTP 500 → **Error** / **Warning** with User, Tenant, method, path+query
+- Request scope middleware pushes `Tenant` / `TenantId` / `User` / `UserId` / `Role` / `CorrelationId` (unmasked) after auth
+
+Levels: prefer `Information` for `KasseAPI_Final`, `Warning`+ for ASP.NET/EF noise. Category filters mute `KasseAPI_Final.Program` JWT chatter when raised above Debug.
+
+Prometheus: `Monitoring:Enabled` + scrape `GET /metrics` — [`docs/METRICS.md`](../docs/METRICS.md).

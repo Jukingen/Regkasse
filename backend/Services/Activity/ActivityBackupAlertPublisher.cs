@@ -2,7 +2,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Activity;
 
@@ -48,7 +47,7 @@ public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
             var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
             var activity = scope.ServiceProvider.GetRequiredService<IActivityEventService>();
 
-            var tenantId = tenantAccessor.TenantId ?? LegacyDefaultTenantIds.Primary;
+            var tenantId = tenantAccessor.TenantId ?? SystemTenantIds.Platform;
             var (type, dedup) = MapKind(evt.Kind);
             var metadata = BuildMetadata(evt);
 
@@ -78,6 +77,9 @@ public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
         {
             BackupAlertKind.RestoreVerificationFailed => (ActivityEventType.RestoreDrillFailed, "restore_drill_failed"),
             BackupAlertKind.RestoreDrillOperationalRisk => (ActivityEventType.RestoreDrillFailed, "restore_drill_risk"),
+            BackupAlertKind.StoragePressure => (ActivityEventType.BackupFailed, "backup_storage_pressure"),
+            BackupAlertKind.RpoOverdue => (ActivityEventType.BackupFailed, "backup_rpo_overdue"),
+            BackupAlertKind.VerificationFailed => (ActivityEventType.BackupFailed, "backup_verification_failed"),
             _ => (ActivityEventType.BackupFailed, "backup_failed"),
         };
 }

@@ -1,6 +1,4 @@
-using System.Threading;
 using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
@@ -8,13 +6,11 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -34,12 +30,12 @@ public sealed class PaymentTenantIsolationTests
             .UseInMemoryDatabase($"PayTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void EnsureTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "pay-isolation-b" });
     }
@@ -61,7 +57,7 @@ public sealed class PaymentTenantIsolationTests
         userMock.Setup(x => x.GetUserByIdAsync(It.IsAny<string>())).ReturnsAsync(new ApplicationUser { Id = "u1", UserName = "u", Role = "Admin" });
         var companyProfile = new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" };
         var tseOptions = new TseOptions { TseMode = "Demo" };
-        var receiptService = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), userMock.Object, tenantResolver);
+        var receiptService = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), userMock.Object, tenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
@@ -101,7 +97,7 @@ public sealed class PaymentTenantIsolationTests
         ctx.Customers.Add(new Customer { Id = custB, Name = "B", Email = "b@b.com", Phone = "2", IsActive = true });
         var regA = Guid.NewGuid();
         var regB = Guid.NewGuid();
-        ctx.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regA, RegisterNumber = "KA", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = regA, RegisterNumber = "KA", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         ctx.CashRegisters.Add(new CashRegister { TenantId = TenantB, Id = regB, RegisterNumber = "KB", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         var day = new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
         var payA = Guid.NewGuid();
@@ -118,7 +114,7 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
+        var resolver = TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform);
         var c = TenantTestDoubles.CreateAdminPaymentsController(ctx, resolver, mockPay.Object);
         var result = await c.GetPayments(
             new PaymentFilterDto { StartDate = new DateTime(2026, 3, 15), EndDate = new DateTime(2026, 3, 15) },
@@ -135,7 +131,7 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
+        var resolver = TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform);
         var c = TenantTestDoubles.CreateAdminPaymentsController(ctx, resolver, mockPay.Object);
         var result = await c.GetDetail(payB, CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(result.Result);
@@ -146,7 +142,7 @@ public sealed class PaymentTenantIsolationTests
     {
         await using var ctx = CreateContext();
         await SeedTwoTenantPaymentsAsync(ctx);
-        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
         var stats = await svc.GetPaymentStatisticsAsync(new DateTime(2026, 3, 15), new DateTime(2026, 3, 15));
         Assert.Equal(1, stats.TotalPayments);
         Assert.Equal(10m, stats.TotalAmount);
@@ -157,7 +153,7 @@ public sealed class PaymentTenantIsolationTests
     {
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
-        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
         var p = await svc.GetPaymentAsync(payB);
         Assert.Null(p);
     }
@@ -167,7 +163,7 @@ public sealed class PaymentTenantIsolationTests
     {
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
-        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
         var r = await svc.CancelPaymentAsync(payB, "reason", "u1");
         Assert.False(r.Success);
         Assert.Equal("Payment not found", r.Message);
@@ -178,7 +174,7 @@ public sealed class PaymentTenantIsolationTests
     {
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
-        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
         var r = await svc.RefundPaymentAsync(payB, 1m, "reason", "u1");
         Assert.False(r.Success);
         Assert.Equal("Payment not found", r.Message);
@@ -206,7 +202,7 @@ public sealed class PaymentTenantIsolationTests
             CreatedAt = DateTime.UtcNow
         });
         await ctx.SaveChangesAsync();
-        var receiptSvc = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), Mock.Of<ITseService>(), TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" }), Mock.Of<IUserService>(), TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var receiptSvc = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), Mock.Of<ITseService>(), TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" }), Mock.Of<IUserService>(), TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform), TenantTestDoubles.ProductionHostEnvironment);
         var dto = await receiptSvc.GetReceiptByPaymentIdAsync(payB);
         Assert.Null(dto);
     }
@@ -216,7 +212,7 @@ public sealed class PaymentTenantIsolationTests
     {
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
-        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var svc = CreatePaymentService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
         var r = await svc.RetryFinanzOnlineSubmitAsync(payB);
         Assert.False(r.Success);
         Assert.Equal("Payment not found.", r.ErrorMessage);

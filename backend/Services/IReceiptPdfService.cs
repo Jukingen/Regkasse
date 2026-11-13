@@ -6,6 +6,14 @@ namespace KasseAPI_Final.Services;
 public interface IReceiptPdfService
 {
     /// <summary>
+    /// Builds a PDF copy of the persisted receipt for <paramref name="paymentId"/> (normal or RKSV special).
+    /// </summary>
+    Task<byte[]> GeneratePdfAsync(
+        Guid paymentId,
+        bool includeReprintWatermark = true,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Builds a watermarked PDF copy of the persisted receipt for <paramref name="paymentId"/> (normal or RKSV special).
     /// </summary>
     Task<byte[]> GenerateReprintPdfAsync(Guid paymentId, CancellationToken cancellationToken = default);

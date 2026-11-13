@@ -14,7 +14,11 @@ function buildAddItemRequestForPOS(
   productId: string,
   quantity: number,
   tableNumber: number,
-  options?: { modifiers?: { id: string; quantity?: number }[]; productName?: string; unitPrice?: number }
+  options?: {
+    modifiers?: { id: string; quantity?: number }[];
+    productName?: string;
+    unitPrice?: number;
+  }
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
     productId,
@@ -30,13 +34,23 @@ function buildAddItemRequestsForAddOnFlow(
   baseProductId: string,
   baseProductName: string,
   baseUnitPrice: number,
-  addOns: Array<{ productId: string; productName: string; price: number }>,
+  addOns: { productId: string; productName: string; price: number }[],
   tableNumber: number
 ): Record<string, unknown>[] {
   const bodies: Record<string, unknown>[] = [];
-  bodies.push(buildAddItemRequestForPOS(baseProductId, 1, tableNumber, { productName: baseProductName, unitPrice: baseUnitPrice }));
+  bodies.push(
+    buildAddItemRequestForPOS(baseProductId, 1, tableNumber, {
+      productName: baseProductName,
+      unitPrice: baseUnitPrice,
+    })
+  );
   for (const a of addOns) {
-    bodies.push(buildAddItemRequestForPOS(a.productId, 1, tableNumber, { productName: a.productName, unitPrice: a.price }));
+    bodies.push(
+      buildAddItemRequestForPOS(a.productId, 1, tableNumber, {
+        productName: a.productName,
+        unitPrice: a.price,
+      })
+    );
   }
   return bodies;
 }

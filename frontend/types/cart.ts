@@ -53,4 +53,4 @@ export interface PaymentCancelResponse {
   cancelledBy: string;
   cancellationReason: string;
   message: string;
-} 
+}

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models.Backup;
-
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>

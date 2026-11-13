@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -136,17 +138,20 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
     private readonly IOptions<LicenseOptions> _options;
     private readonly AppDbContext _db;
     private readonly ILicenseSyncService _licenseSync;
+    private readonly ILicenseKeyGenerator _licenseKeyGenerator;
     private readonly ILogger<LicenseIssuanceService> _logger;
 
     public LicenseIssuanceService(
         IOptions<LicenseOptions> options,
         AppDbContext db,
         ILicenseSyncService licenseSync,
+        ILicenseKeyGenerator licenseKeyGenerator,
         ILogger<LicenseIssuanceService> logger)
     {
         _options = options;
         _db = db;
         _licenseSync = licenseSync;
+        _licenseKeyGenerator = licenseKeyGenerator;
         _logger = logger;
     }
 
@@ -185,12 +190,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         LicenseIssueResult issued;
         try
         {
-            issued = LicenseIssuer.Issue(
-                customerName: customer,
-                machineHashHex: machineHash,
-                expiresAtUtc: expiresAt,
-                privateKey: rsa,
-                featureIds: featureList);
+            issued = IssueUnifiedServerLicense(rsa, customer, machineHash, expiresAt, featureList);
         }
         catch (Exception ex)
         {
@@ -365,12 +365,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             LicenseIssueResult issued;
             try
             {
-                issued = LicenseIssuer.Issue(
-                    customerName: customer,
-                    machineHashHex: machineHash,
-                    expiresAtUtc: expiresAt,
-                    privateKey: rsa,
-                    featureIds: featureList);
+                issued = IssueUnifiedServerLicense(rsa, customer, machineHash, expiresAt, featureList);
             }
             catch (Exception ex)
             {
@@ -571,12 +566,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             LicenseIssueResult issued;
             try
             {
-                issued = LicenseIssuer.Issue(
-                    customerName: customer,
-                    machineHashHex: machineHash,
-                    expiresAtUtc: expiresAt,
-                    privateKey: rsa,
-                    featureIds: featureList);
+                issued = IssueUnifiedServerLicense(rsa, customer, machineHash, expiresAt, featureList);
             }
             catch (Exception ex)
             {
@@ -847,12 +837,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             LicenseIssueResult issued;
             try
             {
-                issued = LicenseIssuer.Issue(
-                    customerName: customer,
-                    machineHashHex: newHashNorm,
-                    expiresAtUtc: expiresAt,
-                    privateKey: rsa,
-                    featureIds: featureList);
+                issued = IssueUnifiedServerLicense(rsa, customer, newHashNorm, expiresAt, featureList);
             }
             catch (Exception ex)
             {
@@ -1188,13 +1173,45 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         return null;
     }
 
+    /// <summary>Server/deployment keys always use slug <see cref="LicenseKeyGenerator.SystemSlug"/>.</summary>
+    private LicenseIssueResult IssueUnifiedServerLicense(
+        RSA rsa,
+        string customer,
+        string? machineHash,
+        DateTimeOffset expiresAt,
+        IReadOnlyList<string>? featureList)
+    {
+        var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(
+            expiresAt.UtcDateTime,
+            LicenseKeyGenerator.SystemSlug);
+        if (!LicenseKeyValidator.Instance.IsValidFormat(licenseKey)
+            || !LicenseKeyValidator.Instance.IsSystemLicense(licenseKey))
+        {
+            throw new InvalidOperationException(LicenseKeyErrorCodes.SystemLicenseExpected);
+        }
+        var jwt = LicenseIssuer.SignJwtForExistingLicenseKey(
+            rsa,
+            licenseKey,
+            machineHash,
+            customer,
+            expiresAt,
+            featureList);
+        return new LicenseIssueResult(
+            licenseKey,
+            jwt,
+            CanonicalPayload: string.Empty,
+            PublicKeyPem: string.Empty,
+            expiresAt);
+    }
+
     private static bool IsHex(string s)
     {
         for (var i = 0; i < s.Length; i++)
         {
             var c = s[i];
             var ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-            if (!ok) return false;
+            if (!ok)
+                return false;
         }
         return true;
     }

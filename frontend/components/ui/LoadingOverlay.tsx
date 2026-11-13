@@ -17,7 +17,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   message = 'Bitte warten…',
   size = 'large',
   color,
-  backgroundColor
+  backgroundColor,
 }) => {
   const { theme } = useTheme();
 
@@ -26,20 +26,11 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   const waveSize = size === 'small' ? 22 : 32;
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: backgroundColor || theme.background + 'CC' }
-    ]}>
+    <View
+      style={[styles.container, { backgroundColor: backgroundColor || theme.background + 'CC' }]}>
       <View style={styles.content}>
         <WaveLoader size={waveSize} color={color || theme.primary} />
-        {message ? (
-          <Text style={[
-            styles.message,
-            { color: theme.text }
-          ]}>
-            {message}
-          </Text>
-        ) : null}
+        {message ? <Text style={[styles.message, { color: theme.text }]}>{message}</Text> : null}
       </View>
     </View>
   );

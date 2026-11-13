@@ -37,7 +37,8 @@ Grounded in the repository as of this design:
 - **`LicenseService` registration**: `AddSingleton<LicenseService>()`; `ILicenseService` → `ProductionLicenseService` adapter (`LicenseServiceRegistration.cs`).
 - **Database access**: singleton uses **`IServiceScopeFactory`** per operation; resolves scoped `IDbContextFactory<AppDbContext>` inside the scope (never from root provider — avoids `ICurrentTenantAccessor` resolution errors). In-memory `_snapshot` after `EvaluateOnStartup()`; **not** `IMemoryCache`.
 - **`activated_licenses`**: deployment-local (machine fingerprint); **not** `ITenantEntity` / tenant-filtered.
-- **`AdminLicenseController`** (`/api/admin/license/*`): `GET status`, `POST activate`, `POST generate`, list, renew, upgrade, transfer, revoke, etc. Protected by **`HasPermission`** (`SettingsView` / `SettingsManage`).
+- **`license_sales` + `Billing.TenantLicenseService` (2026-06):** Super Admin records Mandanten-SaaS sales; billing keys `REGK-{yyyyMMdd}-{slug}-…`; Manager `POST /api/admin/license/extend`. See **`docs/BILLING_TENANT_LICENSE.md`**.
+- **`AdminLicenseController`** (`/api/admin/license/*`): deployment status, issuance lifecycle, **and** `POST extend` (billing mandant extend for Managers with `settings.manage`). Mandant overview/legacy extend: `GET/POST …/mandant/*` (`license.manage`).
 - **Anonymous diagnostic**: `GET /api/health/license` — exposes `isValid`, trial/expiry, `daysRemaining`, `machineHash`, reminders, header hint fields. Used by POS today.
 - **`IssuedLicense` entity** (`issued_licenses`): audit trail for generated JWTs; masked keys in list APIs; JWT treated as secret in transit.
 

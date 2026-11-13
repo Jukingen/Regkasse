@@ -1,10 +1,18 @@
 // Compact POS cart display - optimized for speed and minimal space
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
-import { getCartDisplayTotals } from '../contexts/CartContext';
+
 import { CartItemRow } from './CartItemRow';
-import { formatPrice } from '../utils/formatPrice';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
+import { getCartDisplayTotals } from '../contexts/CartContext';
 
 interface CartItem {
   itemId?: string;
@@ -29,7 +37,10 @@ interface CartDisplayProps {
   onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => void;
   onItemRemove: (itemId: string) => void;
   onClearCart: () => void;
-  onRemoveModifier?: (itemId: string, modifier: { id: string; name: string; price: number; quantity?: number }) => void;
+  onRemoveModifier?: (
+    itemId: string,
+    modifier: { id: string; name: string; price: number; quantity?: number }
+  ) => void;
   onIncrementModifier?: (itemId: string, modifierId: string) => void;
   onDecrementModifier?: (itemId: string, modifierId: string) => void;
 }
@@ -46,18 +57,20 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   onIncrementModifier,
   onDecrementModifier,
 }) => {
+  const { t } = useTranslation(['cart']);
   const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
   const itemCount = totals.itemCount;
+  const tableTitle = t('cart:display.tableTitle', { table: selectedTable });
 
   // Loading state
   if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
+          <Text style={styles.headerTitle}>{tableTitle}</Text>
         </View>
-        <Text style={styles.loadingText}>Lädt...</Text>
+        <Text style={styles.loadingText}>{t('cart:display.loading')}</Text>
       </View>
     );
   }
@@ -65,12 +78,12 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   // Do not render raw API/context errors in cart area (use toast/silent recovery elsewhere)
 
   // Empty state
-  if (!cart || !cart.items || cart.items.length === 0) {
+  if (!cart?.items || cart.items.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
-          <Text style={styles.emptyBadge}>Leer</Text>
+          <Text style={styles.headerTitle}>{tableTitle}</Text>
+          <Text style={styles.emptyBadge}>{t('cart:display.emptyBadge')}</Text>
         </View>
       </View>
     );
@@ -79,41 +92,66 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   return (
     <View style={styles.container}>
       {/* Compact header with summary */}
-        <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{tableTitle}</Text>
         <View style={styles.headerRight}>
-          <Text style={styles.itemCount}>{itemCount} Artikel</Text>
+          <Text style={styles.itemCount}>{t('cart:display.itemCount', { count: itemCount })}</Text>
           <Pressable
             onPress={onClearCart}
-            style={({ pressed, focused }) => [styles.clearBtn, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
+            style={(state) => [
+              styles.clearBtn,
+              state.pressed && SoftState.pressed,
+              (state as { focused?: boolean }).focused && SoftState.focusVisible,
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Warenkorb leeren"
-            accessibilityRole="button"
-          >
-            <Text style={styles.clearBtnLabel}>Leeren</Text>
+            accessibilityLabel={t('cart:display.clearCartA11y')}
+            accessibilityRole="button">
+            <Text style={styles.clearBtnLabel}>{t('cart:display.clearLabel')}</Text>
             <Text style={styles.clearBtnText}>×</Text>
           </Pressable>
         </View>
       </View>
 
       {/* Scrollable item list with professional CartItemRow */}
-      <ScrollView
-        style={styles.itemList}
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
-      >
+      <ScrollView style={styles.itemList} showsVerticalScrollIndicator nestedScrollEnabled>
         {cart.items.map((item: CartItem) => {
-          const modifierKey = (item.modifiers ?? []).map((m: { id: string }) => m.id).sort().join(',');
-          const safeId = item.itemId ?? item.clientId ?? `${item.productId}-${modifierKey || 'base'}`;
+          const modifierKey = (item.modifiers ?? [])
+            .map((m: { id: string }) => m.id)
+            .sort()
+            .join(',');
+          const safeId =
+            item.itemId ?? item.clientId ?? `${item.productId}-${modifierKey || 'base'}`;
           return (
             <CartItemRow
               key={safeId}
               item={item}
-              onIncrease={async () => onQuantityUpdate(safeId, 'increment')}
-              onDecrease={async () => onQuantityUpdate(safeId, 'decrement')}
-              onRemoveModifier={onRemoveModifier ? (m) => onRemoveModifier(safeId, m) : undefined}
-              onIncrementModifier={onIncrementModifier ? (modId) => onIncrementModifier(safeId, modId) : undefined}
-              onDecrementModifier={onDecrementModifier ? (modId) => onDecrementModifier(safeId, modId) : undefined}
+              onIncrease={async () => {
+                onQuantityUpdate(safeId, 'increment');
+              }}
+              onDecrease={async () => {
+                onQuantityUpdate(safeId, 'decrement');
+              }}
+              onRemoveModifier={
+                onRemoveModifier
+                  ? (m) => {
+                      onRemoveModifier(safeId, m);
+                    }
+                  : undefined
+              }
+              onIncrementModifier={
+                onIncrementModifier
+                  ? (modId) => {
+                      onIncrementModifier(safeId, modId);
+                    }
+                  : undefined
+              }
+              onDecrementModifier={
+                onDecrementModifier
+                  ? (modId) => {
+                      onDecrementModifier(safeId, modId);
+                    }
+                  : undefined
+              }
             />
           );
         })}
@@ -204,13 +242,12 @@ const styles = StyleSheet.create({
     marginRight: SoftSpacing.sm,
   },
   qtyBtn: {
-    width: 32, // Increased from 28
-    height: 32, // Increased from 28
+    width: 32,
+    height: 32,
     borderRadius: 16,
     backgroundColor: SoftColors.bgSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    // 🚀 VISIBILITY & TOUCH FIXES
     zIndex: 10,
     elevation: 5,
     borderWidth: 1,
@@ -221,10 +258,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   qtyBtnText: {
-    fontSize: 18, // Increased from 16
+    fontSize: 18,
     fontWeight: '600',
     color: SoftColors.accent,
-    // Ensure text doesn't block press
     zIndex: -1,
   },
   qtyValue: {

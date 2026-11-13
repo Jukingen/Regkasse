@@ -1,10 +1,11 @@
 import {
+  DEV_TENANT_BOOTSTRAP_EVENT,
   DEV_TENANT_CHANGED_EVENT,
   getDevTenant,
   getEffectiveTenantSlug,
-  resolveTenantSlugForApiRequest,
   getTenantSlugFromSubdomain,
   isLocalDevHostname,
+  resolveTenantSlugForApiRequest,
   writeDevTenantSlug,
 } from '../devTenant';
 
@@ -26,10 +27,10 @@ describe('devTenant', () => {
 
   it('uses localStorage override in development', () => {
     process.env.NODE_ENV = 'development';
-    window.localStorage.setItem('dev_tenant_id', 'cafe');
-    expect(getDevTenant()).toBe('cafe');
-    expect(getEffectiveTenantSlug()).toBe('cafe');
-    expect(resolveTenantSlugForApiRequest()).toBe('cafe');
+    window.localStorage.setItem('dev_tenant_id', 'dev');
+    expect(getDevTenant()).toBe('dev');
+    expect(getEffectiveTenantSlug()).toBe('dev');
+    expect(resolveTenantSlugForApiRequest()).toBe('dev');
     process.env.NODE_ENV = 'production';
     expect(getTenantSlugFromSubdomain('acme.regkasse.at')).toBe('acme');
   });
@@ -37,11 +38,11 @@ describe('devTenant', () => {
   it('uses regkasse.local subdomain when localStorage is empty', () => {
     process.env.NODE_ENV = 'development';
     Object.defineProperty(window, 'location', {
-      value: { hostname: 'bar.regkasse.local' },
+      value: { hostname: 'prod.regkasse.local' },
       configurable: true,
     });
-    expect(isLocalDevHostname('bar.regkasse.local')).toBe(true);
-    expect(getDevTenant()).toBe('bar');
+    expect(isLocalDevHostname('prod.regkasse.local')).toBe(true);
+    expect(getDevTenant()).toBe('prod');
   });
 
   it('maps admin.regkasse.local to admin without implicit dev mandant', () => {
@@ -55,15 +56,51 @@ describe('devTenant', () => {
     expect(getEffectiveTenantSlug()).toBe('admin');
   });
 
+  it('omits X-Tenant-Id on admin host without mandant override (JWT wins)', () => {
+    process.env.NODE_ENV = 'development';
+    Object.defineProperty(window, 'location', {
+      value: { hostname: 'admin.regkasse.local' },
+      configurable: true,
+    });
+    expect(resolveTenantSlugForApiRequest()).toBe('');
+  });
+
+  it('uses login bootstrap mandant on admin host when localStorage override is empty', () => {
+    process.env.NODE_ENV = 'development';
+    Object.defineProperty(window, 'location', {
+      value: { hostname: 'localhost' },
+      configurable: true,
+    });
+    window.localStorage.setItem('rk_admin_tenant_slug', 'dev');
+    expect(resolveTenantSlugForApiRequest()).toBe('dev');
+  });
+
   it('dispatches DEV_TENANT_CHANGED_EVENT when dev slug changes', () => {
     process.env.NODE_ENV = 'development';
     const handler = vi.fn();
     window.addEventListener(DEV_TENANT_CHANGED_EVENT, handler);
-    expect(writeDevTenantSlug('cafe')).toBe(true);
+    expect(writeDevTenantSlug('dev')).toBe(true);
     expect(handler).toHaveBeenCalledTimes(1);
-    expect(handler.mock.calls[0][0].detail).toEqual({ slug: 'cafe', previousSlug: null });
-    expect(writeDevTenantSlug('cafe')).toBe(false);
+    expect(handler.mock.calls[0][0].detail).toEqual({ slug: 'dev', previousSlug: null });
+    expect(writeDevTenantSlug('dev')).toBe(false);
     expect(handler).toHaveBeenCalledTimes(1);
     window.removeEventListener(DEV_TENANT_CHANGED_EVENT, handler);
+  });
+
+  it('silent write emits bootstrap event but not tenant-changed (login must keep JWT)', () => {
+    process.env.NODE_ENV = 'development';
+    const changed = vi.fn();
+    const bootstrap = vi.fn();
+    window.addEventListener(DEV_TENANT_CHANGED_EVENT, changed);
+    window.addEventListener(DEV_TENANT_BOOTSTRAP_EVENT, bootstrap);
+
+    expect(writeDevTenantSlug('dev', undefined, { silent: true })).toBe(true);
+    expect(changed).not.toHaveBeenCalled();
+    expect(bootstrap).toHaveBeenCalledTimes(1);
+    expect(bootstrap.mock.calls[0][0].detail).toEqual({ slug: 'dev' });
+    expect(window.localStorage.getItem('dev_tenant_id')).toBe('dev');
+
+    window.removeEventListener(DEV_TENANT_CHANGED_EVENT, changed);
+    window.removeEventListener(DEV_TENANT_BOOTSTRAP_EVENT, bootstrap);
   });
 });

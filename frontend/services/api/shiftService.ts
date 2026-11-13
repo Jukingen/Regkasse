@@ -1,6 +1,13 @@
-import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
-import { sessionManager } from '../session/sessionManager';
+import { apiClient, API_BASE_URL, resolveTenantFetchRequest } from './config';
 import { isRecord, unwrapApiResponseLayer } from './normalizePosPaymentMethods';
+import { classifyDailyClosingError } from '../../utils/errorMessages';
+import { resolveAutoOpenShiftRegisterId } from '../../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  SHIFT_AUTO_OPEN_CODES,
+  ShiftAutoOpenError,
+} from '../../utils/shiftAutoOpenError';
+import { sessionManager } from '../session/sessionManager';
 
 export interface CashierShiftDto {
   id: string;
@@ -107,10 +114,14 @@ export function parseEndShiftResponse(raw: unknown): EndShiftResponse | null {
     receipt: {
       shiftId: readString(receiptRaw.shiftId ?? receiptRaw.ShiftId, shift.id),
       cashierName: readString(receiptRaw.cashierName ?? receiptRaw.CashierName, shift.cashierName),
-      registerNumber: (receiptRaw.registerNumber ?? receiptRaw.RegisterNumber ?? null) as string | null,
+      registerNumber: (receiptRaw.registerNumber ?? receiptRaw.RegisterNumber ?? null) as
+        string | null,
       startedAt: readString(receiptRaw.startedAt ?? receiptRaw.StartedAt, shift.startedAt),
       endedAt: readString(receiptRaw.endedAt ?? receiptRaw.EndedAt),
-      startBalance: readNumber(receiptRaw.startBalance ?? receiptRaw.StartBalance, shift.startBalance),
+      startBalance: readNumber(
+        receiptRaw.startBalance ?? receiptRaw.StartBalance,
+        shift.startBalance
+      ),
       endBalance: readNumber(receiptRaw.endBalance ?? receiptRaw.EndBalance, shift.endBalance),
       totalSales: readNumber(receiptRaw.totalSales ?? receiptRaw.TotalSales, shift.totalSales),
       totalCash: readNumber(receiptRaw.totalCash ?? receiptRaw.TotalCash, shift.totalCash),
@@ -127,7 +138,10 @@ export async function fetchCurrentShift(): Promise<CurrentShiftResponse> {
   return parseCurrentShiftResponse(raw);
 }
 
-export async function startShiftApi(cashRegisterId: string, startBalance: number): Promise<CashierShiftDto> {
+export async function startShiftApi(
+  cashRegisterId: string,
+  startBalance: number
+): Promise<CashierShiftDto> {
   const raw = await apiClient.post<unknown>('/pos/shift/start', {
     cashRegisterId,
     startBalance,
@@ -137,6 +151,89 @@ export async function startShiftApi(cashRegisterId: string, startBalance: number
     throw new Error('Invalid shift start response');
   }
   return shift;
+}
+
+export function parseShiftAutoOpenResult(raw: unknown): {
+  success: boolean;
+  code: string;
+  message: string;
+  shift: CashierShiftDto | null;
+} {
+  if (!isRecord(raw)) {
+    return { success: false, code: 'UNKNOWN', message: '', shift: null };
+  }
+
+  // Read the ShiftAutoOpenResult envelope first. unwrapApiResponseLayer would drop
+  // `code`/`success` by returning the nested `data` shift object.
+  const successFlag = raw.success === true || raw.Success === true;
+  const failFlag = raw.success === false || raw.Success === false;
+  const codeRaw = raw.code ?? raw.Code;
+  const messageRaw = raw.message ?? raw.Message ?? raw.error ?? raw.Error;
+  const nestedShift = parseCashierShiftDto(raw.data ?? raw.Data);
+  const hasEnvelope =
+    successFlag ||
+    failFlag ||
+    (typeof codeRaw === 'string' && codeRaw.trim() !== '') ||
+    nestedShift != null;
+
+  if (hasEnvelope) {
+    const success = failFlag ? false : successFlag || nestedShift != null;
+    const code =
+      typeof codeRaw === 'string' && codeRaw.trim()
+        ? codeRaw.trim()
+        : success
+          ? SHIFT_AUTO_OPEN_CODES.SUCCESS
+          : 'UNKNOWN';
+    return {
+      success,
+      code,
+      message: typeof messageRaw === 'string' ? messageRaw : '',
+      shift: nestedShift,
+    };
+  }
+
+  const layer = unwrapApiResponseLayer(raw);
+  const rootShift = parseCashierShiftDto(layer);
+  return {
+    success: rootShift != null,
+    code: rootShift ? SHIFT_AUTO_OPEN_CODES.OK : 'UNKNOWN',
+    message: '',
+    shift: rootShift,
+  };
+}
+
+/**
+ * Auto-open CashierShift for the assigned register, or the persisted default when id is omitted.
+ * Idempotent when a shift is already open. Throws {@link ShiftAutoOpenError} with a structured code.
+ */
+export async function autoOpenShiftApi(
+  cashRegisterId?: string | null
+): Promise<CashierShiftDto> {
+  const registerId = resolveAutoOpenShiftRegisterId(cashRegisterId);
+  const body = registerId ? { cashRegisterId: registerId } : {};
+  try {
+    const raw = await apiClient.post<unknown>('/pos/shift/auto-open', body);
+    const parsed = parseShiftAutoOpenResult(raw);
+    if (parsed.success && parsed.shift) {
+      return parsed.shift;
+    }
+    if (parsed.code === SHIFT_AUTO_OPEN_CODES.SHIFT_ALREADY_OPEN && parsed.shift) {
+      return parsed.shift;
+    }
+    throw new ShiftAutoOpenError(
+      parsed.code || 'UNKNOWN',
+      parsed.message || 'Invalid shift auto-open response'
+    );
+  } catch (error: unknown) {
+    throw parseShiftAutoOpenError(error);
+  }
+}
+
+/** Soft-close active CashierShift without closing the register (idempotent). */
+export async function autoCloseShiftApi(): Promise<CashierShiftDto | null> {
+  const raw = await apiClient.post<unknown>('/pos/shift/auto-close', {});
+  if (raw == null || raw === '') return null;
+  return parseCashierShiftDto(unwrapApiResponseLayer(raw));
 }
 
 export async function endShiftApi(endBalance: number, notes?: string): Promise<EndShiftResponse> {
@@ -151,19 +248,73 @@ export async function endShiftApi(endBalance: number, notes?: string): Promise<E
   return parsed;
 }
 
+export interface TransactionBreakdown {
+  cash: number;
+  card: number;
+  voucher: number;
+  cancellations: number;
+  total: number;
+}
+
+export interface DailyClosingTaxBreakdown {
+  grossAt20: number;
+  taxAt20: number;
+  grossAt10: number;
+  taxAt10: number;
+  grossAt0: number;
+  grossAt13?: number;
+  taxAt13?: number;
+}
+
+export interface PaymentBreakdown {
+  cash: number;
+  card: number;
+  voucher: number;
+  other: number;
+  total: number;
+}
+
 export interface PosDailyClosingReportDto {
   businessDate: string;
+  cashRegisterId?: string | null;
   registerNumber?: string | null;
+  companyName?: string | null;
+  companyAddress?: string | null;
+  companyVatId?: string | null;
+  periodStartUtc?: string | null;
+  periodEndUtc?: string | null;
+  tseProviderLabel?: string | null;
+  depExportStatusLabel?: string | null;
+  tseSignatureVerified?: boolean;
+  hasStartbeleg?: boolean;
+  hasMonatsbeleg?: boolean;
+  hasJahresbeleg?: boolean;
+  cashierName?: string | null;
   totalSales: number;
   totalCash: number;
   totalCard: number;
+  totalVoucherRedemptions: number;
+  totalOtherPaymentMethods: number;
   cashCount: number;
   difference: number;
   fiscalTotalAmount: number;
   fiscalTotalTaxAmount: number;
+  fiscalTotalNetAmount?: number;
   fiscalTransactionCount: number;
   tseSignature?: string | null;
+  previousClosingSignature?: string | null;
+  taxBreakdown?: DailyClosingTaxBreakdown;
+  paymentBreakdown?: PaymentBreakdown;
+  isDemoFiscal?: boolean;
+  fiscalEnvironment?: string;
+  tseStatusLabel?: string;
+  tseStatusBadge?: string;
+  rksvFooterLabel?: string;
+  qrPayload?: string | null;
   snapshotDisclaimerDe?: string;
+  salesFiscalReconciliationNote?: string | null;
+  differenceScopeNote?: string | null;
+  transactionBreakdown?: TransactionBreakdown;
 }
 
 export interface PosDailyClosingResult {
@@ -179,7 +330,9 @@ export interface PosDailyClosingStatusDto {
   canClose: boolean;
   hasActiveShift: boolean;
   message: string;
+  blockReason?: string | null;
   lastClosingDate?: string | null;
+  lastClosingPerformedAt?: string | null;
   paymentsWithoutInvoiceCount: number;
 }
 
@@ -194,32 +347,119 @@ export class DailyClosingReportPdfError extends Error {
 }
 
 export class DailyClosingApiError extends Error {
+  /** Stable POS-facing code for i18n / errorMessages mapper. */
+  code: string;
   paymentsWithoutInvoiceCount?: number;
+  httpStatus?: number;
 
-  constructor(message: string, paymentsWithoutInvoiceCount?: number) {
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      paymentsWithoutInvoiceCount?: number;
+      httpStatus?: number;
+    }
+  ) {
     super(message);
     this.name = 'DailyClosingApiError';
-    this.paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount;
+    this.code = options?.code ?? 'UNKNOWN';
+    this.paymentsWithoutInvoiceCount = options?.paymentsWithoutInvoiceCount;
+    this.httpStatus = options?.httpStatus;
   }
+}
+
+function parseTransactionBreakdown(raw: unknown): TransactionBreakdown {
+  if (!isRecord(raw)) {
+    return { cash: 0, card: 0, voucher: 0, cancellations: 0, total: 0 };
+  }
+  return {
+    cash: readNumber(raw.cash ?? raw.Cash, 0),
+    card: readNumber(raw.card ?? raw.Card, 0),
+    voucher: readNumber(raw.voucher ?? raw.Voucher, 0),
+    cancellations: readNumber(raw.cancellations ?? raw.Cancellations, 0),
+    total: readNumber(raw.total ?? raw.Total, 0),
+  };
+}
+
+function parseTaxBreakdown(raw: unknown): DailyClosingTaxBreakdown | undefined {
+  if (!isRecord(raw)) return undefined;
+  return {
+    grossAt20: readNumber(raw.grossAt20 ?? raw.GrossAt20, 0),
+    taxAt20: readNumber(raw.taxAt20 ?? raw.TaxAt20, 0),
+    grossAt10: readNumber(raw.grossAt10 ?? raw.GrossAt10, 0),
+    taxAt10: readNumber(raw.taxAt10 ?? raw.TaxAt10, 0),
+    grossAt0: readNumber(raw.grossAt0 ?? raw.GrossAt0, 0),
+    grossAt13: readNumber(raw.grossAt13 ?? raw.GrossAt13, 0),
+    taxAt13: readNumber(raw.taxAt13 ?? raw.TaxAt13, 0),
+  };
+}
+
+function parsePaymentBreakdown(raw: unknown): PaymentBreakdown | undefined {
+  if (!isRecord(raw)) return undefined;
+  return {
+    cash: readNumber(raw.cash ?? raw.Cash, 0),
+    card: readNumber(raw.card ?? raw.Card, 0),
+    voucher: readNumber(raw.voucher ?? raw.Voucher, 0),
+    other: readNumber(raw.other ?? raw.Other, 0),
+    total: readNumber(raw.total ?? raw.Total, 0),
+  };
 }
 
 function parsePosDailyClosingReportDto(raw: unknown): PosDailyClosingReportDto | null {
   if (!isRecord(raw)) return null;
   return {
     businessDate: readString(raw.businessDate ?? raw.BusinessDate),
+    cashRegisterId: readString(raw.cashRegisterId ?? raw.CashRegisterId) || null,
     registerNumber: (raw.registerNumber ?? raw.RegisterNumber ?? null) as string | null,
+    companyName: readString(raw.companyName ?? raw.CompanyName) || null,
+    companyAddress: readString(raw.companyAddress ?? raw.CompanyAddress) || null,
+    companyVatId: readString(raw.companyVatId ?? raw.CompanyVatId) || null,
+    periodStartUtc: (raw.periodStartUtc ?? raw.PeriodStartUtc ?? null) as string | null,
+    periodEndUtc: (raw.periodEndUtc ?? raw.PeriodEndUtc ?? null) as string | null,
+    tseProviderLabel: readString(raw.tseProviderLabel ?? raw.TseProviderLabel) || null,
+    depExportStatusLabel: readString(raw.depExportStatusLabel ?? raw.DepExportStatusLabel) || null,
+    tseSignatureVerified: raw.tseSignatureVerified === true || raw.TseSignatureVerified === true,
+    hasStartbeleg: raw.hasStartbeleg === true || raw.HasStartbeleg === true,
+    hasMonatsbeleg: raw.hasMonatsbeleg === true || raw.HasMonatsbeleg === true,
+    hasJahresbeleg: raw.hasJahresbeleg === true || raw.HasJahresbeleg === true,
+    cashierName: readString(raw.cashierName ?? raw.CashierName) || null,
     totalSales: readNumber(raw.totalSales ?? raw.TotalSales),
     totalCash: readNumber(raw.totalCash ?? raw.TotalCash),
     totalCard: readNumber(raw.totalCard ?? raw.TotalCard),
+    totalVoucherRedemptions: readNumber(
+      raw.totalVoucherRedemptions ?? raw.TotalVoucherRedemptions,
+      0
+    ),
+    totalOtherPaymentMethods: readNumber(
+      raw.totalOtherPaymentMethods ?? raw.TotalOtherPaymentMethods,
+      0
+    ),
     cashCount: readNumber(raw.cashCount ?? raw.CashCount),
     difference: readNumber(raw.difference ?? raw.Difference),
     fiscalTotalAmount: readNumber(raw.fiscalTotalAmount ?? raw.FiscalTotalAmount),
     fiscalTotalTaxAmount: readNumber(raw.fiscalTotalTaxAmount ?? raw.FiscalTotalTaxAmount),
+    fiscalTotalNetAmount: readNumber(raw.fiscalTotalNetAmount ?? raw.FiscalTotalNetAmount, 0),
     fiscalTransactionCount: readNumber(raw.fiscalTransactionCount ?? raw.FiscalTransactionCount),
     tseSignature: (raw.tseSignature ?? raw.TseSignature ?? null) as string | null,
-    snapshotDisclaimerDe: readString(
-      raw.snapshotDisclaimerDe ?? raw.SnapshotDisclaimerDe,
-      ''
+    previousClosingSignature: (raw.previousClosingSignature ??
+      raw.PreviousClosingSignature ??
+      null) as string | null,
+    taxBreakdown: parseTaxBreakdown(raw.taxBreakdown ?? raw.TaxBreakdown),
+    paymentBreakdown: parsePaymentBreakdown(raw.paymentBreakdown ?? raw.PaymentBreakdown),
+    isDemoFiscal: raw.isDemoFiscal === true || raw.IsDemoFiscal === true,
+    fiscalEnvironment: readString(raw.fiscalEnvironment ?? raw.FiscalEnvironment) || undefined,
+    tseStatusLabel: readString(raw.tseStatusLabel ?? raw.TseStatusLabel) || undefined,
+    tseStatusBadge: readString(raw.tseStatusBadge ?? raw.TseStatusBadge) || undefined,
+    rksvFooterLabel: readString(raw.rksvFooterLabel ?? raw.RksvFooterLabel) || undefined,
+    qrPayload: (raw.qrPayload ?? raw.QrPayload ?? null) as string | null,
+    snapshotDisclaimerDe: readString(raw.snapshotDisclaimerDe ?? raw.SnapshotDisclaimerDe, ''),
+    salesFiscalReconciliationNote: (raw.salesFiscalReconciliationNote ??
+      raw.SalesFiscalReconciliationNote ??
+      null) as string | null,
+    differenceScopeNote: (raw.differenceScopeNote ?? raw.DifferenceScopeNote ?? null) as
+      string | null,
+    transactionBreakdown: parseTransactionBreakdown(
+      raw.transactionBreakdown ?? raw.TransactionBreakdown
     ),
   };
 }
@@ -234,7 +474,10 @@ export function parsePosDailyClosingResult(raw: unknown): PosDailyClosingResult 
   const reportRaw = layer.report ?? layer.Report;
   return {
     success,
-    errorMessage: readString(layer.errorMessage ?? layer.ErrorMessage ?? layer.error ?? layer.Error, ''),
+    errorMessage: readString(
+      layer.errorMessage ?? layer.ErrorMessage ?? layer.error ?? layer.Error,
+      ''
+    ),
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,
       0
@@ -259,7 +502,11 @@ export function parsePosDailyClosingStatus(raw: unknown): PosDailyClosingStatusD
     canClose: layer.canClose === true || layer.CanClose === true,
     hasActiveShift: layer.hasActiveShift === true || layer.HasActiveShift === true,
     message: readString(layer.message ?? layer.Message),
+    blockReason: readString(layer.blockReason ?? layer.BlockReason) || null,
     lastClosingDate: (layer.lastClosingDate ?? layer.LastClosingDate ?? null) as string | null,
+    lastClosingPerformedAt: (layer.lastClosingPerformedAt ??
+      layer.LastClosingPerformedAt ??
+      null) as string | null,
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,
       0
@@ -278,15 +525,14 @@ export async function downloadDailyClosingReportPdf(
 ): Promise<Blob> {
   const token = await sessionManager.getAccessToken();
   const lang = encodeURIComponent(language.split('-')[0] || 'de');
-  const response = await fetch(
+  const { url, headers } = await resolveTenantFetchRequest(
     `${API_BASE_URL}/pos/shift/daily-closing/${encodeURIComponent(dailyClosingId)}/report.pdf?language=${lang}`,
-    {
-      method: 'GET',
-      headers: await resolveTenantFetchHeaders(
-        token ? { Authorization: `Bearer ${token}` } : {}
-      ),
-    }
+    token ? { Authorization: `Bearer ${token}` } : {}
   );
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+  });
   if (!response.ok) {
     throw new DailyClosingReportPdfError(
       response.status,
@@ -307,21 +553,51 @@ export async function performDailyClosingApi(
     });
     const result = parsePosDailyClosingResult(raw);
     if (!result.success) {
-      throw new DailyClosingApiError(
-        result.errorMessage || 'Daily closing failed',
-        result.paymentsWithoutInvoiceCount
-      );
+      const technical = result.errorMessage || 'Daily closing failed';
+      const code = classifyDailyClosingError({
+        message: technical,
+        paymentsWithoutInvoiceCount: result.paymentsWithoutInvoiceCount,
+        httpStatus: 400,
+      });
+      throw new DailyClosingApiError(technical, {
+        code,
+        paymentsWithoutInvoiceCount: result.paymentsWithoutInvoiceCount,
+        httpStatus: 400,
+      });
     }
     return result;
   } catch (error: unknown) {
     if (error instanceof DailyClosingApiError) throw error;
-    const e = error as { response?: { data?: unknown }; data?: unknown } | null;
+    const e = error as {
+      response?: { data?: unknown; status?: number };
+      data?: unknown;
+      status?: number;
+      message?: string;
+      code?: string;
+    } | null;
     const data = (e?.response?.data ?? e?.data) as Record<string, unknown> | undefined;
-    const msg = typeof data?.error === 'string' ? data.error : 'Daily closing failed';
+    const msg =
+      (typeof data?.error === 'string' && data.error) ||
+      (typeof data?.message === 'string' && data.message) ||
+      (typeof e?.message === 'string' && e.message) ||
+      'Daily closing failed';
     const count =
       typeof data?.paymentsWithoutInvoiceCount === 'number'
         ? data.paymentsWithoutInvoiceCount
         : undefined;
-    throw new DailyClosingApiError(msg, count);
+    const httpStatus = e?.response?.status ?? e?.status;
+    const code = classifyDailyClosingError({
+      message: msg,
+      httpStatus,
+      axiosCode: typeof e?.code === 'string' ? e.code : null,
+      paymentsWithoutInvoiceCount: count,
+      code: typeof data?.code === 'string' ? data.code : null,
+      blockReason: typeof data?.blockReason === 'string' ? data.blockReason : null,
+    });
+    throw new DailyClosingApiError(msg, {
+      code,
+      paymentsWithoutInvoiceCount: count,
+      httpStatus,
+    });
   }
 }

@@ -1,22 +1,33 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { InboxOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  DatePicker,
+  Drawer,
+  Flex,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 /**
  * Back-office inventory: stock, movements, reorder suggestions, stocktake draft, transfers — permissions and confirm dialogs.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 
-import { Modal, Alert, Button, Card, DatePicker, Drawer, Flex, Input, InputNumber, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import axios from 'axios';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { useQueryClient } from '@tanstack/react-query';
-import { InboxOutlined } from '@ant-design/icons';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
-import { formatCurrency } from '@/i18n/formatting';
 import {
   getGetApiInventoryHistoryQueryKey,
   getGetApiInventoryQueryKey,
@@ -33,10 +44,17 @@ import {
   usePostApiInventoryIdTransfer,
 } from '@/api/generated/inventory/inventory';
 import type { InventoryHistoryRowDto } from '@/api/generated/model';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { isAdminInventoryNavEnabled } from '@/shared/config/adminInventoryNavUi';
+import { TableSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
+import { isAdminInventoryNavEnabled } from '@/shared/config/adminInventoryNavUi';
 
 dayjs.extend(utc);
 
@@ -81,7 +99,12 @@ function txLabel(t: (k: string) => string, v: number | undefined): string {
 function extractApiError(err: unknown, translate: (key: string) => string): string {
   if (axios.isAxiosError(err)) {
     const d = err.response?.data;
-    if (d && typeof d === 'object' && 'message' in d && typeof (d as { message: unknown }).message === 'string') {
+    if (
+      d &&
+      typeof d === 'object' &&
+      'message' in d &&
+      typeof (d as { message: unknown }).message === 'string'
+    ) {
       return (d as { message: string }).message;
     }
   }
@@ -106,7 +129,10 @@ export default function InventoryOperationsPage() {
   const [histPage, setHistPage] = useState(1);
   const [histPageSize] = useState(25);
   const [histInvFilter, setHistInvFilter] = useState<string | undefined>();
-  const [histRange, setHistRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [histRange, setHistRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([
+    null,
+    null,
+  ]);
 
   const [drawerInvId, setDrawerInvId] = useState<string | null>(null);
 
@@ -137,7 +163,7 @@ export default function InventoryOperationsPage() {
     return rows.filter(
       (r) =>
         (r.productName ?? '').toLowerCase().includes(q) ||
-        (r.productCategory ?? '').toLowerCase().includes(q),
+        (r.productCategory ?? '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -149,7 +175,7 @@ export default function InventoryOperationsPage() {
       fromUtc: histRange[0]?.startOf('day').utc().toISOString(),
       toUtc: histRange[1]?.endOf('day').utc().toISOString(),
     }),
-    [histPage, histPageSize, histInvFilter, histRange],
+    [histPage, histPageSize, histInvFilter, histRange]
   );
 
   const histQ = useGetApiInventoryHistory(histParams, {
@@ -272,7 +298,7 @@ export default function InventoryOperationsPage() {
           value: r.id,
           label: `${r.productName ?? r.id} (${r.currentStock})`,
         })),
-    [rows, activeRow?.id],
+    [rows, activeRow?.id]
   );
 
   const overviewCols: ColumnsType<EnrichedInventoryRow> = [
@@ -363,8 +389,7 @@ export default function InventoryOperationsPage() {
     {
       title: t('adminShell.inventory.txDate'),
       dataIndex: 'transactionDateUtc',
-      render: (v: string | undefined) =>
-        v ? dayjs(v).utc().format('DD.MM.YYYY HH:mm') : '—',
+      render: dateColumnRender('datetime', { utc: true }),
     },
     { title: t('adminShell.inventory.notes'), dataIndex: 'notes', ellipsis: true },
   ];
@@ -456,16 +481,29 @@ export default function InventoryOperationsPage() {
               {t('adminShell.inventory.pageTitle')}
             </Space>
           }
-          breadcrumbs={[adminOverviewCrumb(t), { title: t('adminShell.inventory.pageTitle'), href: '/inventory' }]}
+          breadcrumbs={[
+            adminOverviewCrumb(t),
+            { title: t('adminShell.inventory.pageTitle'), href: '/inventory' },
+          ]}
         />
-        <Alert type="info" showIcon title={t('adminShell.inventory.featureDisabledTitle')} description={t('adminShell.inventory.featureDisabledBody')} style={{ marginTop: 16 }} />
+        <Alert
+          type="info"
+          showIcon
+          title={t('adminShell.inventory.featureDisabledTitle')}
+          description={t('adminShell.inventory.featureDisabledBody')}
+          style={{ marginTop: 16 }}
+        />
       </div>
     );
   }
 
   if (!canView) {
     return (
-      <Alert type="error" title={t('adminShell.inventory.permissionDenied')} style={{ margin: 24 }} />
+      <Alert
+        type="error"
+        title={t('adminShell.inventory.permissionDenied')}
+        style={{ margin: 24 }}
+      />
     );
   }
 
@@ -478,7 +516,10 @@ export default function InventoryOperationsPage() {
             {t('adminShell.inventory.pageTitle')}
           </Space>
         }
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('adminShell.inventory.pageTitle'), href: '/inventory' }]}
+        breadcrumbs={[
+          adminOverviewCrumb(t),
+          { title: t('adminShell.inventory.pageTitle'), href: '/inventory' },
+        ]}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('adminShell.inventory.pageIntro')}
@@ -503,9 +544,17 @@ export default function InventoryOperationsPage() {
                     style={{ maxWidth: 320 }}
                   />
                 </Flex>
-                <Spin spinning={invQuery.isLoading}>
-                  <Table rowKey="id" columns={overviewCols} dataSource={filtered} pagination={{ pageSize: 15 }} />
-                </Spin>
+                {invQuery.isLoading ? (
+                  <TableSkeleton rows={8} cols={5} />
+                ) : (
+                  <Table
+                    rowKey="id"
+                    columns={overviewCols}
+                    dataSource={filtered}
+                    pagination={{ pageSize: 15 }}
+                    loading={invQuery.isFetching}
+                  />
+                )}
               </Card>
             ),
           },
@@ -526,13 +575,18 @@ export default function InventoryOperationsPage() {
                     value={histInvFilter}
                     onChange={(v) => setHistInvFilter(v)}
                   />
-                  <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
+                  <DatePicker.RangePicker
+                    format={DAYJS_DATE_FORMAT}
                     value={histRange[0] && histRange[1] ? [histRange[0], histRange[1]] : null}
                     onChange={(d) => setHistRange(d ? [d[0], d[1]] : [null, null])}
                   />
-                  <Button onClick={() => setHistPage(1)}>{t('adminShell.inventory.historyFilterApply')}</Button>
+                  <Button onClick={() => setHistPage(1)}>
+                    {t('adminShell.inventory.historyFilterApply')}
+                  </Button>
                 </Space>
-                <Spin spinning={histQ.isLoading}>
+                {histQ.isLoading ? (
+                  <TableSkeleton rows={8} cols={5} />
+                ) : (
                   <Table
                     rowKey={(r) => String(r.transactionId)}
                     columns={histCols}
@@ -543,8 +597,9 @@ export default function InventoryOperationsPage() {
                       total: histQ.data?.totalCount ?? 0,
                       onChange: (p) => setHistPage(p),
                     }}
+                    loading={histQ.isFetching}
                   />
-                </Spin>
+                )}
               </Card>
             ),
           },
@@ -553,13 +608,16 @@ export default function InventoryOperationsPage() {
             label: t('adminShell.inventory.tabReorder'),
             children: (
               <Card size="small" title={t('adminShell.inventory.reorderTitle')}>
-                <Spin spinning={reorderQ.isLoading}>
+                {reorderQ.isLoading ? (
+                  <TableSkeleton rows={6} cols={4} />
+                ) : (
                   <Table
                     rowKey="inventoryId"
                     columns={reorderCols}
                     dataSource={(reorderQ.data ?? []) as Record<string, unknown>[]}
+                    loading={reorderQ.isFetching}
                   />
-                </Spin>
+                )}
               </Card>
             ),
           },
@@ -568,18 +626,33 @@ export default function InventoryOperationsPage() {
             label: t('adminShell.inventory.tabCount'),
             children: (
               <Card size="small" title={t('adminShell.inventory.countTitle')}>
-                <Alert type="info" showIcon title={t('adminShell.inventory.countDraftHint')} style={{ marginBottom: 12 }} />
-                <Spin spinning={invQuery.isLoading}>
-                  <Table rowKey="id" columns={countCols} dataSource={filtered} pagination={false} />
-                  <Button
-                    type="primary"
-                    style={{ marginTop: 16 }}
-                    disabled={!canAdjust}
-                    onClick={() => finalizeCount()}
-                  >
-                    {t('adminShell.inventory.finalizeCount')}
-                  </Button>
-                </Spin>
+                <Alert
+                  type="info"
+                  showIcon
+                  title={t('adminShell.inventory.countDraftHint')}
+                  style={{ marginBottom: 12 }}
+                />
+                {invQuery.isLoading ? (
+                  <TableSkeleton rows={8} cols={4} />
+                ) : (
+                  <>
+                    <Table
+                      rowKey="id"
+                      columns={countCols}
+                      dataSource={filtered}
+                      pagination={false}
+                      loading={invQuery.isFetching}
+                    />
+                    <Button
+                      type="primary"
+                      style={{ marginTop: 16 }}
+                      disabled={!canAdjust}
+                      onClick={() => finalizeCount()}
+                    >
+                      {t('adminShell.inventory.finalizeCount')}
+                    </Button>
+                  </>
+                )}
               </Card>
             ),
           },
@@ -605,7 +678,8 @@ export default function InventoryOperationsPage() {
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Text>
-            {activeRow?.productName} — {t('adminShell.inventory.colStock')}: {activeRow?.currentStock}
+            {activeRow?.productName} — {t('adminShell.inventory.colStock')}:{' '}
+            {activeRow?.currentStock}
           </Typography.Text>
           <InputNumber min={1} value={restockQty} onChange={(v) => setRestockQty(Number(v) || 1)} />
           <InputNumber
@@ -616,7 +690,11 @@ export default function InventoryOperationsPage() {
             onChange={(v) => setRestockCost(v === null ? null : Number(v))}
             style={{ width: '100%' }}
           />
-          <Input placeholder={t('adminShell.inventory.notes')} value={restockNotes} onChange={(e) => setRestockNotes(e.target.value)} />
+          <Input
+            placeholder={t('adminShell.inventory.notes')}
+            value={restockNotes}
+            onChange={(e) => setRestockNotes(e.target.value)}
+          />
         </Space>
       </Modal>
 
@@ -637,9 +715,16 @@ export default function InventoryOperationsPage() {
         confirmLoading={adjustMut.isPending}
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
-          <Typography.Paragraph type="secondary">{t('adminShell.inventory.adjustmentHint')}</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">
+            {t('adminShell.inventory.adjustmentHint')}
+          </Typography.Paragraph>
           <InputNumber value={adjDelta} onChange={(v) => setAdjDelta(Number(v) || 0)} />
-          <Input.TextArea rows={3} placeholder={t('adminShell.inventory.reason')} value={adjReason} onChange={(e) => setAdjReason(e.target.value)} />
+          <Input.TextArea
+            rows={3}
+            placeholder={t('adminShell.inventory.reason')}
+            value={adjReason}
+            onChange={(e) => setAdjReason(e.target.value)}
+          />
         </Space>
       </Modal>
 
@@ -675,7 +760,11 @@ export default function InventoryOperationsPage() {
             onChange={setXferTarget}
           />
           <InputNumber min={1} value={xferQty} onChange={(v) => setXferQty(Number(v) || 1)} />
-          <Input placeholder={t('adminShell.inventory.transferNotes')} value={xferNotes} onChange={(e) => setXferNotes(e.target.value)} />
+          <Input
+            placeholder={t('adminShell.inventory.transferNotes')}
+            value={xferNotes}
+            onChange={(e) => setXferNotes(e.target.value)}
+          />
         </Space>
       </Modal>
 
@@ -685,7 +774,9 @@ export default function InventoryOperationsPage() {
         onClose={() => setDrawerInvId(null)}
         size={560}
       >
-        <Spin spinning={txQ.isLoading}>
+        {txQ.isLoading ? (
+          <TableSkeleton rows={6} cols={4} />
+        ) : (
           <Table
             size="small"
             rowKey="id"
@@ -699,14 +790,15 @@ export default function InventoryOperationsPage() {
               {
                 title: t('adminShell.inventory.txDate'),
                 dataIndex: 'transactionDate',
-                render: (v: string) => dayjs(v).utc().format('DD.MM.YYYY HH:mm'),
+                render: dateColumnRender('datetime', { utc: true }),
               },
               { title: t('adminShell.inventory.notes'), dataIndex: 'notes', ellipsis: true },
             ]}
             dataSource={txQ.data ?? []}
             pagination={false}
+            loading={txQ.isFetching}
           />
-        </Spin>
+        )}
       </Drawer>
     </div>
   );

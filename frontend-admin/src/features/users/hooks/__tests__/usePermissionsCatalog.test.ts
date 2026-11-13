@@ -1,12 +1,13 @@
 /**
  * usePermissionsCatalog – load success, error, empty, enabled: false.
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { usePermissionsCatalog } from '../usePermissionsCatalog';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { PermissionCatalogItemDto } from '../../api/usersGateway';
+import { usePermissionsCatalog } from '../usePermissionsCatalog';
 
 const mockGetPermissionsCatalog = vi.fn();
 

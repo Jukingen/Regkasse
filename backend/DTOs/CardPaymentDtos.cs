@@ -6,6 +6,8 @@ public sealed class CardPaymentRequest
     public decimal Amount { get; set; }
     public Guid CashRegisterId { get; set; }
     public string? ReceiptNumber { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public string? ReturnUrl { get; set; }
 }
 
 public sealed class CreateCardPaymentIntentRequest
@@ -15,6 +17,11 @@ public sealed class CreateCardPaymentIntentRequest
     public Guid CashRegisterId { get; set; }
     public string? Description { get; set; }
     public Dictionary<string, string>? Metadata { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public string? ReturnUrl { get; set; }
+    public string? MethodCode { get; set; }
+    public string CaptureMode { get; set; } = "automatic";
+    public Guid? CartSnapshotId { get; set; }
 }
 
 /// <summary>POS card payment confirm (spec-aligned).</summary>

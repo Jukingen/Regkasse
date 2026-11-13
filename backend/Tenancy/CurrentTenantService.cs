@@ -1,77 +1,61 @@
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Services.Tenancy;
 
 namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
-/// Resolves the request tenant slug via <see cref="ITenantProvider"/> and sets <see cref="ICurrentTenantAccessor.TenantId"/>
-/// for <see cref="AppDbContext"/> global query filters.
+/// Resolves the request tenant slug via <see cref="ITenantProvider"/> / <see cref="ITenantContextService"/>
+/// and sets <see cref="ICurrentTenantAccessor.TenantId"/> for <see cref="Data.AppDbContext"/> global query filters.
 /// </summary>
 public sealed class CurrentTenantService
 {
-    private readonly ITenantProvider _tenantProvider;
-    private readonly ICurrentTenantAccessor _tenantAccessor;
-    private readonly AppDbContext _db;
-    private readonly ILogger<CurrentTenantService> _logger;
+    private readonly ITenantContextService _tenantContextService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IWebHostEnvironment _environment;
 
     public CurrentTenantService(
-        ITenantProvider tenantProvider,
-        ICurrentTenantAccessor tenantAccessor,
-        AppDbContext db,
-        ILogger<CurrentTenantService> logger)
+        ITenantContextService tenantContextService,
+        IHttpContextAccessor httpContextAccessor,
+        IWebHostEnvironment environment)
     {
-        _tenantProvider = tenantProvider;
-        _tenantAccessor = tenantAccessor;
-        _db = db;
-        _logger = logger;
+        _tenantContextService = tenantContextService;
+        _httpContextAccessor = httpContextAccessor;
+        _environment = environment;
     }
 
-    /// <summary>Loads tenant by subdomain slug and updates the ambient accessor for this request scope.</summary>
-    public async Task ApplyCurrentTenantAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Binds ambient tenant from the current request (Development may use header/query; otherwise host).
+    /// Prefer middleware entry points (<see cref="ApplyDevTenantOverrideAsync"/> / <see cref="ApplyFromHostAsync"/>).
+    /// </summary>
+    public Task ApplyCurrentTenantAsync(CancellationToken cancellationToken = default)
     {
-        var slug = NormalizeSlug(_tenantProvider.GetCurrentTenantId());
-
-        var tenant = await _db.Tenants
-            .AsNoTracking()
-            .IgnoreQueryFilters()
-            .Where(t => t.Slug == slug)
-            .Select(t => new { t.Id, t.Status, t.IsActive })
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (tenant == null)
-        {
-            _logger.LogWarning(
-                "Tenant slug {Slug} not found; using legacy default tenant {DefaultTenantId}",
-                slug,
-                LegacyDefaultTenantIds.Primary);
-            _tenantAccessor.TenantId = LegacyDefaultTenantIds.Primary;
-            return;
-        }
-
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
-            || !tenant.IsActive)
-        {
-            _logger.LogWarning(
-                "Tenant slug {Slug} is deleted or inactive (status={Status}); refusing host tenant binding",
-                slug,
-                tenant.Status);
-            _tenantAccessor.TenantId = null;
-            return;
-        }
-
-        _tenantAccessor.TenantId = tenant.Id;
+        var httpContext = RequireHttpContext();
+        return _tenantContextService.ApplyFromRequestAsync(httpContext, cancellationToken);
     }
 
-    private static string NormalizeSlug(string slug)
+    /// <summary>
+    /// Development only: binds tenant from <c>X-Tenant-Id</c> / <c>?tenant=</c> slug override.
+    /// Throws when called outside Development.
+    /// </summary>
+    public Task ApplyDevTenantOverrideAsync(CancellationToken cancellationToken = default)
     {
-        if (string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase))
+        if (!_environment.IsDevelopment())
         {
-            return LegacyDefaultTenantIds.PrimarySlug;
+            throw new InvalidOperationException(
+                "X-Tenant-Id / ?tenant= overrides are only allowed in Development.");
         }
 
-        return DevTenantSlugAliases.ResolveCanonical(slug);
+        var httpContext = RequireHttpContext();
+        return _tenantContextService.ApplyFromRequestAsync(httpContext, cancellationToken);
     }
+
+    /// <summary>Pre-auth binding from request host / custom domain only (ignores header/query).</summary>
+    public Task ApplyFromHostAsync(CancellationToken cancellationToken = default)
+    {
+        var httpContext = RequireHttpContext();
+        return _tenantContextService.ApplyFromHostAsync(httpContext, cancellationToken);
+    }
+
+    private HttpContext RequireHttpContext() =>
+        _httpContextAccessor.HttpContext
+        ?? throw new InvalidOperationException("HttpContext is not available for tenant resolution");
 }

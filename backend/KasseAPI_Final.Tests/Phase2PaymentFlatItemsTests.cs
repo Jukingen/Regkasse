@@ -1,10 +1,12 @@
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -13,9 +15,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -30,7 +29,7 @@ public class Phase2PaymentFlatItemsTests
             .UseInMemoryDatabase(databaseName: $"PaymentFlat_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context)
@@ -69,7 +68,7 @@ public class Phase2PaymentFlatItemsTests
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
-        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
+        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
@@ -108,12 +107,12 @@ public class Phase2PaymentFlatItemsTests
         var productAddOnId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productBaseId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -132,7 +131,7 @@ public class Phase2PaymentFlatItemsTests
         context.Products.Add(new Product
         {
             Id = productAddOnId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -153,7 +152,7 @@ public class Phase2PaymentFlatItemsTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",

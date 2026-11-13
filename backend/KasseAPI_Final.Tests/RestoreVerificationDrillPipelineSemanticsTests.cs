@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;

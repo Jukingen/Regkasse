@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -28,7 +28,8 @@ public class ReportHistoryController : ControllerBase
         CancellationToken cancellationToken)
     {
         var data = await _historyService.GetHistoryAsync(reportType, id, cancellationToken);
-        if (data == null) return NotFound();
+        if (data == null)
+            return NotFound();
         return Ok(data);
     }
 }

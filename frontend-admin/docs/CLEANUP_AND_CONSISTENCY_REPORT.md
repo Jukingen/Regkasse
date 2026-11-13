@@ -23,16 +23,16 @@ No functional changes, no new features, no backend or API contract changes.
 
 ## 2. Files modified
 
-| File | Change |
-|------|--------|
-| `src/features/products/utils/productMapper.ts` | Turkish JSDoc and inline comments → English. |
-| `src/lib/api/modifierGroups.ts` | Top comment and JSDoc (AddOnGroupProductItemDto, createModifierGroup, updateModifierGroup, addModifierToGroup deprecation, AddProductToGroupBody) → English. |
-| `src/shared/auth/AdminOnlyGate.tsx` | Component JSDoc → English. |
-| `src/theme/index.ts` | “Tema renkleri”, “Mavi”, “Kırmızı”, “Almanca yerelleştirme” → English. |
-| `docs/archive/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”; updated “English-only technical artifacts” and productMapper row; removed Turkish follow-up from recommended next steps. |
-| `docs/archive/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”. |
-| `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md` | Added “Architecture and boundaries”. |
-| `docs/CLEANUP_AND_CONSISTENCY_REPORT.md` | **New.** This report. |
+| File                                                  | Change                                                                                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/products/utils/productMapper.ts`        | Turkish JSDoc and inline comments → English.                                                                                                                  |
+| `src/lib/api/modifierGroups.ts`                       | Top comment and JSDoc (AddOnGroupProductItemDto, createModifierGroup, updateModifierGroup, addModifierToGroup deprecation, AddProductToGroupBody) → English.  |
+| `src/shared/auth/AdminOnlyGate.tsx`                   | Component JSDoc → English.                                                                                                                                    |
+| `src/theme/index.ts`                                  | “Tema renkleri”, “Mavi”, “Kırmızı”, “Almanca yerelleştirme” → English.                                                                                        |
+| `docs/archive/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md`   | Added “Architecture and boundaries”; updated “English-only technical artifacts” and productMapper row; removed Turkish follow-up from recommended next steps. |
+| `docs/archive/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”.                                                                                                                          |
+| `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md`       | Added “Architecture and boundaries”.                                                                                                                          |
+| `docs/CLEANUP_AND_CONSISTENCY_REPORT.md`              | **New.** This report.                                                                                                                                         |
 
 ---
 

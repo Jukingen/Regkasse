@@ -39,7 +39,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
   useEffect(() => {
     const amounts = [];
     const roundedTotal = Math.ceil(total);
-    
+
     // Toplam tutarın üzerindeki yuvarlak tutarlar
     amounts.push(roundedTotal);
     amounts.push(roundedTotal + 5);
@@ -47,7 +47,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
     amounts.push(roundedTotal + 20);
     amounts.push(roundedTotal + 50);
     amounts.push(roundedTotal + 100);
-    
+
     setQuickAmounts(amounts);
   }, [total]);
 
@@ -92,7 +92,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
       if (remaining >= denom) {
         const count = Math.floor(remaining / denom);
         breakdown[denom.toString() as keyof typeof breakdown] = count;
-        remaining = Math.round((remaining - (count * denom)) * 100) / 100;
+        remaining = Math.round((remaining - count * denom) * 100) / 100;
       }
     }
 
@@ -119,7 +119,9 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
 
         {/* Müşteri Verdiği Tutar */}
         <View style={styles.amountSection}>
-          <Text style={styles.sectionTitle}>{t('change.customer_amount', 'Müşteri Verdiği Tutar')}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('change.customer_amount', 'Müşteri Verdiği Tutar')}
+          </Text>
           <TextInput
             style={styles.amountInput}
             value={amount}
@@ -132,7 +134,9 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
 
         {/* Hızlı Tutar Butonları */}
         <View style={styles.quickAmountsSection}>
-          <Text style={styles.sectionTitle}>{t('change.quick_amounts', 'Hızlı Tutar Seçenekleri')}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('change.quick_amounts', 'Hızlı Tutar Seçenekleri')}
+          </Text>
           <View style={styles.quickAmountsGrid}>
             {quickAmounts.map((quickAmount) => (
               <TouchableOpacity
@@ -141,14 +145,14 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
                   styles.quickAmountButton,
                   parseFloat(amount) === quickAmount && styles.quickAmountButtonSelected,
                 ]}
-                onPress={() => handleQuickAmount(quickAmount)}
-              >
+                onPress={() => {
+                  handleQuickAmount(quickAmount);
+                }}>
                 <Text
                   style={[
                     styles.quickAmountText,
                     parseFloat(amount) === quickAmount && styles.quickAmountTextSelected,
-                  ]}
-                >
+                  ]}>
                   {quickAmount.toFixed(2)}€
                 </Text>
               </TouchableOpacity>
@@ -160,7 +164,8 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
         <View style={styles.changeSection}>
           <Text style={styles.sectionTitle}>{t('change.change_amount', 'Para Üstü')}</Text>
           <Text style={[styles.changeAmount, change < 0 && styles.changeAmountNegative]}>
-            {change >= 0 ? '+' : ''}{change.toFixed(2)}€
+            {change >= 0 ? '+' : ''}
+            {change.toFixed(2)}€
           </Text>
         </View>
 
@@ -185,7 +190,9 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
         {change < 0 && (
           <View style={styles.warningSection}>
             <Ionicons name="warning" size={20} color={Colors.light.error} />
-            <Text style={styles.warningText}>{t('change.insufficient_amount', 'Yetersiz Tutar')}</Text>
+            <Text style={styles.warningText}>
+              {t('change.insufficient_amount', 'Yetersiz Tutar')}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -193,13 +200,9 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
       {/* Onay Butonu */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            (change < 0 || !amount) && styles.confirmButtonDisabled,
-          ]}
+          style={[styles.confirmButton, (change < 0 || !amount) && styles.confirmButtonDisabled]}
           onPress={onConfirm}
-          disabled={change < 0 || !amount}
-        >
+          disabled={change < 0 || !amount}>
           <Ionicons name="checkmark" size={20} color="white" />
           <Text style={styles.confirmButtonText}>{t('change.confirm', 'Onayla')}</Text>
         </TouchableOpacity>
@@ -374,4 +377,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChangeCalculator; 
+export default ChangeCalculator;

@@ -102,7 +102,14 @@ SELECT 'idx_offline_transactions_cash_register_payload_hash_unique',
             WHEN EXISTS (
                 SELECT 1 FROM pg_indexes
                 WHERE schemaname = 'public' AND tablename = 'offline_transactions'
-                  AND indexdef ILIKE '%unique%' AND indexdef ILIKE '%cash_register_id%' AND indexdef ILIKE '%payload_hash%'
+                  AND (
+                      indexname = 'IX_offline_transactions_CashRegisterId_payload_hash'
+                      OR (
+                          indexdef ILIKE '%UNIQUE%'
+                          AND indexdef ILIKE '%"CashRegisterId"%'
+                          AND indexdef ILIKE '%payload_hash%'
+                      )
+                  )
             ) THEN 'OK' ELSE 'FAIL' END,
        0,
        'Expect unique index IX_offline_transactions_CashRegisterId_payload_hash for replay dedup.';

@@ -1,4 +1,19 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "PDF yukleniyor…",
+    "success": "PDF indirildi",
+    "error": "PDF yuklenemedi"
+  },
+  "periodSales": {
+    "period": "Rapor dönemi",
+    "revenue": "Toplam ciro",
+    "receipts": "Fiş sayısı",
+    "zeroSales": "Bu dönemde ciro kaydı yok.",
+    "selectRegister": "PDF ciro özetini görmek için bir kasa seçin.",
+    "download": "PDF indir",
+    "noPdf": "Bu dönem için indirilecek bir fiş henüz yok."
+  },
   "policy": {
     "formalReportLanguageTitle": "Resmi rapor metinleri",
     "formalReportLanguageBody": "Yonetim arayuzu Turkce olabilir; bu bolumdeki yasal ve muhasebe rapor metinleri yalnizca Almanca veya Ingilizce gosterilir (varsayilan: Almanca).",
@@ -42,7 +57,8 @@
     },
     "reportStatus": {
       "Finalized": "Kesinlestirildi",
-      "Provisional": "Gecici"
+      "Provisional": "Gecici",
+      "Corrected": "Duzeltildi"
     },
     "emptyDash": "—"
   },
@@ -53,9 +69,39 @@
       "columnDate": "Tarih",
       "intro": "Gecici raporlar sonlandirmaya kadar yeniden hesaplanabilir. Kesinlestirilmis snapshot'lar degismez; duzeltmeler yeni rapor satiri olusturur.",
       "generateButton": "Bitis tarihi icin gunluk rapor olustur/guncelle",
+      "exportCsv": "CSV disa aktar",
+      "bulkFinalize": "Secimi sonlandir",
+      "bulkFinalizeConfirmTitle": "Gunluk raporlar sonlandirilsin mi?",
+      "bulkFinalizeConfirmBody": "{{count}} gecici gunluk rapor sonlandirilacak. Bu adim geri alinamaz.",
+      "statusFilter": "Durum",
+      "statusAll": "Tum durumlar",
+      "emptyTitle": "Bu donemde gunluk rapor yok",
+      "emptyDescription": "Secilen bitis tarihi ve kasa icin gecici bir gunluk rapor olusturun.",
+      "emptyGenerateCta": "Gunluk rapor olustur",
+      "csv": {
+        "date": "Tarih",
+        "register": "Kasa",
+        "status": "Durum",
+        "gross": "Brut",
+        "submission": "Gonderim"
+      },
       "messages": {
-        "generateSuccess": "Gunluk rapor olusturuldu veya guncellendi."
+        "generateSuccess": "Gunluk rapor olusturuldu veya guncellendi.",
+        "csvSuccess": "CSV disa aktarildi.",
+        "bulkFinalizeSuccess": "Secilen gunluk raporlar sonlandirildi.",
+        "bulkFinalizeNone": "Lutfen en az bir gecici gunluk rapor secin."
       }
+    },
+    "error": {
+      "list": "Gunluk raporlar yuklenemedi.",
+      "detail": "Gunluk rapor yuklenemedi.",
+      "generate": "Olusturma basarisiz.",
+      "finalize": "Sonlandirma basarisiz.",
+      "csv": "CSV disa aktarma basarisiz.",
+      "pdfGenerate": "PDF olusturulamadi.",
+      "pdfDownload": "PDF indirilemedi.",
+      "pdfNotStored": "Kayitli PDF yok. Once “PDF olustur” kullanin.",
+      "bulkFinalize": "Toplu sonlandirma basarisiz."
     },
     "detail": {
       "loading": "Yukleniyor…",
@@ -72,6 +118,8 @@
       },
       "actions": {
         "finalize": "Sonlandir",
+        "generatePdf": "PDF olustur",
+        "downloadPdf": "PDF indir",
         "finanzOnline": "FinanzOnline (outbox)",
         "correction": "Duzeltme (yeni rapor)",
         "backToList": "Listeye don"
@@ -92,6 +140,8 @@
         "taxBreakdown": "Vergi detayi",
         "paymentMethods": "Odeme yontemleri",
         "reconciliation": "Mutabakat / notlar",
+        "finanzOnline": "FinanzOnline gonderimi",
+        "auditTrail": "Denetim izi",
         "trace": "Iz (uyum)",
         "traceBody": "Ham kimlikler kisaltilmis saklanir; hash izlenebilirlik icindir.",
         "history": "Gecmis"
@@ -128,6 +178,12 @@
         "dayClosedRksv": "RKSV'de gun kapandi",
         "yes": "Evet",
         "no": "Hayir"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Bu takvim gununde faturasiz odeme satirlari.",
+        "unknownMethodLines": "Tanimlanamayan odeme yontemine sahip satirlar.",
+        "offlineLinked": "Cevrimdisi kuyruktan baglanan odemeler.",
+        "dayClosedRksv": "Bu takvim gunu icin RKSV gun sonu var mi."
       },
       "history": {
         "loading": "Gecmis yukleniyor…",
@@ -381,5 +437,117 @@
       "duplicates": "Tekrar"
     },
     "tseExportFailed": "TSE zincir disa aktarimi basarisiz."
+  },
+  "userActivity": {
+    "pageTitle": "Kullanici aktivite raporu",
+    "pageIntro": "Giris, oturum ve denetim verileri (RKSV) iceren uyumluluk raporu. CSV yetkililer icin veya PDF arsiv icin.",
+    "hubTitle": "Raporlar",
+    "hubIntro": "Uyumluluk ve operasyon raporlari.",
+    "openUserActivity": "Kullanici aktivitesi",
+    "selectUser": "Kullanici",
+    "selectUserRequired": "Lutfen kullanici secin",
+    "selectUserPlaceholder": "Kullanici ara …",
+    "dateRange": "Tarih araligi",
+    "dateRangeRequired": "Lutfen tarih araligi secin",
+    "actionType": "Islem tipi",
+    "actionTypeAll": "Tum islemler",
+    "generate": "Rapor olustur",
+    "exportCsv": "CSV disa aktar",
+    "exportPdf": "PDF disa aktar",
+    "scheduleReport": "Rapor planla",
+    "scheduleTitle": "E-posta ile rapor planla",
+    "scheduleName": "Ad",
+    "scheduleInterval": "Aralik",
+    "scheduleRecipients": "Alicilar (virgulle ayrilmis e-posta)",
+    "scheduleRecipientsPlaceholder": "audit@firma.com, muhasebe@firma.com",
+    "scheduleWeekly": "Haftalik (Pazartesi 08:00 UTC)",
+    "scheduleMonthly": "Aylik (1., 08:00 UTC)",
+    "scheduleSuccess": "Rapor planlandi.",
+    "scheduleNameDefault": "Kullanici aktivitesi — {{userName}}",
+    "totalActions": "Toplam islem",
+    "totalLogins": "Girisler",
+    "failedLogins": "Basarisiz girisler",
+    "activeSessions": "Aktif oturumlar",
+    "avgSession": "Ort. oturum suresi",
+    "lastLogin": "Son giris",
+    "topActiveUsers": "En aktif kullanicilar (karsilastirma)",
+    "actionBreakdown": "Islem dagilimi",
+    "activityOverTime": "Zaman icinde aktivite",
+    "reportForUser": "Rapor:",
+    "identity": "Kimlik",
+    "lastSessionEnd": "Son oturum bitişi",
+    "actionSummary": "Eylem özeti",
+    "timelineTitle": "Denetim zaman cizelgesi (RKSV)",
+    "noData": "Kullanici ve tarih araligi secin, ardindan rapor olusturun.",
+    "loadError": "Rapor yuklenemedi.",
+    "userCreates": "Olusturulan kullanicilar",
+    "userEdits": "Duzenlenen kullanicilar",
+    "payments": "Odemeler",
+    "stornos": "Stornolar",
+    "refunds": "Iadeler",
+    "exports": "Disa aktarmalar",
+    "minutesSuffix": "dk",
+    "timeline": {
+      "time": "Zaman",
+      "action": "Islem",
+      "entityType": "Varlik",
+      "status": "Durum",
+      "ip": "IP",
+      "session": "Oturum",
+      "correlation": "Correlation",
+      "tse": "TSE"
+    }
+  },
+  "activityLog": {
+    "pageTitle": "Aktivite gunlugu",
+    "pageIntro": "Denetim kayitlarindan kiraci kapsamli personel aktivitesi. Platform operator islemleri gizlenir.",
+    "title": "Aktivite gunlugu",
+    "userPlaceholder": "Kullanici",
+    "actionTypePlaceholder": "Islem tipi",
+    "actionTypeAll": "Tum islemler",
+    "searchPlaceholder": "Ara…",
+    "colTime": "Zaman",
+    "colUser": "Kullanici",
+    "colAction": "Islem",
+    "colDescription": "Aciklama",
+    "colDetails": "Detaylar",
+    "empty": "Aktivite bulunamadi",
+    "totalEntries": "{{count}} kayit",
+    "export": "Disa aktar",
+    "exportSuccess": "Disa aktarma baslatildi",
+    "exportFailed": "Disa aktarma basarisiz",
+    "shiftReportsLink": "Personel performans raporu",
+    "actions": {
+      "ShiftStarted": "Vardiya acildi",
+      "ShiftEnded": "Vardiya kapandi",
+      "POS_SPL_RCPT": "Ozel fis"
+    }
+  },
+  "taxReports": {
+    "pageTitle": "Vergi raporlari",
+    "cardTitle": "Vergi raporlari",
+    "period": "Donem",
+    "totalNet": "Toplam net",
+    "totalTax": "Toplam vergi",
+    "totalGross": "Toplam brut",
+    "empty": "Secilen donemde vergi verisi yok.",
+    "tabs": {
+      "distribution": "Vergi dagilimi",
+      "trend": "Vergi trendi",
+      "export": "Disa aktar"
+    },
+    "columns": {
+      "group": "Vergi grubu",
+      "rate": "Oran",
+      "net": "Net",
+      "tax": "Vergi",
+      "gross": "Brut",
+      "receipts": "Fisler"
+    },
+    "exportYear": "Yillik vergi raporu",
+    "exportMonth": "Aylik vergi raporu",
+    "exportSuccess": "Vergi raporu indirildi",
+    "exportFailed": "Disa aktarma basarisiz",
+    "exportPermissionHint": "Disa aktarma icin report.export izni gerekir."
   }
 }

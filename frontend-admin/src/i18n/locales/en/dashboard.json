@@ -27,6 +27,506 @@
     "jahresbeleg_not_required": "no open obligation",
     "open_sonderbelege": "Open RKSV special receipts",
     "open_compliance": "Compliance diagnostics",
-    "multi_register_summary": "{{startbeleg}} register(s) without Startbeleg · {{jahresbeleg}} Jahresbeleg notice(s) · {{monatsbeleg}} overdue Monatsbelege"
+    "multi_register_summary": "{{startbeleg}} register(s) without Startbeleg · {{jahresbeleg}} Jahresbeleg notice(s) · {{monatsbeleg}} overdue Monatsbelege",
+    "loading_monatsbeleg": "Loading Monatsbeleg status…",
+    "monatsbeleg_load_failed": "Could not load Monatsbeleg status.",
+    "register_short": "Register",
+    "reload": "Reload",
+    "permission_denied": "You do not have permission for this action.",
+    "monatsbeleg_already_exists": "Monatsbeleg for the current month already exists",
+    "only_current_month": "Only the current calendar month (Europe/Vienna) can be created.",
+    "monatsbeleg_created_success": "Monatsbeleg for current month created",
+    "monatsbeleg_create_failed": "Failed to create Monatsbeleg",
+    "monatsbeleg_missing_for_register": "Monatsbeleg for {{month}} is missing for the selected register.",
+    "registers_need_monatsbeleg": "{{count}} registers need the Monatsbeleg for {{month}}.",
+    "all_current_widget_title": "All up to date",
+    "all_current_widget_description": "The Monatsbeleg for {{month}} exists for all registers.",
+    "current_month_complete_title": "Current month complete",
+    "current_month_complete_description": "The Monatsbeleg for {{month}} exists for all registers. Please catch up on missing months from earlier periods.",
+    "action_required": "Action required"
+  },
+  "rksvReminderCard": {
+    "action_required": "Action required",
+    "all_ok": "All OK",
+    "manage": "Manage",
+    "reload": "Reload",
+    "load_error_title": "Failed to load RKSV data",
+    "load_error_description": "RKSV reminders could not be loaded. Please try again later.",
+    "empty_description": "No cash registers or no RKSV data available",
+    "startbeleg_missing_title": "Startbeleg missing",
+    "startbeleg_missing_description": "{{missing}} of {{total}} registers still have no Startbeleg.",
+    "monatsbeleg_overdue_title": "Monatsbeleg overdue",
+    "monatsbeleg_overdue_description": "{{count}} registers did not create the Monatsbeleg in time.",
+    "monatsbeleg_pending_title": "Monatsbeleg missing",
+    "monatsbeleg_pending_description": "Monatsbeleg missing for {{count}} active register(s). Months without sales still need the receipt. Decommissioned registers are not counted.",
+    "jahresbeleg_pending_title": "Jahresbeleg pending",
+    "jahresbeleg_pending_description": "{{count}} registers need a Jahresbeleg.",
+    "all_current_title": "All RKSV special receipts are up to date",
+    "all_current_description": "All registers have the required Startbelege, Monatsbelege and Jahresbelege.",
+    "last_updated": "Last updated: {{time}}",
+    "last_updated_unknown": "unknown"
+  },
+  "offlineQueue": {
+    "title": "Offline queue (TSE)",
+    "manage": "Manage",
+    "backlog_title": "Elevated backlog",
+    "backlog_description": "{{pending}} payments waiting for fiscal signature (threshold > 10).",
+    "pending": "Pending",
+    "failed": "Failed",
+    "last_replay_utc": "Last replay (UTC)"
+  },
+  "tseHealth": {
+    "title": "TSE status",
+    "current_status": "Current status",
+    "last_successful_check": "Last successful TSE check",
+    "last_check_utc": "Last check (UTC)",
+    "consecutive_failures": "Consecutive failures",
+    "status_healthy": "Healthy",
+    "status_degraded": "Degraded",
+    "status_offline": "Offline",
+    "status_unknown": "Unknown",
+    "degraded_title": "TSE degraded",
+    "offline_title": "TSE offline",
+    "failures_in_row": "Failures in a row: {{count}}.",
+    "next_probe_eta": "Next scheduled check (ETA): {{time}}."
+  },
+  "fiskalyStatus": {
+    "disabled": "Disabled",
+    "not_configured": "Not configured",
+    "auth_failed": "Authentication failed",
+    "active": "Active",
+    "environment": "Environment: {{env}}",
+    "last_check": "Last check: {{time}}",
+    "refresh": "Refresh"
+  },
+  "cashRegistersWidget": {
+    "open_count_title": "Open registers",
+    "status_open": "Open",
+    "status_closed": "Closed",
+    "empty": "No registers",
+    "more_count": "+{{count}} more"
+  },
+  "finanzOnlineWidget": {
+    "pending": "Pending",
+    "failed": "Failed",
+    "hint_failed": "Review failed submissions",
+    "hint_pending": "Pending submissions in queue",
+    "hint_ok": "No open issues",
+    "details": "Details"
+  },
+  "finanzOnlineOutbox": {
+    "pending": "Pending submissions",
+    "failed24h": "Failed (24h)",
+    "lastSuccess": "Last successful submission",
+    "lastSuccessNever": "none yet",
+    "openQueue": "Open queue",
+    "retryAllFailed": "Retry all failed",
+    "retryConfirmTitle": "Retry all failed submissions?",
+    "retryConfirmBody": "Failed rows are returned to the queue. This does not submit SOAP by itself.",
+    "retryQueued": "{{count}} rows were queued again.",
+    "retryError": "Retry failed."
+  },
+  "offlineStatusWidget": {
+    "badge_critical": "Critical",
+    "badge_pending": "Pending",
+    "badge_healthy": "Healthy",
+    "pending_orders": "Pending orders",
+    "total_pending": "Total pending",
+    "sync_success_rate": "Sync success rate",
+    "sync_status": "Sync status",
+    "sync_healthy": "Healthy",
+    "sync_unhealthy": "Issues",
+    "oldest_pending": "Oldest pending: {{time}}",
+    "last_sync": "Last sync: {{time}}",
+    "view_details": "View details",
+    "load_failed": "Could not load offline status."
+  },
+  "backupStatusWidget": {
+    "last_backup": "Last backup",
+    "no_backup": "No backup yet",
+    "success_rate_30d": "Success rate (30 days)",
+    "storage": "Storage",
+    "storage_alert": "Storage limit approaching (staging ≥ 80%)",
+    "config_health": "Configuration: {{level}}",
+    "view_details": "Open backup overview",
+    "load_failed": "Could not load backup status.",
+    "health_score": "Backup health",
+    "rpo_status": "RPO",
+    "rpo_ok": "OK",
+    "rpo_warning": "Warning",
+    "rpo_overdue": "Overdue",
+    "rpo_unknown": "Unknown",
+    "last_verification": "Last verification",
+    "verification_passed": "Passed",
+    "verification_failed": "Failed",
+    "verification_none": "None",
+    "content_validation": "Content validation",
+    "health_healthy": "Healthy",
+    "health_warning": "Warning",
+    "health_critical": "Critical",
+    "next_scheduled": "Next scheduled backup",
+    "no_scheduled": "No schedule reported",
+    "pending_runs": "{{count}} backup run(s) still queued or running",
+    "alert_last_failed": "Last backup failed — open Backup & DR for the failure reason.",
+    "alert_rpo_critical": "RPO is critical — last successful backup is too old.",
+    "alert_rpo_warning": "RPO is at risk — last successful backup is aging.",
+    "alert_drill_failed": "Latest restore drill failed — recoverability is not proven."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Pending",
+    "ready": "Ready",
+    "collected": "Collected",
+    "openList": "Open Vorbestellungen",
+    "loadFailed": "Vorbestellungen could not be loaded."
+  },
+  "metricsWidget": {
+    "operational": "Operational",
+    "requests": "Requests",
+    "requestsSuffix": "req",
+    "avgResponse": "Avg response",
+    "errorRate": "Error rate",
+    "activeUsers": "Registered users",
+    "uptime": "Uptime",
+    "uptimeValue": "{{days}}d {{hours}}h {{minutes}}m",
+    "cacheHit": "Cache hit: {{percent}}%",
+    "activeOrders": "Active orders: {{count}}",
+    "tenants": "Tenants: {{count}}",
+    "loadFailed": "Could not load system metrics."
+  },
+  "dataRetentionWidget": {
+    "viewAll": "View all",
+    "loadFailed": "Could not load data retention status.",
+    "totalTenants": "Total tenants",
+    "thisTenant": "This tenant",
+    "inGrace": "Grace period",
+    "locked": "Locked / expired",
+    "deletionRequests": "Deletion requests",
+    "tagActive": "Active: {{count}}",
+    "tagGrace": "Grace: {{count}}",
+    "tagLocked": "Locked: {{count}}",
+    "rksvNote": "RKSV data retained for at least 7 years",
+    "oldestRksv": "Oldest RKSV payment: {{date}}"
+  },
+  "widgetShell": {
+    "refresh": "Refresh",
+    "drag_widget": "Move widget"
+  },
+  "customize": {
+    "button": "Customize widgets",
+    "drawerTitle": "Customize dashboard",
+    "drawerIntro": "Show or hide widgets. Visible widgets can be reordered by dragging on the dashboard.",
+    "resetLayout": "Restore default layout",
+    "resetConfirmTitle": "Reset layout?",
+    "resetConfirmContent": "Your widget order and visibility will be restored to the defaults.",
+    "loadError": "Dashboard could not be loaded",
+    "saveError": "Layout could not be saved",
+    "toggleAria": "Show {{title}}"
+  },
+  "widgets": {
+    "actionRequired": {
+      "noPermission": "No permission to view action-required reminders."
+    },
+    "todaySales": {
+      "totalToday": "Total revenue today",
+      "salesCount": "{{count}} sales",
+      "noSalesToday": "No sales today"
+    },
+    "licenseExpiry": {
+      "daysRemaining": "Days remaining",
+      "validUntil": "Valid until: {{date}}",
+      "validUntilLabel": "Valid until",
+      "remainingLabel": "Remaining",
+      "remainingValue": "{{days}} days ({{hours}} hours)",
+      "statusLabel": "Status",
+      "countdown": "Expires in: {{countdown}}",
+      "expiresSoon7": "License expiring soon — please renew.",
+      "expiresSoon30": "License expires within 30 days.",
+      "noExpiryDate": "No license expiry date configured",
+      "openSettings": "Open settings",
+      "actionRequired": "Tenant license renewal is required."
+    },
+    "licenseCountdown": {
+      "validUntilLabel": "Valid until",
+      "expired": "Expired",
+      "expiredHint": "Expired",
+      "remainingHint": "time remaining",
+      "renewNow": "Renew now",
+      "progressAria": "License term: {{days}} day(s) remaining"
+    },
+    "licenseStatus": {
+      "title": "License status",
+      "validUntil": "Valid until",
+      "status": "Status",
+      "expired": "Expired",
+      "remainingHint": "time remaining",
+      "healthy": "OK",
+      "actionNeeded": "Action needed",
+      "daysLeft": "{{days}} days",
+      "extend": "Extend",
+      "extendNow": "Renew now",
+      "progressAria": "License status: {{days}} day(s)"
+    },
+    "licenseHealth": {
+      "title": "License status",
+      "statusLabel": "Status",
+      "validUntil": "Valid until",
+      "healthy": "OK",
+      "actionNeeded": "Action needed",
+      "daysLeft": "{{days}} days",
+      "extend": "Extend",
+      "extendNow": "Renew now",
+      "progressAria": "License status: {{days}} day(s)",
+      "states": {
+        "Active": "Active",
+        "Grace": "Grace period",
+        "Locked": "Locked",
+        "Archived": "Archived"
+      }
+    },
+    "licenseImpact": {
+      "title": "License status",
+      "states": {
+        "Active": "Active",
+        "Grace": "Grace period",
+        "Locked": "Locked",
+        "Archived": "Archived"
+      },
+      "current": {
+        "eyebrow": "Current",
+        "daysValid": "{{days}} days remaining",
+        "daysGrace": "{{days}} grace days left",
+        "daysOverdue": "{{days}} days overdue"
+      },
+      "grace": {
+        "eyebrow": "Grace period ({{days}} days)",
+        "title": "Warning phase",
+        "description": "Full access with warnings; renew in time."
+      },
+      "locked": {
+        "eyebrow": "After grace period",
+        "title": "Full lockdown",
+        "description": "POS blocked; FA read-only plus license renewal."
+      },
+      "alert": {
+        "okTitle": "All good",
+        "okDescription": "Your license is still valid. Please plan renewal in time.",
+        "actionTitle": "Action needed",
+        "actionDescription": "Your license is expiring or expired. Please renew now."
+      }
+    },
+    "licenseRenewalChecklist": {
+      "title": "License renewal checklist",
+      "subtitle": "Prepare renewal step by step.",
+      "progressLabel": "{{completed}} / {{total}} completed",
+      "progressAria": "Checklist: {{percent}} percent completed",
+      "items": {
+        "reviewLicenseData": {
+          "label": "Review current license data",
+          "description": "Valid until: {{date}}"
+        },
+        "prepareLicenseKey": {
+          "label": "Have a new license key ready"
+        },
+        "verifyPaymentMethod": {
+          "label": "Verify payment method"
+        },
+        "updateContactData": {
+          "label": "Update contact details"
+        },
+        "contactSupportIfNeeded": {
+          "label": "Contact support if you have questions"
+        }
+      }
+    },
+    "licenseSupportOptions": {
+      "title": "License support",
+      "subtitle": "Quick help for license questions and renewal.",
+      "liveChat": {
+        "title": "Live chat",
+        "description": "Immediate help"
+      },
+      "ticket": {
+        "title": "Support ticket",
+        "description": "Reply within 24–48 hours"
+      },
+      "faq": {
+        "title": "FAQ",
+        "description": "Common questions",
+        "modalTitle": "License FAQ",
+        "modalClose": "Close",
+        "items": {
+          "renew": {
+            "q": "How do I renew my license?",
+            "a": "Use “Renew now” on the dashboard or License page and enter the REGK key provided by Super Admin."
+          },
+          "grace": {
+            "q": "What happens during the grace period?",
+            "a": "POS and FA stay usable with warnings. Please renew within the grace days."
+          },
+          "locked": {
+            "q": "Why is POS locked?",
+            "a": "After the grace period the license is locked: POS blocked, FA read-only plus renewal."
+          },
+          "key": {
+            "q": "Where do I get a license key?",
+            "a": "Managers receive keys from Super Admin / billing. If you need help, write to support@regkasse.at."
+          }
+        }
+      },
+      "phone": {
+        "title": "Phone",
+        "description": "Mon–Fri 9–17 · {{phone}}"
+      }
+    },
+
+    "recentUsers": {
+      "empty": "No users"
+    },
+    "recentPermissionChanges": {
+      "empty": "No permission changes",
+      "viewAll": "View all →",
+      "roleLine": "Role '{{role}}'",
+      "permissionLine": "Permission '{{permission}}'"
+    },
+    "lowStock": {
+      "summary": "{{count}} items below minimum stock",
+      "empty": "No alerts",
+      "productFallback": "Product",
+      "stockDescription": "Stock: {{current}} / Min: {{min}}"
+    },
+    "topProducts": {
+      "periodToday": "Today",
+      "periodWeek": "Week",
+      "colProduct": "Product",
+      "colQuantity": "Qty",
+      "colRevenue": "Revenue"
+    }
+  },
+  "monatsbeleg": {
+    "title": "Monatsbeleg (RKSV)",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "loadFailedTitle": "Could not load data",
+    "loadFailedDescription": "Please try again later or contact support.",
+    "loadTimeout": "Request timed out after 10 seconds. Please try again.",
+    "loading": "Loading Monatsbeleg data…",
+    "noDataTitle": "No data available",
+    "noDataDescription": "No cash registers found yet. Monatsbeleg data appears once registers are set up.",
+    "refreshInterval": "Refreshes every 5 minutes",
+    "colRegister": "Register",
+    "colLastMonatsbeleg": "Last Monatsbeleg",
+    "colMissingMonths": "Missing months",
+    "colProgress": "Progress",
+    "colAction": "Action",
+    "noMonatsbeleg": "No Monatsbeleg on file",
+    "noMissingMonths": "No missing months",
+    "overdueSuffix": " (overdue)",
+    "loadingTag": "Loading…",
+    "statusFailed": "Status failed",
+    "progressSummary": "{{completed}} of {{total}} months completed this year",
+    "noPermission": "No permission",
+    "createForMonth": "Create Monatsbeleg for {{month}}",
+    "createTestCurrentMonth": "Create Monatsbeleg for current month (test)",
+    "alreadyExists": "Monatsbeleg for current month already exists",
+    "createSuccess": "Monatsbeleg for {{month}} created successfully",
+    "createFailed": "Could not create Monatsbeleg for the current month.",
+    "refreshA11y": "Refresh Monatsbeleg data",
+    "demoModeTitle": "Demo mode: you can create Monatsbelege anytime for testing. In production they are legally required.",
+    "intro": "Overview of all registers: Monatsbeleg deadline by calendar month (Europe/Vienna). Refreshes every 5 minutes and on window focus.",
+    "statusLoadFailed": "Could not load Monatsbeleg status",
+    "noRegisters": "No registers available.",
+    "emptyTable": "No registers found."
+  },
+  "rksvCompliance": {
+    "missingTitle": "{{count}} Monatsbeleg receipts missing",
+    "catchUpNow": "Catch up now",
+    "missingHint": "Missing monthly receipts can be created late (real creation timestamp, marked as late).",
+    "daysLate": "{{count}} days late",
+    "overdue": "Overdue",
+    "missing": "Missing"
+  },
+  "tagesabschlussReminder": {
+    "title": "Daily closing pending",
+    "cta": "Perform now",
+    "body": "Daily closing for {{register}} has not been performed today yet.",
+    "transactionsWaiting": "{{count}} transactions are waiting for daily closing.",
+    "deadlineHint": "Please complete daily closing before midnight (Europe/Vienna). Automatic closing is not available."
+  },
+  "manager": {
+    "welcome": "Welcome back, {{name}}!",
+    "todaySales": "Today's sales",
+    "transactions": "Transactions",
+    "transactionCount": "{{count}} transactions",
+    "openShifts": "Open shifts",
+    "shiftOpen": "Shift open",
+    "allClosed": "All closed",
+    "activeStaff": "Active staff",
+    "onDutyToday": "On duty today",
+    "viewStaffHub": "Staff overview",
+    "viewStaffShifts": "View shifts",
+    "cashBalance": "Register balance",
+    "noRegister": "No register",
+    "recentActivities": "Recent activities",
+    "viewAll": "View all",
+    "noActivities": "No activities",
+    "pendingMonatsbeleg": "Monatsbeleg missing for {{count}} register",
+    "pendingMonatsbelegPlural": "Monatsbeleg missing for {{count}} registers",
+    "pendingMonatsbelegDescription": "Only active registers with a missing month. A month without sales still needs the receipt. Decommissioned registers are not listed.",
+    "createNow": "Catch up now",
+    "openMonatsbelegRequests": {
+      "title": "Open Monatsbeleg requests",
+      "count": "Requests (7 days)",
+      "empty": "No open requests in the last 7 days.",
+      "cta": "Open Monatsbelege"
+    }
+  },
+  "dailyClosing": {
+    "title": "Daily closing",
+    "todayClosed": "Closed today",
+    "todayOpen": "Open today ({{count}} transactions)",
+    "todayEmpty": "No transactions — empty closing possible",
+    "weekSummaryTitle": "This week",
+    "weekSummary": "{{closed}} / {{total}} closed",
+    "lastClosing": "Last closing: {{date}}",
+    "noClosingYet": "No closing yet",
+    "open": "Open daily closing",
+    "closeNow": "Close today",
+    "closeNowConfirmTitle": "Run today's daily closing?",
+    "closeNowConfirm": "RKSV-relevant operation. Run only when the register is ready.",
+    "noPermission": "You do not have permission for daily closing.",
+    "loadError": "Could not load daily closing status"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE usage",
+    "volumeTitle": "Payment volume (POS)",
+    "loadFailed": "Could not load analytics.",
+    "activeRegisters": "Active registers",
+    "signaturesToday": "Signatures today",
+    "failedSignatures": "Failed",
+    "signatures": "Signatures",
+    "revenueThisMonth": "Revenue this month",
+    "monthlyGrowth": "Month-over-month",
+    "averageTicket": "Avg. ticket",
+    "revenue": "Revenue"
+  },
+  "handyLinks": {
+    "title": "Useful links",
+    "subtitle": "Shortcuts to cash register management and other tools.",
+    "recentTitle": "Recently used",
+    "recentEmpty": "No recently opened pages yet."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Tenant",
+    "year": "Year",
+    "deadline": "Deadline",
+    "status": "Status",
+    "created": "Created",
+    "missing": "Missing",
+    "notDue": "Not due yet",
+    "empty": "No cash register with a Jahresbeleg obligation.",
+    "loadError": "Could not load Jahresbeleg status.",
+    "warning": "Jahresbeleg deadline is January 31. Please create it.",
+    "open": "Open Jahresbeleg"
   }
 }

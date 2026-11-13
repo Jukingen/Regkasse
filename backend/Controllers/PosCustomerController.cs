@@ -1,14 +1,19 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Extensions;
+using KasseAPI_Final.Services.VerticalProfiles;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>POS customer lookup (QR scan, number). Read-only; benefits applied at payment.</summary>
+/// <summary>POS customer lookup and tenant-scoped customer creation. Benefits are applied at payment.</summary>
 [Authorize]
 [ApiController]
 [Route("api/pos/customers")]
@@ -16,13 +21,131 @@ namespace KasseAPI_Final.Controllers;
 public sealed class PosCustomerController : BaseController
 {
     private readonly IPosCustomerQrLookupService _qrLookup;
+    private readonly AppDbContext _db;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
+    private readonly ITenantExtensionRegistry? _extensions;
 
     public PosCustomerController(
         IPosCustomerQrLookupService qrLookup,
-        ILogger<PosCustomerController> logger)
+        AppDbContext db,
+        ICurrentTenantAccessor tenantAccessor,
+        ILogger<PosCustomerController> logger,
+        IVerticalProfileGuard profileGuard,
+        ITenantExtensionRegistry? extensions = null)
         : base(logger)
     {
         _qrLookup = qrLookup;
+        _db = db;
+        _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
+        _extensions = extensions;
+    }
+
+    /// <summary>Create a tenant-scoped POS customer, including optional veterinary pet data.</summary>
+    [HttpPost]
+    [HasPermission(AppPermissions.CustomerManage)]
+    [ProducesResponseType(typeof(PosCustomerDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PosCustomerDto>> CreateCustomer(
+        [FromBody] CreatePosCustomerRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        var rejected = await RejectProfileFieldsAsync(request.PetData, request.AddressData, cancellationToken)
+            .ConfigureAwait(false);
+        if (rejected is ActionResult rejectedResult)
+            return rejectedResult;
+
+        var email = request.Email?.Trim() ?? string.Empty;
+        if (email.Length > 0
+            && await _db.Customers.AnyAsync(
+                customer => customer.Email == email && customer.IsActive,
+                cancellationToken))
+        {
+            return Conflict(new { message = "This email address is already in use." });
+        }
+
+        var customer = new Customer
+        {
+            TenantId = tenantId,
+            Name = request.Name.Trim(),
+            Email = email,
+            Phone = request.Phone?.Trim() ?? string.Empty,
+            Address = request.Address?.Trim() ?? string.Empty,
+            IsActive = true,
+            IsSystem = false,
+            PetData = request.PetData?.ToEntity(),
+            AddressData = MapAddress(request.AddressData),
+        };
+        if (string.IsNullOrWhiteSpace(customer.Address))
+            customer.Address = FormatAddress(customer.AddressData) ?? string.Empty;
+
+        var rejectedByExtension = await RunCustomerHookAsync(
+            tenantId,
+            customer.Id,
+            isUpdate: false,
+            cancellationToken);
+        if (rejectedByExtension is ActionResult extensionResult)
+            return extensionResult;
+
+        _db.Customers.Add(customer);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var dto = MapCustomer(customer);
+        return Created($"/api/pos/customers/by-qr?qrData={customer.Id:D}", dto);
+    }
+
+    /// <summary>Update structured service address for an existing POS customer.</summary>
+    [HttpPatch("{id:guid}")]
+    [HasPermission(AppPermissions.CustomerManage)]
+    [ProducesResponseType(typeof(PosCustomerDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PosCustomerDto>> UpdateCustomerAddress(
+        Guid id,
+        [FromBody] UpdatePosCustomerAddressRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        var customer = await _db.Customers
+            .FirstOrDefaultAsync(row => row.Id == id && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (customer is null || customer.IsSystem)
+            return NotFound();
+
+        var rejected = await RejectProfileFieldsAsync(pet: null, request.AddressData, cancellationToken)
+            .ConfigureAwait(false);
+        if (rejected is ActionResult rejectedResult)
+            return rejectedResult;
+
+        customer.AddressData = MapAddress(request.AddressData);
+        var formatted = FormatAddress(customer.AddressData);
+        customer.Address = string.IsNullOrWhiteSpace(request.Address)
+            ? formatted ?? customer.Address
+            : request.Address.Trim();
+        customer.UpdatedAt = DateTime.UtcNow;
+
+        var rejectedByExtension = await RunCustomerHookAsync(
+            tenantId,
+            customer.Id,
+            isUpdate: true,
+            cancellationToken);
+        if (rejectedByExtension is ActionResult extensionResult)
+            return extensionResult;
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return Ok(MapCustomer(customer));
     }
 
     /// <summary>Resolve customer from scanned QR payload (customer:, RK:C:, RK:CU:, regkasse://, number, email).</summary>
@@ -82,7 +205,120 @@ public sealed class PosCustomerController : BaseController
         CustomerNumber = dto.CustomerNumber,
         Email = dto.Email,
         Phone = dto.Phone,
+        Address = dto.Address,
         LoyaltyPoints = dto.LoyaltyPoints,
+        AddressData = MapAddress(dto.AddressData),
+        PetData = dto.PetData?.ToEntity(),
         IsActive = true,
     };
+
+    private static PosCustomerDto MapCustomer(Customer customer) => new()
+    {
+        Id = customer.Id,
+        Name = customer.Name,
+        CustomerNumber = customer.CustomerNumber,
+        Email = customer.Email,
+        Phone = customer.Phone,
+        Address = customer.Address,
+        LoyaltyPoints = customer.LoyaltyPoints,
+        PetData = PosCustomerPetDataDto.FromEntity(customer.PetData),
+        AddressData = customer.AddressData is null
+            ? null
+            : new PosCustomerAddressDataDto
+            {
+                Street = customer.AddressData.Street,
+                PostalCode = customer.AddressData.PostalCode,
+                City = customer.AddressData.City,
+                Notes = customer.AddressData.Notes,
+            },
+    };
+
+    private async Task<IActionResult?> RunCustomerHookAsync(
+        Guid tenantId,
+        Guid customerId,
+        bool isUpdate,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await TenantExtensionRunner.RunAsync(
+                _extensions,
+                tenantId,
+                TenantExtensionHooks.CustomerBeforeSave,
+                new Dictionary<string, object?>
+                {
+                    ["customerId"] = customerId,
+                    ["isUpdate"] = isUpdate,
+                },
+                cancellationToken);
+            return null;
+        }
+        catch (ExtensionFailedException ex)
+        {
+            return BadRequest(new { code = ExtensionFailedException.ErrorCode, message = ex.Message });
+        }
+    }
+
+    private async Task<IActionResult?> RejectProfileFieldsAsync(
+        PosCustomerPetDataDto? pet,
+        PosCustomerAddressDataDto? address,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (HasPetContent(pet))
+                await _profileGuard.EnforceAsync("patientRecord", cancellationToken).ConfigureAwait(false);
+            if (HasAddressContent(address))
+                await _profileGuard.EnforceMobileServicesAsync(cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (Exception ex) when (ex is FeatureNotEnabledForProfileException)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
+    }
+
+    private static bool HasPetContent(PosCustomerPetDataDto? pet) =>
+        pet?.ToEntity() is not null;
+
+    private static bool HasAddressContent(PosCustomerAddressDataDto? address) =>
+        address is not null
+        && (!string.IsNullOrWhiteSpace(address.Street)
+            || !string.IsNullOrWhiteSpace(address.PostalCode)
+            || !string.IsNullOrWhiteSpace(address.City)
+            || !string.IsNullOrWhiteSpace(address.Notes));
+
+    private static CustomerAddressData? MapAddress(PosCustomerAddressDataDto? dto)
+    {
+        if (dto is null)
+            return null;
+        var street = dto.Street?.Trim();
+        var postal = dto.PostalCode?.Trim();
+        var city = dto.City?.Trim();
+        var notes = dto.Notes?.Trim();
+        if (string.IsNullOrEmpty(street)
+            && string.IsNullOrEmpty(postal)
+            && string.IsNullOrEmpty(city)
+            && string.IsNullOrEmpty(notes))
+            return null;
+        return new CustomerAddressData
+        {
+            Street = street,
+            PostalCode = postal,
+            City = city,
+            Notes = notes,
+        };
+    }
+
+    private static string? FormatAddress(CustomerAddressData? data)
+    {
+        if (data is null)
+            return null;
+        var line1 = data.Street?.Trim();
+        var line2 = string.Join(' ', new[] { data.PostalCode, data.City }
+            .Select(value => value?.Trim())
+            .Where(value => !string.IsNullOrEmpty(value)));
+        var formatted = string.Join(", ", new[] { line1, line2 }.Where(value => !string.IsNullOrEmpty(value)));
+        return formatted.Length == 0 ? null : formatted;
+    }
 }

@@ -1,24 +1,39 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useCallback, useEffect, useState } from 'react';
-import { Modal, Alert, Button, Col, DatePicker, Row, Space, Spin, Statistic, Tag, Timeline, Typography } from 'antd';
 import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Col,
+  DatePicker,
+  Modal,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Timeline,
+  Typography,
+} from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
+import { useCallback, useEffect, useState } from 'react';
+
 import {
   usePitrAvailability,
   useValidatePitrRestorePoint,
 } from '@/features/backup/hooks/useBackupPitr';
 import type { RestorePointValidationResult } from '@/features/backup/logic/backupPitrApi';
-import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import { buildPitrDateTimeConstraints } from '@/features/backup/logic/pitrDateTimeConstraints';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
+import { formatDateTime } from '@/i18n/formatting';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
 export type PitrRestorePayload = {
   targetTime: Date;
@@ -88,7 +103,7 @@ export function PitrRestoreModal({
         });
       }
     },
-    [validateMutation, t],
+    [validateMutation, t]
   );
 
   const handleRestore = () => {
@@ -100,7 +115,7 @@ export function PitrRestoreModal({
         <div>
           <Typography.Paragraph>{t('backupDr.pitr.confirmIntro')}</Typography.Paragraph>
           <Typography.Paragraph strong>
-            {selectedTime.format('DD.MM.YYYY HH:mm:ss')}
+            {formatDateTimeSeconds(selectedTime)}
           </Typography.Paragraph>
           <Typography.Paragraph>{t('backupDr.pitr.confirmIrreversible')}</Typography.Paragraph>
           <Typography.Paragraph type="danger">
@@ -121,7 +136,7 @@ export function PitrRestoreModal({
 
   const { disabledDate, disabledTime } = buildPitrDateTimeConstraints(
     availability?.earliestRestorePointUtc,
-    availability?.latestRestorePointUtc,
+    availability?.latestRestorePointUtc
   );
 
   const supportedPoints = availability?.supportedTimePointsUtc ?? [];
@@ -135,6 +150,7 @@ export function PitrRestoreModal({
   const recoveryMethodLabel = (method: string | null | undefined) => {
     if (method === 'PITR') return t('backupDr.pitr.recoveryMethodPitr');
     if (method === 'FullBackupOnly') return t('backupDr.pitr.recoveryMethodFullBackup');
+    if (method === 'FullPlusIncremental') return t('backupDr.pitr.recoveryMethodFullPlusIncremental');
     return '—';
   };
 
@@ -198,7 +214,13 @@ export function PitrRestoreModal({
             />
           ) : null}
 
-          <div style={{ marginBottom: 24, padding: 16, background: 'var(--ant-color-fill-quaternary)' }}>
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              background: 'var(--ant-color-fill-quaternary)',
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span>
                 <ClockCircleOutlined /> {t('backupDr.pitr.availablePointsTitle')}
@@ -207,36 +229,58 @@ export function PitrRestoreModal({
                 <Tag color="green">{t('backupDr.pitr.walArchivingActive')}</Tag>
               ) : null}
             </div>
-            <Timeline>
-              <Timeline.Item color="green">
-                <strong>{t('backupDr.pitr.earliestPoint')}:</strong>{' '}
-                {formatPitrDateTime(availability?.earliestRestorePointUtc ?? null, formatLocale)}
-              </Timeline.Item>
-              <Timeline.Item color="blue">
-                <strong>{t('backupDr.pitr.latestPoint')}:</strong>{' '}
-                {formatPitrDateTime(availability?.latestRestorePointUtc ?? null, formatLocale)}
-              </Timeline.Item>
-              {availability?.walArchiveLagMinutes != null ? (
-                <Timeline.Item color="orange">
-                  <strong>{t('backupDr.pitr.walLag')}:</strong>{' '}
-                  {t('backupDr.pitr.walLagMinutes', {
-                    minutes: String(availability.walArchiveLagMinutes),
-                  })}
-                </Timeline.Item>
-              ) : null}
-              {visibleSupportedPoints.map((pointUtc) => (
-                <Timeline.Item key={pointUtc} color="gray">
-                  {formatPitrDateTime(pointUtc, formatLocale)}
-                </Timeline.Item>
-              ))}
-              {hiddenSupportedCount > 0 ? (
-                <Timeline.Item color="gray">
-                  {t('backupDr.pitr.moreSupportedPoints', {
-                    count: String(hiddenSupportedCount),
-                  })}
-                </Timeline.Item>
-              ) : null}
-            </Timeline>
+            <Timeline
+              items={[
+                {
+                  color: 'green',
+                  content: (
+                    <>
+                      <strong>{t('backupDr.pitr.earliestPoint')}:</strong>{' '}
+                      {formatPitrDateTime(availability?.earliestRestorePointUtc ?? null, formatLocale)}
+                    </>
+                  ),
+                },
+                {
+                  color: 'blue',
+                  content: (
+                    <>
+                      <strong>{t('backupDr.pitr.latestPoint')}:</strong>{' '}
+                      {formatPitrDateTime(availability?.latestRestorePointUtc ?? null, formatLocale)}
+                    </>
+                  ),
+                },
+                ...(availability?.walArchiveLagMinutes != null
+                  ? [
+                      {
+                        color: 'orange' as const,
+                        content: (
+                          <>
+                            <strong>{t('backupDr.pitr.walLag')}:</strong>{' '}
+                            {t('backupDr.pitr.walLagMinutes', {
+                              minutes: String(availability.walArchiveLagMinutes),
+                            })}
+                          </>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...visibleSupportedPoints.map((pointUtc) => ({
+                  key: pointUtc,
+                  color: 'gray' as const,
+                  content: formatPitrDateTime(pointUtc, formatLocale),
+                })),
+                ...(hiddenSupportedCount > 0
+                  ? [
+                      {
+                        color: 'gray' as const,
+                        content: t('backupDr.pitr.moreSupportedPoints', {
+                          count: String(hiddenSupportedCount),
+                        }),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
 
           <div style={{ marginBottom: 24 }}>
@@ -276,7 +320,9 @@ export function PitrRestoreModal({
               {validation.isValid ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                    <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', marginRight: 8 }} />
+                    <CheckCircleOutlined
+                      style={{ color: 'var(--ant-color-success)', marginRight: 8 }}
+                    />
                     <Typography.Text strong>{t('backupDr.pitr.validationOkTitle')}</Typography.Text>
                   </div>
                   <Row gutter={16}>
@@ -284,14 +330,14 @@ export function PitrRestoreModal({
                       <Statistic
                         title={t('backupDr.pitr.baseBackup')}
                         value={formatPitrDateTime(validation.baseBackupTimeUtc, formatLocale)}
-                        styles={{ content: {  fontSize: 14  } }}
+                        styles={{ content: { fontSize: 14 } }}
                       />
                     </Col>
                     <Col span={12}>
                       <Statistic
                         title={t('backupDr.pitr.targetTime')}
                         value={formatPitrDateTime(validation.targetTimeUtc, formatLocale)}
-                        styles={{ content: {  fontSize: 14  } }}
+                        styles={{ content: { fontSize: 14 } }}
                       />
                     </Col>
                   </Row>
@@ -314,7 +360,9 @@ export function PitrRestoreModal({
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
                     <WarningOutlined style={{ color: 'var(--ant-color-error)', marginRight: 8 }} />
-                    <Typography.Text strong>{t('backupDr.pitr.validationFailedTitle')}</Typography.Text>
+                    <Typography.Text strong>
+                      {t('backupDr.pitr.validationFailedTitle')}
+                    </Typography.Text>
                   </div>
                   <Typography.Paragraph style={{ marginBottom: 0 }}>
                     {validation.message ?? t('backupDr.pitr.validationFailedGeneric')}

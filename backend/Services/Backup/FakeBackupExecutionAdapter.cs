@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
@@ -14,11 +13,16 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 {
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupChecksumService _checksum;
+    private readonly IBackupEncryptionService _encryption;
 
-    public FakeBackupExecutionAdapter(IOptionsMonitor<BackupOptions> options, IBackupChecksumService checksum)
+    public FakeBackupExecutionAdapter(
+        IOptionsMonitor<BackupOptions> options,
+        IBackupChecksumService checksum,
+        IBackupEncryptionService encryption)
     {
         _options = options;
         _checksum = checksum;
+        _encryption = encryption;
     }
 
     public string AdapterKind => "Fake";
@@ -31,26 +35,41 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         if (ThrowOnExecuteForTests != null)
             throw ThrowOnExecuteForTests;
 
+        var fileNameTimestamp = context.ArtifactFileNameTimestampUtc ?? DateTime.UtcNow;
         var configuredRoot = _options.CurrentValue.ArtifactStagingRoot;
         if (string.IsNullOrWhiteSpace(configuredRoot))
         {
             // Staging kökü yok: OS temp altında gerçek dosya üret (indirme / doğrulama ile uyumlu).
-            var stubDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "regkasse-backup-stub"));
+            // One folder per run so two Fake backups in the same UTC second do not share a file name.
+            var stubDir = Path.GetFullPath(Path.Combine(
+                Path.GetTempPath(),
+                "regkasse-backup-stub",
+                context.BackupRunId.ToString("N")));
             Directory.CreateDirectory(stubDir);
 
-            var stubLogicalName = $"fake_logical_{context.BackupRunId:N}.dump";
-            var stubManifestName = $"fake_manifest_{context.BackupRunId:N}.json";
+            var stubLogicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
+                context.TenantSlugForFileName,
+                fileNameTimestamp,
+                context.Strategy);
+            var stubManifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
+                context.TenantSlugForFileName,
+                fileNameTimestamp,
+                context.Strategy);
             var stubLogicalPath = Path.Combine(stubDir, stubLogicalName);
             var stubManifestPath = Path.Combine(stubDir, stubManifestName);
 
             var stubPayload = Encoding.UTF8.GetBytes($"fake-bytes-{context.BackupRunId:N}");
             await File.WriteAllBytesAsync(stubLogicalPath, stubPayload, context.CancellationToken);
+            await _encryption.EncryptFileInPlaceAsync(stubLogicalPath, context.CancellationToken);
 
             var stubMeta = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump", noStagingRoot = true });
             await File.WriteAllTextAsync(stubManifestPath, stubMeta, context.CancellationToken);
+            await _encryption.EncryptFileInPlaceAsync(stubManifestPath, context.CancellationToken);
 
             var stubLogicalHash = await _checksum.ComputeFileSha256HexAsync(stubLogicalPath, context.CancellationToken);
             var stubManifestHash = await _checksum.ComputeFileSha256HexAsync(stubManifestPath, context.CancellationToken);
+            var stubLogicalLen = new FileInfo(stubLogicalPath).Length;
+            var stubManifestLen = new FileInfo(stubManifestPath).Length;
 
             return new BackupExecutionResult
             {
@@ -61,7 +80,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                     {
                         ArtifactType = BackupArtifactType.LogicalDump,
                         StorageDescriptor = stubLogicalPath,
-                        ByteSize = stubPayload.Length,
+                        ByteSize = stubLogicalLen,
                         ContentHashSha256 = stubLogicalHash,
                         MetadataJson = stubMeta,
                         // Staging kökü yapılandırılmadığında doğrulama yalnızca metadata; dosya yine diskte (indirme için).
@@ -71,7 +90,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                     {
                         ArtifactType = BackupArtifactType.VerificationManifest,
                         StorageDescriptor = stubManifestPath,
-                        ByteSize = stubMeta.Length,
+                        ByteSize = stubManifestLen,
                         ContentHashSha256 = stubManifestHash,
                         MetadataJson = "{\"kind\":\"fake-manifest\"}",
                         RequireOnDiskHashVerification = false
@@ -83,19 +102,29 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         var root = Path.GetFullPath(configuredRoot.Trim());
         Directory.CreateDirectory(root);
 
-        var logicalName = $"fake_logical_{context.BackupRunId:N}.dump";
-        var manifestName = $"fake_manifest_{context.BackupRunId:N}.json";
+        var logicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp,
+            context.Strategy);
+        var manifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp,
+            context.Strategy);
         var logicalPath = Path.Combine(root, logicalName);
         var manifestPath = Path.Combine(root, manifestName);
 
         var payload = Encoding.UTF8.GetBytes($"fake-bytes-{context.BackupRunId:N}");
         await File.WriteAllBytesAsync(logicalPath, payload, context.CancellationToken);
+        await _encryption.EncryptFileInPlaceAsync(logicalPath, context.CancellationToken);
 
         var metaOnDisk = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump" });
         await File.WriteAllTextAsync(manifestPath, metaOnDisk, context.CancellationToken);
+        await _encryption.EncryptFileInPlaceAsync(manifestPath, context.CancellationToken);
 
         var logicalHash = await _checksum.ComputeFileSha256HexAsync(logicalPath, context.CancellationToken);
         var manifestHash = await _checksum.ComputeFileSha256HexAsync(manifestPath, context.CancellationToken);
+        var logicalLen = new FileInfo(logicalPath).Length;
+        var manifestLen = new FileInfo(manifestPath).Length;
 
         return new BackupExecutionResult
         {
@@ -106,7 +135,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                 {
                     ArtifactType = BackupArtifactType.LogicalDump,
                     StorageDescriptor = logicalName,
-                    ByteSize = payload.Length,
+                    ByteSize = logicalLen,
                     ContentHashSha256 = logicalHash,
                     MetadataJson = metaOnDisk,
                     RequireOnDiskHashVerification = true
@@ -115,7 +144,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                 {
                     ArtifactType = BackupArtifactType.VerificationManifest,
                     StorageDescriptor = manifestName,
-                    ByteSize = metaOnDisk.Length,
+                    ByteSize = manifestLen,
                     ContentHashSha256 = manifestHash,
                     MetadataJson = "{\"kind\":\"fake-manifest\"}",
                     RequireOnDiskHashVerification = true

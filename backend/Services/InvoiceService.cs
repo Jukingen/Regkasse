@@ -1,6 +1,8 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,28 +13,56 @@ public sealed class InvoiceService : IInvoiceService
     private readonly AppDbContext _context;
     private readonly ICompanyProfileProvider _companyProfileProvider;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly ICountryStrategyContext _countryStrategyContext;
+    private readonly IInvoiceStrategyResolver _invoiceStrategyResolver;
+    private readonly ITaxStrategyResolver _taxStrategyResolver;
 
     public InvoiceService(
         AppDbContext context,
         ICompanyProfileProvider companyProfileProvider,
-        ISettingsTenantResolver settingsTenantResolver)
+        ISettingsTenantResolver settingsTenantResolver,
+        ICountryStrategyContext? countryStrategyContext = null,
+        IInvoiceStrategyResolver? invoiceStrategyResolver = null,
+        ITaxStrategyResolver? taxStrategyResolver = null,
+        ICountryProfileRegistry? countryProfileRegistry = null)
     {
         _context = context;
         _companyProfileProvider = companyProfileProvider;
         _settingsTenantResolver = settingsTenantResolver;
+        var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+        _countryStrategyContext = countryStrategyContext
+            ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
+        _invoiceStrategyResolver = invoiceStrategyResolver
+            ?? CountryStrategyWiring.CreateInvoiceResolver();
+        _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
     }
 
     public async Task<InvoiceDto> GenerateInvoiceAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payment);
-        var invoice = await ResolveInvoiceFromPaymentAsync(payment, cancellationToken).ConfigureAwait(false);
+        await EnsureCountryInvoiceGateAsync(cancellationToken).ConfigureAwait(false);
+        var invoice = await ResolveInvoiceFromPaymentCoreAsync(payment, cancellationToken).ConfigureAwait(false);
         return MapToDto(invoice);
     }
 
     public async Task<Invoice> ResolveInvoiceFromPaymentAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payment);
+        await EnsureCountryInvoiceGateAsync(cancellationToken).ConfigureAwait(false);
+        return await ResolveInvoiceFromPaymentCoreAsync(payment, cancellationToken).ConfigureAwait(false);
+    }
 
+    private async Task EnsureCountryInvoiceGateAsync(CancellationToken cancellationToken)
+    {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = invoiceStrategy.GetMandatoryDisclosures(binding.Settings, customer: null);
+        var taxStrategy = _taxStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = taxStrategy.DetermineInvoiceFields(binding.Settings, customer: null);
+    }
+
+    private async Task<Invoice> ResolveInvoiceFromPaymentCoreAsync(PaymentDetails payment, CancellationToken cancellationToken)
+    {
         var persisted = await _context.Invoices
             .AsNoTracking()
             .FirstOrDefaultAsync(
@@ -48,6 +78,10 @@ public sealed class InvoiceService : IInvoiceService
 
     private async Task<Invoice> BuildInvoiceFromPaymentAsync(PaymentDetails payment, CancellationToken cancellationToken)
     {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (!CountryPaymentTaxLineMapper.IsAustria(binding.Profile))
+            return await BuildNonAtInvoiceFromStrategyAsync(payment, binding, cancellationToken).ConfigureAwait(false);
+
         var (sellerName, sellerAddress, sellerTaxNumber, sellerPhone, sellerEmail) =
             await ResolveSellerContextAsync(payment, cancellationToken).ConfigureAwait(false);
 
@@ -57,7 +91,7 @@ public sealed class InvoiceService : IInvoiceService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false) ?? string.Empty;
 
-        return new Invoice
+        var invoice = new Invoice
         {
             Id = payment.Id,
             SourcePaymentId = payment.Id,
@@ -89,6 +123,74 @@ public sealed class InvoiceService : IInvoiceService
             IsActive = true,
             InvoiceDataProvenance = "DerivedFromPayment",
         };
+        FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, binding);
+        return invoice;
+    }
+
+    private async Task<Invoice> BuildNonAtInvoiceFromStrategyAsync(
+        PaymentDetails payment,
+        CountryStrategyBinding binding,
+        CancellationToken cancellationToken)
+    {
+        var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        Customer? customer = null;
+        if (payment.CustomerId != Guid.Empty)
+        {
+            customer = await _context.Customers.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == payment.CustomerId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var document = await invoiceStrategy
+            .BuildInvoiceDocumentAsync(payment, binding.Settings, customer, cancellationToken)
+            .ConfigureAwait(false);
+        var structured = document.Structured
+            ?? throw new InvalidOperationException(
+                $"Non-AT invoice strategy '{binding.Profile.Code}' returned a null Structured document.");
+
+        var (sellerName, sellerAddress, sellerTaxNumber, sellerPhone, sellerEmail) =
+            await ResolveSellerContextAsync(payment, cancellationToken).ConfigureAwait(false);
+
+        var kassenId = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == payment.CashRegisterId)
+            .Select(r => r.RegisterNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false) ?? string.Empty;
+
+        var invoice = new Invoice
+        {
+            Id = payment.Id,
+            SourcePaymentId = payment.Id,
+            InvoiceNumber = structured.InvoiceNumber ?? payment.ReceiptNumber ?? string.Empty,
+            InvoiceDate = structured.InvoiceDate ?? payment.CreatedAt,
+            DueDate = structured.InvoiceDate ?? payment.CreatedAt,
+            Status = InvoiceStatus.Paid,
+            Subtotal = structured.NetAmount,
+            TaxAmount = structured.TaxAmount,
+            TotalAmount = structured.GrossAmount,
+            PaidAmount = structured.GrossAmount,
+            RemainingAmount = 0,
+            CustomerName = payment.CustomerName,
+            CustomerTaxNumber = payment.Steuernummer,
+            CompanyName = sellerName,
+            CompanyTaxNumber = structured.SellerTaxNumber ?? structured.SellerVatId ?? sellerTaxNumber,
+            CompanyAddress = sellerAddress,
+            CompanyPhone = sellerPhone,
+            CompanyEmail = sellerEmail,
+            TseSignature = payment.TseSignature ?? string.Empty,
+            KassenId = kassenId,
+            CashRegisterId = payment.CashRegisterId,
+            TseTimestamp = payment.TseTimestamp,
+            PaymentMethod = payment.PaymentMethod,
+            PaymentReference = payment.TransactionId,
+            PaymentDate = payment.CreatedAt,
+            InvoiceItems = payment.PaymentItems,
+            TaxDetails = payment.TaxDetails ?? System.Text.Json.JsonDocument.Parse("{}"),
+            IsActive = true,
+            InvoiceDataProvenance = "DerivedFromPayment",
+        };
+        FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, binding);
+        return invoice;
     }
 
     private async Task<(string Name, string Address, string TaxNumber, string? Phone, string? Email)> ResolveSellerContextAsync(

@@ -3,7 +3,9 @@
  */
 import type { NormalizedApiError } from './normalizedApiError';
 
-export function buildTechnicalApiErrorPayload(normalized: NormalizedApiError): Record<string, unknown> {
+export function buildTechnicalApiErrorPayload(
+  normalized: NormalizedApiError
+): Record<string, unknown> {
   return {
     httpStatus: normalized.httpStatus ?? null,
     code: normalized.code ?? null,

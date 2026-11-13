@@ -11,17 +11,17 @@ namespace KasseAPI_Final.Services
         /// Kullanıcıyı ID'ye göre getir
         /// </summary>
         Task<ApplicationUser?> GetUserByIdAsync(string? userId);
-        
+
         /// <summary>
         /// Kullanıcıyı email'e göre getir
         /// </summary>
         Task<ApplicationUser?> GetUserByEmailAsync(string email);
-        
+
         /// <summary>
         /// Kullanıcı rolünü kontrol et
         /// </summary>
         Task<bool> HasRoleAsync(string userId, string role);
-        
+
         /// <summary>
         /// Kullanıcı yetkilerini kontrol et
         /// </summary>

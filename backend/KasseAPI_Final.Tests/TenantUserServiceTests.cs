@@ -1,12 +1,11 @@
-using System.IO;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +13,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -67,14 +68,37 @@ public sealed class TenantUserServiceTests
         IQuickUserGeneratorService? quickUserGenerator = null,
         IAuditLogService? auditLog = null,
         ICurrentTenantAccessor? tenantAccessor = null,
-        IUserRoleChangeService? userRoleChangeService = null)
+        IUserRoleChangeService? userRoleChangeService = null,
+        string actorRole = Roles.SuperAdmin,
+        KasseAPI_Final.Services.Limits.ITenantLimitGuard? tenantLimitGuard = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var roleChange = userRoleChangeService ?? new UserRoleChangeService(
             userManager,
             audit,
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
+            new MemoryCacheService(
+                new MemoryCache(new MemoryCacheOptions()),
+                NullLogger<MemoryCacheService>.Instance,
+                new KasseAPI_Final.Services.Metrics.CacheMetricsService()),
             Mock.Of<ILogger<UserRoleChangeService>>());
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    [
+                        new System.Security.Claims.Claim(
+                            System.Security.Claims.ClaimTypes.Role,
+                            actorRole),
+                        new System.Security.Claims.Claim(
+                            System.Security.Claims.ClaimTypes.NameIdentifier,
+                            "test-super-admin"),
+                    ],
+                    authenticationType: "test"))
+        };
+        var http = new Mock<IHttpContextAccessor>();
+        http.Setup(x => x.HttpContext).Returns(httpContext);
 
         return new TenantUserService(
             db,
@@ -89,11 +113,13 @@ public sealed class TenantUserServiceTests
                 CreateUserCreationService(db, userManager, uniqueness)),
             CreateUserCreationService(db, userManager, uniqueness),
             audit,
-            Mock.Of<IHttpContextAccessor>(),
+            http.Object,
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
-            Mock.Of<ILogger<TenantUserService>>());
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
+            Mock.Of<ILogger<TenantUserService>>(),
+            tenantLimitGuard);
     }
 
     private static Mock<IAuditLogService> CreateAuditMock()
@@ -118,6 +144,20 @@ public sealed class TenantUserServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+        m.Setup(x => x.LogUserLifecycleAsync(
+                It.IsAny<AuditEventType>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<AuditLogStatus>(),
@@ -204,17 +244,76 @@ public sealed class TenantUserServiceTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db, CreateUserManager(db));
-        var rows = await service.ListAsync(tenantId);
-        Assert.NotNull(rows);
-        var row = Assert.Single(rows!);
+        var page = await service.ListAsync(tenantId);
+        Assert.NotNull(page);
+        var row = Assert.Single(page!.Items);
         Assert.Equal("cashier99", row.UserName);
         Assert.Equal("list-user", row.UserId);
+        Assert.Equal(1, page.TotalCount);
     }
 
     [Fact]
-    public void GenerateRandomPassword_MeetsRules()
+    public async Task ListAsync_Paginates_AndDoesNotReturnEveryRow()
     {
-        var password = PasswordGenerator.GenerateRandomPassword();
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Paged Cafe",
+            Slug = "paged-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        for (var i = 0; i < 3; i++)
+        {
+            var userId = $"paged-user-{i}";
+            db.Users.Add(new ApplicationUser
+            {
+                Id = userId,
+                UserName = $"paged{i}",
+                Email = $"paged{i}@cafe.test",
+                FirstName = "Paged",
+                LastName = $"User{i:D2}",
+                EmployeeNumber = $"EMP-{i}",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            db.UserTenantMemberships.Add(new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var first = await service.ListAsync(tenantId, page: 1, pageSize: 2);
+        Assert.NotNull(first);
+        Assert.Equal(3, first!.TotalCount);
+        Assert.Equal(2, first.Items.Count);
+        Assert.Equal(1, first.Page);
+        Assert.Equal(2, first.PageSize);
+
+        var second = await service.ListAsync(tenantId, page: 2, pageSize: 2);
+        Assert.NotNull(second);
+        Assert.Single(second!.Items);
+        Assert.Equal(3, second.TotalCount);
+        Assert.Empty(first.Items.Select(row => row.UserId).Intersect(second.Items.Select(row => row.UserId)));
+    }
+
+    [Fact]
+    public void GenerateSecurePassword_MeetsRules()
+    {
+        var password = PasswordGenerator.GenerateSecurePassword();
         Assert.True(password.Length >= 12);
         Assert.Matches(@"[A-Z]", password);
         Assert.Matches(@"[a-z]", password);
@@ -281,6 +380,48 @@ public sealed class TenantUserServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenTenantUserLimitExceeded_ReturnsLimitError()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Capped Cafe",
+            Slug = "capped-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var guard = new Mock<KasseAPI_Final.Services.Limits.ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanCreateUserAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new KasseAPI_Final.Services.Limits.LimitExceededException(
+                TenantLimitKeys.MaxUsersPerTenant,
+                1,
+                1,
+                "Maximum 1 users per tenant reached"));
+
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantLimitGuard: guard.Object);
+        var (result, error) = await service.CreateAsync(
+            tenantId,
+            new CreateTenantUserRequest { Email = "over@cafe.test", Role = Roles.Cashier },
+            Guid.NewGuid().ToString("D"),
+            Roles.SuperAdmin);
+
+        Assert.Null(result);
+        Assert.NotNull(error);
+        Assert.StartsWith(KasseAPI_Final.Services.Limits.LimitExceededException.ErrorCodeValue, error);
+        Assert.Equal(0, await db.Users.CountAsync(u => u.Email == "over@cafe.test"));
+    }
+
+    [Fact]
     public async Task CreateAsync_Allows_Second_User_Without_Tax_Number()
     {
         await using var db = CreateDb();
@@ -328,7 +469,7 @@ public sealed class TenantUserServiceTests
         {
             Id = tenantId,
             Name = "Test Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -345,7 +486,7 @@ public sealed class TenantUserServiceTests
         Assert.Null(error);
         Assert.NotNull(result);
         Assert.True(result!.Success);
-        Assert.Matches(@"^cashier_[a-z0-9]{6}@cafe\.regkasse\.at$", result.Email);
+        Assert.Matches(@"^cashier_[a-z0-9]{6}@dev\.regkasse\.at$", result.Email);
         Assert.Matches(@"^cashier\d+$", result.UserName);
         Assert.NotEqual(result.Email, result.UserName);
 
@@ -357,12 +498,15 @@ public sealed class TenantUserServiceTests
         Assert.True(result.ForcePasswordChangeOnNextLogin);
         Assert.Equal(Roles.Cashier, result.Role);
 
-        var auditRow = await db.AuditLogs.SingleAsync(a => a.Action == AuditLogActions.TENANT_QUICK_USER_CREATED);
+        var auditRow = await db.AuditLogs.IgnoreQueryFilters()
+            .SingleAsync(a => a.Action == AuditLogActions.TENANT_QUICK_USER_CREATED);
         Assert.Equal(AuditLogEntityTypes.USER, auditRow.EntityType);
         Assert.Equal(tenantId, auditRow.TenantId);
         Assert.Equal(actorId, auditRow.UserId);
         Assert.Contains("Schnell-Benutzer", auditRow.Description);
-        Assert.Contains("***HIDDEN***", auditRow.RequestData);
+        Assert.Contains("generatedPassword", auditRow.RequestData);
+        Assert.Contains(AuditLogPersistenceSanitizer.RedactedPlaceholder, auditRow.RequestData);
+        Assert.DoesNotContain("HIDDEN", auditRow.RequestData ?? "", StringComparison.Ordinal);
         Assert.Contains("quick_generate", auditRow.RequestData);
         Assert.Contains("userName", auditRow.RequestData);
     }
@@ -451,14 +595,14 @@ public sealed class TenantUserServiceTests
     [Fact]
     public void QuickUserEmailGenerator_BuildEmail_Uses_Role_Prefix_And_Six_Char_Suffix()
     {
-        var email = QuickUserEmailGenerator.BuildEmail("Manager", "cafe");
-        Assert.Matches(@"^manager_[a-z0-9]{6}@cafe\.regkasse\.at$", email);
+        var email = QuickUserEmailGenerator.BuildEmail("Manager", "dev");
+        Assert.Matches(@"^manager_[a-z0-9]{6}@dev\.regkasse\.at$", email);
     }
 
     [Fact]
     public async Task CreateAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
     {
-        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         await using var db = CreateDb(tenantAccessor);
         await SeedRolesAsync(db);
         var targetTenantId = Guid.NewGuid();
@@ -498,7 +642,7 @@ public sealed class TenantUserServiceTests
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -572,12 +716,28 @@ public sealed class TenantUserServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = CreateService(db, userManager);
+        var audit = CreateAuditMock();
+        var service = CreateService(db, userManager, auditLog: audit.Object);
         var (result, error) = await service.ResetPasswordAsync(tenantId, user.Id);
 
         Assert.Null(error);
         Assert.NotNull(result);
         Assert.False(string.IsNullOrEmpty(result!.GeneratedPassword));
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                user.Id,
+                tenantId,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()),
+            Times.Once);
     }
 
     [Fact]
@@ -693,5 +853,43 @@ public sealed class TenantUserServiceTests
 
         Assert.Null(result);
         Assert.Contains("cannot be assigned", error ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ListAsync_WhenAmbientTenantDoesNotMatchRequestedTenant_ReturnsNull()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = tenantA };
+        await using var db = CreateDb(tenantAccessor);
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = tenantA,
+                Name = "Tenant A",
+                Slug = "tenant-a",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = tenantB,
+                Name = "Tenant B",
+                Slug = "tenant-b",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantAccessor: tenantAccessor,
+            actorRole: Roles.Manager);
+        var result = await service.ListAsync(tenantB);
+
+        Assert.Null(result);
     }
 }

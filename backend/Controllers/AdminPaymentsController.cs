@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
@@ -14,7 +9,6 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -98,59 +92,6 @@ public class AdminPaymentsController : ControllerBase
         }
     }
 
-    private static int GetActiveFilterCount(PaymentFilterDto filter)
-    {
-        var count = 0;
-        if (filter.StartDate.HasValue) count++;
-        if (filter.EndDate.HasValue) count++;
-        if (filter.MinAmount.HasValue) count++;
-        if (filter.MaxAmount.HasValue) count++;
-        if (filter.PaymentMethods.Count > 0) count++;
-        if (filter.Statuses.Count > 0) count++;
-        if (filter.CashRegisterId.HasValue) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerName)) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerEmail)) count++;
-        if (!string.IsNullOrEmpty(filter.CashierId)) count++;
-        if (!string.IsNullOrEmpty(filter.ReceiptNumber)) count++;
-        if (filter.IsStorno.HasValue) count++;
-        if (filter.IsRefund.HasValue) count++;
-        return count;
-    }
-
-    private static Dictionary<string, object> GetAppliedFilters(PaymentFilterDto filter)
-    {
-        var applied = new Dictionary<string, object>();
-
-        if (filter.StartDate.HasValue)
-            applied["startDate"] = filter.StartDate.Value;
-        if (filter.EndDate.HasValue)
-            applied["endDate"] = filter.EndDate.Value;
-        if (filter.MinAmount.HasValue)
-            applied["minAmount"] = filter.MinAmount.Value;
-        if (filter.MaxAmount.HasValue)
-            applied["maxAmount"] = filter.MaxAmount.Value;
-        if (filter.PaymentMethods.Count > 0)
-            applied["paymentMethods"] = filter.PaymentMethods;
-        if (filter.Statuses.Count > 0)
-            applied["statuses"] = filter.Statuses;
-        if (filter.CashRegisterId.HasValue)
-            applied["cashRegisterId"] = filter.CashRegisterId.Value;
-        if (!string.IsNullOrEmpty(filter.CustomerName))
-            applied["customerName"] = filter.CustomerName;
-        if (!string.IsNullOrEmpty(filter.CustomerEmail))
-            applied["customerEmail"] = filter.CustomerEmail;
-        if (!string.IsNullOrEmpty(filter.CashierId))
-            applied["cashierId"] = filter.CashierId;
-        if (!string.IsNullOrEmpty(filter.ReceiptNumber))
-            applied["receiptNumber"] = filter.ReceiptNumber;
-        if (filter.IsStorno.HasValue)
-            applied["isStorno"] = filter.IsStorno.Value;
-        if (filter.IsRefund.HasValue)
-            applied["isRefund"] = filter.IsRefund.Value;
-
-        return applied;
-    }
-
     private static void MergeLegacyListParams(
         PaymentFilterDto filter,
         string? method,
@@ -199,6 +140,21 @@ public class AdminPaymentsController : ControllerBase
 
             var stornoRefundAudit = await BuildStornoRefundAuditSectionAsync(p, tenantId, cancellationToken);
 
+            Guid? stornoReversalPaymentId = null;
+            string? stornoReversalReceiptNumber = null;
+            if (!p.IsStorno && !p.IsRefund)
+            {
+                var stornoChild = await _context.PaymentDetails.AsNoTracking()
+                    .Where(x => x.OriginalPaymentId == id && x.IsStorno)
+                    .Select(x => new { x.Id, x.ReceiptNumber })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (stornoChild != null)
+                {
+                    stornoReversalPaymentId = stornoChild.Id;
+                    stornoReversalReceiptNumber = stornoChild.ReceiptNumber;
+                }
+            }
+
             return Ok(new AdminPaymentDetailDto
             {
                 Id = p.Id,
@@ -246,7 +202,10 @@ public class AdminPaymentsController : ControllerBase
                 VoucherRedeemedAmount = voucherRedeemedAmount,
                 SettlementAmount = decimal.Round(p.TotalAmount - voucherRedeemedAmount, 2, MidpointRounding.AwayFromZero),
                 HasVoucherRedemption = voucherRedeemedAmount > 0m,
-                StornoRefundAudit = stornoRefundAudit
+                StornoRefundAudit = stornoRefundAudit,
+                HasStornoReversal = stornoReversalPaymentId.HasValue,
+                StornoReversalPaymentId = stornoReversalPaymentId,
+                StornoReversalReceiptNumber = stornoReversalReceiptNumber,
             });
         }
         catch (Exception ex)
@@ -407,11 +366,11 @@ public class AdminPaymentsController : ControllerBase
                 .AnyAsync(p => p.OriginalPaymentId == id && p.IsStorno, cancellationToken);
             if (alreadyReversed)
             {
-                return BadRequest(new CancellationResponse
+                return Conflict(new CancellationResponse
                 {
                     Success = false,
                     Message = "Payment already cancelled",
-                    DiagnosticCode = "ALREADY_CANCELLED",
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS",
                 });
             }
 
@@ -754,8 +713,16 @@ public class AdminPaymentDetailDto
     public bool InvoicePersisted { get; set; }
     public decimal VoucherRedeemedAmount { get; set; }
     public decimal SettlementAmount { get; set; }
+
+    /// <summary>Derived from <see cref="VoucherRedeemedAmount"/> &gt; 0; prefer the amount field.</summary>
+    [Obsolete("Redundant with voucherRedeemedAmount. Planned removal after 2026-12-31.")]
+    [System.Text.Json.Serialization.JsonPropertyName("hasVoucherRedemption")]
     public bool HasVoucherRedemption { get; set; }
     public AdminPaymentStornoRefundAuditDto? StornoRefundAudit { get; set; }
+    /// <summary>True when a fiscal storno reversal row exists for this original sale.</summary>
+    public bool HasStornoReversal { get; set; }
+    public Guid? StornoReversalPaymentId { get; set; }
+    public string? StornoReversalReceiptNumber { get; set; }
 }
 
 public class AdminPaymentActionResponse

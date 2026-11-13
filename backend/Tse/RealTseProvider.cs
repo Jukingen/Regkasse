@@ -1,9 +1,5 @@
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tse
 {

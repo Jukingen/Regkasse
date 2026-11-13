@@ -1,7 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using KasseAPI_Final.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Authorization;
 

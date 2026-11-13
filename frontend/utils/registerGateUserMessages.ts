@@ -1,8 +1,6 @@
 /**
  * @deprecated Import from `posRegisterGateCopy` — kept for short-term re-exports.
  */
-import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
-import type { RegisterListFailureKind } from './registerListError';
 import {
   type PosRegisterGateContext,
   type RegisterGateReadinessInput,
@@ -12,6 +10,8 @@ import {
   registerGateBannerTitle as titleFromCtx,
   registerGateFooterHint as footerFromCtx,
 } from './posRegisterGateCopy';
+import type { RegisterListFailureKind } from './registerListError';
+import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 
 export type { RegisterGateReadinessInput, PosRegisterGateContext };
 export { buildPosRegisterGateContext };
@@ -44,7 +44,14 @@ export function registerGateBannerTitle(
   registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
   return titleFromCtx(
-    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+    toCtx(
+      failureKind,
+      listLoading,
+      picklistCount,
+      settingsLoadFailed,
+      readiness,
+      registerListEmptyReason
+    )
   );
 }
 
@@ -57,7 +64,14 @@ export function registerGateBannerDetail(
   registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
   return detailFromCtx(
-    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+    toCtx(
+      failureKind,
+      listLoading,
+      picklistCount,
+      settingsLoadFailed,
+      readiness,
+      registerListEmptyReason
+    )
   );
 }
 
@@ -70,7 +84,14 @@ export function registerGateFooterHint(
   registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
   return footerFromCtx(
-    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+    toCtx(
+      failureKind,
+      listLoading,
+      picklistCount,
+      settingsLoadFailed,
+      readiness,
+      registerListEmptyReason
+    )
   );
 }
 

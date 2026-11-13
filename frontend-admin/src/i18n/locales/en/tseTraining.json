@@ -1,0 +1,53 @@
+{
+  "title": "TSE training",
+  "subtitle": "Training modules and Development simulations for TSE operations. No fiscal signatures.",
+  "diagnosticNote": "Diagnostic only. Failure drills mutate device health fields and are enabled only in Development.",
+  "cardTitle": "TSE Training & Simulation",
+  "tabModules": "Training modules",
+  "tabSimulation": "Simulation",
+  "progress": "{{completed}} / {{total}} modules completed",
+  "start": "Start",
+  "completed": "Completed",
+  "moduleCompleted": "Module marked completed",
+  "selectDevice": "Select TSE device",
+  "deviceRequired": "Select a TSE device first.",
+  "btnNetworkTimeout": "Network Timeout",
+  "btnCertificateExpiry": "Certificate Expiry",
+  "btnSignatureError": "Signature Error",
+  "simulateSuccess": "Simulation applied",
+  "reset": "Reset simulation",
+  "resetSuccess": "Simulation reset",
+  "clearConsole": "Clear console",
+  "consoleCleared": "Console cleared",
+  "consoleTitle": "Simulation console",
+  "consoleEmpty": "No simulation events yet.",
+  "simulationDevOnly": "Failure simulations are only available in Development.",
+  "forbidden": "You do not have permission for this page.",
+  "loadError": "Failed to load training environment.",
+  "modules": {
+    "tse_basics": {
+      "title": "TSE basics",
+      "description": "Health status, connection, and when POS may issue receipts."
+    },
+    "certificate_lifecycle": {
+      "title": "Certificate lifecycle",
+      "description": "Expiry, renewal, and invalid certificate drills."
+    },
+    "network_failures": {
+      "title": "Network failures",
+      "description": "Timeouts and connection loss — without rewriting fiscal rows."
+    },
+    "signature_errors": {
+      "title": "Signature errors",
+      "description": "Device error flags vs real RKSV JWS (diagnostic only)."
+    },
+    "failover_drill": {
+      "title": "Failover drill",
+      "description": "Primary/standby awareness and Super Admin tools."
+    },
+    "offline_queue": {
+      "title": "Offline queue awareness",
+      "description": "Legacy intents vs offline orders — keep systems separate."
+    }
+  }
+}

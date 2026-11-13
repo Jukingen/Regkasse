@@ -1,9 +1,8 @@
 /**
  * Admin seçilebilir yedek çalıştırma modu — operatör-doğruluk modeli için tek boyutlu özet (requested / effective / runnable / blokaj).
  */
-
-import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
+import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 
 /** Mod API’si yok veya yüklenmediğinde kullanılan boş özet. */
 export const unloadedBackupExecutionModeTruth: BackupExecutionModeTruth = {
@@ -63,7 +62,7 @@ export function isRealRequestedNonRunnableState(d: BackupExecutionModeResponseDt
 }
 
 export function deriveBackupExecutionModeTruth(
-  dto: BackupExecutionModeResponseDto | null | undefined,
+  dto: BackupExecutionModeResponseDto | null | undefined
 ): BackupExecutionModeTruth {
   if (dto == null) return { ...unloadedBackupExecutionModeTruth };
 

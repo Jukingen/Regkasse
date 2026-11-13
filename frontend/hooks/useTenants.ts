@@ -3,8 +3,8 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { isSameDevTenantPreset } from '../constants/devTenantCatalog';
 import { getDevTenantSlugOverride, setDevTenantSlugOverride } from '../services/tenant/devTenant';
-import type { TenantSwitcherListItem } from '../services/tenant/tenantSwitcherApi';
 import { fetchFreshTenants } from '../services/tenant/tenantStorage';
+import type { TenantSwitcherListItem } from '../services/tenant/tenantSwitcherApi';
 
 export type UseTenantsOptions = {
   /** When false, skips fetch (e.g. not logged in). */
@@ -81,7 +81,9 @@ export function useTenants(options?: UseTenantsOptions) {
     };
 
     const subscription = AppState.addEventListener('change', onAppStateChange);
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+    };
   }, [enabled, refreshTenants]);
 
   return {

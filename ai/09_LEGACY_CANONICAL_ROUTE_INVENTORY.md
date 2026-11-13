@@ -1,39 +1,47 @@
-# Legacy vs Canonical API Route Inventory
+# Legacy vs canonical API route inventory
 
-**Last reviewed:** 2026-05-04 (inventory only; re-validate controller routes after major API changes)
+**Last reviewed:** 2026-08-13  
+**Removal note:** [`docs/API_LEGACY_DEPRECATION.md`](../docs/API_LEGACY_DEPRECATION.md) (hard-removed **2026-08-13**)
 
 ## Definitions
+
 - **Canonical:** Admin `/api/admin/*`, POS `/api/pos/*`.
-- **Legacy alias:** Aynı handler’a ikinci prefix (örn. `/api/Payment` + `/api/pos/payment`).
-- **Policy gap:** Henüz `/api/admin/*` veya `/api/pos/*` altına taşınmamış tekil route aileleri.
+- **Removed legacy alias:** Former second prefix on the same handler (`/api/Payment` + `/api/pos/payment`). Dual `[Route]` dropped; handlers remain on canonical prefixes only.
+- **Policy gap:** Single route families not yet moved under `/api/admin/*` or `/api/pos/*`.
 
-## A) Legacy aliases (confirmed in backend)
+## A) Removed aliases (do not reintroduce)
 
-| Family | Legacy | Canonical | Backend source | Notes |
-|---|---|---|---|---|
-| Payment | `/api/Payment/*` | `/api/pos/payment/*` | `PaymentController` | `LegacyRouteDeprecationFilter` aktif. |
-| Cart | `/api/Cart/*` | `/api/pos/cart/*` | `CartController` | `LegacyRouteDeprecationFilter` aktif. |
-| Product | `/api/Product/*` | `/api/pos/*` | `ProductController` | `LegacyRouteDeprecationFilter` aktif. |
+| Family | Removed | Canonical | Backend source | Notes |
+|--------|---------|-----------|----------------|-------|
+| Payment | `/api/Payment/*` | `/api/pos/payment/*` | `PaymentController` | Canonical route only. |
+| Cart | `/api/Cart/*` | `/api/pos/cart/*` | `CartController` | Canonical route only. Unused FA generated `/api/Cart` client deleted. |
+| Product | `/api/Product/*` | `/api/pos/*` | `ProductController` | Canonical route only. Admin CRUD: `/api/admin/products`. |
 
 ## B) Consumer reality snapshot
-- POS servisleri çoğunlukla canonical `/api/pos/*` kullanıyor (`frontend/services/api/*`).
-- Admin’de eski `src/api/legacy/` klasörü artık yok.
-- Buna rağmen Orval-generated yüzeyde legacy cart path’leri görülebiliyor (`frontend-admin/src/api/generated/cart/cart.ts`).
-- Orval transformer şu an `/api/Product`, `/api/Categories`, `/api/Payment` pathlerini strip ediyor.
+
+- POS services use canonical `/api/pos/*` (`frontend/services/api/*`).
+- Admin products → `/api/admin/products`.
+- Orval transformer strips `/api/Product`, `/api/Categories`, `/api/Payment`, `/api/Cart`.
+- OpenAPI (`backend/swagger.json`) does not publish the removed aliases.
 
 ## C) Policy-gap route families (single-surface, not alias)
-- Örnekler: `/api/UserManagement/*`, `/api/Tse/*`, `/api/Tagesabschluss/*`, `/api/Settings/*`, `/api/Orders/*`, `/api/Receipts/*`, `/api/Invoice/*`.
+
+- Examples: `/api/UserManagement/*`, `/api/Tse/*`, `/api/Tagesabschluss/*`, `/api/Settings/*`, `/api/Orders/*`, `/api/Receipts/*`, `/api/Invoice/*`.
 - **Multi-tenant (canonical):** `/api/admin/tenants` — Super Admin only; impersonation `POST /api/admin/tenants/{tenantId}/impersonate`.
-- Bunlar alias kaldırma işi değil; kontrollü boundary migration işidir.
+- **SaaS trials:** `/api/admin/trials` — Super Admin; ambient-tenant exempt.
+- **Support:** Mandanten `/api/admin/support/tickets`; Super Admin inbox `/api/admin/support/admin/tickets`.
+- These are not alias-removal work; they are controlled boundary-migration work.
 
 ## D) Known risks
-1. Generated client içinde kalan legacy path’ler yanlışlıkla yeni kullanım üretebilir.
-2. Repo dışı istemciler legacy path kullanıyor olabilir (sadece server log/metrics ile doğrulanır).
-3. TSE/FinanzOnline/receipt ilişkili route ailelerinde isim/path değişikliği yüksek uyumluluk riski taşır.
-4. `/api/rksv/*` özel fiş uçları fiscal yüksek risk; boundary migration’da ayrı gözden geçirilmelidir.
+
+1. Out-of-repo clients still on a legacy path get HTTP 404 (rollback: dual `[Route]` hotfix).
+2. TSE/FinanzOnline/receipt route families carry high compatibility risk if names/paths change.
+3. `/api/rksv/*` special-receipt endpoints are fiscal high risk; review separately during boundary migration.
 
 ## E) Maintenance rule
-Bu dosyayı şu değişikliklerde güncelle:
-- Controller route attribute değişimi
-- Orval transformer legacy listesi değişimi
-- Legacy deprecation/filter davranışı değişimi
+
+Update this file when:
+
+- A controller route attribute changes
+- The Orval transformer legacy list changes
+- Timeline changes → also `docs/API_LEGACY_DEPRECATION.md`

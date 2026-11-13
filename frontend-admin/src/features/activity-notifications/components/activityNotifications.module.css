@@ -1,23 +1,23 @@
 .unreadItem {
-    background: rgba(22, 119, 255, 0.06);
-    border-inline-start: 3px solid #1677ff;
+  background: rgba(22, 119, 255, 0.06);
+  border-inline-start: 3px solid #1677ff;
 }
 
 .listMeta {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .iconWrap {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    width: 32px;
-    margin-inline-end: 12px;
-    padding-top: 2px;
-    font-size: 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 32px;
+  margin-inline-end: 12px;
+  padding-top: 2px;
+  font-size: 18px;
 }
 
 .drawerBody {
-    padding-top: 0;
+  padding-top: 0;
 }

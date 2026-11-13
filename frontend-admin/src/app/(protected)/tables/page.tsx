@@ -1,15 +1,16 @@
 'use client';
 
 // Read-only back-office table list; API is still in-memory demo (TableController) until persisted tables exist.
-
-import React from 'react';
 import { Alert, Card, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
-import { useGetApiTable } from '@/api/generated/table/table';
+import React from 'react';
+
 import type { TableInfo } from '@/api/generated/model';
+import { useGetApiTable } from '@/api/generated/table/table';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { useI18n } from '@/i18n/I18nProvider';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 export default function TablesAdminPage() {
   const { t } = useI18n();
@@ -21,7 +22,13 @@ export default function TablesAdminPage() {
     {
       title: t('adminShell.tablesAdmin.colStatus'),
       dataIndex: 'status',
-      render: (s: string) => <Tag color={s === 'Available' ? 'green' : 'blue'}>{s}</Tag>,
+      render: (s: string) => {
+        const statusKey = `adminShell.tablesAdmin.status.${s}`;
+        const label = t(statusKey);
+        return (
+          <Tag color={s === 'Available' ? 'green' : 'blue'}>{label === statusKey ? s : label}</Tag>
+        );
+      },
     },
     { title: t('adminShell.tablesAdmin.colCapacity'), dataIndex: 'capacity', width: 100 },
   ];
@@ -48,7 +55,12 @@ export default function TablesAdminPage() {
       />
 
       {isError ? (
-        <Alert type="error" showIcon title={t('adminShell.tablesAdmin.loadError')} description={errMsg} />
+        <Alert
+          type="error"
+          showIcon
+          title={t('adminShell.tablesAdmin.loadError')}
+          description={errMsg}
+        />
       ) : (
         <Card variant="borderless">
           <Table<TableInfo>
@@ -56,7 +68,7 @@ export default function TablesAdminPage() {
             loading={isLoading}
             columns={columns}
             dataSource={data ?? []}
-            pagination={false}
+            pagination={{ ...adminTablePaginationDefaults }}
           />
         </Card>
       )}

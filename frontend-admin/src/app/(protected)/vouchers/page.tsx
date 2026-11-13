@@ -1,20 +1,28 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { DownloadOutlined, HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Input, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
+
+import type { AdminVoucherListItemDto } from '@/api/admin/vouchers';
+import { downloadAdminVoucherExport, useAdminVouchersList } from '@/api/admin/vouchers';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { useAdminVouchersList } from '@/api/admin/vouchers';
-import type { AdminVoucherListItemDto } from '@/api/admin/vouchers';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
-import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { buildVoucherExportFileName } from '@/features/vouchers/utils/voucherExportFileName';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
+import { formatCurrency } from '@/i18n/formatting';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 
 function statusColor(status: string): string {
   switch (status) {
@@ -41,10 +49,9 @@ function creatorFallback(userId?: string | null): string {
 }
 
 function formatCreator(value: AdminVoucherListItemDto): string {
-  const parts = [
-    value.createdByDisplayName?.trim(),
-    value.createdByEmail?.trim(),
-  ].filter((x): x is string => !!x);
+  const parts = [value.createdByDisplayName?.trim(), value.createdByEmail?.trim()].filter(
+    (x): x is string => !!x
+  );
   const roleText = (value.createdByRoles ?? []).filter(Boolean).join(', ');
   if (parts.length > 0 && roleText) return `${parts.join(' · ')} (${roleText})`;
   if (parts.length > 0) return parts.join(' · ');
@@ -54,6 +61,7 @@ function formatCreator(value: AdminVoucherListItemDto): string {
 
 export default function AdminVouchersListPage() {
   const { t, formatLocale } = useI18n();
+  const { message } = useAntdApp();
   const { hasPermission } = usePermissions();
   const canRead = hasPermission(PERMISSIONS.VOUCHER_READ);
   const canCreate = hasPermission(PERMISSIONS.VOUCHER_CREATE);
@@ -64,11 +72,33 @@ export default function AdminVouchersListPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
   const [historyVoucherId, setHistoryVoucherId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
+  const downloadPreview = useDownloadPreview();
 
-  const listQuery = useAdminVouchersList(
-    { page, pageSize, q },
-    { enabled: canRead }
-  );
+  const listQuery = useAdminVouchersList({ page, pageSize, q }, { enabled: canRead });
+
+  const handleExport = (format: 'json' | 'csv') => {
+    const rowCount = listQuery.data?.totalCount ?? 0;
+    downloadPreview.requestPreview({
+      fileName: buildVoucherExportFileName(getEffectiveTenantSlug(), format),
+      fileType: format.toUpperCase(),
+      sizeBytes: estimateTabularExportBytes(rowCount, format),
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      execute: async () => {
+        setExporting(format);
+        try {
+          await downloadAdminVoucherExport(format);
+          message.success(t('vouchers.list.exportSuccess'));
+        } catch {
+          message.error(t('vouchers.list.exportFailed'));
+          throw new Error('export failed');
+        } finally {
+          setExporting(null);
+        }
+      },
+    });
+  };
 
   const columns: ColumnsType<AdminVoucherListItemDto> = useMemo(
     () => [
@@ -77,15 +107,22 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.initialAmount'),
         dataIndex: 'initialAmount',
         key: 'initialAmount',
-        render: (v: number, r) => formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
+        render: (v: number, r) =>
+          formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
       },
       {
         title: t('vouchers.list.columns.remainingAmount'),
         dataIndex: 'remainingAmount',
         key: 'remainingAmount',
-        render: (v: number, r) => formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
+        render: (v: number, r) =>
+          formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
       },
-      { title: t('vouchers.list.columns.currency'), dataIndex: 'currency', key: 'currency', width: 90 },
+      {
+        title: t('vouchers.list.columns.currency'),
+        dataIndex: 'currency',
+        key: 'currency',
+        width: 90,
+      },
       {
         title: t('vouchers.list.columns.status'),
         dataIndex: 'status',
@@ -100,13 +137,13 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.validFrom'),
         dataIndex: 'validFromUtc',
         key: 'validFromUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('vouchers.list.columns.expiresAt'),
         dataIndex: 'expiresAtUtc',
         key: 'expiresAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('vouchers.list.columns.createdBy'),
@@ -119,7 +156,7 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.createdAt'),
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       ...(canAuditLedger
         ? [
@@ -165,17 +202,40 @@ export default function AdminVouchersListPage() {
         title={t('vouchers.list.heading')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('vouchers.title'), href: '/vouchers' }]}
         actions={
-          canCreate ? (
-            <Link href="/vouchers/new">
-              <Button type="primary" icon={<PlusOutlined />}>
-                {t('vouchers.list.create')}
-              </Button>
-            </Link>
-          ) : undefined
+          <Space wrap>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'json'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('json')}
+            >
+              {t('vouchers.list.exportJson')}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'csv'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('csv')}
+            >
+              {t('vouchers.list.exportCsv')}
+            </Button>
+            {canCreate ? (
+              <Link href="/vouchers/new">
+                <Button type="primary" icon={<PlusOutlined />}>
+                  {t('vouchers.list.create')}
+                </Button>
+              </Link>
+            ) : null}
+          </Space>
         }
       />
       {listQuery.isError ? (
-        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon style={{ marginBottom: 16 }} />
+        <Alert
+          type="error"
+          title={t('vouchers.errors.loadFailed')}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
       ) : null}
       <Card>
         <Space wrap style={{ marginBottom: 16 }}>
@@ -227,6 +287,7 @@ export default function AdminVouchersListPage() {
         visible={!!historyVoucherId}
         onClose={() => setHistoryVoucherId(null)}
       />
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
     </AdminPageShell>
   );
 }

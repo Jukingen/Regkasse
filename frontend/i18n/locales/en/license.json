@@ -4,6 +4,7 @@
     "loading": "Loading…",
     "unknown": "License ?",
     "daysShort": "{{count}}d",
+    "hoursShort": "{{count}}h",
     "unlimitedShort": "Pro",
     "expiredShort": "! "
   },
@@ -20,6 +21,7 @@
   "expiryNone": "No fixed expiry (while active)",
   "daysRemainingLabel": "Remaining",
   "daysRemainingValue": "{{count}} day(s)",
+  "hoursRemainingValue": "{{count}} h",
   "technicalToggleShow": "Show technical details",
   "technicalToggleHide": "Hide technical details",
   "machineFingerprintLabel": "Device fingerprint (SHA-256)",
@@ -66,6 +68,16 @@
   "activationKeyHint": "Format: REGK, five characters, hyphen, five characters, hyphen, five characters (no spaces).",
   "activationSubmit": "Activate",
   "activationSuccess": "License has been activated.",
+  "activation": {
+    "success": "✅ License successfully activated!",
+    "successMessage": "New expiry: {{date}}",
+    "loading": "Activating license...",
+    "error": "❌ Activation failed: {{error}}"
+  },
+  "header": {
+    "activating": "Activating license...",
+    "activated": "License activated"
+  },
   "activationInvalidFormat": "Invalid format. Expected: REGK-XXXXX-XXXXX-XXXXX",
   "activationFailed": "Activation failed. Check the key or contact support.",
   "activationNetwork": "Network error. Check the connection and try again.",
@@ -89,10 +101,62 @@
     "expiredBody": "Your trial license has expired. Payments are blocked. Please contact your administrator.",
     "trialSoonTitle": "Demo / trial – license ending soon",
     "trialSoonBody": "Your trial license ends in {{count}} day(s). Continue anyway?",
+    "trialSoonBodyHours": "Your trial license ends in {{count}} h. Continue anyway?",
     "cancel": "Cancel",
     "proceed": "Continue",
     "ok": "OK",
     "featureDeniedTitle": "License feature not enabled",
     "featureDeniedBody": "This action is not included in your current license ({{featureId}}). Please contact your administrator."
+  },
+  "pushReminders": {
+    "title30": "License expires in 30 days",
+    "title15": "License expires in 15 days",
+    "title14": "License expires in 14 days",
+    "title7": "License expires in 7 days",
+    "title1": "License expires tomorrow",
+    "body": "Please renew your license in time."
+  },
+  "lockdownAlert": {
+    "title": "License expired",
+    "body": "Please renew your license to continue working.",
+    "renewNow": "Renew now",
+    "later": "Later"
+  },
+  "gracePeriodWarning": {
+    "banner": "License expires in {{days}} days",
+    "bannerUrgent": "URGENT: License expires in {{days}} days",
+    "details": "Details",
+    "modalTitle": "Grace period",
+    "modalTitleUrgent": "URGENT: Grace period",
+    "modalBody": "Your license has expired. You have {{days}} day(s) of grace period remaining.",
+    "modalLockdown": "After the grace period the system will be locked.",
+    "renewNow": "Renew now",
+    "later": "Later"
+  },
+  "expiredScreen": {
+    "title": "License expired",
+    "subtitleDays": "Your Regkasse license expired {{days}} day(s) ago.",
+    "subtitleGeneric": "Your Regkasse license has expired.",
+    "complianceNote": "The system was locked for compliance reasons.",
+    "renewHint": "Please renew your license to continue working.",
+    "renewCta": "Renew now",
+    "supportCta": "Contact support",
+    "backToLogin": "Back to login",
+    "mailtoBody": "Please renew my Regkasse license. Thank you."
+  },
+  "statusChip": {
+    "messageActive": "License active",
+    "messageGrace": "Grace: {{days}} days",
+    "messageLocked": "Expired",
+    "state": {
+      "Active": "Active",
+      "Grace": "Grace period",
+      "Locked": "Locked"
+    },
+    "alertTitle": "License status",
+    "alertBody": "Status: {{state}}\nValid until: {{expiresAt}}\n{{message}}",
+    "renewNow": "Renew now",
+    "ok": "OK",
+    "accessibilityHint": "Tap for details and renewal"
   }
 }

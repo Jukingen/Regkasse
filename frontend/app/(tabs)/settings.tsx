@@ -1,18 +1,30 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { CashRegisterSelector } from '../../components/CashRegisterSelector';
-import { ShiftManager } from '../../components/ShiftManager';
+// Tagesabschluss UI lives in ShiftManager → DailyClosingModal → dailyClosingService
+// (POST /api/pos/shift/daily-closing; requires daily-closing.execute).
 import LanguageSelector from '../../components/LanguageSelector';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
+import { ShiftManager } from '../../components/ShiftManager';
 import { useAuth } from '../../contexts/AuthContext';
+/** Settings sync uses OfflineOrderManager only (legacy offlineOrderQueue removed). */
+import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
+import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { formatUserDateTime } from '../../utils/dateFormatter';
 
 function formatDeDateTime(iso: string | null | undefined): string {
@@ -27,6 +39,34 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
   const { effectiveRegisterId } = usePosRegisterSelection();
+  const { canCreateSonderbeleg } = usePosPermissions();
+  const { status: offlineStatus, syncNow } = useOfflineOrderManager();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const pendingCount = offlineStatus?.pendingCount ?? 0;
+  const syncBusy = isSyncing || Boolean(offlineStatus?.isSyncing);
+
+  const openReceiptList = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [effectiveRegisterId, router, t]);
+
+  const openFiskalyOps = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/fiskaly-operations' as const);
+  }, [effectiveRegisterId, router, t]);
 
   const openPaymentHistory = useCallback(() => {
     if (!effectiveRegisterId) {
@@ -39,21 +79,98 @@ export default function SettingsScreen() {
     router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [effectiveRegisterId, router, t]);
 
+  const handleOfflineSync = useCallback(async () => {
+    if (syncBusy) return;
+    if (offlineStatus?.isOnline === false) {
+      Alert.alert(t('settings:offlineSync.alertTitle'), t('settings:offlineSync.alertOffline'), [
+        { text: t('settings:offlineSync.ok') },
+      ]);
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const result = await syncNow();
+      if (result.errors > 0 && result.synced === 0) {
+        Alert.alert(t('settings:offlineSync.alertTitle'), t('settings:offlineSync.alertFailed'), [
+          { text: t('settings:offlineSync.ok') },
+        ]);
+        return;
+      }
+      if (result.errors > 0) {
+        Alert.alert(
+          t('settings:offlineSync.alertTitle'),
+          t('settings:offlineSync.alertPartial', {
+            synced: result.synced,
+            errors: result.errors,
+          }),
+          [{ text: t('settings:offlineSync.ok') }]
+        );
+        return;
+      }
+      Alert.alert(
+        t('settings:offlineSync.alertTitle'),
+        result.synced === 1
+          ? t('settings:offlineSync.alertSuccessOne')
+          : t('settings:offlineSync.alertSuccess', { synced: result.synced }),
+        [{ text: t('settings:offlineSync.ok') }]
+      );
+    } catch {
+      Alert.alert(t('settings:offlineSync.alertTitle'), t('settings:offlineSync.alertFailed'), [
+        { text: t('settings:offlineSync.ok') },
+      ]);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [offlineStatus?.isOnline, syncBusy, syncNow, t]);
+
   // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
-  const translations = useMemo(() => ({
-    settings: t('settings:title'),
-    otherSettings: t('settings:other_settings'),
-    comingSoon: t('settings:coming_soon'),
-    logout: t('auth:logout'),
-    offlineQueueTitle: t('settings:offlineQueue.title'),
-    offlineQueueDescription: t('settings:offlineQueue.description'),
-    offlineQueueOpen: t('settings:offlineQueue.open'),
-    paymentHistoryTitle: t('settings:paymentHistory.title'),
-    paymentHistoryDescription: t('settings:paymentHistory.description'),
-    paymentHistoryOpen: t('settings:paymentHistory.open'),
-    licenseHeading: t('license:settingsSectionTitle'),
-    licenseTransferHeading: t('license:transferSectionTitle'),
-  }), [t]);
+  const translations = useMemo(
+    () => ({
+      settings: t('settings:title'),
+      otherSettings: t('settings:other_settings'),
+      comingSoon: t('settings:coming_soon'),
+      logout: t('auth:logout'),
+      offlineQueueTitle: t('settings:offlineQueue.title'),
+      offlineQueueDescription: t('settings:offlineQueue.description'),
+      offlineQueueOpen: t('settings:offlineQueue.open'),
+      offlineSyncTitle: t('settings:offlineSync.title'),
+      offlineSyncDescription:
+        pendingCount === 0
+          ? t('settings:offlineSync.allSynced')
+          : pendingCount === 1
+            ? t('settings:offlineSync.pendingOne')
+            : t('settings:offlineSync.pending', { count: pendingCount }),
+      offlineSyncButton: syncBusy
+        ? t('settings:offlineSync.syncing')
+        : t('settings:offlineSync.syncNow'),
+      paymentHistoryTitle: t('settings:paymentHistory.title'),
+      paymentHistoryDescription: t('settings:paymentHistory.description'),
+      paymentHistoryOpen: t('settings:paymentHistory.open'),
+      receiptListTitle: t('settings:receiptList.title'),
+      receiptListDescription: t('settings:receiptList.description'),
+      receiptListOpen: t('settings:receiptList.open'),
+      fiskalyOpsTitle: t('settings:fiskalyOps.title'),
+      fiskalyOpsDescription: t('settings:fiskalyOps.description'),
+      fiskalyOpsOpen: t('settings:fiskalyOps.open'),
+      licenseHeading: t('license:settingsSectionTitle'),
+      licenseTransferHeading: t('license:transferSectionTitle'),
+      adminMenuTitle: t('settings:adminMenu.title'),
+      adminMenuDescription: t('settings:adminMenu.description'),
+      adminMenuOpen: t('settings:adminMenu.open'),
+      ntpTitle: t('settings:ntp.title'),
+      ntpLastSync: t('settings:ntp.lastSync', { time: formatDeDateTime(status?.lastSyncAt) }),
+      ntpOffset:
+        typeof status?.offsetSeconds === 'number' && Number.isFinite(status.offsetSeconds)
+          ? t('settings:ntp.offset', {
+              seconds: Math.round(status.offsetSeconds * 10) / 10,
+              level: status.warningLevel ?? '—',
+            })
+          : null,
+      ntpLoadError: t('settings:ntp.loadError'),
+      ntpRefresh: t('settings:ntp.refresh'),
+    }),
+    [t, status?.lastSyncAt, status?.offsetSeconds, status?.warningLevel, pendingCount, syncBusy]
+  );
 
   return (
     <ScrollView style={styles.container}>
@@ -76,10 +193,11 @@ export default function SettingsScreen() {
         <LicenseStatusIndicator badgeAlignSelf="stretch" expandedTouchTarget />
         <TouchableOpacity
           style={styles.licenseActivateLink}
-          onPress={() => router.push('/(screens)/license-activate' as any)}
+          onPress={() => {
+            router.push('/(screens)/license-activate');
+          }}
           accessibilityRole="button"
-          accessibilityLabel={t('license:settingsOpenActivation')}
-        >
+          accessibilityLabel={t('license:settingsOpenActivation')}>
           <Text style={styles.licenseActivateLinkText}>{t('license:settingsOpenActivation')}</Text>
         </TouchableOpacity>
       </View>
@@ -90,51 +208,40 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Admin-Menü</Text>
-        <Text style={styles.description}>
-          Öffnet Verwaltungsfunktionen wie Lizenz, RKSV und Berichte im Admin-Bereich.
-        </Text>
+        <Text style={styles.sectionTitle}>{translations.adminMenuTitle}</Text>
+        <Text style={styles.description}>{translations.adminMenuDescription}</Text>
         <TouchableOpacity
           style={styles.queueLinkButton}
-          onPress={() => router.push('/(screens)/admin-menu' as any)}
-        >
-          <Text style={styles.queueLinkText}>Admin-Menü öffnen</Text>
+          onPress={() => {
+            router.push('/(tabs)/admin-menu' as const);
+          }}>
+          <Text style={styles.queueLinkText}>{translations.adminMenuOpen}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Systemzeit (NTP)</Text>
-        <Text style={styles.description}>
-          Letzter Abgleich (Server): {formatDeDateTime(status?.lastSyncAt)}
-        </Text>
-        {typeof status?.offsetSeconds === 'number' && Number.isFinite(status.offsetSeconds) ? (
-          <Text style={styles.descriptionMuted}>
-            Abweichung: {Math.round(status.offsetSeconds * 10) / 10} s ({status.warningLevel})
-          </Text>
+        <Text style={styles.sectionTitle}>{translations.ntpTitle}</Text>
+        <Text style={styles.description}>{translations.ntpLastSync}</Text>
+        {translations.ntpOffset ? (
+          <Text style={styles.descriptionMuted}>{translations.ntpOffset}</Text>
         ) : null}
         {loading ? (
           <ActivityIndicator style={{ marginTop: 8 }} color="#007AFF" />
         ) : error ? (
-          <Text style={styles.syncError}>Status konnte nicht geladen werden.</Text>
+          <Text style={styles.syncError}>{translations.ntpLoadError}</Text>
         ) : null}
         <TouchableOpacity
           style={styles.queueLinkButton}
           onPress={() => {
             refetch().catch(() => undefined);
-          }}
-        >
-          <Text style={styles.queueLinkText}>Zeitstatus aktualisieren</Text>
+          }}>
+          <Text style={styles.queueLinkText}>{translations.ntpRefresh}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.paymentHistoryTitle}</Text>
-        <Text style={styles.description}>
-          {translations.paymentHistoryDescription}
-        </Text>
-        <TouchableOpacity
-          style={styles.queueLinkButton}
-          onPress={openPaymentHistory}
-        >
+        <Text style={styles.description}>{translations.paymentHistoryDescription}</Text>
+        <TouchableOpacity style={styles.queueLinkButton} onPress={openPaymentHistory}>
           <Text style={styles.queueLinkText}>{translations.paymentHistoryOpen}</Text>
         </TouchableOpacity>
         {!effectiveRegisterId ? (
@@ -142,27 +249,59 @@ export default function SettingsScreen() {
         ) : null}
       </View>
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.receiptListTitle}</Text>
+        <Text style={styles.description}>{translations.receiptListDescription}</Text>
+        <TouchableOpacity style={styles.queueLinkButton} onPress={openReceiptList}>
+          <Text style={styles.queueLinkText}>{translations.receiptListOpen}</Text>
+        </TouchableOpacity>
+        {!effectiveRegisterId ? (
+          <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
+        ) : null}
+      </View>
+      {canCreateSonderbeleg ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{translations.fiskalyOpsTitle}</Text>
+          <Text style={styles.description}>{translations.fiskalyOpsDescription}</Text>
+          <TouchableOpacity style={styles.queueLinkButton} onPress={openFiskalyOps}>
+            <Text style={styles.queueLinkText}>{translations.fiskalyOpsOpen}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.offlineSyncTitle}</Text>
+        <Text style={styles.description}>{translations.offlineSyncDescription}</Text>
+        <TouchableOpacity
+          style={[styles.queueLinkButton, syncBusy && styles.queueLinkButtonDisabled]}
+          onPress={() => {
+            void handleOfflineSync();
+          }}
+          disabled={syncBusy}
+          accessibilityRole="button"
+          accessibilityLabel={translations.offlineSyncButton}>
+          <Text style={styles.queueLinkText}>{translations.offlineSyncButton}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineQueueTitle}</Text>
-        <Text style={styles.description}>
-          {translations.offlineQueueDescription}
-        </Text>
+        <Text style={styles.description}>{translations.offlineQueueDescription}</Text>
         <TouchableOpacity
           style={styles.queueLinkButton}
-          onPress={() => router.push('/(screens)/offline-queue' as any)}
-        >
+          onPress={() => {
+            router.push('/(screens)/offline-queue');
+          }}>
           <Text style={styles.queueLinkText}>{translations.offlineQueueOpen}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings:appUpdate.title', { defaultValue: 'App-Aktualisierung' })}</Text>
+        <Text style={styles.sectionTitle}>
+          {t('settings:appUpdate.title', { defaultValue: 'App-Aktualisierung' })}
+        </Text>
         <AppUpdateChecker />
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.otherSettings}</Text>
-        <Text style={styles.description}>
-          {translations.comingSoon}
-        </Text>
+        <Text style={styles.description}>{translations.comingSoon}</Text>
       </View>
       {/* Çıkış Yap Butonu */}
       <View style={styles.section}>
@@ -235,6 +374,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignItems: 'center',
   },
+  queueLinkButtonDisabled: {
+    backgroundColor: '#94a3b8',
+  },
   queueLinkText: {
     color: '#fff',
     fontSize: 16,
@@ -262,4 +404,4 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-}); 
+});

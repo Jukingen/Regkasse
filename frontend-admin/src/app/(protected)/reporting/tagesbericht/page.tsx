@@ -1,55 +1,52 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-/**
- * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
- */
-import React, { useMemo, useState } from 'react';
-import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Empty, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * Formal Tagesbericht: Liste, Filter, CSV, Sammelfinalisierung.
+ */
+import React, { Suspense, useMemo, useState } from 'react';
+
+import { type ReportFilterValues, ReportFilters } from '@/components/ReportFilters';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { formatDate, formatNumber } from '@/i18n/formatting';
-import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { ExportTemplateApplyBanner } from '@/features/exports/components/ExportTemplateApplyBanner';
+import { buildTagesberichtCsv, downloadTextFile } from '@/features/reporting/tagesbericht/tagesberichtCsv';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
+import { TagesberichtBulkFinalizeModal } from '@/features/reporting/tagesbericht/TagesberichtBulkFinalizeModal';
+import {
+  isProvisionalStatus,
+  matchesTagesberichtStatusFilter,
+  reportStatusTagColor,
+  type TagesberichtListRow,
+  type TagesberichtStatusFilter,
+} from '@/features/reporting/tagesbericht/tagesberichtStatus';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
+import { formatNumber } from '@/i18n/formatting';
+import { AXIOS_INSTANCE } from '@/lib/axios';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
-import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
-
-const { RangePicker } = DatePicker;
-
-type TagesberichtListItem = {
-  id: string;
-  viennaBusinessDate: string;
-  cashRegisterId: string;
-  registerNumber?: string;
-  reportStatus: string;
-  correctionKind: string;
-  grossSalesAmount: number;
-  createdAtUtc: string;
-  submission: {
-    lifecycle: string;
-    operatorHintDe?: string;
-    operatorHintEn?: string | null;
-    outboxStatus?: string;
-  };
-};
 
 function reportStatusTagLabel(s: string, t: (k: string) => string): string {
-  if (s === 'Finalized' || s === 'Provisional') return t(`reporting.listShared.reportStatus.${s}`);
+  if (s === 'Finalized' || s === 'Provisional' || s === 'Corrected') {
+    return t(`reporting.listShared.reportStatus.${s}`);
+  }
+  if (s === 'Superseded') return t('reporting.listShared.reportStatus.Corrected');
   return s;
 }
 
 export default function TagesberichtListPage() {
   const { message } = useAntdApp();
-
   const { t, formatLocale } = useI18n();
   const { fiscalTooltip, resolveFiscal } = useFiscalReportText();
   const qc = useQueryClient();
@@ -57,26 +54,35 @@ export default function TagesberichtListPage() {
   const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
 
   const [range, setRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
-    dayjs().subtract(14, 'day'),
-    dayjs(),
+    dayjs().startOf('month'),
+    dayjs().endOf('month'),
   ]);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
-
-  const registersQ = useGetApiCashRegister();
-  const registersData = registersQ.data as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
+  const [statusFilter, setStatusFilter] = useState<TagesberichtStatusFilter>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const fromDate = range[0].format('YYYY-MM-DD');
   const toDate = range[1].format('YYYY-MM-DD');
 
+  const applyFilters = (values: Partial<ReportFilterValues>) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setRange(values.dateRange);
+    }
+    if (Object.prototype.hasOwnProperty.call(values, 'registerId')) {
+      setCashRegisterId(values.registerId);
+    }
+  };
+
+  const handleFilterGenerate = (values: ReportFilterValues) => {
+    applyFilters(values);
+    void qc.invalidateQueries({ queryKey: ['tagesbericht', 'list'] });
+  };
+
   const listQ = useQuery({
     queryKey: ['tagesbericht', 'list', fromDate, toDate, cashRegisterId],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<TagesberichtListItem[]>('/api/reports/tagesbericht', {
+      const { data } = await AXIOS_INSTANCE.get<TagesberichtListRow[]>('/api/reports/tagesbericht', {
         params: {
           fromDate,
           toDate,
@@ -86,6 +92,11 @@ export default function TagesberichtListPage() {
       return data;
     },
   });
+
+  const rows = useMemo(
+    () => (listQ.data ?? []).filter((row) => matchesTagesberichtStatusFilter(row, statusFilter)),
+    [listQ.data, statusFilter]
+  );
 
   const generateMut = useMutation({
     mutationFn: async () => {
@@ -106,15 +117,78 @@ export default function TagesberichtListPage() {
       qc.invalidateQueries({ queryKey: ['tagesbericht'] });
       if (d?.id) window.location.href = `/reporting/tagesbericht/${d.id}`;
     },
-    onError: () => message.error(t('reporting.listShared.generateError')),
+    onError: () => message.error(t('reporting.tagesbericht.error.generate')),
   });
 
-  const columns: ColumnsType<TagesberichtListItem> = useMemo(
+  const bulkFinalizeMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      for (const reportId of ids) {
+        await AXIOS_INSTANCE.post('/api/reports/tagesbericht/finalize', { reportId, note: null });
+      }
+    },
+    onSuccess: () => {
+      message.success(t('reporting.tagesbericht.list.messages.bulkFinalizeSuccess'));
+      setSelectedIds([]);
+      setBulkOpen(false);
+      qc.invalidateQueries({ queryKey: ['tagesbericht'] });
+    },
+    onError: () => message.error(t('reporting.tagesbericht.error.bulkFinalize')),
+  });
+
+  const handleGenerate = () => {
+    if (!cashRegisterId) {
+      message.warning(t('reporting.listShared.selectRegister'));
+      return;
+    }
+    generateMut.mutate();
+  };
+
+  const handleExportCsv = () => {
+    if (!canExport) return;
+    try {
+      const csv = buildTagesberichtCsv(rows, {
+        date: t('reporting.tagesbericht.list.csv.date'),
+        register: t('reporting.tagesbericht.list.csv.register'),
+        status: t('reporting.tagesbericht.list.csv.status'),
+        gross: t('reporting.tagesbericht.list.csv.gross'),
+        submission: t('reporting.tagesbericht.list.csv.submission'),
+      });
+      downloadTextFile(
+        csv,
+        buildReportFileName({
+          reportType: 'tagesbericht',
+          tenantSlug: getEffectiveTenantSlug(),
+          period: `${fromDate}_${toDate}`,
+          extension: 'csv',
+        })
+      );
+      message.success(t('reporting.tagesbericht.list.messages.csvSuccess'));
+    } catch {
+      message.error(t('reporting.tagesbericht.error.csv'));
+    }
+  };
+
+  const previewReceiptCount = rows.reduce((sum, row) => sum + (row.salePaymentRowCount ?? 0), 0);
+  const previewRevenue = rows.reduce((sum, row) => sum + (Number(row.grossSalesAmount) || 0), 0);
+
+  const selectedProvisional = rows.filter(
+    (row) => selectedIds.includes(row.id) && isProvisionalStatus(row.reportStatus)
+  );
+
+  const openBulkFinalize = () => {
+    if (selectedProvisional.length === 0) {
+      message.warning(t('reporting.tagesbericht.list.messages.bulkFinalizeNone'));
+      return;
+    }
+    setBulkOpen(true);
+  };
+
+  const columns: ColumnsType<TagesberichtListRow> = useMemo(
     () => [
       {
         title: t('reporting.tagesbericht.list.columnDate'),
         dataIndex: 'viennaBusinessDate',
-        render: (v: string) => formatDate(v, formatLocale),
+        render: dateColumnRender('short'),
       },
       {
         title: t('reporting.listShared.columns.register'),
@@ -125,9 +199,7 @@ export default function TagesberichtListPage() {
         title: t('reporting.listShared.columns.status'),
         dataIndex: 'reportStatus',
         render: (s: string) => (
-          <Tag color={s === 'Finalized' ? 'blue' : s === 'Provisional' ? 'gold' : 'default'}>
-            {reportStatusTagLabel(s, t)}
-          </Tag>
+          <Tag color={reportStatusTagColor(s)}>{reportStatusTagLabel(s, t)}</Tag>
         ),
       },
       {
@@ -139,7 +211,11 @@ export default function TagesberichtListPage() {
             <Space orientation="vertical" size={0}>
               <Tag>{row.submission.lifecycle}</Tag>
               {hint ? (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 12 }}
+                  title={fiscalTooltip(hint.contentLang)}
+                >
                   {hint.text}
                 </Typography.Text>
               ) : null}
@@ -150,7 +226,8 @@ export default function TagesberichtListPage() {
       {
         title: t('reporting.listShared.columns.gross'),
         dataIndex: 'grossSalesAmount',
-        render: (v: number) => formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        render: (v: number) =>
+          formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
       {
         title: '',
@@ -160,7 +237,7 @@ export default function TagesberichtListPage() {
         ),
       },
     ],
-    [t, formatLocale, fiscalTooltip, resolveFiscal],
+    [t, formatLocale, fiscalTooltip, resolveFiscal]
   );
 
   return (
@@ -172,43 +249,133 @@ export default function TagesberichtListPage() {
           { title: t('reporting.tagesbericht.list.breadcrumb'), href: '/reporting/tagesbericht' },
         ]}
       />
+      <Suspense fallback={null}>
+        <ExportTemplateApplyBanner
+          expectedKind="tagesbericht"
+          onTagesberichtRange={(next) => setRange(next)}
+        />
+      </Suspense>
       <FormalReportLanguageNotice />
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && setRange(v as [dayjs.Dayjs, dayjs.Dayjs])} />
-          <Select
-            allowClear
-            placeholder={t('reporting.listShared.registerPlaceholder')}
-            style={{ minWidth: 220 }}
-            value={cashRegisterId}
-            onChange={setCashRegisterId}
-            options={registerRows.map((r) => ({
-              value: r.id,
-              label: `${r.registerNumber} — ${r.location}`,
-            }))}
+      <Card style={{ marginBottom: 16 }} title={t('adminShell.reporting.filtersTitle')}>
+        <ReportFilters
+          onGenerate={handleFilterGenerate}
+          onValuesChange={applyFilters}
+          loading={listQ.isFetching}
+          registerRequired={false}
+          registerAllowClear
+          includeDecommissioned
+          extra={
+            <Select
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v)}
+              style={{ minWidth: 180 }}
+              aria-label={t('reporting.tagesbericht.list.statusFilter')}
+              options={[
+                { value: 'all', label: t('reporting.tagesbericht.list.statusAll') },
+                { value: 'Provisional', label: t('reporting.listShared.reportStatus.Provisional') },
+                { value: 'Finalized', label: t('reporting.listShared.reportStatus.Finalized') },
+                { value: 'Corrected', label: t('reporting.listShared.reportStatus.Corrected') },
+              ]}
+            />
+          }
+          initialValues={{ dateRange: range }}
+        />
+        <Space orientation="vertical" size={8} style={{ display: 'flex', marginBottom: 12 }}>
+          <PeriodSalesSummaryCard
+            periodLabel={`${fromDate} – ${toDate}`}
+            receiptCount={previewReceiptCount}
+            totalRevenue={previewRevenue}
+            zeroSales={rows.length > 0 && previewRevenue === 0 && previewReceiptCount === 0}
           />
-          <Button onClick={() => listQ.refetch()} loading={listQ.isFetching}>
-            {t('reporting.listShared.refresh')}
-          </Button>
+        </Space>
+        <Space wrap style={{ marginBottom: 12 }}>
           {canExport ? (
-            <Button type="primary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
+            <Button type="primary" loading={generateMut.isPending} onClick={handleGenerate}>
               {t('reporting.tagesbericht.list.generateButton')}
             </Button>
           ) : null}
+          {canExport ? (
+            <Button icon={<DownloadOutlined />} onClick={handleExportCsv} disabled={rows.length === 0}>
+              {t('reporting.tagesbericht.list.exportCsv')}
+            </Button>
+          ) : null}
+          {canExport ? (
+            <Button
+              data-testid="tagesbericht-bulk-finalize"
+              onClick={openBulkFinalize}
+              disabled={selectedProvisional.length === 0}
+            >
+              {t('reporting.tagesbericht.list.bulkFinalize')}
+            </Button>
+          ) : null}
         </Space>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('reporting.tagesbericht.list.intro')}
         </Typography.Paragraph>
       </Card>
       <Card>
-        <Table<TagesberichtListItem>
+        {listQ.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            title={t('reporting.tagesbericht.error.list')}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+        <Table<TagesberichtListRow>
           rowKey="id"
+          data-testid="tagesbericht-list-table"
           loading={listQ.isLoading}
-          dataSource={listQ.data ?? []}
+          dataSource={rows}
           columns={columns}
           pagination={{ pageSize: 20 }}
+          rowSelection={
+            canExport
+              ? {
+                  selectedRowKeys: selectedIds,
+                  onChange: (keys) => setSelectedIds(keys.map(String)),
+                  getCheckboxProps: (row) => ({
+                    disabled: !isProvisionalStatus(row.reportStatus),
+                    name: row.id,
+                  }),
+                }
+              : undefined
+          }
+          locale={{
+            emptyText: (
+              <Empty
+                description={
+                  <Space orientation="vertical">
+                    <Typography.Text strong>
+                      {t('reporting.tagesbericht.list.emptyTitle')}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      {t('reporting.tagesbericht.list.emptyDescription')}
+                    </Typography.Text>
+                    {canExport ? (
+                      <Button type="primary" onClick={handleGenerate}>
+                        {t('reporting.tagesbericht.list.emptyGenerateCta')}
+                      </Button>
+                    ) : null}
+                  </Space>
+                }
+              />
+            ),
+          }}
         />
       </Card>
+      <TagesberichtBulkFinalizeModal
+        open={bulkOpen}
+        confirmTitle={t('reporting.tagesbericht.list.bulkFinalizeConfirmTitle')}
+        confirmBody={t('reporting.tagesbericht.list.bulkFinalizeConfirmBody', {
+          count: selectedProvisional.length,
+        })}
+        okLabel={t('common.buttons.confirm')}
+        cancelLabel={t('common.buttons.cancel')}
+        loading={bulkFinalizeMut.isPending}
+        onOk={() => bulkFinalizeMut.mutate(selectedProvisional.map((r) => r.id))}
+        onCancel={() => setBulkOpen(false)}
+      />
     </>
   );
 }

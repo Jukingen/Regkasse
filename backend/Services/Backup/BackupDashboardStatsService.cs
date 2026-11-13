@@ -1,8 +1,10 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Backup;
 
@@ -22,39 +24,47 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
     private readonly AppDbContext _db;
     private readonly IBackupRunQueryService _runQuery;
     private readonly IBackupOperationalReadiness _readiness;
+    private readonly IBackupStagingDiskMonitor _diskMonitor;
+    private readonly IOptionsMonitor<BackupOptions> _backupOptions;
     private readonly TimeProvider _timeProvider;
 
     public BackupDashboardStatsService(
         AppDbContext db,
         IBackupRunQueryService runQuery,
         IBackupOperationalReadiness readiness,
+        IBackupStagingDiskMonitor diskMonitor,
+        IOptionsMonitor<BackupOptions> backupOptions,
         TimeProvider timeProvider)
     {
         _db = db;
         _runQuery = runQuery;
         _readiness = readiness;
+        _diskMonitor = diskMonitor;
+        _backupOptions = backupOptions;
         _timeProvider = timeProvider;
     }
 
-    public async Task<BackupDashboardStatsResponseDto> GetAsync(CancellationToken cancellationToken = default)
+    public async Task<BackupDashboardStatsResponseDto> GetAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default)
     {
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         var windowStart = nowUtc.AddDays(-30);
         var priorWindowStart = nowUtc.AddDays(-60);
 
-        var runs30 = await _db.BackupRuns.AsNoTracking()
+        var runs30 = await AccessibleRuns(accessScope)
             .Include(r => r.Artifacts)
             .Where(r => r.RequestedAt >= windowStart)
             .OrderByDescending(r => r.RequestedAt)
             .ToListAsync(cancellationToken);
 
-        var runsPrior30 = await _db.BackupRuns.AsNoTracking()
+        var runsPrior30 = await AccessibleRuns(accessScope)
             .Where(r => r.RequestedAt >= priorWindowStart && r.RequestedAt < windowStart)
             .Select(r => new { r.Status, r.CompletedAt, r.RequestedAt })
             .ToListAsync(cancellationToken);
 
         var latestRun = runs30.OrderByDescending(r => r.RequestedAt).FirstOrDefault()
-            ?? await _db.BackupRuns.AsNoTracking()
+            ?? await AccessibleRuns(accessScope)
                 .OrderByDescending(r => r.RequestedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -65,7 +75,7 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
 
         if (lastSuccess == null)
         {
-            lastSuccess = await _db.BackupRuns.AsNoTracking()
+            lastSuccess = await AccessibleRuns(accessScope)
                 .Include(r => r.Artifacts)
                 .Where(r => r.Status == BackupRunStatus.Succeeded)
                 .OrderByDescending(r => r.CompletedAt ?? r.RequestedAt)
@@ -92,7 +102,8 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
         {
             var proofAt = lastSuccess.CompletedAt ?? lastSuccess.RequestedAt;
             rpoHours = Math.Round((nowUtc - proofAt).TotalHours, 2);
-            if (rpoHours < 0) rpoHours = 0;
+            if (rpoHours < 0)
+                rpoHours = 0;
         }
 
         var restoreDrills = await _db.RestoreVerificationRuns.AsNoTracking()
@@ -104,7 +115,7 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             .Select(r => new { r.StartedAt, r.CompletedAt })
             .ToListAsync(cancellationToken);
 
-        var durationStats = await _runQuery.GetAverageSucceededDurationAsync(15, cancellationToken);
+        var durationStats = await _runQuery.GetAverageSucceededDurationAsync(15, accessScope, cancellationToken);
 
         double? rtoMinutes = null;
         if (restoreDrills.Count > 0)
@@ -118,8 +129,12 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             rtoMinutes = Math.Round(durationStats.AverageDurationSeconds.Value / 60.0, 1);
         }
 
+        // Same predicate as recoverability lastSuccessfulRestoreProofAt and the weekly cadence:
+        // only a scheduled terminal success counts. Manual successes must not move this timestamp.
         var lastRestoreProof = await _db.RestoreVerificationRuns.AsNoTracking()
-            .Where(r => r.Status == RestoreVerificationStatus.Succeeded && r.CompletedAt != null)
+            .Where(r => r.TriggerSource == RestoreVerificationTriggerSource.Scheduled
+                        && r.Status == RestoreVerificationStatus.Succeeded
+                        && r.CompletedAt != null)
             .OrderByDescending(r => r.CompletedAt)
             .Select(r => new { r.CompletedAt })
             .FirstOrDefaultAsync(cancellationToken);
@@ -129,11 +144,7 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             .Select(r => new { r.Status })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var lastVerification = await _db.BackupVerifications.AsNoTracking()
-            .Where(v => v.Status == BackupVerificationStatus.Passed)
-            .OrderByDescending(v => v.CompletedAt ?? v.StartedAt)
-            .Select(v => new { At = v.CompletedAt ?? v.StartedAt })
-            .FirstOrDefaultAsync(cancellationToken);
+        var lastVerification = await LastVerificationAsync(accessScope, cancellationToken);
 
         var cfg = _readiness.GetConfigurationHealth();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
@@ -149,6 +160,29 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
                 .Where(a => a.ArtifactType == BackupArtifactType.LogicalDump)
                 .Sum(a => a.ByteSize ?? 0L);
 
+        var failed30 = terminal30.Count(r =>
+            r.Status is BackupRunStatus.Failed or BackupRunStatus.VerificationFailed);
+        var pendingCount = await AccessibleRuns(accessScope)
+            .CountAsync(
+                r => r.Status == BackupRunStatus.Queued || r.Status == BackupRunStatus.Running,
+                cancellationToken);
+
+        var nextScheduled = await ResolveNextScheduledBackupAtUtcAsync(cancellationToken);
+
+        var opts = _backupOptions.CurrentValue;
+        var disk = _diskMonitor.TryGetUsage(opts.ArtifactStagingRoot, opts.StagingDiskUsageAlertPercent);
+
+        var rpoStatus = DeriveRpoStatus(rpoHours, opts.AlertOnNoBackupDays);
+        var (healthScore, healthLevel) = DeriveHealthScore(
+            cfg.Level,
+            rpoStatus,
+            lastVerification?.Status,
+            latestRestore?.Status,
+            disk?.Alert == true);
+
+        var lastContentVerification = await LastContentValidationAsync(accessScope, cancellationToken);
+        var contentSummary = BuildContentValidationSummary(lastSuccess?.Id, lastContentVerification);
+
         return new BackupDashboardStatsResponseDto
         {
             LastBackupAtUtc = latestRun?.CompletedAt ?? latestRun?.RequestedAt,
@@ -162,17 +196,259 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             SuccessRateTrendVsPrior30DaysPercent = trend,
             TerminalRuns30Days = terminal30.Count,
             SucceededRuns30Days = succeeded30,
+            FailedRuns30Days = failed30,
+            PendingRunsCount = pendingCount,
+            TotalRuns30Days = runs30.Count,
+            NextScheduledBackupAtUtc = nextScheduled,
+            StagingDiskUsedPercent = disk?.UsedPercent,
+            StagingDiskAlert = disk?.Alert ?? false,
             RpoHours = rpoHours,
             RtoMinutes = rtoMinutes,
             LastSuccessfulRestoreDrillAtUtc = lastRestoreProof?.CompletedAt,
             LatestRestoreDrillStatus = latestRestore?.Status,
-            LastVerifiedBackupAtUtc = lastVerification?.At ?? lastSuccess?.CompletedAt,
+            LastVerifiedBackupAtUtc = lastVerification?.AtUtc ?? lastSuccess?.CompletedAt,
+            LastVerificationStatus = lastVerification?.Status,
+            LastVerificationRunId = lastVerification?.RunId,
+            RpoStatus = rpoStatus,
+            HealthScore = healthScore,
+            HealthLevel = healthLevel,
+            ContentValidationSummary = contentSummary,
             AverageSucceededBackupDurationSeconds = durationStats.AverageDurationSeconds,
             AverageSucceededBackupDurationSampleCount = durationStats.SampleCount,
             ConfigurationHealth = BackupConfigurationHealthResponseMapper.FromSnapshot(cfg),
             ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy),
             History30Days = history,
         };
+    }
+
+    public async Task<BackupDashboardHealthResponseDto> GetHealthAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default)
+    {
+        var stats = await GetAsync(accessScope, cancellationToken).ConfigureAwait(false);
+        return MapHealth(stats);
+    }
+
+    internal static BackupDashboardHealthResponseDto MapHealth(BackupDashboardStatsResponseDto stats)
+    {
+        var verification = stats.LastVerificationStatus switch
+        {
+            BackupVerificationStatus.Passed => "Passed",
+            BackupVerificationStatus.Failed => "Failed",
+            _ => "None",
+        };
+
+        var contentRaw = stats.ContentValidationSummary?.Status?.Trim().ToLowerInvariant() ?? "unknown";
+        var content = contentRaw switch
+        {
+            "passed" => "passed",
+            "failed" => "failed",
+            "partial" or "warning" => "partial",
+            "unavailable" => "unavailable",
+            "available" => "unknown",
+            _ => "unknown",
+        };
+
+        return new BackupDashboardHealthResponseDto
+        {
+            HealthScore = stats.HealthScore,
+            HealthLevel = NormalizeHealthLevel(stats.HealthLevel, stats.HealthScore),
+            VerificationStatus = verification,
+            LastVerificationRunId = stats.LastVerificationRunId,
+            ContentValidationStatus = content,
+            ContentValidationSummary = stats.ContentValidationSummary?.Summary,
+            RpoStatus = NormalizeRpoStatus(stats.RpoStatus),
+            RpoHours = stats.RpoHours,
+            LastSuccessfulBackupAtUtc = stats.LastSuccessfulBackupAtUtc,
+        };
+    }
+
+    private static string NormalizeHealthLevel(string? level, int score)
+    {
+        var l = (level ?? string.Empty).Trim().ToLowerInvariant();
+        if (l is "healthy" or "warning" or "critical")
+            return l;
+        return score >= 80 ? "healthy" : score >= 50 ? "warning" : "critical";
+    }
+
+    private static string NormalizeRpoStatus(string? status)
+    {
+        return (status ?? string.Empty).Trim() switch
+        {
+            "Healthy" or "Ok" => "Healthy",
+            "AtRisk" or "Warning" => "AtRisk",
+            "Critical" or "Overdue" => "Critical",
+            _ => "Unknown",
+        };
+    }
+
+    private async Task<DateTime?> ResolveNextScheduledBackupAtUtcAsync(CancellationToken cancellationToken)
+    {
+        var fromTenantSchedules = await _db.BackupScheduleConfigurations.AsNoTracking()
+            .Where(c => c.Enabled && c.NextRunAt != null)
+            .Select(c => c.NextRunAt)
+            .ToListAsync(cancellationToken);
+
+        var fromSingleton = await _db.BackupSettings.AsNoTracking()
+            .Where(s => s.Enabled && s.NextRunAt != null)
+            .Select(s => s.NextRunAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        DateTime? earliest = null;
+        foreach (var candidate in fromTenantSchedules)
+        {
+            if (candidate is not DateTime dt)
+                continue;
+            if (earliest == null || dt < earliest)
+                earliest = dt;
+        }
+
+        if (fromSingleton is DateTime singletonNext
+            && (earliest == null || singletonNext < earliest))
+            earliest = singletonNext;
+
+        return earliest;
+    }
+
+    private IQueryable<BackupRun> AccessibleRuns(BackupRunAccessScope? accessScope)
+    {
+        var q = _db.BackupRuns.AsNoTracking();
+        return accessScope == null
+            ? q
+            : BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+    }
+
+    private async Task<(DateTime? AtUtc, BackupVerificationStatus? Status, Guid? RunId)?> LastVerificationAsync(
+        BackupRunAccessScope? accessScope,
+        CancellationToken cancellationToken)
+    {
+        var accessibleRunIds = AccessibleRuns(accessScope);
+        var row = await _db.BackupVerifications.AsNoTracking()
+            .Where(v => accessibleRunIds.Select(r => r.Id).Contains(v.BackupRunId))
+            .OrderByDescending(v => v.CompletedAt ?? v.StartedAt)
+            .Select(v => new { v.CompletedAt, v.StartedAt, v.Status, v.BackupRunId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row == null)
+            return null;
+        return (row.CompletedAt ?? row.StartedAt, row.Status, row.BackupRunId);
+    }
+
+    private async Task<(BackupVerificationStatus Status, Guid RunId, string? DetailsJson)?> LastContentValidationAsync(
+        BackupRunAccessScope? accessScope,
+        CancellationToken cancellationToken)
+    {
+        var accessibleRunIds = AccessibleRuns(accessScope);
+        var row = await _db.BackupVerifications.AsNoTracking()
+            .Where(v =>
+                v.VerifierSource == IBackupContentValidationService.VerifierSourceContentValidation
+                && accessibleRunIds.Select(r => r.Id).Contains(v.BackupRunId))
+            .OrderByDescending(v => v.CompletedAt ?? v.StartedAt)
+            .Select(v => new { v.Status, v.BackupRunId, v.DetailsJson })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row == null)
+            return null;
+        return (row.Status, row.BackupRunId, row.DetailsJson);
+    }
+
+    private static BackupDashboardContentValidationSummaryDto BuildContentValidationSummary(
+        Guid? lastSucceededRunId,
+        (BackupVerificationStatus Status, Guid RunId, string? DetailsJson)? lastContent)
+    {
+        if (lastContent == null)
+        {
+            return lastSucceededRunId == null
+                ? new BackupDashboardContentValidationSummaryDto
+                {
+                    Status = "unknown",
+                    Summary = "No succeeded backup to validate.",
+                }
+                : new BackupDashboardContentValidationSummaryDto
+                {
+                    Status = "available",
+                    Summary = "Use GET /runs/{id}/content-validation for full report.",
+                    LastSucceededRunId = lastSucceededRunId,
+                };
+        }
+
+        var overall = TryReadOverallStatus(lastContent.Value.DetailsJson)
+                      ?? (lastContent.Value.Status == BackupVerificationStatus.Passed ? "Passed" : "Failed");
+        return new BackupDashboardContentValidationSummaryDto
+        {
+            Status = overall.ToLowerInvariant(),
+            Summary = $"Last content validation: {overall}.",
+            LastSucceededRunId = lastContent.Value.RunId,
+        };
+    }
+
+    private static string? TryReadOverallStatus(string? detailsJson)
+    {
+        if (string.IsNullOrWhiteSpace(detailsJson))
+            return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(detailsJson);
+            if (doc.RootElement.TryGetProperty("overallStatus", out var el)
+                && el.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                return el.GetString();
+            }
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // ignore malformed details
+        }
+
+        return null;
+    }
+
+    private static string DeriveRpoStatus(double? rpoHours, int alertOnNoBackupDays)
+    {
+        if (rpoHours == null)
+            return "Critical";
+        var days = alertOnNoBackupDays <= 0 ? 2 : alertOnNoBackupDays;
+        var hoursLimit = days * 24.0;
+        if (rpoHours.Value >= hoursLimit)
+            return "Critical";
+        if (rpoHours.Value >= hoursLimit * 0.75)
+            return "AtRisk";
+        return "Healthy";
+    }
+
+    private static (int Score, string Level) DeriveHealthScore(
+        BackupConfigurationHealthLevel configLevel,
+        string rpoStatus,
+        BackupVerificationStatus? verificationStatus,
+        RestoreVerificationStatus? drillStatus,
+        bool stagingAlert)
+    {
+        var score = 100;
+        score -= configLevel switch
+        {
+            BackupConfigurationHealthLevel.Healthy => 0,
+            BackupConfigurationHealthLevel.Degraded => 20,
+            BackupConfigurationHealthLevel.Unhealthy => 45,
+            _ => 15,
+        };
+        score -= NormalizeRpoStatus(rpoStatus) switch
+        {
+            "Healthy" => 0,
+            "AtRisk" => 15,
+            "Critical" => 35,
+            _ => 20,
+        };
+        if (verificationStatus == BackupVerificationStatus.Failed)
+            score -= 20;
+        else if (verificationStatus == null)
+            score -= 5;
+        if (drillStatus == RestoreVerificationStatus.Failed)
+            score -= 15;
+        if (stagingAlert)
+            score -= 10;
+
+        score = Math.Clamp(score, 0, 100);
+        // Explicit bands: 🟢 80–100 healthy, 🟡 50–79 warning, 🔴 0–49 critical
+        var level = score >= 80 ? "healthy" : score >= 50 ? "warning" : "critical";
+        return (score, level);
     }
 
     private static BackupDashboardHistoryPointDto MapHistoryPoint(BackupRun run)

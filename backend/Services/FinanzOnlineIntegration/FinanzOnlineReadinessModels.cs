@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 /// <summary>Optional tenant-scoped probe of <c>company_settings</c> FinanzOnline columns (admin readiness only; never exposes secrets).</summary>

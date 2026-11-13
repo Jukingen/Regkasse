@@ -1,0 +1,52 @@
+{
+  "outbox": {
+    "title": "Outbox inbox",
+    "analytics": {
+      "title": "Last 7 days",
+      "successRate": "Success rate",
+      "averageRetries": "Average attempts",
+      "topFailures": "Top failing message types",
+      "empty": "No messages in this window"
+    },
+    "filters": {
+      "status": "Status",
+      "statusPending": "Pending",
+      "statusSent": "Sent",
+      "statusFailed": "Failed",
+      "dateRange": "Date range",
+      "cashRegister": "Cash register"
+    },
+    "columns": {
+      "messageType": "Message type",
+      "status": "Status",
+      "attempts": "Attempts",
+      "lastAttemptedAt": "Last attempted at",
+      "errorCode": "Error code"
+    },
+    "actions": {
+      "retrySelected": "Retry selected",
+      "retryAllFailed": "Retry all failed",
+      "retry": "Retry",
+      "resolve": "Mark as resolved",
+      "details": "Details"
+    },
+    "detail": {
+      "title": "Outbox message",
+      "payload": "Payload (masked)",
+      "timeline": "Retry history",
+      "errorCode": "Error code",
+      "errorMessage": "Error message",
+      "resolveReason": "Reason for closing without another submit"
+    },
+    "timeline": {
+      "created": "Created",
+      "attempts": "Attempts so far: {{count}}",
+      "processed": "Processed",
+      "next": "Next attempt"
+    },
+    "empty": "No outbox messages",
+    "retryQueued": "Retry was requested.",
+    "resolved": "Message was marked as resolved.",
+    "retryError": "Retry failed."
+  }
+}

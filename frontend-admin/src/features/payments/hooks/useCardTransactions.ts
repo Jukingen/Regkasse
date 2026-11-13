@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import {
-  useAdminCardTransactionsList,
   type AdminCardTransactionListParams,
   type AdminCardTransactionRow,
+  useAdminCardTransactionsList,
 } from '@/features/payments/api/adminCardTransactionsQuery';
 
 export type UseCardTransactionsResult = {
@@ -21,7 +22,7 @@ export type UseCardTransactionsResult = {
 };
 
 export function useCardTransactions(
-  initialParams?: Partial<AdminCardTransactionListParams>,
+  initialParams?: Partial<AdminCardTransactionListParams>
 ): UseCardTransactionsResult {
   const [params, setParamsState] = useState<AdminCardTransactionListParams>({
     pageNumber: 1,
@@ -38,7 +39,7 @@ export function useCardTransactions(
       fromUtc: params.fromUtc,
       toUtc: params.toUtc,
     }),
-    [params],
+    [params]
   );
 
   const query = useAdminCardTransactionsList(listParams);

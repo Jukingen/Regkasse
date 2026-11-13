@@ -1,26 +1,28 @@
 'use client';
 
-import React from 'react';
-import { Form, Input, Select, DatePicker, Button, Space, Col, Row } from 'antd';
-import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
-import type { ReceiptListParams } from '@/features/receipts/types/receipts';
+import { ClearOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, DatePicker, Form, Input, Select, Space } from 'antd';
 import dayjs from 'dayjs';
+import { useMemo } from 'react';
+
+import type { ReceiptListParams } from '@/features/receipts/types/receipts';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
 
 const { RangePicker } = DatePicker;
 
 interface ReceiptsFilterBarProps {
-    initialValues: Partial<ReceiptListParams>;
-    onFilterChange: (values: Partial<ReceiptListParams>) => void;
-    onReset: () => void;
-    loading: boolean;
+  initialValues: Partial<ReceiptListParams>;
+  onFilterChange: (values: Partial<ReceiptListParams>) => void;
+  onReset: () => void;
+  loading: boolean;
 }
 
 interface FilterFormValues {
-    receiptNumber?: string;
-    cashRegisterId?: string;
-    cashierId?: string;
-    dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null;
+  receiptNumber?: string;
+  cashRegisterId?: string;
+  cashierId?: string;
+  dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null;
 }
 
 /**
@@ -28,98 +30,120 @@ interface FilterFormValues {
  * Purely presentational — does not touch URL or queries directly.
  */
 export default function ReceiptsFilterBar({
-    initialValues,
-    onFilterChange,
-    onReset,
-    loading,
+  initialValues,
+  onFilterChange,
+  onReset,
+  loading,
 }: ReceiptsFilterBarProps) {
-    const { t } = useI18n();
-    const [form] = Form.useForm<FilterFormValues>();
+  const { t } = useI18n();
+  const [form] = Form.useForm<FilterFormValues>();
+  const { registers, isLoading: registersLoading } = useCashRegisterSelection({
+    autoSelect: false,
+    autoSelectSingle: false,
+    persistSelection: false,
+  });
+  const cashRegisterOptions = useMemo(
+    () =>
+      registers
+        .filter((register) => register.isActive !== false)
+        .map((register) => ({
+          value: register.id,
+          label: `${register.registerNumber} — ${register.location ?? ''}`.trim(),
+        })),
+    [registers]
+  );
 
-    const handleFinish = (values: FilterFormValues) => {
-        const params: Partial<ReceiptListParams> = {};
-        if (values.receiptNumber) params.receiptNumber = values.receiptNumber;
-        if (values.cashRegisterId) params.cashRegisterId = values.cashRegisterId;
-        if (values.cashierId) params.cashierId = values.cashierId;
-        if (values.dateRange?.[0]) params.issuedFrom = values.dateRange[0].toISOString();
-        if (values.dateRange?.[1]) params.issuedTo = values.dateRange[1].toISOString();
-        onFilterChange(params);
-    };
+  const toParams = (values: FilterFormValues): Partial<ReceiptListParams> => ({
+    receiptNumber: values.receiptNumber || undefined,
+    cashRegisterId: values.cashRegisterId || undefined,
+    cashierId: values.cashierId || undefined,
+    issuedFrom: values.dateRange?.[0]?.toISOString(),
+    issuedTo: values.dateRange?.[1]?.toISOString(),
+  });
 
-    const handleReset = () => {
-        form.resetFields();
-        onReset();
-    };
+  const handleFinish = (values: FilterFormValues) => {
+    onFilterChange(toParams(values));
+  };
 
-    // Map ReceiptListParams back to form field values for initial state
-    const formInitial: FilterFormValues = {
-        receiptNumber: initialValues.receiptNumber,
-        cashRegisterId: initialValues.cashRegisterId,
-        cashierId: initialValues.cashierId,
-        dateRange:
-            initialValues.issuedFrom && initialValues.issuedTo
-                ? [dayjs(initialValues.issuedFrom), dayjs(initialValues.issuedTo)]
-                : undefined,
-    };
+  const handleValuesChange = (
+    changed: Partial<FilterFormValues>,
+    all: FilterFormValues
+  ) => {
+    if (!Object.prototype.hasOwnProperty.call(changed, 'cashRegisterId')) return;
+    onFilterChange(toParams(all));
+  };
 
-    return (
-        <Form
-            form={form}
-            layout="inline"
-            initialValues={formInitial}
-            onFinish={handleFinish}
-            style={{ marginBottom: 16, flexWrap: 'wrap', gap: 8 }}
-        >
-            <Form.Item name="receiptNumber">
-                <Input
-                    placeholder={t('receipts.filters.placeholderReceiptNumber')}
-                    prefix={<SearchOutlined />}
-                    allowClear
-                    style={{ width: 180 }}
-                />
-            </Form.Item>
+  const handleReset = () => {
+    form.resetFields();
+    onReset();
+  };
 
-            <Form.Item name="cashRegisterId">
-                <Input
-                    placeholder={t('receipts.filters.placeholderCashRegister')}
-                    allowClear
-                    style={{ width: 160 }}
-                />
-            </Form.Item>
+  // Map ReceiptListParams back to form field values for initial state
+  const formInitial: FilterFormValues = {
+    receiptNumber: initialValues.receiptNumber,
+    cashRegisterId: initialValues.cashRegisterId,
+    cashierId: initialValues.cashierId,
+    dateRange:
+      initialValues.issuedFrom && initialValues.issuedTo
+        ? [dayjs(initialValues.issuedFrom), dayjs(initialValues.issuedTo)]
+        : undefined,
+  };
 
-            <Form.Item name="cashierId">
-                <Input
-                    placeholder={t('receipts.filters.placeholderCashier')}
-                    allowClear
-                    style={{ width: 140 }}
-                />
-            </Form.Item>
+  return (
+    <Form
+      form={form}
+      layout="inline"
+      initialValues={formInitial}
+      onFinish={handleFinish}
+      onValuesChange={handleValuesChange}
+      style={{ marginBottom: 16, flexWrap: 'wrap', gap: 8 }}
+    >
+      <Form.Item name="receiptNumber">
+        <Input
+          placeholder={t('receipts.filters.placeholderReceiptNumber')}
+          prefix={<SearchOutlined />}
+          allowClear
+          style={{ width: 180 }}
+        />
+      </Form.Item>
 
-            <Form.Item name="dateRange">
-                <RangePicker
-                    format="DD.MM.YYYY"
-                    placeholder={[t('receipts.filters.dateFrom'), t('receipts.filters.dateTo')]}
-                />
-            </Form.Item>
+      <Form.Item name="cashRegisterId" label={t('receipts.filters.labelCashRegister')}>
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          loading={registersLoading}
+          placeholder={t('receipts.filters.placeholderCashRegister')}
+          options={cashRegisterOptions}
+          style={{ width: 240 }}
+        />
+      </Form.Item>
 
-            <Form.Item>
-                <Space>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        icon={<SearchOutlined />}
-                        loading={loading}
-                    >
-                        {t('receipts.filters.search')}
-                    </Button>
-                    <Button
-                        onClick={handleReset}
-                        icon={<ClearOutlined />}
-                    >
-                        {t('receipts.filters.reset')}
-                    </Button>
-                </Space>
-            </Form.Item>
-        </Form>
-    );
+      <Form.Item name="cashierId">
+        <Input
+          placeholder={t('receipts.filters.placeholderCashier')}
+          allowClear
+          style={{ width: 140 }}
+        />
+      </Form.Item>
+
+      <Form.Item name="dateRange">
+        <RangePicker
+          format="DD.MM.YYYY"
+          placeholder={[t('receipts.filters.dateFrom'), t('receipts.filters.dateTo')]}
+        />
+      </Form.Item>
+
+      <Form.Item>
+        <Space>
+          <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={loading}>
+            {t('receipts.filters.search')}
+          </Button>
+          <Button onClick={handleReset} icon={<ClearOutlined />}>
+            {t('receipts.filters.reset')}
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
+  );
 }

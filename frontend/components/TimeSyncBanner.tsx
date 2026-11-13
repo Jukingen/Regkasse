@@ -8,7 +8,8 @@ import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
  * Global POS banner for RKSV clock drift (German copy only).
  */
 export function TimeSyncBanner() {
-  const { status, loading, absOffsetSeconds, timeSyncCritical, timeSyncWarningBand } = useTimeSyncStatus();
+  const { status, loading, absOffsetSeconds, timeSyncCritical, timeSyncWarningBand } =
+    useTimeSyncStatus();
 
   if (loading && !status) {
     return null;
@@ -26,9 +27,7 @@ export function TimeSyncBanner() {
 
   if (timeSyncWarningBand) {
     const suffix =
-      absOffsetSeconds != null
-        ? ` (${Math.round(absOffsetSeconds * 10) / 10} Sekunden)`
-        : '';
+      absOffsetSeconds != null ? ` (${Math.round(absOffsetSeconds * 10) / 10} Sekunden)` : '';
     return (
       <View style={[styles.banner, styles.warning]} accessibilityRole="alert">
         <Text style={styles.warningText}>

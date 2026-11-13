@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Dropdown, Tag } from 'antd';
-import type { MenuProps } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import type { MenuProps } from 'antd';
+import { Dropdown, Tag } from 'antd';
+import Link from 'next/link';
 
 import {
   fetchPublicDevelopmentModeSettings,
@@ -71,17 +71,17 @@ export function EnvironmentBadge() {
     ),
   });
 
-  const envLabel = buildEnvBadge?.text ?? '🧪 Entwicklung';
+  const envLabel = buildEnvBadge?.text ?? 'DEVELOPMENT';
 
   return (
     <Dropdown
       menu={{ items }}
       trigger={['click']}
       placement="bottomRight"
-      classNames={{ root: "admin-header-dropdown" }}
+      classNames={{ root: 'admin-header-dropdown' }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
-      <Tag color="orange" style={{ cursor: 'pointer', marginInlineEnd: 0 }}>
+      <Tag color={buildEnvBadge?.color ?? 'green'} style={{ cursor: 'pointer', marginInlineEnd: 0 }}>
         {envLabel}
         {activeBypasses.length > 0 ? ` · DEV (${activeBypasses.join(', ')})` : ' · DEV'}
       </Tag>

@@ -1,22 +1,20 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
-using Microsoft.AspNetCore.Http;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -32,11 +30,23 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             .UseInMemoryDatabase($"CashRegConflictE2E_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static ClaimsPrincipal CashierPrincipal() =>
         new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, Roles.Cashier) }, "test"));
+
+    private static IPosShiftService CreateNoOpPosShiftService()
+    {
+        var mock = new Mock<IPosShiftService>();
+        mock.Setup(s => s.AutoOpenShiftAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ShiftAutoOpenResult.Opened(new CashierShiftDto()));
+        return mock.Object;
+    }
 
     private static PosCashRegisterReadinessService CreateReadinessSut(
         AppDbContext ctx,
@@ -46,6 +56,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             ctx,
             new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff()),
             shift,
+            CreateNoOpPosShiftService(),
             TenantTestDoubles.CashRegisterSettingsServiceReturning(features),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
@@ -93,7 +104,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
-        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
+        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
 
@@ -138,12 +149,12 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         var cashRegisterId = Guid.NewGuid();
         const decimal productPrice = 6.90m;
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = productPrice,
             CategoryId = categoryId,
@@ -162,7 +173,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "Test Kunde", Email = "t@t.com", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

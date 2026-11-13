@@ -1,0 +1,3 @@
+# Backend EditorConfig lives at the repository root (../.editorconfig).
+# Kept so tools that open only this folder still discover a file; do not set root = true.
+# Overrides below are empty — inherit monorepo rules (C# 4-space CRLF, naming, analyzers).

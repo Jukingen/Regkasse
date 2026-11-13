@@ -1,11 +1,10 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Tests;
 
@@ -22,7 +21,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
             .UseInMemoryDatabase($"tz_write_norm_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void AssertTimestamptzInstantNormalized(
@@ -113,7 +112,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
         await AddMinimalUserAsync(ctx, userId);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "INMEM-DC",
             Location = "T",
@@ -163,7 +162,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
         await AddMinimalUserAsync(ctx, userId);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "INMEM-R",
             Location = "T",

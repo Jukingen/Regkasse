@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Models.Backup;
 

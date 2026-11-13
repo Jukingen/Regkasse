@@ -13,6 +13,11 @@ public interface IDevelopmentModeService
     bool IsDevelopmentModeEnabled();
     bool ShouldBypassLicense();
     bool ShouldBypassNtpCheck();
+    /// <summary>
+    /// True when TSE health probes should skip hardware. Combines DevelopmentOptions.BypassTseInDevelopment,
+    /// FA development-mode BypassTseCheck, and the RKSV overlay (TseMode=Real never bypasses).
+    /// Effective only on a Development host.
+    /// </summary>
     bool ShouldBypassTseCheck();
     bool ShouldSimulateOffline();
     bool ShouldForceOnline();

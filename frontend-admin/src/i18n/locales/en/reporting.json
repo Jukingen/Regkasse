@@ -1,4 +1,19 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "Loading PDF…",
+    "success": "PDF downloaded",
+    "error": "Could not load PDF"
+  },
+  "periodSales": {
+    "period": "Reporting period",
+    "revenue": "Total revenue",
+    "receipts": "Number of receipts",
+    "zeroSales": "No sales were recorded in this period.",
+    "selectRegister": "Select a cash register to preview the PDF sales summary.",
+    "download": "Download PDF",
+    "noPdf": "No receipt is available for download in this period yet."
+  },
   "policy": {
     "formalReportLanguageTitle": "Formal report text",
     "formalReportLanguageBody": "Your admin UI may be Turkish; legal and accounting report text in this area is only shown in German or English (default: German).",
@@ -42,7 +57,8 @@
     },
     "reportStatus": {
       "Finalized": "Finalized",
-      "Provisional": "Provisional"
+      "Provisional": "Provisional",
+      "Corrected": "Corrected"
     },
     "emptyDash": "—"
   },
@@ -53,9 +69,39 @@
       "columnDate": "Date",
       "intro": "Provisional reports can be recalculated until finalization. Finalized snapshots are immutable; corrections create a new report row.",
       "generateButton": "Generate/update daily report for end date",
+      "exportCsv": "Export CSV",
+      "bulkFinalize": "Finalize selection",
+      "bulkFinalizeConfirmTitle": "Finalize daily reports?",
+      "bulkFinalizeConfirmBody": "{{count}} provisional daily reports will be finalized. This step cannot be undone.",
+      "statusFilter": "Status",
+      "statusAll": "All statuses",
+      "emptyTitle": "No daily reports in this period",
+      "emptyDescription": "Generate a provisional daily report for the selected end date and cash register.",
+      "emptyGenerateCta": "Generate daily report",
+      "csv": {
+        "date": "Date",
+        "register": "Register",
+        "status": "Status",
+        "gross": "Gross",
+        "submission": "Submission"
+      },
       "messages": {
-        "generateSuccess": "Daily report generated or updated."
+        "generateSuccess": "Daily report generated or updated.",
+        "csvSuccess": "CSV exported.",
+        "bulkFinalizeSuccess": "Selected daily reports were finalized.",
+        "bulkFinalizeNone": "Select at least one provisional daily report."
       }
+    },
+    "error": {
+      "list": "Daily reports could not be loaded.",
+      "detail": "The daily report could not be loaded.",
+      "generate": "Generation failed.",
+      "finalize": "Finalization failed.",
+      "csv": "CSV export failed.",
+      "pdfGenerate": "PDF could not be generated.",
+      "pdfDownload": "PDF could not be downloaded.",
+      "pdfNotStored": "No stored PDF is available. Use “Generate PDF” first.",
+      "bulkFinalize": "Bulk finalization failed."
     },
     "detail": {
       "loading": "Loading…",
@@ -72,6 +118,8 @@
       },
       "actions": {
         "finalize": "Finalize",
+        "generatePdf": "Generate PDF",
+        "downloadPdf": "Download PDF",
         "finanzOnline": "FinanzOnline (outbox)",
         "correction": "Correction (new report)",
         "backToList": "Back to list"
@@ -92,6 +140,8 @@
         "taxBreakdown": "Tax breakdown",
         "paymentMethods": "Payment methods",
         "reconciliation": "Reconciliation / notes",
+        "finanzOnline": "FinanzOnline submission",
+        "auditTrail": "Audit trail",
         "trace": "Trace (compliance)",
         "traceBody": "Raw IDs are stored truncated; the hash supports traceability.",
         "history": "History"
@@ -128,6 +178,12 @@
         "dayClosedRksv": "Day closed in RKSV",
         "yes": "Yes",
         "no": "No"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Payment rows without a linked invoice on this calendar day.",
+        "unknownMethodLines": "Payment rows without a recognized payment method.",
+        "offlineLinked": "Payments linked from the offline queue.",
+        "dayClosedRksv": "Whether an RKSV daily closing exists for this calendar day."
       },
       "history": {
         "loading": "Loading history…",
@@ -381,5 +437,117 @@
       "duplicates": "Duplicates"
     },
     "tseExportFailed": "TSE chain export failed."
+  },
+  "userActivity": {
+    "pageTitle": "User activity report",
+    "pageIntro": "Compliance report with login, session, and audit data (RKSV). Export as CSV for authorities or PDF for archiving.",
+    "hubTitle": "Reports",
+    "hubIntro": "Compliance and operations reports.",
+    "openUserActivity": "User activity",
+    "selectUser": "User",
+    "selectUserRequired": "Please select a user",
+    "selectUserPlaceholder": "Search users …",
+    "dateRange": "Date range",
+    "dateRangeRequired": "Please select a date range",
+    "actionType": "Action type",
+    "actionTypeAll": "All actions",
+    "generate": "Generate report",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "scheduleReport": "Schedule report",
+    "scheduleTitle": "Schedule report by email",
+    "scheduleName": "Name",
+    "scheduleInterval": "Interval",
+    "scheduleRecipients": "Recipients (comma-separated emails)",
+    "scheduleRecipientsPlaceholder": "audit@company.com, accounting@company.com",
+    "scheduleWeekly": "Weekly (Monday 08:00 UTC)",
+    "scheduleMonthly": "Monthly (1st, 08:00 UTC)",
+    "scheduleSuccess": "Report scheduled.",
+    "scheduleNameDefault": "User activity — {{userName}}",
+    "totalActions": "Total actions",
+    "totalLogins": "Logins",
+    "failedLogins": "Failed logins",
+    "activeSessions": "Active sessions",
+    "avgSession": "Avg. session duration",
+    "lastLogin": "Last login",
+    "topActiveUsers": "Most active users (comparison)",
+    "actionBreakdown": "Action breakdown",
+    "activityOverTime": "Activity over time",
+    "reportForUser": "Report for",
+    "identity": "Identity",
+    "lastSessionEnd": "Last session end",
+    "actionSummary": "Action summary",
+    "timelineTitle": "Audit timeline (RKSV)",
+    "noData": "Select a user and date range, then generate the report.",
+    "loadError": "Could not load report.",
+    "userCreates": "Users created",
+    "userEdits": "Users edited",
+    "payments": "Payments",
+    "stornos": "Reversals",
+    "refunds": "Refunds",
+    "exports": "Exports",
+    "minutesSuffix": "min",
+    "timeline": {
+      "time": "Time",
+      "action": "Action",
+      "entityType": "Entity",
+      "status": "Status",
+      "ip": "IP",
+      "session": "Session",
+      "correlation": "Correlation",
+      "tse": "TSE"
+    }
+  },
+  "activityLog": {
+    "pageTitle": "Activity log",
+    "pageIntro": "Tenant-scoped staff activity from audit records. Platform operator actions are hidden.",
+    "title": "Activity log",
+    "userPlaceholder": "User",
+    "actionTypePlaceholder": "Action type",
+    "actionTypeAll": "All actions",
+    "searchPlaceholder": "Search…",
+    "colTime": "Time",
+    "colUser": "User",
+    "colAction": "Action",
+    "colDescription": "Description",
+    "colDetails": "Details",
+    "empty": "No activities found",
+    "totalEntries": "{{count}} entries",
+    "export": "Export",
+    "exportSuccess": "Export started",
+    "exportFailed": "Export failed",
+    "shiftReportsLink": "Staff performance report",
+    "actions": {
+      "ShiftStarted": "Shift opened",
+      "ShiftEnded": "Shift closed",
+      "POS_SPL_RCPT": "Special receipt"
+    }
+  },
+  "taxReports": {
+    "pageTitle": "Tax reports",
+    "cardTitle": "Tax reports",
+    "period": "Period",
+    "totalNet": "Total net",
+    "totalTax": "Total tax",
+    "totalGross": "Total gross",
+    "empty": "No tax data in the selected period.",
+    "tabs": {
+      "distribution": "Tax distribution",
+      "trend": "Tax trend",
+      "export": "Export"
+    },
+    "columns": {
+      "group": "Tax group",
+      "rate": "Rate",
+      "net": "Net",
+      "tax": "Tax",
+      "gross": "Gross",
+      "receipts": "Receipts"
+    },
+    "exportYear": "Annual tax report",
+    "exportMonth": "Monthly tax report",
+    "exportSuccess": "Tax report downloaded",
+    "exportFailed": "Export failed",
+    "exportPermissionHint": "Export requires the report.export permission."
   }
 }

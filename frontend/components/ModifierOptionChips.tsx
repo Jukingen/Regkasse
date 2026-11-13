@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
@@ -72,8 +73,7 @@ export function ModifierOptionChips({
                     style={[styles.qtyBtn, qty <= 1 && styles.qtyBtnRemove]}
                     onPress={() => (qty <= 1 ? onRemove?.(m.id) : onDecrement?.(m.id))}
                     accessibilityLabel={qty <= 1 ? `${m.name} entfernen` : `${m.name} verringern`}
-                    accessibilityRole="button"
-                  >
+                    accessibilityRole="button">
                     <Text style={styles.qtyBtnText}>−</Text>
                   </Pressable>
                   <Text style={styles.qtyValue}>{qty}</Text>
@@ -81,8 +81,7 @@ export function ModifierOptionChips({
                     style={styles.qtyBtn}
                     onPress={() => onIncrement?.(m.id)}
                     accessibilityLabel={`${m.name} erhöhen`}
-                    accessibilityRole="button"
-                  >
+                    accessibilityRole="button">
                     <Text style={styles.qtyBtnText}>+</Text>
                   </Pressable>
                 </View>
@@ -94,10 +93,11 @@ export function ModifierOptionChips({
               <Pressable
                 key={m.id}
                 style={styles.selectedChip}
-                onPress={() => onAdd(m)}
+                onPress={() => {
+                  onAdd(m);
+                }}
                 accessibilityLabel={`${m.name} erneut hinzufügen`}
-                accessibilityRole="button"
-              >
+                accessibilityRole="button">
                 <Text style={styles.selectedChipText}>{m.name} ✓</Text>
               </Pressable>
             );
@@ -106,11 +106,14 @@ export function ModifierOptionChips({
             <Pressable
               key={m.id}
               style={styles.addChip}
-              onPress={() => onAdd(m)}
+              onPress={() => {
+                onAdd(m);
+              }}
               accessibilityLabel={`${m.name} hinzufügen`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.addChipText}>+ {m.name} {m.price > 0 ? `€${Number(m.price).toFixed(2)}` : ''}</Text>
+              accessibilityRole="button">
+              <Text style={styles.addChipText}>
+                + {m.name} {m.price > 0 ? `€${Number(m.price).toFixed(2)}` : ''}
+              </Text>
             </Pressable>
           );
         })}

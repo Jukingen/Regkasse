@@ -37,7 +37,7 @@ public class AdminDailyClosingReportsController : ControllerBase
     /// GET: payment-row snapshot for one Austria business day (optional cash register filter).
     /// </summary>
     [HttpGet("daily-closing")]
-    [HasPermission(AppPermissions.ReportView)]
+    [HasPermission(AppPermissions.DailyClosingView)]
     [ProducesResponseType(typeof(DailyClosingSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DailyClosingSummaryDto>> GetDailyClosing(

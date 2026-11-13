@@ -55,40 +55,16 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onRetry }) => {
   const { theme } = useTheme();
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: theme.background }
-    ]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
-        <Text style={[
-          styles.title,
-          { color: theme.text }
-        ]}>
-          Something went wrong
-        </Text>
-        
-        {error && (
-          <Text style={[
-            styles.error,
-            { color: theme.error }
-          ]}>
-            {error.message}
-          </Text>
-        )}
-        
+        <Text style={[styles.title, { color: theme.text }]}>Something went wrong</Text>
+
+        {error && <Text style={[styles.error, { color: theme.error }]}>{error.message}</Text>}
+
         <TouchableOpacity
-          style={[
-            styles.retryButton,
-            { backgroundColor: theme.primary }
-          ]}
-          onPress={onRetry}
-        >
-          <Text style={[
-            styles.retryText,
-            { color: theme.background }
-          ]}>
-            Try Again
-          </Text>
+          style={[styles.retryButton, { backgroundColor: theme.primary }]}
+          onPress={onRetry}>
+          <Text style={[styles.retryText, { color: theme.background }]}>Try Again</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -129,4 +105,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-}); 
+});

@@ -1,4 +1,5 @@
 import { Alert } from 'react-native';
+
 import { apiClient, TokenManager } from './config';
 import { usePermission } from '../../hooks/usePermission';
 import { UserRole } from '../../types/auth';
@@ -34,14 +35,19 @@ export class SecureApiService {
    * Türkçe açıklama: Yetki kontrolü ile GET isteği
    */
   public async secureGet<T>(
-    url: string, 
+    url: string,
     requiredPermission?: { resource: string; action: string },
     requiredRole?: UserRole,
     config?: any
   ): Promise<T> {
     // Yetki kontrolü
     if (requiredPermission && this.permissionHook) {
-      if (!this.permissionHook.checkPermissionWithAlert(requiredPermission.resource, requiredPermission.action)) {
+      if (
+        !this.permissionHook.checkPermissionWithAlert(
+          requiredPermission.resource,
+          requiredPermission.action
+        )
+      ) {
         throw new Error('Insufficient permissions');
       }
     }
@@ -73,7 +79,12 @@ export class SecureApiService {
   ): Promise<T> {
     // Yetki kontrolü
     if (requiredPermission && this.permissionHook) {
-      if (!this.permissionHook.checkPermissionWithAlert(requiredPermission.resource, requiredPermission.action)) {
+      if (
+        !this.permissionHook.checkPermissionWithAlert(
+          requiredPermission.resource,
+          requiredPermission.action
+        )
+      ) {
         throw new Error('Insufficient permissions');
       }
     }
@@ -105,7 +116,12 @@ export class SecureApiService {
   ): Promise<T> {
     // Yetki kontrolü
     if (requiredPermission && this.permissionHook) {
-      if (!this.permissionHook.checkPermissionWithAlert(requiredPermission.resource, requiredPermission.action)) {
+      if (
+        !this.permissionHook.checkPermissionWithAlert(
+          requiredPermission.resource,
+          requiredPermission.action
+        )
+      ) {
         throw new Error('Insufficient permissions');
       }
     }
@@ -136,7 +152,12 @@ export class SecureApiService {
   ): Promise<T> {
     // Yetki kontrolü
     if (requiredPermission && this.permissionHook) {
-      if (!this.permissionHook.checkPermissionWithAlert(requiredPermission.resource, requiredPermission.action)) {
+      if (
+        !this.permissionHook.checkPermissionWithAlert(
+          requiredPermission.resource,
+          requiredPermission.action
+        )
+      ) {
         throw new Error('Insufficient permissions');
       }
     }
@@ -206,42 +227,32 @@ export class SecureApiService {
 
     // Token ile ilgili hatalar
     if (error.status === 401) {
-      Alert.alert(
-        'Oturum Hatası',
-        'Oturumunuz sona ermiş. Lütfen tekrar giriş yapın.',
-        [{ text: 'Tamam' }]
-      );
+      Alert.alert('Oturum Hatası', 'Oturumunuz sona ermiş. Lütfen tekrar giriş yapın.', [
+        { text: 'Tamam' },
+      ]);
       // Login sayfasına yönlendirme gerekebilir
       return;
     }
 
     // Yetkisiz erişim
     if (error.status === 403) {
-      Alert.alert(
-        'Yetkisiz Erişim',
-        'Bu işlemi gerçekleştirmek için yetkiniz bulunmamaktadır.',
-        [{ text: 'Tamam' }]
-      );
+      Alert.alert('Yetkisiz Erişim', 'Bu işlemi gerçekleştirmek için yetkiniz bulunmamaktadır.', [
+        { text: 'Tamam' },
+      ]);
       return;
     }
 
     // Sunucu hatası
     if (error.status >= 500) {
-      Alert.alert(
-        'Sunucu Hatası',
-        'Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.',
-        [{ text: 'Tamam' }]
-      );
+      Alert.alert('Sunucu Hatası', 'Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.', [
+        { text: 'Tamam' },
+      ]);
       return;
     }
 
     // Genel hata
     if (error.message) {
-      Alert.alert(
-        'Hata',
-        error.message,
-        [{ text: 'Tamam' }]
-      );
+      Alert.alert('Hata', error.message, [{ text: 'Tamam' }]);
     }
   }
 
@@ -252,7 +263,7 @@ export class SecureApiService {
   public async checkTokenStatus(): Promise<boolean> {
     try {
       const token = await TokenManager.getTokenInfo(await this.getStoredToken());
-      return token && !TokenManager.isTokenExpired(await this.getStoredToken());
+      return !!(token && !TokenManager.isTokenExpired(await this.getStoredToken()));
     } catch (error) {
       return false;
     }
@@ -260,7 +271,7 @@ export class SecureApiService {
 
   /**
    * Saklanan token'ı al
-   * Türkçe açıklama: AsyncStorage'dan token alma
+   * Türkçe açıklama: SecureStore'dan token alma
    */
   private async getStoredToken(): Promise<string> {
     return (await sessionManager.getAccessToken()) || '';
@@ -268,4 +279,4 @@ export class SecureApiService {
 }
 
 // Singleton instance
-export const secureApi = SecureApiService.getInstance(); 
+export const secureApi = SecureApiService.getInstance();

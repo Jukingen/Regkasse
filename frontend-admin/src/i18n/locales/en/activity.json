@@ -1,0 +1,122 @@
+{
+  "title": "Activity log",
+  "pageIntro": "Tenant-scoped staff activity from audit records. Platform operator actions are hidden.",
+  "shiftReportsLink": "Staff performance report",
+  "export": "Export",
+  "exportSuccess": "Export started",
+  "exportFailed": "Export failed",
+  "totalEntries": "{{count}} entries",
+  "filters": {
+    "dateRange": "Date range",
+    "user": "User",
+    "userPlaceholder": "User",
+    "actionType": "Action type",
+    "actionTypePlaceholder": "Action type",
+    "search": "Search (user, action…)",
+    "allActions": "All actions"
+  },
+  "actions": {
+    "USER_LOGIN": "Login",
+    "USER_LOGOUT": "Logout",
+    "POS_PAY_OUTCOME": "Sale",
+    "POS_PAY_EX": "Payment error (POS)",
+    "POS_REG_READY": "Register readiness",
+    "PAYMENT_CONFIRM": "Payment",
+    "PAYMENT_INITIATE": "Payment started",
+    "PAYMENT_CANCEL": "Payment cancelled",
+    "PAYMENT_REFUND": "Refund",
+    "PaymentCreated": "Payment created",
+    "PaymentReversal": "Reversal",
+    "ShiftStarted": "Shift opened",
+    "ShiftEnded": "Shift closed",
+    "POS_SPL_RCPT": "Special receipt",
+    "CUSTOMER_CREATE": "Customer added",
+    "CUSTOMER_UPDATE": "Customer updated",
+    "USER_UPDATE": "User updated"
+  },
+  "table": {
+    "time": "Time",
+    "user": "User",
+    "action": "Action",
+    "description": "Description",
+    "details": "Details",
+    "noData": "No activities found"
+  },
+  "summary": {
+    "title": "Recent activities",
+    "viewAll": "View all",
+    "noActivities": "No activities"
+  },
+  "tabs": {
+    "compliance": "Compliance audit",
+    "activity": "Activity log",
+    "operations": "Operation log",
+    "staff": "Staff performance"
+  },
+  "operationLog": {
+    "title": "Operation log",
+    "pageIntro": "Reversible admin changes with before/after state. Payments and fiscal receipts cannot be undone.",
+    "loadFailed": "Failed to load operation log",
+    "undoSuccess": "Operation undone",
+    "undoFailed": "Undo failed",
+    "undoConfirmTitle": "Undo this operation?",
+    "undoConfirmContent": "The stored before-state will be restored. This action is audited.",
+    "detailTitle": "Operation details",
+    "beforeState": "Before",
+    "afterState": "After",
+    "unknownUser": "Unknown",
+    "table": {
+      "time": "Time",
+      "user": "User",
+      "operation": "Operation",
+      "entity": "Entity",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "undone": "Undone"
+    },
+    "actions": {
+      "view": "View details",
+      "undo": "Undo"
+    }
+  },
+  "events": {
+    "unknown": {
+      "title": "Unknown event"
+    },
+    "TenantCountryChanged": {
+      "title": "Tenant country changed",
+      "description": "The tenant operating country or VAT regime was changed."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Historical documents preserved",
+      "description": "Existing invoices and receipts keep the country stamped at issue time."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR-bill payload built",
+      "description": "The Swiss QR-bill payload was built."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR-bill PDF generated",
+      "description": "The Swiss QR-bill PDF was rendered."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol participant registered",
+      "description": "A Peppol participant id was stored for the tenant."
+    },
+    "EinvoiceValidated": {
+      "title": "E-invoice validated",
+      "description": "The e-invoice passed Schematron validation."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-invoice submitted",
+      "description": "The e-invoice was handed to the access point."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-invoice submission failed",
+      "description": "The e-invoice was rejected during validation or submission."
+    }
+  }
+}

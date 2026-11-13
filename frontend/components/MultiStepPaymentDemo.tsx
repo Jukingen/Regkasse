@@ -1,8 +1,10 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Multi-step ödeme ekranını test etmek için demo bileşeni
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+
 import MultiStepPaymentScreen from './MultiStepPaymentScreen';
 
 const MultiStepDemo: React.FC = () => {
@@ -14,12 +16,12 @@ const MultiStepDemo: React.FC = () => {
       product: {
         id: 'prod-1',
         name: 'Test Ürün 1',
-        price: 15.50,
-        taxType: 'Standard'
+        price: 15.5,
+        taxType: 'Standard',
       },
       quantity: 2,
-      unitPrice: 15.50,
-      totalAmount: 31.00
+      unitPrice: 15.5,
+      totalAmount: 31.0,
     },
     {
       id: '2',
@@ -27,29 +29,29 @@ const MultiStepDemo: React.FC = () => {
         id: 'prod-2',
         name: 'Test Ürün 2',
         price: 8.75,
-        taxType: 'Reduced'
+        taxType: 'Reduced',
       },
       quantity: 1,
       unitPrice: 8.75,
-      totalAmount: 8.75
-    }
+      totalAmount: 8.75,
+    },
   ]);
 
   const totalAmount = cartItems.reduce((sum, item) => sum + item.totalAmount, 0);
 
   const handlePaymentComplete = (receipt: any) => {
-    console.log('Ödeme tamamlandı:', receipt);
+    safeLog('Ödeme tamamlandı:', receipt);
     setShowPayment(false);
     // Burada başarılı ödeme sonrası işlemler yapılabilir
   };
 
   const handlePaymentCancel = () => {
-    console.log('Ödeme iptal edildi');
+    safeLog('Ödeme iptal edildi');
     setShowPayment(false);
   };
 
   const handlePaymentCancelled = (response: any) => {
-    console.log('Ödeme iptal yanıtı:', response);
+    safeLog('Ödeme iptal yanıtı:', response);
   };
 
   return (
@@ -58,7 +60,7 @@ const MultiStepDemo: React.FC = () => {
 
       <View style={styles.cartSummary}>
         <Text style={styles.summaryTitle}>{t('cashRegister.cart')}:</Text>
-        {cartItems.map(item => (
+        {cartItems.map((item) => (
           <View key={item.id} style={styles.cartItem}>
             <Text style={styles.itemName}>{item.product.name}</Text>
             <Text style={styles.itemDetails}>
@@ -74,16 +76,13 @@ const MultiStepDemo: React.FC = () => {
 
       <TouchableOpacity
         style={styles.paymentButton}
-        onPress={() => setShowPayment(true)}
-      >
+        onPress={() => {
+          setShowPayment(true);
+        }}>
         <Text style={styles.buttonText}>{t('cashRegister.checkout')}</Text>
       </TouchableOpacity>
 
-      <Modal
-        visible={showPayment}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
+      <Modal visible={showPayment} animationType="slide" presentationStyle="pageSheet">
         <MultiStepPaymentScreen
           totalAmount={totalAmount}
           cartItems={cartItems}

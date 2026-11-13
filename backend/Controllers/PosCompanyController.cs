@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,16 +43,26 @@ public sealed class PosCompanyController : ControllerBase
             .ConfigureAwait(false);
 
         if (settings == null)
-            return Ok(new PosCompanyInfoDto());
+            return Ok(new PosCompanyInfoDto
+            {
+                ReceiptFooter = ReceiptThankYouMessage.Default,
+                ThankYouMessage = ReceiptThankYouMessage.Default,
+            });
 
+        var thankYou = ReceiptThankYouMessage.Resolve(settings);
         return Ok(new PosCompanyInfoDto
         {
             CompanyName = settings.CompanyName,
             CompanyAddress = settings.CompanyAddress,
             TaxNumber = settings.CompanyTaxNumber,
-            ReceiptFooter = string.IsNullOrWhiteSpace(settings.CompanyDescription)
-                ? null
-                : settings.CompanyDescription,
+            ReceiptFooter = thankYou,
+            ThankYouMessage = thankYou,
+            CompanyDescription = ReceiptThankYouMessage.NormalizeStored(settings.CompanyDescription),
+            TimeZone = string.IsNullOrWhiteSpace(settings.TimeZone)
+                ? "Europe/Vienna"
+                : settings.TimeZone,
+            WorkingHours = WorkingHoursDto.From(settings.WorkingHours),
+            AutoTagesabschluss = AutoTagesabschlussSettingsDto.From(settings.AutoTagesabschluss),
         });
     }
 }

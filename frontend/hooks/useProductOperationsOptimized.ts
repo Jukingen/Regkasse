@@ -1,8 +1,10 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Optimize edilmiş ürün operasyonları hook'u - sonsuz döngü sorunlarını çözer
 // useApiManager kullanarak duplicate API çağrılarını önler ve akıllı cache yönetimi sağlar
 
-import { useState, useCallback, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
+import { useState, useCallback, useRef, useEffect } from 'react';
+
 import { useApiManager } from './useApiManager';
 import { apiClient } from '../services/api/config';
 
@@ -19,11 +21,11 @@ export interface SimpleProduct {
 
 export function useProductOperationsOptimized() {
   const { apiCall, getCachedData, setCachedData } = useApiManager();
-  
+
   const [products, setProducts] = useState<SimpleProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Ref'ler ile sürekli re-render'ı önle
   const productsRef = useRef(products);
   const loadingRef = useRef(loading);
@@ -51,12 +53,12 @@ export function useProductOperationsOptimized() {
       setLoadingState(true);
       setErrorState(null);
 
-      console.log('🔄 Ürünler yükleniyor...');
+      safeLog('🔄 Ürünler yükleniyor...');
 
       // Cache kontrolü
       const cachedProducts = getCachedData<SimpleProduct[]>('products');
       if (cachedProducts) {
-        console.log('✅ Cache hit for products');
+        safeLog('✅ Cache hit for products');
         setProductsState(cachedProducts);
         setLoadingState(false);
         return;
@@ -67,7 +69,7 @@ export function useProductOperationsOptimized() {
         'load-products',
         async () => {
           const response = await apiClient.get('/products');
-          
+
           if (!response) {
             throw new Error('API response is empty or invalid');
           }
@@ -75,14 +77,14 @@ export function useProductOperationsOptimized() {
           // Response format kontrolü
           let productsData: SimpleProduct[] = [];
           const responseAny = response as any;
-          
+
           if (Array.isArray(responseAny)) {
             // Direkt array: [{...}, {...}]
             productsData = responseAny;
           } else if (responseAny.items && Array.isArray(responseAny.items)) {
             // { items: [...] } formatı
             productsData = responseAny.items;
-          } else if (responseAny.data && responseAny.data.items && Array.isArray(responseAny.data.items)) {
+          } else if (responseAny.data?.items && Array.isArray(responseAny.data.items)) {
             // { data: { items: [...] } } formatı
             productsData = responseAny.data.items;
           } else {
@@ -101,16 +103,15 @@ export function useProductOperationsOptimized() {
       );
 
       if (result) {
-        console.log(`✅ ${result.length} ürün başarıyla yüklendi`);
+        safeLog(`✅ ${result.length} ürün başarıyla yüklendi`);
         setProductsState(result);
-        
+
         // Cache'e kaydet
         setCachedData('products', result, 10);
       }
-
     } catch (error: any) {
       console.error('❌ Ürün yükleme hatası:', error);
-      
+
       // Daha detaylı error mesajları
       let errorMessage = 'Ürünler yüklenemedi';
       if (error.response) {
@@ -123,7 +124,7 @@ export function useProductOperationsOptimized() {
         // Other error
         errorMessage = error.message;
       }
-      
+
       setErrorState(errorMessage);
     } finally {
       setLoadingState(false);
@@ -132,14 +133,14 @@ export function useProductOperationsOptimized() {
 
   // Component mount olduğunda ürünleri yükle - sadece bir kere
   useEffect(() => {
-    console.log('🚀 useProductOperationsOptimized mount - ürünler yükleniyor');
+    safeLog('🚀 useProductOperationsOptimized mount - ürünler yükleniyor');
     loadProducts();
   }, []); // Sadece mount'ta çalışır
 
   // Manuel refresh için
   const refreshProducts = useCallback(() => {
-    console.log('🔄 Manuel refresh - ürünler yenileniyor...');
-    
+    safeLog('🔄 Manuel refresh - ürünler yenileniyor...');
+
     // Cache'i temizle ve yeniden yükle
     setCachedData('products', null, 0);
     loadProducts();
@@ -147,12 +148,12 @@ export function useProductOperationsOptimized() {
 
   // Force refresh için
   const forceRefreshProducts = useCallback(() => {
-    console.log('🔄 Force refresh - ürünler zorla yenileniyor...');
-    
+    safeLog('🔄 Force refresh - ürünler zorla yenileniyor...');
+
     // Cache'i temizle
     setCachedData('products', null, 0);
     setErrorState(null);
-    
+
     // Yeniden yükle
     loadProducts();
   }, [loadProducts, setCachedData, setErrorState]);
@@ -162,6 +163,6 @@ export function useProductOperationsOptimized() {
     loading: loadingRef.current,
     error: errorRef.current,
     refreshProducts,
-    forceRefreshProducts
+    forceRefreshProducts,
   };
 }

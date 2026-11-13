@@ -19,7 +19,9 @@ export function clearApiErrorCodeRegistryForTests(): void {
   codeToI18nKey.clear();
 }
 
-export function getRegisteredMessageKeyForApiErrorCode(code: string | undefined): string | undefined {
+export function getRegisteredMessageKeyForApiErrorCode(
+  code: string | undefined
+): string | undefined {
   if (!code?.trim()) return undefined;
   const u = normalizeCodeKey(code);
   return codeToI18nKey.get(u) ?? codeToI18nKey.get(code.trim());

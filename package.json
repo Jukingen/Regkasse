@@ -1,9 +1,105 @@
 {
   "name": "regkasse",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
-  "description": "Regkasse monorepo tooling (validation scripts, dev seed)",
+  "description": "Regkasse monorepo — npm workspaces + root orchestration",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "frontend-admin",
+    "frontend-sites",
+    "frontend-marketing",
+    "localization"
+  ],
   "scripts": {
-    "seed:test-data": "node scripts/seed-test-data.mjs"
+    "dev": "node scripts/dev-workspaces.mjs",
+    "dev:all": "node scripts/dev-workspaces.mjs --all",
+    "dev:cleanup": "node scripts/cleanup-dev-orphans.mjs",
+    "dev:cleanup:orphans": "node scripts/cleanup-dev-orphans.mjs --orphans-only",
+    "dev:workspaces": "npm run dev --workspaces --if-present",
+    "dev:backend": "npm run dev -w @regkasse/backend",
+    "dev:admin": "npm run dev -w registrierkasse-admin",
+    "dev:pos": "npm run dev -w cash-register",
+    "dev:sites": "npm run dev -w regkasse-sites",
+    "dev:marketing": "npm run dev -w regkasse-marketing",
+    "build": "npm run build --workspaces --if-present",
+    "build:backend": "npm run build -w @regkasse/backend",
+    "build:admin": "npm run build -w registrierkasse-admin",
+    "build:pos": "npm run build -w cash-register",
+    "build:sites": "npm run build -w regkasse-sites",
+    "build:marketing": "npm run build -w regkasse-marketing",
+    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm run test -w @regkasse/backend",
+    "test:admin": "npm run test -w registrierkasse-admin",
+    "test:pos": "npm run test -w cash-register",
+    "test:sites": "npm run test -w regkasse-sites",
+    "test:marketing": "npm run test -w regkasse-marketing",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:admin": "npm run lint -w registrierkasse-admin",
+    "lint:pos": "npm run lint -w cash-register",
+    "lint:sites": "npm run lint -w regkasse-sites",
+    "lint:marketing": "npm run lint -w regkasse-marketing",
+    "typecheck:admin": "npm run typecheck -w registrierkasse-admin",
+    "typecheck:pos": "npm run typecheck -w cash-register",
+    "typecheck:sites": "npm run typecheck -w regkasse-sites",
+    "typecheck:marketing": "npm run typecheck -w regkasse-marketing",
+    "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present && npm run typecheck -w regkasse-marketing --if-present",
+    "clean": "node scripts/clean-artifacts.mjs",
+    "seed:test-data": "node scripts/seed-test-data.mjs",
+    "smoke:kassensicherheit-test": "node scripts/smoke/kassensicherheit-test-smoke.mjs",
+    "smoke:peppol-test": "node scripts/smoke/peppol-canary-test-smoke.mjs",
+    "verify:api-client": "node scripts/verify-api-client.mjs",
+    "verify:openapi": "node scripts/validate-critical-openapi-paths.mjs",
+    "verify:permission-keys": "node scripts/verify-permission-keys.mjs",
+    "verify:permission-keys:table": "node scripts/verify-permission-keys.mjs --table",
+    "verify:menu-permissions": "node scripts/verify-menu-permissions.mjs",
+    "verify:menu-permissions:secondary": "node scripts/verify-menu-permissions.mjs --include-secondary",
+    "verify:bat-ps1": "node scripts/verify-bat-ps1-pairing.mjs",
+    "test:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/test-scripts.ps1",
+    "validate:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lib/validate-scripts.ps1",
+    "precommit": "node scripts/git-hooks/pre-commit.mjs",
+    "verify:secrets": "node scripts/git-hooks/scan-secrets.mjs --tracked",
+    "test:secrets": "node --test scripts/git-hooks/scan-secrets.test.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "install:git-hooks": "node scripts/install-git-hooks.mjs",
+    "generate:api": "npm run generate:api -w registrierkasse-admin",
+    "i18n:validate": "npm run validate -w @regkasse/localization",
+    "i18n:ci": "npm run ci -w @regkasse/localization",
+    "i18n:ci:admin": "npm run i18n:ci -w registrierkasse-admin",
+    "i18n:ci:pos": "npm run i18n:ci -w cash-register",
+    "testsprite:validate": "node testsprite/validate-specs.mjs",
+    "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "@react-native/jest-preset": "0.85.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0"
+  },
+  "overrides": {
+    "cash-register": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    },
+    "registrierkasse-admin": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    },
+    "regkasse-sites": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    },
+    "regkasse-marketing": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    }
   }
 }

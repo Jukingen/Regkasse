@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
 import { useAuth } from '../contexts/AuthContext';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
-import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
 
 /** Kept in sync with `LicenseExpiryBanner` warning window to avoid duplicate copy. */
 const LICENSE_EXPIRY_WARNING_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
@@ -31,7 +31,12 @@ export function LicenseModeIndicator() {
   if (isDemoAccount) {
     return (
       <View style={[styles.container, styles.demo]} accessibilityRole="text">
-        <Ionicons name="construct" size={16} color={SoftColors.textInverse} accessibilityElementsHidden />
+        <Ionicons
+          name="construct"
+          size={16}
+          color={SoftColors.textInverse}
+          accessibilityElementsHidden
+        />
         <Text style={styles.text} numberOfLines={2}>
           {t('license:modeBanner.demoAccount')}
         </Text>
@@ -45,7 +50,12 @@ export function LicenseModeIndicator() {
 
   return (
     <View style={[styles.container, styles.trial]} accessibilityRole="text">
-      <Ionicons name="information-circle" size={16} color={SoftColors.textInverse} accessibilityElementsHidden />
+      <Ionicons
+        name="information-circle"
+        size={16}
+        color={SoftColors.textInverse}
+        accessibilityElementsHidden
+      />
       <Text style={styles.text} numberOfLines={2}>
         {t('license:modeBanner.trialDays', { count: status.daysRemaining })}
       </Text>

@@ -16,6 +16,7 @@ public class RoleAdminMenuContractTests
         AppPermissions.ModifierView,
         AppPermissions.PaymentView,
         AppPermissions.ReportView,
+        AppPermissions.LicenseView,
     };
 
     [Fact]
@@ -54,11 +55,15 @@ public class RoleAdminMenuContractTests
     [Theory]
     [InlineData(Roles.Manager, AppPermissions.UserView)]
     [InlineData(Roles.Manager, AppPermissions.CashRegisterManage)]
+    [InlineData(Roles.Manager, AppPermissions.CashRegisterView)]
     [InlineData(Roles.Manager, AppPermissions.FinanzOnlineManage)]
     [InlineData(Roles.Manager, AppPermissions.PaymentView)]
     [InlineData(Roles.Manager, AppPermissions.SaleView)]
     [InlineData(Roles.Manager, AppPermissions.ReportView)]
     [InlineData(Roles.Manager, AppPermissions.ReportExport)]
+    [InlineData(Roles.Manager, AppPermissions.LicenseManage)]
+    [InlineData(Roles.Manager, AppPermissions.FiskalyOperationsView)]
+    [InlineData(Roles.Manager, AppPermissions.FiskalyHistoryView)]
     [InlineData(Roles.Accountant, AppPermissions.ReportExport)]
     [InlineData(Roles.ReportViewer, AppPermissions.AuditView)]
     public void AdminProfile_BackOfficeRoles_KeepAdminPermissions(string role, string permission)
@@ -69,7 +74,7 @@ public class RoleAdminMenuContractTests
             new[] { role },
             effective);
 
-        Assert.Contains(permission, filtered);
+        Assert.True(PermissionImplication.IsSatisfied(permission, filtered));
     }
 
     [Fact]
@@ -83,8 +88,8 @@ public class RoleAdminMenuContractTests
 
         foreach (var viewKey in AdminAppPermissionProfile.ManagerOversightViewPermissions)
         {
-            Assert.Contains(viewKey, effective);
-            Assert.Contains(viewKey, filtered);
+            Assert.True(PermissionImplication.IsSatisfied(viewKey, effective));
+            Assert.True(PermissionImplication.IsSatisfied(viewKey, filtered));
         }
 
         Assert.DoesNotContain(AppPermissions.PaymentTake, filtered);

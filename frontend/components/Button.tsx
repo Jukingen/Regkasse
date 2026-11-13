@@ -40,13 +40,9 @@ export const Button: React.FC<ButtonProps> = ({
       style={buttonStyle}
       disabled={disabled || loading}
       activeOpacity={0.8}
-      {...props}
-    >
+      {...props}>
       {loading ? (
-        <WaveLoader
-          size={18}
-          color={variant === 'outline' ? '#007AFF' : 'white'}
-        />
+        <WaveLoader size={18} color={variant === 'outline' ? '#007AFF' : 'white'} />
       ) : (
         <Text style={textStyle}>{title}</Text>
       )}
@@ -61,7 +57,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
   },
-  
+
   // Variant styles
   primary: {
     backgroundColor: '#007AFF',
@@ -74,7 +70,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#007AFF',
   },
-  
+
   // Size styles
   small: {
     height: 40,
@@ -88,7 +84,7 @@ const styles = StyleSheet.create({
     height: 64,
     paddingHorizontal: 32,
   },
-  
+
   // Text styles
   text: {
     fontWeight: '600',
@@ -103,7 +99,7 @@ const styles = StyleSheet.create({
   outlineText: {
     color: '#007AFF',
   },
-  
+
   smallText: {
     fontSize: 14,
   },
@@ -113,7 +109,7 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: 18,
   },
-  
+
   // State styles
   disabled: {
     opacity: 0.6,

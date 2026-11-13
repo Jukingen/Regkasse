@@ -45,6 +45,14 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Install EF Core CLI
         run: dotnet tool install --global dotnet-ef
 

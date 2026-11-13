@@ -2,8 +2,8 @@
  * User Management API – RKSV/DSGVO uyumlu liste filtreleri ve deactivate/reactivate.
  * Liste: tek endpoint, server-side pagination + birleşik filtre (query + role + isActive).
  */
-import { customInstance } from '@/lib/axios';
 import type { UserInfo } from '@/api/generated/model';
+import { customInstance } from '@/lib/axios';
 
 export type UsersListParams = {
   role?: string;

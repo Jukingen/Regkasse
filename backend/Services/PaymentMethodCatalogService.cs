@@ -1,9 +1,9 @@
 using System.Globalization;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -133,7 +133,8 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
 
     private static string? NormalizeCode(string? methodCode)
     {
-        if (string.IsNullOrWhiteSpace(methodCode)) return null;
+        if (string.IsNullOrWhiteSpace(methodCode))
+            return null;
         return methodCode.Trim().ToLowerInvariant();
     }
 

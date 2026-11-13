@@ -1,16 +1,11 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -24,10 +19,9 @@ namespace KasseAPI_Final.Controllers;
 public sealed class FinanzOnlineReadinessController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IOptionsMonitor<FinanzOnlineSessionOptions> _session;
-    private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _registrierkassen;
-    private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQuery;
     private readonly IOptionsMonitor<FinanzOnlineOutboxOptions> _outbox;
+    private readonly FinanzOnlineOutboxEnabledOverrideCache _outboxEnabledCache;
+    private readonly FinanzOnlineRuntimeOptionsAccessor _runtime;
     private readonly IOptionsMonitor<FinanzOnlineConnectivityOptions> _connectivity;
     private readonly IOptionsMonitor<FinanzOnlineDevTestOptions> _devTest;
     private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenario;
@@ -36,10 +30,9 @@ public sealed class FinanzOnlineReadinessController : ControllerBase
 
     public FinanzOnlineReadinessController(
         AppDbContext db,
-        IOptionsMonitor<FinanzOnlineSessionOptions> session,
-        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassen,
-        IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQuery,
         IOptionsMonitor<FinanzOnlineOutboxOptions> outbox,
+        FinanzOnlineOutboxEnabledOverrideCache outboxEnabledCache,
+        FinanzOnlineRuntimeOptionsAccessor runtime,
         IOptionsMonitor<FinanzOnlineConnectivityOptions> connectivity,
         IOptionsMonitor<FinanzOnlineDevTestOptions> devTest,
         IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenario,
@@ -47,10 +40,9 @@ public sealed class FinanzOnlineReadinessController : ControllerBase
         ISettingsTenantResolver settingsTenant)
     {
         _db = db;
-        _session = session;
-        _registrierkassen = registrierkassen;
-        _transmissionQuery = transmissionQuery;
         _outbox = outbox;
+        _outboxEnabledCache = outboxEnabledCache;
+        _runtime = runtime;
         _connectivity = connectivity;
         _devTest = devTest;
         _simulationScenario = simulationScenario;
@@ -72,10 +64,10 @@ public sealed class FinanzOnlineReadinessController : ControllerBase
         }
 
         var baseline = FinanzOnlineReadinessEvaluator.Evaluate(
-            _session.CurrentValue,
-            _registrierkassen.CurrentValue,
-            _transmissionQuery.CurrentValue,
-            _outbox.CurrentValue,
+            _runtime.Session,
+            _runtime.Registrierkassen,
+            _runtime.TransmissionQuery,
+            _outbox.CurrentValue.WithEffectiveEnabled(_outboxEnabledCache),
             _connectivity.CurrentValue,
             _devTest.CurrentValue,
             _simulationScenario.CurrentValue,

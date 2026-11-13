@@ -4,16 +4,22 @@ namespace KasseAPI_Final.Services.Backup;
 
 public interface IBackupRunQueryService
 {
-    Task<BackupRun?> GetLatestRunAsync(CancellationToken cancellationToken = default);
+    Task<BackupRun?> GetLatestRunAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default);
 
     Task<BackupRun?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<BackupRun> Items, int TotalCount)> GetHistoryAsync(
         int page,
         int pageSize,
+        BackupRunAccessScope? accessScope = null,
+        BackupRunHistoryFilter? filter = null,
         CancellationToken cancellationToken = default);
 
-    Task<BackupVerification?> GetLatestVerificationAsync(CancellationToken cancellationToken = default);
+    Task<BackupVerification?> GetLatestVerificationAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// En yeni <see cref="BackupRunStatus.Succeeded"/> yedek çalıştırmalarının kimlikleri (RequestedAt azalan).
@@ -21,7 +27,8 @@ public interface IBackupRunQueryService
     Task<IReadOnlyList<Guid>> GetRecentSucceededRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gerçek PostgreSQL <c>pg_dump</c> yoluyla tamamlanmış başarılı yedekler (adaptör <c>PgDump</c>); restore drill için tercih edilen kaynak.
+    /// Gerçek PostgreSQL <c>pg_dump</c> yoluyla tamamlanmış başarılı yedekler
+    /// (<c>PgDump</c> veya <c>SystemComposite</c>); restore drill için tercih edilen kaynak.
     /// </summary>
     Task<IReadOnlyList<Guid>> GetRecentSucceededPgDumpRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
 
@@ -30,5 +37,6 @@ public interface IBackupRunQueryService
     /// </summary>
     Task<BackupSucceededDurationStatistics> GetAverageSucceededDurationAsync(
         int maxSamples,
+        BackupRunAccessScope? accessScope = null,
         CancellationToken cancellationToken = default);
 }

@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services;
@@ -150,7 +148,8 @@ public class OfflinePayloadHashMaintenanceController : ControllerBase
 
     private static string CsvEscape(string value)
     {
-        if (string.IsNullOrEmpty(value)) return "";
+        if (string.IsNullOrEmpty(value))
+            return "";
         if (value.AsSpan().IndexOfAny("\",\r\n") >= 0)
             return "\"" + value.Replace("\"", "\"\"") + "\"";
         return value;

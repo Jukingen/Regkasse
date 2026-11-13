@@ -10,11 +10,23 @@
   "fields": {
     "userName": "Kullanıcı adı",
     "role": "Rol",
+    "userId": "Kullanıcı ID",
     "employeeNumber": "Personel numarası",
     "phoneNumber": "Telefon",
     "firstName": "Ad",
     "lastName": "Soyad",
     "email": "E-posta"
+  },
+  "technicalDetails": {
+    "title": "Teknik bilgiler",
+    "description": "Destek ve hata ayıklama için nadiren gereken kimlikler. Değerler eksiksiz ve kopyalanabilir.",
+    "userId": "Kullanıcı ID",
+    "tenantId": "Mandant ID",
+    "tenantSlug": "Mandant slug",
+    "branchId": "Şube ID",
+    "selectedCashRegisterId": "Seçili kasa ID (hızlı geçiş)",
+    "backendRole": "Backend rol(ler)i",
+    "appContext": "Uygulama bağlamı"
   },
   "validation": {
     "firstNameRequired": "Ad gereklidir.",

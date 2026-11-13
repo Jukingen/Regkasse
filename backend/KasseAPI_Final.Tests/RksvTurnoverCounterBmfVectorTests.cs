@@ -13,7 +13,6 @@ public sealed class RksvTurnoverCounterBmfVectorTests
     private const string GoldenAesKeyBase64 = "WQRtiiya3hYh/Uz44Bv3x8ETl1nrH6nCdErn69g5/lU=";
     private const string GoldenKassenId = "CASHBOX-DEMO-1";
     private const string GoldenStartReceiptId = "CASHBOX-DEMO-1-Receipt-ID-82";
-    private const string GoldenStartTurnoverEncrypted = "NLoisHL3";
 
     [Theory]
     [InlineData(8, "NLoiSHL3bsM=")]

@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using KasseAPI_Final.Authorization;
@@ -68,6 +67,28 @@ public class TokenClaimsServiceRoleClaimTests
     }
 
     [Fact]
+    public async Task BuildClaimsAsync_Includes_SecurityStamp_When_Present()
+    {
+        var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
+        var svc = new TokenClaimsService(resolver);
+        var stamp = Guid.NewGuid().ToString("D");
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "a@b.c",
+            UserName = "a@b.c",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            SecurityStamp = stamp,
+        };
+
+        var claims = await svc.BuildClaimsAsync(user, new List<string> { Roles.Cashier });
+
+        Assert.Contains(claims, c => c.Type == TokenClaimsService.SecurityStampClaimType && c.Value == stamp);
+    }
+
+    [Fact]
     public async Task BuildClaimsAsync_Jwt_RoundTrip_Preserves_SuperAdmin_Role_For_Authorization()
     {
         var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
@@ -104,7 +125,85 @@ public class TokenClaimsServiceRoleClaimTests
     }
 
     [Fact]
-    public async Task BuildClaimsAsync_Admin_Cashier_StripsPosPermissionsFromJwt()
+    public async Task BuildClaimsAsync_SuperAdmin_Emits_Only_SystemCritical_Permission()
+    {
+        var fullCatalog = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.SuperAdmin });
+        Assert.True(fullCatalog.Count > 10, "SuperAdmin catalog should be large enough to overflow cookie limits if fully emitted");
+
+        var resolver = new MockEffectivePermissionResolver(fullCatalog);
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "admin@admin.com",
+            UserName = "admin@admin.com",
+            FirstName = "Super",
+            LastName = "Admin",
+            Role = Roles.SuperAdmin,
+        };
+
+        var claims = await svc.BuildClaimsAsync(
+            user,
+            new List<string> { Roles.SuperAdmin },
+            appContext: ClientAppPolicy.Admin);
+
+        var permClaims = claims
+            .Where(c => c.Type == PermissionCatalog.PermissionClaimType)
+            .Select(c => c.Value)
+            .ToList();
+
+        Assert.Single(permClaims);
+        Assert.Equal(AppPermissions.SystemCritical, permClaims[0]);
+        Assert.Contains(claims, c => c.Type == "role" && c.Value == Roles.SuperAdmin);
+        Assert.True(
+            PermissionImplication.IsSatisfied(AppPermissions.UserView, permClaims),
+            "Compact system.critical must satisfy catalog permissions via implication");
+    }
+
+    [Fact]
+    public async Task BuildClaimsAsync_Manager_Omits_Permission_Catalog()
+    {
+        var managerPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        var resolver = new MockEffectivePermissionResolver(managerPerms);
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser
+        {
+            Id = "u2",
+            Email = "manager@example.com",
+            UserName = "manager@example.com",
+            FirstName = "Man",
+            LastName = "Ager",
+            Role = Roles.Manager,
+        };
+
+        var claims = await svc.BuildClaimsAsync(
+            user,
+            new List<string> { Roles.Manager },
+            appContext: ClientAppPolicy.Admin);
+
+        var permClaims = claims
+            .Where(c => c.Type == PermissionCatalog.PermissionClaimType)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Empty(permClaims);
+        Assert.Contains(claims, c => c.Type == "role" && c.Value == Roles.Manager);
+        Assert.Contains(claims, c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == user.Id);
+        Assert.DoesNotContain(claims, c => c.Type == "roles");
+        Assert.DoesNotContain(claims, c => c.Type.Contains("schemas.xmlsoap.org", StringComparison.Ordinal));
+        Assert.Contains(claims, c => c.Type == ClientAppPolicy.AppContextClaimType && c.Value == ClientAppPolicy.Admin);
+        Assert.True(
+            PermissionClaimHelper.PrincipalHasAppPermission(
+                new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")),
+                AppPermissions.UserView));
+        Assert.False(
+            PermissionClaimHelper.PrincipalHasAppPermission(
+                new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")),
+                AppPermissions.PaymentTake));
+    }
+
+    [Fact]
+    public async Task BuildClaimsAsync_Admin_Cashier_Omits_PosWrite_Permissions()
     {
         var cashierPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
         var resolver = new MockEffectivePermissionResolver(cashierPerms);
@@ -125,10 +224,11 @@ public class TokenClaimsServiceRoleClaimTests
             appContext: ClientAppPolicy.Admin);
 
         var permClaims = claims.Where(c => c.Type == PermissionCatalog.PermissionClaimType).Select(c => c.Value).ToList();
-        Assert.Contains(AppPermissions.ProductView, permClaims);
-        Assert.Contains(AppPermissions.ReportView, permClaims);
-        Assert.DoesNotContain(AppPermissions.TableView, permClaims);
-        Assert.DoesNotContain(AppPermissions.TseSign, permClaims);
+        Assert.Empty(permClaims);
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+        Assert.True(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.ProductView));
+        Assert.False(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.TseSign));
+        Assert.False(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.PaymentTake));
     }
 
     private sealed class MockEffectivePermissionResolver : IEffectivePermissionResolver
@@ -141,6 +241,13 @@ public class TokenClaimsServiceRoleClaimTests
         public Task<IReadOnlySet<string>> GetEffectivePermissionsAsync(
             string userId,
             IEnumerable<string> roleNames,
+            Guid? tenantId = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlySet<string>>(_perms);
+
+        public Task<IReadOnlySet<string>> GetEffectivePermissionsWithRoleOverrideAsync(
+            string userId,
+            IReadOnlySet<string> rolePermissions,
             Guid? tenantId = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlySet<string>>(_perms);

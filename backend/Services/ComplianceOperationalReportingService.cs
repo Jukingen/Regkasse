@@ -354,7 +354,8 @@ public sealed class ComplianceOperationalReportingService : IComplianceOperation
 
     private static string EscapeCsv(string? s)
     {
-        if (string.IsNullOrEmpty(s)) return "\"\"";
+        if (string.IsNullOrEmpty(s))
+            return "\"\"";
         return "\"" + s.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
     }
 
@@ -485,7 +486,8 @@ public sealed class ComplianceOperationalReportingService : IComplianceOperation
 
     private static string? TruncateSig(string? sig)
     {
-        if (string.IsNullOrEmpty(sig)) return sig;
+        if (string.IsNullOrEmpty(sig))
+            return sig;
         return sig.Length <= 48 ? sig : sig[..48] + "…";
     }
 

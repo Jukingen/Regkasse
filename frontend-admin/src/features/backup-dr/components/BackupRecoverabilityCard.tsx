@@ -1,16 +1,17 @@
-"use client";
+'use client';
 
-import React, { useCallback } from "react";
+import React, { useCallback } from 'react';
+
 import {
   useGetApiAdminBackupRecoverabilitySummary,
   useGetApiAdminBackupStatusLatest,
-} from "@/api/generated/admin-backup/admin-backup";
-import { RecoverabilitySummaryCard } from "@/features/backup-dr/components/RecoverabilitySummaryCard";
+} from '@/api/generated/admin-backup/admin-backup';
+import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 import {
   usePollAlignedWithLatestDashboardBackup,
   usePollBackupLatestDashboardInterval,
-} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
 
 export interface BackupRecoverabilityCardProps {
   formatDt: (iso: string | undefined | null, locale: string) => string;

@@ -1,0 +1,84 @@
+{
+  "title": "Trial management",
+  "subtitle": "Active, expiring, and expired tenant trials",
+  "stats": {
+    "active": "Active trials",
+    "expiringSoon": "Expiring soon (≤7 days)",
+    "expired": "Expired (grace)",
+    "converted": "Converted",
+    "conversionRate": "Conversion rate",
+    "created30d": "Trials (last 30 days)",
+    "avgDaysToConvert": "Avg. days to convert",
+    "topPlan": "Most common license plan"
+  },
+  "columns": {
+    "tenant": "Tenant",
+    "status": "Trial status",
+    "daysLeft": "Days left",
+    "endsAt": "Ends at",
+    "graceEnds": "Grace until",
+    "reminders": "Reminders"
+  },
+  "status": {
+    "active": "Active",
+    "expired": "Expired",
+    "converted": "Converted",
+    "deleted": "Deleted"
+  },
+  "actions": {
+    "extend": "Extend trial",
+    "convert": "Convert to paid",
+    "delete": "Delete trial",
+    "openTenant": "Open tenant"
+  },
+  "extend": {
+    "title": "Extend trial",
+    "daysLabel": "Additional days",
+    "ok": "Extend"
+  },
+  "convert": {
+    "title": "Convert to paid",
+    "saleIdLabel": "License sale ID",
+    "saleIdRequired": "License sale ID is required",
+    "ok": "Convert",
+    "notes": "Notes (optional)",
+    "addRemainingDays": "Add remaining trial days ({{count}} days)",
+    "successTitle": "Conversion successful",
+    "successMessage": "Trial was converted to a paid license.",
+    "successValidUntil": "New validity: {{date}} UTC",
+    "daysAddedSuffix": "trial days added"
+  },
+  "deleteConfirm": "Soft-archive this trial tenant? Fiscal/RKSV data is retained.",
+  "empty": "No trial tenants found.",
+  "loadError": "Failed to load trial dashboard.",
+  "badge": {
+    "label": "Trial",
+    "days": "{{count}} days"
+  },
+  "detail": {
+    "title": "Trial information",
+    "started": "Started",
+    "ends": "Ends",
+    "grace": "Grace ends",
+    "convertedAt": "Converted at",
+    "reminders": "Reminders sent",
+    "reminder7": "7 days",
+    "reminder3": "3 days",
+    "reminder1": "1 day"
+  },
+  "banner": {
+    "info": "Trial ends in {{days}} days.",
+    "warning": "Trial ends in {{days}} days! Upgrade now.",
+    "expired": "Trial expired! Please upgrade to continue using the system.",
+    "expiredGrace": "Trial expired. Upgrade now or your data will be archived after the grace period.",
+    "upgradeNow": "Upgrade now",
+    "limitExceeded": "Trial limit reached (max {{max}}). Please upgrade to paid."
+  },
+  "analytics": {
+    "monthlyTrend": "Monthly trend",
+    "byDuration": "Conversion by trial duration",
+    "byPlan": "Conversion by license plan",
+    "started": "Started",
+    "converted": "Converted"
+  }
+}

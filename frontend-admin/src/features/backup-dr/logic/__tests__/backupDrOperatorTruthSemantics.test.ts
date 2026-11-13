@@ -1,20 +1,14 @@
 /**
  * Operatör görünür anlamlar: yanlış yeşil / kanıt birleştirme regresyonlarına karşı.
  */
-
 import { describe, expect, it } from 'vitest';
+
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import {
-  BackupRunResponseDtoStatus,
-  BackupVerificationResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupRunStatus,
+  BackupVerificationStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
-import {
-  automatedRestoreCapabilityFromStatus,
-  buildBackupOperatorTruthModel,
-  deriveRecoverabilityTruth,
-  deriveRunTruth,
-} from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
   computeEffectiveRestoreReadinessLevel,
   healthStatisticValueStyle,
@@ -24,6 +18,12 @@ import {
   restoreReadinessStatisticValueStyle,
 } from '@/features/backup-dr/logic/backupDrMappers';
 import { summarizeExternalCopyForOperator } from '@/features/backup-dr/logic/backupDrOperatorTruth';
+import {
+  automatedRestoreCapabilityFromStatus,
+  buildBackupOperatorTruthModel,
+  deriveRecoverabilityTruth,
+  deriveRunTruth,
+} from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
   SERVER_PIPELINE_PROJECTION_VERSION,
   resolveBackupPipelineStepsForUi,
@@ -44,14 +44,16 @@ const eightPipelineSteps = [
 
 describe('semantic colors — backup run must not use success/green for plain Succeeded', () => {
   it('table tag color for API success (3) is blue, never success', () => {
-    expect(mapBackupRunStatusAntdColor(BackupRunResponseDtoStatus.NUMBER_3)).toBe('blue');
-    expect(mapBackupRunStatusAntdColor(BackupRunResponseDtoStatus.NUMBER_3)).not.toBe('success');
+    expect(mapBackupRunStatusAntdColor(BackupRunStatus.Succeeded)).toBe('blue');
+    expect(mapBackupRunStatusAntdColor(BackupRunStatus.Succeeded)).not.toBe('success');
   });
 });
 
 describe('semantic colors — restore drill finished (2) is cyan, not green success', () => {
   it('does not use Ant Design success green for completed drill', () => {
-    const c = mapRestoreVerificationStatusAntdColor(RestoreVerificationRunResponseDtoStatus.NUMBER_2);
+    const c = mapRestoreVerificationStatusAntdColor(
+      RestoreVerificationStatus.Succeeded
+    );
     expect(c).toBe('cyan');
     expect(c).not.toBe('success');
   });
@@ -78,7 +80,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: true,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: true,
         latestAdapterKind: 'PgDump',
       },
@@ -90,7 +92,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: false,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
       },
@@ -102,7 +104,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: true,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
       },
@@ -118,7 +120,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
 describe('deriveRunTruth — succeeded but not recoverable', () => {
   it('technical success true but recoverabilityNotProven when proof gaps / stub', () => {
     const r = deriveRunTruth(
-      { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'x', adapterKind: 'Fake' } as never,
+      { status: BackupRunStatus.Succeeded, id: 'x', adapterKind: 'Fake' } as never,
       null,
       { realPostgreSqlLogicalDumpConfigured: true } as never,
       {
@@ -126,7 +128,7 @@ describe('deriveRunTruth — succeeded but not recoverable', () => {
         lastSuccessfulBackupAt: null,
         lastSuccessfulArtifactVerificationAt: 'a',
         lastSuccessfulRestoreProofAt: 'a',
-      } as never,
+      } as never
     );
     expect(r.technicalSuccess).toBe(true);
     expect(r.recoverabilityNotProven).toBe(true);
@@ -178,15 +180,19 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
       healthLv: 'healthy',
       restoreReady: { level: 'healthy', workerEnabled: true } as never,
       restoreLv: 'healthy',
-      latest: { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'b1', adapterKind: 'PgDump' } as never,
+      latest: {
+        status: BackupRunStatus.Succeeded,
+        id: 'b1',
+        adapterKind: 'PgDump',
+      } as never,
       detailForPipeline: null,
       verification: {
-        status: BackupVerificationResponseDtoStatus.NUMBER_1,
+        status: BackupVerificationStatus.Passed,
         backupRunId: 'b1',
         failureReason: null,
       } as never,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'E_DRILL',
         failureDetail: 'boom',
       } as never,
@@ -231,7 +237,9 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
   });
 
   it('backend automated-restore flag: label is reported-enabled key, not operational proof', () => {
-    const cap = automatedRestoreCapabilityFromStatus({ isAutomatedRestoreAvailable: true } as never);
+    const cap = automatedRestoreCapabilityFromStatus({
+      isAutomatedRestoreAvailable: true,
+    } as never);
     expect(cap.labelKey).toBe('backupDr.restoreCapability.reportedEnabled');
     expect(cap.raw).toBe(true);
 
@@ -249,17 +257,16 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
       restoreCapability: { isAutomatedRestoreAvailable: true },
       externalCopyVariant: 'unknown',
     });
-    expect(m.restore.backendReportedCapability.labelKey).toBe('backupDr.restoreCapability.reportedEnabled');
+    expect(m.restore.backendReportedCapability.labelKey).toBe(
+      'backupDr.restoreCapability.reportedEnabled'
+    );
     expect(m.restore.policyUnknown).toBe(false);
   });
 });
 
 describe('mapArtifactsToExternalCopyVariant — mixed external archive', () => {
   it('returns mixed when lifecycle states disagree (e.g. one external failed)', () => {
-    const artifacts = [
-      { lifecycleState: 2 },
-      { lifecycleState: 3 },
-    ] as BackupArtifactResponseDto[];
+    const artifacts = [{ lifecycleState: 2 }, { lifecycleState: 3 }] as BackupArtifactResponseDto[];
     expect(mapArtifactsToExternalCopyVariant(artifacts)).toBe('mixed');
   });
 
@@ -284,9 +291,14 @@ describe('mapArtifactsToExternalCopyVariant — mixed external archive', () => {
 
 describe('resolveBackupPipelineStepsForUi — missing / unsupported projection (no false “official” pipeline)', () => {
   it('blocked with empty steps when no valid snapshot and client fallback off', () => {
-    const r = resolveBackupPipelineStepsForUi({ id: 'a', status: 3 } as never, { id: 'a', status: 3 } as never, {}, {
-      allowClientFallback: false,
-    });
+    const r = resolveBackupPipelineStepsForUi(
+      { id: 'a', status: 3 } as never,
+      { id: 'a', status: 3 } as never,
+      {},
+      {
+        allowClientFallback: false,
+      }
+    );
     expect(r.source).toBe('client_fallback_blocked');
     expect(r.steps).toHaveLength(0);
   });
@@ -299,7 +311,7 @@ describe('resolveBackupPipelineStepsForUi — missing / unsupported projection (
         pipeline: { projectionVersion: '2099-01-01', steps: [...eightPipelineSteps] },
       } as never,
       {},
-      { allowClientFallback: false },
+      { allowClientFallback: false }
     );
     expect(r.source).toBe('client_fallback_blocked');
     expect(r.projectionVersionMismatch).toBe(true);
@@ -311,10 +323,13 @@ describe('resolveBackupPipelineStepsForUi — missing / unsupported projection (
       { id: 'a' } as never,
       {
         id: 'a',
-        pipeline: { projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION, steps: [...eightPipelineSteps] },
+        pipeline: {
+          projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION,
+          steps: [...eightPipelineSteps],
+        },
       } as never,
       {},
-      { allowClientFallback: false },
+      { allowClientFallback: false }
     );
     expect(r.source).toBe('server_projection');
     expect(r.steps).toHaveLength(8);
@@ -323,7 +338,10 @@ describe('resolveBackupPipelineStepsForUi — missing / unsupported projection (
 
 describe('summarizeExternalCopyForOperator', () => {
   it('mixed lifecycle maps to mixed text key — metadata class, not off-site proof', () => {
-    const s = summarizeExternalCopyForOperator([{ lifecycleState: 2 }, { lifecycleState: 3 }] as never);
+    const s = summarizeExternalCopyForOperator([
+      { lifecycleState: 2 },
+      { lifecycleState: 3 },
+    ] as never);
     expect(s.variant).toBe('mixed');
     expect(s.textKey).toBe('backupDr.externalCopy.mixed');
   });

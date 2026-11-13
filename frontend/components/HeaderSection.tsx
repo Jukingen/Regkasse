@@ -1,12 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 
@@ -42,10 +37,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
       </View>
       <View style={styles.headerActions}>
         {/* Bekleyen Siparişler Butonu */}
-        <TouchableOpacity
-          style={styles.headerActionButton}
-          onPress={onShowOrderManager}
-        >
+        <TouchableOpacity style={styles.headerActionButton} onPress={onShowOrderManager}>
           <Ionicons name="time-outline" size={18} color="white" />
           <Text style={styles.headerActionText}>{t('checkout:header.orders', 'Bestellungen')}</Text>
           {pendingOrdersCount > 0 && (
@@ -56,10 +48,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
         </TouchableOpacity>
 
         {/* Favori Ürünler Butonu */}
-        <TouchableOpacity
-          style={styles.headerActionButton}
-          onPress={onShowFavoritesManager}
-        >
+        <TouchableOpacity style={styles.headerActionButton} onPress={onShowFavoritesManager}>
           <Ionicons name="heart-outline" size={18} color="white" />
           <Text style={styles.headerActionText}>{t('checkout:header.favorites', 'Favoriten')}</Text>
         </TouchableOpacity>
@@ -67,8 +56,9 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
         {/* Ausstehende Bestellungen Butonu */}
         <TouchableOpacity
           style={styles.headerActionButton}
-          onPress={() => onQuickAction('orders')}
-        >
+          onPress={() => {
+            onQuickAction('orders');
+          }}>
           <Ionicons name="list-outline" size={18} color="white" />
           <Text style={styles.headerActionText}>{t('checkout:header.pending', 'Ausstehende')}</Text>
           {pendingOrdersCount > 0 && (
@@ -79,10 +69,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
         </TouchableOpacity>
 
         {/* Masa Yönetimi Butonu */}
-        <TouchableOpacity
-          style={styles.headerActionButton}
-          onPress={onShowTableManager}
-        >
+        <TouchableOpacity style={styles.headerActionButton} onPress={onShowTableManager}>
           <Ionicons name="grid-outline" size={18} color="white" />
           <Text style={styles.headerActionText}>{t('checkout:header.tables', 'Tische')}</Text>
         </TouchableOpacity>
@@ -152,4 +139,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HeaderSection; 
+export default HeaderSection;

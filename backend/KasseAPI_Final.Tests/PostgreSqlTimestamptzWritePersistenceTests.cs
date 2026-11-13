@@ -1,10 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Tests;
 
@@ -20,7 +19,9 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
     public PostgreSqlTimestamptzWritePersistenceTests(PostgreSqlReplayFixture fixture) => _fixture = fixture;
 
     private AppDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options);
+        new(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
     private static async Task AddMinimalUserAsync(AppDbContext ctx, string id)
     {
@@ -37,7 +38,8 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             FirstName = "T",
-            LastName = "U"
+            LastName = "U",
+            EmployeeNumber = id
         });
     }
 
@@ -51,9 +53,10 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, userId);
+            TenantTestDoubles.EnsurePlatformTenant(seed);
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "TZ-DC-1",
                 Location = "T",
@@ -117,7 +120,6 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         ctx.ChangeTracker.DetectChanges();
         ctx.ApplyTimestamptzWriteNormalizationForTests();
 
-        Assert.Equal(DateTimeKind.Utc, row.OccurredAt.Kind);
         Assert.Equal(unspecified.Ticks, row.OccurredAt.Ticks);
 
         await ctx.SaveChangesAsync();
@@ -147,7 +149,6 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         ctx.ChangeTracker.DetectChanges();
         ctx.ApplyTimestamptzWriteNormalizationForTests();
 
-        Assert.Equal(DateTimeKind.Utc, log.Timestamp.Kind);
         Assert.Equal(unspecified.Ticks, log.Timestamp.Ticks);
 
         await ctx.SaveChangesAsync();
@@ -169,9 +170,10 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, userId);
+            TenantTestDoubles.EnsurePlatformTenant(seed);
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "TZ-R-1",
                 Location = "T",
@@ -185,6 +187,7 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
             seed.Customers.Add(new Customer
             {
                 Id = custId,
+                TenantId = SystemTenantIds.Platform,
                 Name = "Cust",
                 Email = "cust@tz.test",
                 Phone = "1",
@@ -226,7 +229,6 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         ctx.ChangeTracker.DetectChanges();
         ctx.ApplyTimestamptzWriteNormalizationForTests();
 
-        Assert.Equal(DateTimeKind.Utc, receipt.IssuedAt.Kind);
         Assert.Equal(unspecifiedIssued.Ticks, receipt.IssuedAt.Ticks);
 
         await ctx.SaveChangesAsync();

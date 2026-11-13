@@ -1,14 +1,16 @@
+using System.Security.Claims;
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -27,15 +29,31 @@ public sealed class AdminProductsBulkDeactivateTests
             .UseInMemoryDatabase($"AdminProductsBulkDeactivate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
-    private static AdminProductsController CreateController(AppDbContext ctx) =>
+    private static AdminProductsController CreateController(AppDbContext ctx)
+    {
+        var controller = NewController(ctx);
+        // BulkDeactivateProducts stamps UpdatedBy from User.Identity, so HttpContext must exist.
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.Name, "admin-1")],
+                    "Test")),
+            },
+        };
+        return controller;
+    }
+
+    private static AdminProductsController NewController(AppDbContext ctx) =>
         new(
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             Mock.Of<IWebHostEnvironment>(),
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
@@ -43,15 +61,20 @@ public sealed class AdminProductsBulkDeactivateTests
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)));
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
+            Mock.Of<IProductService>(),
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            Mock.Of<IProductPriceHistoryService>(),
+            Mock.Of<IPriceChangeService>());
 
     [Fact]
     public async Task BulkDeactivateProducts_SoftDeletesActiveOnly()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "C", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = catId, Name = "C", VatRate = 10m });
 
         var activeId = Guid.NewGuid();
         var inactiveId = Guid.NewGuid();
@@ -82,7 +105,7 @@ public sealed class AdminProductsBulkDeactivateTests
     private static Product NewProduct(Guid id, string name, bool isActive, Guid categoryId) => new()
     {
         Id = id,
-        TenantId = LegacyDefaultTenantIds.Primary,
+        TenantId = SystemTenantIds.Platform,
         Name = name,
         Price = 1m,
         CategoryId = categoryId,

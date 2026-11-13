@@ -1,6 +1,8 @@
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, {
+  type ReactNode,
   createContext,
   useCallback,
   useContext,
@@ -8,14 +10,16 @@ import React, {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { authStorage } from '@/features/auth/services/authStorage';
 import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
-import { applyReducedAnimations } from './applyDocumentTheme';
-import { resolveFormatLocaleForDateFormat } from './formatLocale';
+import { useI18n } from '@/i18n';
+
 import { useDensityContext } from './DensityContext';
 import { useThemeContext } from './ThemeContext';
+import { applyReducedAnimations } from './applyDocumentTheme';
+import { resolveFormatLocaleForDateFormat } from './formatLocale';
 import {
   patchStoredPersonalization,
   readStoredPersonalization,
@@ -25,10 +29,12 @@ import type {
   DateFormatPattern,
   DefaultLandingPath,
   DensityMode,
+  PreferenceLanguage,
   PersonalizationPreferences,
   ResolvedTheme,
   ThemeMode,
   TimeFormatPreference,
+  UserTimeZone,
 } from './types';
 import {
   mapApiToPersonalization,
@@ -36,8 +42,15 @@ import {
   saveUserPreferences,
   userPreferencesQueryKey,
 } from './userPreferencesApi';
-import { useI18n } from '@/i18n';
-import { authStorage } from '@/features/auth/services/authStorage';
+
+type UserPrefSlice = {
+  defaultLandingPath: DefaultLandingPath;
+  dateFormat: DateFormatPattern;
+  timeFormat: TimeFormatPreference;
+  timeZone: UserTimeZone;
+  language: PreferenceLanguage;
+  reducedAnimations: boolean;
+};
 
 type PersonalizationContextValue = {
   preferences: PersonalizationPreferences;
@@ -48,6 +61,8 @@ type PersonalizationContextValue = {
   setDefaultLandingPath: (path: DefaultLandingPath) => void;
   setDateFormat: (format: DateFormatPattern) => void;
   setTimeFormat: (format: TimeFormatPreference) => void;
+  setTimeZone: (timeZone: UserTimeZone) => void;
+  setLanguage: (language: PreferenceLanguage) => void;
   setReducedAnimations: (value: boolean) => void;
   replacePreferences: (next: PersonalizationPreferences) => void;
 };
@@ -78,12 +93,14 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const skipNextRemoteSave = useRef(false);
 
-  const [userPrefs, setUserPrefs] = useState(() => {
+  const [userPrefs, setUserPrefs] = useState<UserPrefSlice>(() => {
     const s = readStoredPersonalization();
     return {
       defaultLandingPath: s.defaultLandingPath,
       dateFormat: s.dateFormat,
       timeFormat: s.timeFormat,
+      timeZone: s.timeZone,
+      language: s.language,
       reducedAnimations: s.reducedAnimations,
     };
   });
@@ -108,6 +125,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       defaultLandingPath: fromApi.defaultLandingPath,
       dateFormat: fromApi.dateFormat,
       timeFormat: fromApi.timeFormat,
+      timeZone: fromApi.timeZone,
+      language: fromApi.language,
       reducedAnimations: fromApi.reducedAnimations,
     });
     writeStoredPersonalization(fromApi);
@@ -119,11 +138,11 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       density: densityMode,
       ...userPrefs,
     }),
-    [themeMode, densityMode, userPrefs],
+    [themeMode, densityMode, userPrefs]
   );
 
   const persistUserFields = useCallback(
-    (patch: Partial<typeof userPrefs>) => {
+    (patch: Partial<UserPrefSlice>) => {
       const nextUser = { ...userPrefs, ...patch };
       setUserPrefs(nextUser);
       const full = patchStoredPersonalization({
@@ -138,27 +157,37 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       }
       return full;
     },
-    [userPrefs, themeMode, densityMode, saveMutation],
+    [userPrefs, themeMode, densityMode, saveMutation]
   );
 
   const setDefaultLandingPath = useCallback(
     (defaultLandingPath: DefaultLandingPath) => persistUserFields({ defaultLandingPath }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const setDateFormat = useCallback(
     (dateFormat: DateFormatPattern) => persistUserFields({ dateFormat }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const setTimeFormat = useCallback(
     (timeFormat: TimeFormatPreference) => persistUserFields({ timeFormat }),
-    [persistUserFields],
+    [persistUserFields]
+  );
+
+  const setTimeZone = useCallback(
+    (timeZone: UserTimeZone) => persistUserFields({ timeZone }),
+    [persistUserFields]
+  );
+
+  const setLanguage = useCallback(
+    (language: PreferenceLanguage) => persistUserFields({ language }),
+    [persistUserFields]
   );
 
   const setReducedAnimations = useCallback(
     (reducedAnimations: boolean) => persistUserFields({ reducedAnimations }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const replacePreferences = useCallback(
@@ -169,6 +198,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
         defaultLandingPath: next.defaultLandingPath,
         dateFormat: next.dateFormat,
         timeFormat: next.timeFormat,
+        timeZone: next.timeZone,
+        language: next.language,
         reducedAnimations: next.reducedAnimations,
       });
       writeStoredPersonalization(next);
@@ -178,7 +209,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
         saveMutation.mutate(mapPersonalizationToApi(next));
       }
     },
-    [setThemeMode, setDensityMode, saveMutation],
+    [setThemeMode, setDensityMode, saveMutation]
   );
 
   const value = useMemo<PersonalizationContextValue>(
@@ -191,6 +222,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       setDefaultLandingPath,
       setDateFormat,
       setTimeFormat,
+      setTimeZone,
+      setLanguage,
       setReducedAnimations,
       replacePreferences,
     }),
@@ -204,9 +237,11 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       setDefaultLandingPath,
       setDateFormat,
       setTimeFormat,
+      setTimeZone,
+      setLanguage,
       setReducedAnimations,
       replacePreferences,
-    ],
+    ]
   );
 
   return (

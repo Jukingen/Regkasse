@@ -1,10 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Authorization;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -20,25 +26,47 @@ namespace KasseAPI_Final.Controllers
         private readonly IAuditLogService _auditLogService;
         private readonly IAuditExportService _auditExportService;
         private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly IFileNamingService _fileNaming;
+        private readonly AppDbContext _db;
         private readonly ILogger<AuditLogController> _logger;
 
         public AuditLogController(
             IAuditLogService auditLogService,
             IAuditExportService auditExportService,
             IActorDisplayNameResolver actorDisplayNameResolver,
+            ICurrentTenantAccessor tenantAccessor,
+            IFileNamingService fileNaming,
+            AppDbContext db,
             ILogger<AuditLogController> logger)
         {
             _auditLogService = auditLogService;
             _auditExportService = auditExportService;
             _actorDisplayNameResolver = actorDisplayNameResolver;
+            _tenantAccessor = tenantAccessor;
+            _fileNaming = fileNaming;
+            _db = db;
             _logger = logger;
+        }
+
+        private bool IsActorSuperAdmin() =>
+            RoleHierarchy.IsSuperAdminActor(User.GetActorRole())
+            || string.Equals(
+                RoleCanonicalization.GetCanonicalRole(User.FindFirstValue(ClaimTypes.Role) ?? string.Empty),
+                Roles.SuperAdmin,
+                StringComparison.Ordinal);
+
+        private static void ApplyTenantManagerVisibility(AuditLogQueryFilters filters, bool actorIsSuperAdmin)
+        {
+            if (!actorIsSuperAdmin)
+                filters.ExcludePlatformOperatorActors = true;
         }
 
         /// <summary>
         /// GET: api/auditlog - Get all audit logs with filtering and pagination
         /// </summary>
         [HttpGet]
-        [HasPermission(AppPermissions.UserView)]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogs(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -52,6 +80,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] AuditLogStatus? status = null,
             [FromQuery] string? statusOutcome = null,
             [FromQuery] bool? hasChanges = null,
+            [FromQuery] string? search = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] string? afterCursor = null,
@@ -59,22 +88,30 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
+                filters.Search = search;
+                ApplyTenantManagerVisibility(filters, IsActorSuperAdmin());
 
                 var includeTotal = includeTotalCount && page == 1 && string.IsNullOrWhiteSpace(afterCursor);
                 var (items, meta) = await _auditLogService.GetAuditLogsPagedAsync(
                     filters, pageSize, afterCursor, page, includeTotal);
 
+                var list = items.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    list.Select(l => l.UserId).Distinct().ToList());
+
                 var totalCount = meta.TotalCount ?? 0;
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(items.ToList()),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list, actorDisplayNames),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -112,6 +149,24 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Audit log not found" });
                 }
 
+                if (!IsActorSuperAdmin())
+                {
+                    var visibleToStaff = await _db.AuditLogs.AsNoTracking()
+                        .Where(a => a.Id == id)
+                        .ApplyFilters(new AuditLogQueryFilters { ExcludePlatformOperatorActors = true }, _db)
+                        .AnyAsync()
+                        .ConfigureAwait(false);
+                    if (!visibleToStaff)
+                    {
+                        _logger.LogWarning(
+                            "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to read an audit event outside their hierarchy",
+                            User.GetActorUserId(),
+                            User.GetActorRole(),
+                            _tenantAccessor.TenantId);
+                        return NotFound(new { message = "Audit log not found" });
+                    }
+                }
+
                 var response = new AuditLogResponse
                 {
                     Success = true,
@@ -142,17 +197,21 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var auditLogs = await _auditLogService.GetPaymentAuditLogsAsync(
                     paymentId, startDate, endDate, page, pageSize);
                 var paymentList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    paymentList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(paymentList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(paymentList, actorDisplayNames),
                     TotalCount = paymentList.Count,
                     Page = page,
                     PageSize = pageSize,
@@ -160,7 +219,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Payment audit logs for payment {paymentId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}", 
+                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}",
                     paymentList.Count, paymentId);
 
                 return Ok(response);
@@ -190,8 +249,10 @@ namespace KasseAPI_Final.Controllers
             }
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var auditLogs = await _auditLogService.GetUserAuditLogsAsync(
                     userId, startDate, endDate, page, pageSize);
@@ -213,7 +274,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"User audit logs for user {userId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId} (page {Page} of {TotalPages})", 
+                _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId} (page {Page} of {TotalPages})",
                     list.Count, userId, page, response.TotalPages);
 
                 return Ok(response);
@@ -236,11 +297,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByCorrelationIdAsync(correlationId);
                 var corrList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    corrList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(corrList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(corrList, actorDisplayNames),
                     TotalCount = corrList.Count,
                     Page = 1,
                     PageSize = corrList.Count,
@@ -248,7 +311,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Audit logs for correlation ID {correlationId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}",
                     corrList.Count, correlationId);
 
                 return Ok(response);
@@ -273,10 +336,12 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetSuspiciousAdminActionsAsync(since, limit);
                 var list = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    list.Select(l => l.UserId).Distinct().ToList());
                 return Ok(new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(list),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list, actorDisplayNames),
                     TotalCount = list.Count,
                     Page = 1,
                     PageSize = list.Count,
@@ -302,11 +367,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByTransactionIdAsync(transactionId);
                 var txList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    txList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(txList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(txList, actorDisplayNames),
                     TotalCount = txList.Count,
                     Page = 1,
                     PageSize = txList.Count,
@@ -314,7 +381,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Audit logs for transaction ID {transactionId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}",
                     txList.Count, transactionId);
 
                 return Ok(response);
@@ -337,6 +404,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                (startDate, endDate) = AuditLogStatisticsAggregation.ApplyDefaultWindow(startDate, endDate, DateTime.UtcNow);
                 var statistics = await _auditLogService.GetAuditLogStatisticsAsync(startDate, endDate);
 
                 var response = new AuditLogStatisticsResponse
@@ -348,7 +416,7 @@ namespace KasseAPI_Final.Controllers
                     Message = "Audit log statistics retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved audit log statistics for period {StartDate} to {EndDate}", 
+                _logger.LogInformation("Retrieved audit log statistics for period {StartDate} to {EndDate}",
                     startDate, endDate);
 
                 return Ok(response);
@@ -432,6 +500,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] AuditLogStatus? status = null,
             [FromQuery] string? statusOutcome = null,
             [FromQuery] bool? hasChanges = null,
+            [FromQuery] string? search = null,
             CancellationToken cancellationToken = default)
         {
             try
@@ -439,11 +508,27 @@ namespace KasseAPI_Final.Controllers
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
+                filters.Search = search;
+                ApplyTenantManagerVisibility(filters, IsActorSuperAdmin());
 
                 var normalized = (format ?? "csv").Trim().ToLowerInvariant();
-                var ext = normalized == "json" ? "json" : "csv";
-                var contentType = normalized == "json" ? "application/json" : "text/csv";
-                var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{ext}";
+                var contentType = AuditExportFileNames.ContentTypeForFormat(normalized);
+                string? tenantSlug = null;
+                if (_tenantAccessor.TenantId is { } tenantId)
+                {
+                    tenantSlug = await _db.Tenants.AsNoTracking()
+                        .Where(t => t.Id == tenantId)
+                        .Select(t => t.Slug)
+                        .FirstOrDefaultAsync(cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                var fileName = _fileNaming.GenerateFileName(
+                    AuditExportFileNames.Prefix,
+                    AuditExportFileNames.NormalizeExtension(normalized),
+                    registerId: ExportFileNameSegments.DateOnly(filters.StartDate),
+                    additional: ExportFileNameSegments.DateOnly(filters.EndDate),
+                    tenantSlug: tenantSlug);
 
                 Response.ContentType = contentType;
                 Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";

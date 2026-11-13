@@ -3,11 +3,9 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -24,7 +22,7 @@ public class AddOnRegressionTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"AddOnRegression_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void SetAuth(ModifierGroupsController controller, string userId = "u1")
@@ -55,12 +53,12 @@ public class AddOnRegressionTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -80,12 +78,12 @@ public class AddOnRegressionTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
         });
-        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = productId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
+        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = productId, TenantId = SystemTenantIds.Platform, SortOrder = 0 });
         await context.SaveChangesAsync();
 
         var controller = new ModifierGroupsController(context, NullLogger<ModifierGroupsController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
@@ -116,12 +114,12 @@ public class AddOnRegressionTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Mayo",
             Price = 0.30m,
             CategoryId = categoryId,
@@ -141,12 +139,12 @@ public class AddOnRegressionTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Saucen",
             SortOrder = 0,
             IsActive = true
         });
-        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = productId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
+        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = productId, TenantId = SystemTenantIds.Platform, SortOrder = 0 });
         await context.SaveChangesAsync();
 
         var controller = new ModifierGroupsController(context, NullLogger<ModifierGroupsController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
@@ -177,12 +175,12 @@ public class AddOnRegressionTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -201,7 +199,7 @@ public class AddOnRegressionTests
         context.Products.Add(new Product
         {
             Id = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Ketchup",
             Price = 0.50m,
             CategoryId = categoryId,
@@ -218,9 +216,9 @@ public class AddOnRegressionTests
             IsActive = true,
             IsSellableAddOn = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
-        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = addOnProductId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
-        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = mainProductId, ModifierGroupId = groupId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = SystemTenantIds.Platform, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.AddOnGroupProducts.Add(new AddOnGroupProduct { ModifierGroupId = groupId, ProductId = addOnProductId, TenantId = SystemTenantIds.Platform, SortOrder = 0 });
+        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = mainProductId, ModifierGroupId = groupId, TenantId = SystemTenantIds.Platform, SortOrder = 0 });
         await context.SaveChangesAsync();
 
         var productRepo = new KasseAPI_Final.Data.Repositories.GenericRepository<Product>(context, NullLogger<KasseAPI_Final.Data.Repositories.GenericRepository<Product>>.Instance);

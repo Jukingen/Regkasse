@@ -14,6 +14,7 @@ public sealed class DemoCategory
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Icon { get; set; }
+    public string? Color { get; set; }
     public int SortOrder { get; set; }
     public decimal VatRate { get; set; } = 10m;
     public RksvProductCategory FiscalCategory { get; set; } = RksvProductCategory.Food;

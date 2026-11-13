@@ -51,11 +51,10 @@ public static class PrincipalActorExtensions
     }
 
     /// <summary>
-    /// Permission claim eşleşmesi (RolePermissionMatrix ile üretilen JWT permission claim’leri).
+    /// Permission claim eşleşmesi (JWT permission claims + implication, including compact SuperAdmin <c>system.critical</c>).
     /// </summary>
     public static bool HasPermissionClaim(this ClaimsPrincipal? principal, string permission)
     {
-        if (principal == null || string.IsNullOrEmpty(permission)) return false;
-        return principal.HasClaim(PermissionCatalog.PermissionClaimType, permission);
+        return PermissionClaimHelper.PrincipalHasAppPermission(principal, permission);
     }
 }

@@ -2,12 +2,12 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
-using KasseAPI_Final.Time;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Time;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -304,112 +304,112 @@ public sealed class JahresberichtService : IJahresberichtService
         JahresberichtReport? row = null;
         try
         {
-        row = await _db.Set<JahresberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
-            ?? throw new InvalidOperationException("Jahresbericht not found.");
+            row = await _db.Set<JahresberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
+                ?? throw new InvalidOperationException("Jahresbericht not found.");
 
-        if (row.ReportStatus != MonatsberichtReportStatuses.Finalized)
-        {
-            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Only finalized Jahresbericht can be submitted.", row, new { reportId });
-            throw new InvalidOperationException("Only finalized Jahresbericht can be submitted.");
-        }
-
-        var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
-            _db,
-            "JahresberichtReport",
-            row.Id,
-            row.ReportStatus,
-            row.SupersededByReportId,
-            row.LastFinanzOnlineOutboxMessageId,
-            cancellationToken);
-        if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
-        {
-            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Superseded Jahresbericht cannot be submitted.", row, new { reportId });
-            throw new InvalidOperationException("Superseded Jahresbericht cannot be submitted. Use the successor report.");
-        }
-        if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
-        {
-            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Submission already accepted.", row, new { reportId });
-            throw new InvalidOperationException(
-                "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
-        }
-        if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
-            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
-
-        var summary = JsonSerializer.Deserialize<JahresberichtSummaryDto>(row.SnapshotJson, JsonOpts)
-            ?? throw new InvalidOperationException("Snapshot corrupt.");
-
-        var registerNumber = "COMPANY";
-        if (row.CashRegisterId.HasValue)
-        {
-            var reg = await _db.CashRegisters.AsNoTracking().FirstAsync(x => x.Id == row.CashRegisterId.Value, cancellationToken);
-            registerNumber = reg.RegisterNumber;
-        }
-
-        var mode = FinanzOnlineIntegrationMode.TEST;
-
-        var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
-            _db, "JahresberichtReport", row.Id, cancellationToken);
-
-        var payloadJson = JsonSerializer.Serialize(new
-        {
-            kind = "JahresberichtAnnualSummary",
-            reportId = row.Id,
-            snapshotHash = row.SnapshotHash,
-            schemaVersion = row.SnapshotSchemaVersion,
-            viennaYear = summary.ViennaYear,
-            scopeKind = row.ScopeKind,
-            registerNumber,
-            grossFromMonthly = summary.AggregationFromMonthly.GrossSalesAmount,
-            grossFromRaw = summary.RawPaymentRollup.GrossSalesAmount,
-            submissionAttemptIndex,
-        }, JsonOpts);
-
-        var hashHex = ComputeSha256Hex(payloadJson);
-        var businessKey = ReportFinanzOnlineBusinessKeys.Jahresbericht(
-            row.ScopeKind,
-            summary.ViennaYear,
-            registerNumber,
-            row.Id,
-            submissionAttemptIndex);
-
-        var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
-        var previousStatus = row.LastSubmissionStatusCode;
-        var msg = await _outbox.EnqueueSubmissionAsync(
-            aggregateType: "JahresberichtReport",
-            aggregateId: row.Id,
-            messageType: FinanzOnlineJahresberichtMessageTypes.JahresberichtAnnualSummary,
-            businessKey: businessKey,
-            payload: new FinanzOnlineOutboxPayload
+            if (row.ReportStatus != MonatsberichtReportStatuses.Finalized)
             {
-                Mode = mode,
-                Scope = new FinanzOnlineScope { RegisterId = registerNumber },
-                Correlation = new FinanzOnlineCorrelationContext
+                await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Only finalized Jahresbericht can be submitted.", row, new { reportId });
+                throw new InvalidOperationException("Only finalized Jahresbericht can be submitted.");
+            }
+
+            var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
+                _db,
+                "JahresberichtReport",
+                row.Id,
+                row.ReportStatus,
+                row.SupersededByReportId,
+                row.LastFinanzOnlineOutboxMessageId,
+                cancellationToken);
+            if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
+            {
+                await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Superseded Jahresbericht cannot be submitted.", row, new { reportId });
+                throw new InvalidOperationException("Superseded Jahresbericht cannot be submitted. Use the successor report.");
+            }
+            if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
+            {
+                await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Submission already accepted.", row, new { reportId });
+                throw new InvalidOperationException(
+                    "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
+            }
+            if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
+                return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+
+            var summary = JsonSerializer.Deserialize<JahresberichtSummaryDto>(row.SnapshotJson, JsonOpts)
+                ?? throw new InvalidOperationException("Snapshot corrupt.");
+
+            var registerNumber = "COMPANY";
+            if (row.CashRegisterId.HasValue)
+            {
+                var reg = await _db.CashRegisters.AsNoTracking().FirstAsync(x => x.Id == row.CashRegisterId.Value, cancellationToken);
+                registerNumber = reg.RegisterNumber;
+            }
+
+            var mode = FinanzOnlineIntegrationMode.TEST;
+
+            var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
+                _db, "JahresberichtReport", row.Id, cancellationToken);
+
+            var payloadJson = JsonSerializer.Serialize(new
+            {
+                kind = "JahresberichtAnnualSummary",
+                reportId = row.Id,
+                snapshotHash = row.SnapshotHash,
+                schemaVersion = row.SnapshotSchemaVersion,
+                viennaYear = summary.ViennaYear,
+                scopeKind = row.ScopeKind,
+                registerNumber,
+                grossFromMonthly = summary.AggregationFromMonthly.GrossSalesAmount,
+                grossFromRaw = summary.RawPaymentRollup.GrossSalesAmount,
+                submissionAttemptIndex,
+            }, JsonOpts);
+
+            var hashHex = ComputeSha256Hex(payloadJson);
+            var businessKey = ReportFinanzOnlineBusinessKeys.Jahresbericht(
+                row.ScopeKind,
+                summary.ViennaYear,
+                registerNumber,
+                row.Id,
+                submissionAttemptIndex);
+
+            var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
+            var previousStatus = row.LastSubmissionStatusCode;
+            var msg = await _outbox.EnqueueSubmissionAsync(
+                aggregateType: "JahresberichtReport",
+                aggregateId: row.Id,
+                messageType: FinanzOnlineJahresberichtMessageTypes.JahresberichtAnnualSummary,
+                businessKey: businessKey,
+                payload: new FinanzOnlineOutboxPayload
                 {
-                    BusinessKey = businessKey,
-                    PayloadHash = hashHex,
-                    CorrelationId = row.Id.ToString("N")
+                    Mode = mode,
+                    Scope = new FinanzOnlineScope { RegisterId = registerNumber },
+                    Correlation = new FinanzOnlineCorrelationContext
+                    {
+                        BusinessKey = businessKey,
+                        PayloadHash = hashHex,
+                        CorrelationId = row.Id.ToString("N")
+                    },
+                    SubmissionKind = FinanzOnlineSubmissionKind.Register,
+                    PayloadJson = payloadJson
                 },
-                SubmissionKind = FinanzOnlineSubmissionKind.Register,
-                PayloadJson = payloadJson
-            },
-            cancellationToken);
+                cancellationToken);
 
-        row.LastFinanzOnlineOutboxMessageId = msg.Id;
-        row.LastSubmissionStatusCode = msg.Status;
-        row.LastSubmissionError = msg.LastErrorMessage;
-        row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
-        await _db.SaveChangesAsync(cancellationToken);
+            row.LastFinanzOnlineOutboxMessageId = msg.Id;
+            row.LastSubmissionStatusCode = msg.Status;
+            row.LastSubmissionError = msg.LastErrorMessage;
+            row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
+            await _db.SaveChangesAsync(cancellationToken);
 
-        await AuditReportMutationSuccessAsync(
-            "JahresberichtFinanzOnlineSubmit",
-            actorUserId,
-            "Jahresbericht enqueued to FinanzOnline outbox",
-            row,
-            new { reportId = row.Id, previousOutboxId, previousStatus, retrySubmissionAttempt = previousOutboxId != null },
-            new { outboxMessageId = msg.Id, outboxStatus = msg.Status, correlationId = msg.CorrelationId, businessKey = msg.BusinessKey },
-            msg.CorrelationId);
+            await AuditReportMutationSuccessAsync(
+                "JahresberichtFinanzOnlineSubmit",
+                actorUserId,
+                "Jahresbericht enqueued to FinanzOnline outbox",
+                row,
+                new { reportId = row.Id, previousOutboxId, previousStatus, retrySubmissionAttempt = previousOutboxId != null },
+                new { outboxMessageId = msg.Id, outboxStatus = msg.Status, correlationId = msg.CorrelationId, businessKey = msg.BusinessKey },
+                msg.CorrelationId);
 
-        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
         }
         catch (Exception ex)
         {
@@ -528,7 +528,8 @@ public sealed class JahresberichtService : IJahresberichtService
         foreach (var m in monthlyRows)
         {
             var snap = JsonSerializer.Deserialize<MonatsberichtSummaryDto>(m.SnapshotJson, JsonOpts);
-            if (snap == null) continue;
+            if (snap == null)
+                continue;
 
             sumGross += snap.AggregationFromDaily.GrossSalesAmount;
             sumTax += snap.AggregationFromDaily.TaxTotalAmount;
@@ -693,7 +694,8 @@ public sealed class JahresberichtService : IJahresberichtService
         if (scopeKind == MonatsberichtScopeKinds.Company)
             return "Company";
 
-        if (!cashRegisterId.HasValue) return null;
+        if (!cashRegisterId.HasValue)
+            return null;
         return await _db.CashRegisters.AsNoTracking()
             .Where(x => x.Id == cashRegisterId.Value)
             .Select(x => x.Location)
@@ -727,7 +729,8 @@ public sealed class JahresberichtService : IJahresberichtService
     private async Task<JahresberichtDto?> MapToDtoAsync(Guid id, CancellationToken cancellationToken)
     {
         var row = await _db.Set<JahresberichtReport>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row == null) return null;
+        if (row == null)
+            return null;
 
         var summary = JsonSerializer.Deserialize<JahresberichtSummaryDto>(row.SnapshotJson, JsonOpts) ?? new JahresberichtSummaryDto();
         string? regNo = null;

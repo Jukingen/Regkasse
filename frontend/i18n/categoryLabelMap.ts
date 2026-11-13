@@ -56,7 +56,7 @@ function translateProductsLeafKey(leaf: string, t: TFunction): string {
  */
 export function resolveProductsCategoryLabel(
   backendCategoryName: string | null | undefined,
-  t: TFunction,
+  t: TFunction
 ): string {
   const n = (backendCategoryName ?? '').trim();
   if (!n) return '';

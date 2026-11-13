@@ -14,6 +14,7 @@ import {
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { couponService, Coupon, CouponValidationResult } from '../services/api/couponService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { formatUserDate } from '../utils/dateFormatter';
 
 interface CouponModalProps {
@@ -31,7 +32,7 @@ export default function CouponModal({
   totalAmount,
   customerId,
 }: CouponModalProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('cart');
   const [couponCode, setCouponCode] = useState('');
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ export default function CouponModal({
       setActiveCoupons(coupons);
     } catch (error) {
       console.error('Failed to load active coupons:', error);
-      Alert.alert('Error', 'Failed to load active coupons');
+      Alert.alert(t('common:error', { defaultValue: 'Fehler' }), t('couponLoadError'));
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ export default function CouponModal({
 
   const validateCoupon = async () => {
     if (!couponCode.trim()) {
-      Alert.alert('Error', 'Please enter a coupon code');
+      Alert.alert(t('common:error', { defaultValue: 'Fehler' }), t('invalidCouponCode'));
       return;
     }
 
@@ -71,9 +72,10 @@ export default function CouponModal({
         customerId,
       });
       setValidationResult(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to validate coupon:', error);
-      Alert.alert('Error', error.message || 'Failed to validate coupon');
+      const message = error instanceof Error ? error.message : t('invalidOrExpiredCoupon');
+      Alert.alert(t('common:error', { defaultValue: 'Fehler' }), message);
     } finally {
       setValidating(false);
     }
@@ -90,7 +92,7 @@ export default function CouponModal({
 
   const selectCoupon = (coupon: Coupon) => {
     setCouponCode(coupon.code);
-    validateCoupon();
+    void validateCoupon();
   };
 
   const formatDiscountValue = (coupon: Coupon) => {
@@ -100,9 +102,9 @@ export default function CouponModal({
       case 'FixedAmount':
         return `€${coupon.discountValue.toFixed(2)}`;
       case 'BuyOneGetOne':
-        return 'BOGO';
+        return t('buyOneGetOne');
       case 'FreeShipping':
-        return 'Free Shipping';
+        return t('couponFreeShipping');
       default:
         return '';
     }
@@ -111,18 +113,13 @@ export default function CouponModal({
   const formatDate = (dateString: string) => formatUserDate(dateString);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>
-              <Ionicons name="pricetag" size={24} color={Colors.light.primary} />
-              {' '}Kupon Kodu
+              <Ionicons name="pricetag" size={24} color={Colors.light.primary} />{' '}
+              {t('couponModalTitle')}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color={Colors.light.textSecondary} />
@@ -130,21 +127,20 @@ export default function CouponModal({
           </View>
 
           <View style={styles.inputSection}>
-            <Text style={styles.label}>Kupon Kodu</Text>
+            <Text style={styles.label}>{t('couponCodeLabel')}</Text>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
                 value={couponCode}
                 onChangeText={setCouponCode}
-                placeholder="Kupon kodunu girin..."
+                placeholder={t('couponCodePlaceholder')}
                 autoCapitalize="characters"
                 autoCorrect={false}
               />
               <TouchableOpacity
                 style={[styles.validateButton, validating && styles.validateButtonDisabled]}
                 onPress={validateCoupon}
-                disabled={validating}
-              >
+                disabled={validating}>
                 {validating ? (
                   <WaveLoader size={18} color="#FFFFFF" />
                 ) : (
@@ -155,24 +151,30 @@ export default function CouponModal({
           </View>
 
           {validationResult && (
-            <View style={[
-              styles.validationResult,
-              validationResult.isValid ? styles.validResult : styles.invalidResult
-            ]}>
+            <View
+              style={[
+                styles.validationResult,
+                validationResult.isValid ? styles.validResult : styles.invalidResult,
+              ]}>
               <Ionicons
-                name={validationResult.isValid ? "checkmark-circle" : "close-circle"}
+                name={validationResult.isValid ? 'checkmark-circle' : 'close-circle'}
                 size={24}
                 color={validationResult.isValid ? Colors.light.success : Colors.light.error}
               />
-              <Text style={[
-                styles.validationText,
-                validationResult.isValid ? styles.validText : styles.invalidText
-              ]}>
-                {validationResult.isValid ? validationResult.message : validationResult.errorMessage}
+              <Text
+                style={[
+                  styles.validationText,
+                  validationResult.isValid ? styles.validText : styles.invalidText,
+                ]}>
+                {validationResult.isValid
+                  ? validationResult.message
+                  : validationResult.errorMessage}
               </Text>
               {validationResult.isValid && (
                 <Text style={styles.discountAmount}>
-                  İndirim: €{validationResult.discountAmount.toFixed(2)}
+                  {t('couponDiscountLabel', {
+                    amount: `€${validationResult.discountAmount.toFixed(2)}`,
+                  })}
                 </Text>
               )}
             </View>
@@ -181,31 +183,30 @@ export default function CouponModal({
           {validationResult?.isValid && (
             <TouchableOpacity style={styles.applyButton} onPress={applyCoupon}>
               <Ionicons name="checkmark" size={20} color="white" />
-              <Text style={styles.applyButtonText}>Kuponu Uygula</Text>
+              <Text style={styles.applyButtonText}>{t('applyCoupon')}</Text>
             </TouchableOpacity>
           )}
 
           <View style={styles.divider}>
-            <Text style={styles.dividerText}>Aktif Kuponlar</Text>
+            <Text style={styles.dividerText}>{t('activeCoupons')}</Text>
           </View>
 
           <ScrollView style={styles.couponsList}>
             {loading ? (
               <WaveLoader size={32} color={Colors.light.primary} />
             ) : activeCoupons.length === 0 ? (
-              <Text style={styles.noCouponsText}>Aktif kupon bulunmuyor</Text>
+              <Text style={styles.noCouponsText}>{t('noActiveCoupons')}</Text>
             ) : (
               activeCoupons.map((coupon) => (
                 <TouchableOpacity
                   key={coupon.id}
                   style={styles.couponItem}
-                  onPress={() => selectCoupon(coupon)}
-                >
+                  onPress={() => {
+                    selectCoupon(coupon);
+                  }}>
                   <View style={styles.couponHeader}>
                     <Text style={styles.couponCode}>{coupon.code}</Text>
-                    <Text style={styles.couponDiscount}>
-                      {formatDiscountValue(coupon)}
-                    </Text>
+                    <Text style={styles.couponDiscount}>{formatDiscountValue(coupon)}</Text>
                   </View>
                   <Text style={styles.couponName}>{coupon.name}</Text>
                   {coupon.description && (
@@ -213,14 +214,22 @@ export default function CouponModal({
                   )}
                   <View style={styles.couponDetails}>
                     <Text style={styles.couponDetail}>
-                      Min. Tutar: €{coupon.minimumAmount.toFixed(2)}
+                      {t('couponMinAmount', {
+                        amount: `€${coupon.minimumAmount.toFixed(2)}`,
+                      })}
                     </Text>
                     <Text style={styles.couponDetail}>
-                      Geçerlilik: {formatDate(coupon.validFrom)} - {formatDate(coupon.validUntil)}
+                      {t('couponValidity', {
+                        from: formatDate(coupon.validFrom),
+                        until: formatDate(coupon.validUntil),
+                      })}
                     </Text>
                     {coupon.usageLimit > 0 && (
                       <Text style={styles.couponDetail}>
-                        Kullanım: {coupon.usedCount}/{coupon.usageLimit}
+                        {t('couponUsage', {
+                          used: coupon.usedCount,
+                          limit: coupon.usageLimit,
+                        })}
                       </Text>
                     )}
                   </View>
@@ -293,13 +302,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     fontSize: 16,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.surface,
   },
   validateButton: {
     backgroundColor: Colors.light.primary,
-    padding: Spacing.md,
     borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -309,20 +321,18 @@ const styles = StyleSheet.create({
   validationResult: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
     marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
+    flexWrap: 'wrap',
   },
   validResult: {
     backgroundColor: Colors.light.success + '20',
-    borderWidth: 1,
-    borderColor: Colors.light.success,
   },
   invalidResult: {
     backgroundColor: Colors.light.error + '20',
-    borderWidth: 1,
-    borderColor: Colors.light.error,
   },
   validationText: {
     flex: 1,
@@ -335,17 +345,20 @@ const styles = StyleSheet.create({
     color: Colors.light.error,
   },
   discountAmount: {
-    fontSize: 16,
+    width: '100%',
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.light.success,
+    marginTop: Spacing.xs,
   },
   applyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.success,
-    padding: Spacing.md,
-    margin: Spacing.lg,
+    backgroundColor: Colors.light.primary,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
   },
@@ -356,65 +369,64 @@ const styles = StyleSheet.create({
   },
   divider: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
   },
   dividerText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.light.textSecondary,
   },
   couponsList: {
-    flex: 1,
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
   noCouponsText: {
     textAlign: 'center',
     color: Colors.light.textSecondary,
-    fontSize: 16,
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
   },
   couponItem: {
-    backgroundColor: Colors.light.surface,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.light.surface,
   },
   couponHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   couponCode: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.light.primary,
   },
   couponDiscount: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.light.success,
   },
   couponName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: Colors.light.text,
     marginBottom: Spacing.xs,
   },
   couponDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.light.textSecondary,
     marginBottom: Spacing.sm,
   },
   couponDetails: {
-    gap: Spacing.xs,
+    gap: 2,
   },
   couponDetail: {
     fontSize: 12,
     color: Colors.light.textSecondary,
   },
-}); 
+});

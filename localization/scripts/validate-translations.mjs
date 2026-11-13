@@ -1,19 +1,21 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
+  ROOT,
   createValidators,
   flattenObject,
   parseArgs,
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   tupleKey,
   writeReport,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
 const manifest = await readManifest();
-const appIds = (args.app ? [args.app] : Object.keys(manifest.apps)).sort((a, b) => a.localeCompare(b));
+const appIds = (args.app ? [args.app] : listActiveAppIds(manifest)).sort((a, b) => a.localeCompare(b));
 const strictMissing = args.strictMissing === 'true';
 const keyMode = args.keyMode ?? 'compat';
 if (keyMode !== 'compat' && keyMode !== 'target') {
@@ -169,6 +171,10 @@ async function extractAdminRuntimeNamespaces(root) {
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const validators = createValidators(manifest, app);
   const locales = manifest.locales;
   const defaultLocale = manifest.defaultLocale;
@@ -211,8 +217,8 @@ for (const appId of appIds) {
 
   // 9) Runtime config <-> file system mismatch
   const runtimeNamespacesRaw = app.id === 'frontend'
-    ? await extractFrontendRuntimeNamespaces(process.cwd())
-    : await extractAdminRuntimeNamespaces(process.cwd());
+    ? await extractFrontendRuntimeNamespaces(ROOT)
+    : await extractAdminRuntimeNamespaces(ROOT);
   const runtimeNamespacesNormalized = runtimeNamespacesRaw.map((ns) => toKebabCase(ns));
   const manifestSet = new Set(app.namespaces);
   const fsSet = new Set([...fsNamespaces]);
@@ -425,7 +431,7 @@ if (sortedFailures.length > 0) {
 console.log('\nTranslation validation passed.');
 
 async function writeTextReport(payload) {
-  const reportDir = path.join(process.cwd(), 'localization', 'out', 'reports');
+  const reportDir = path.join(ROOT, 'localization', 'out', 'reports');
   await fs.mkdir(reportDir, { recursive: true });
   const filePath = path.join(reportDir, `validate-report.${args.app ?? 'all'}.txt`);
   const lines = [];

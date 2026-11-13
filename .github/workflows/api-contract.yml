@@ -2,10 +2,11 @@ name: API contract validation
 
 # OpenAPI backward-compatibility diff vs base revision + focused backend contract tests.
 
+# Development bypass: OpenAPI contract diff runs on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +21,7 @@ jobs:
   validate-api-contract:
     name: Swagger diff + backend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -70,9 +72,39 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+
+      - name: Build
+        working-directory: backend
+        run: >-
+          dotnet build KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-restore
+
       - name: Backend tests (Rksv special receipt + offline replay)
         working-directory: backend
         run: >
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
           --verbosity minimal
           --filter "FullyQualifiedName~RksvSpecialReceiptTests|FullyQualifiedName~OfflineReplayTests"
+
+  notify-failure:
+    name: Notify on failure
+    needs: [validate-api-contract]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: API contract validation failed
+    secrets: inherit

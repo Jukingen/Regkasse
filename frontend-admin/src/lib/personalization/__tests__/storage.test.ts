@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
-  normalizePersonalization,
   PERSONALIZATION_STORAGE_KEY,
+  THEME_MODE_STORAGE_KEY,
+  clearStoredPersonalization,
+  normalizePersonalization,
   readStoredPersonalization,
   writeStoredPersonalization,
 } from '../storage';
@@ -13,8 +16,12 @@ describe('personalization storage', () => {
 
   it('normalizes invalid payloads to defaults', () => {
     expect(normalizePersonalization(null).themeMode).toBe('system');
-    expect(normalizePersonalization({ themeMode: 'neon', density: 'huge' }).density).toBe('standard');
-    expect(normalizePersonalization({ defaultLandingPath: '/unknown' }).defaultLandingPath).toBe('/dashboard');
+    expect(normalizePersonalization({ themeMode: 'neon', density: 'huge' }).density).toBe(
+      'standard'
+    );
+    expect(normalizePersonalization({ defaultLandingPath: '/unknown' }).defaultLandingPath).toBe(
+      '/dashboard'
+    );
   });
 
   it('round-trips preferences in localStorage', () => {
@@ -22,8 +29,10 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'DD.MM.YYYY',
+      dateFormat: 'YYYY-MM-DD',
       timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
       reducedAnimations: true,
     });
     expect(window.localStorage.getItem(PERSONALIZATION_STORAGE_KEY)).toBeTruthy();
@@ -31,13 +40,34 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'DD.MM.YYYY',
+      dateFormat: 'YYYY-MM-DD',
       timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
       reducedAnimations: true,
     });
   });
 
-  it('normalizes legacy date formats to DD.MM.YYYY', () => {
-    expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('DD.MM.YYYY');
+  it('keeps supported date formats', () => {
+    expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('MM/DD/YYYY');
+    expect(normalizePersonalization({ dateFormat: 'bogus' }).dateFormat).toBe('DD.MM.YYYY');
+  });
+
+  it('clearStoredPersonalization removes preference and theme keys', () => {
+    writeStoredPersonalization({
+      themeMode: 'dark',
+      density: 'compact',
+      defaultLandingPath: '/reporting',
+      dateFormat: 'YYYY-MM-DD',
+      timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
+      reducedAnimations: true,
+    });
+    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, 'dark');
+    clearStoredPersonalization();
+    expect(window.localStorage.getItem(PERSONALIZATION_STORAGE_KEY)).toBeNull();
+    expect(window.localStorage.getItem(THEME_MODE_STORAGE_KEY)).toBeNull();
+    expect(readStoredPersonalization()).toMatchObject({ themeMode: 'system' });
   });
 });

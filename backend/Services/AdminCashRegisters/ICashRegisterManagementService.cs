@@ -56,4 +56,17 @@ public interface ICashRegisterManagementService
         string actorRole,
         bool actorIsSuperAdmin,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets or clears <see cref="CashRegister.AssignedUserId"/>, the admin-managed cashier assignment that scopes the POS
+    /// picker. A null or empty <c>UserId</c> clears it; otherwise the target must be an active member of the register's
+    /// tenant. Assignment is visibility only and never grants payment rights.
+    /// </summary>
+    Task<CashRegisterDto> AssignUserAsync(
+        Guid id,
+        AssignCashRegisterUserRequest request,
+        string actorUserId,
+        string actorRole,
+        bool actorIsSuperAdmin,
+        CancellationToken cancellationToken = default);
 }

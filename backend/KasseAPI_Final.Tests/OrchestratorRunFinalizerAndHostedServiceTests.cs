@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
@@ -42,6 +39,28 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             return m.Object;
         });
         services.AddLogging(b => { });
+        services.AddSingleton<ISmartRetentionService, SmartRetentionService>();
+        services.AddSingleton<IStorageTierService, StorageTierService>();
+        services.AddSingleton<ICloudStorageService>(_ => Mock.Of<ICloudStorageService>());
+        services.AddScoped<IBackupRetentionPolicyService>(_ =>
+        {
+            var mock = new Mock<IBackupRetentionPolicyService>();
+            mock.Setup(x => x.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(BackupRetentionPolicySnapshot.Defaults);
+            mock.Setup(x => x.ApplyDefaultLegalHoldIfRequiredAsync(
+                    It.IsAny<BackupRun>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            return mock.Object;
+        });
+        services.AddScoped<IBackupColdArchiveService>(_ =>
+        {
+            var mock = new Mock<IBackupColdArchiveService>();
+            mock.Setup(x => x.ArchiveAgedSucceededRunsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(0);
+            return mock.Object;
+        });
         services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessOrchestrationHook>();
         extra?.Invoke(services);
         var sp = services.BuildServiceProvider();
@@ -55,6 +74,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         db.BackupRuns.Add(new BackupRun
         {
             Status = BackupRunStatus.Queued,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             RequestedAt = DateTime.UtcNow
@@ -74,6 +94,9 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Mock.Of<IPgDumpProcessRunner>(),
             Mock.Of<IBackupManifestService>(),
             checksum,
+            new BackupEncryptionService(
+                OptionsMonitorOf(new BackupOptions()),
+                NullLogger<BackupEncryptionService>.Instance),
             NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
         var ext = new Mock<IBackupArtifactExternalArchive>();
@@ -100,6 +123,22 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             fakeAdapter,
             new PostgreSqlBackupExecutionAdapterStub(),
             pgDump,
+            new TenantScopedLogicalBackupExecutionAdapter(
+                scopeFactory,
+                OptionsMonitorOf(new BackupOptions()),
+                new TenantScopedBackupExporter(),
+                checksum,
+                new BackupEncryptionService(
+                    OptionsMonitorOf(new BackupOptions()),
+                    NullLogger<BackupEncryptionService>.Instance),
+                NullLogger<TenantScopedLogicalBackupExecutionAdapter>.Instance),
+            new CompositeSystemBackupExecutionAdapter(
+                pgDump,
+                scopeFactory,
+                OptionsMonitorOf(new BackupOptions()),
+                new SystemScopedBackupExporter(new TenantScopedBackupExporter()),
+                checksum,
+                NullLogger<CompositeSystemBackupExecutionAdapter>.Instance),
             ext.Object,
             hostEnv.Object,
             Mock.Of<IBackupAlertPublisher>(),
@@ -112,7 +151,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum)
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance))
         {
             ThrowOnExecuteForTests = new InvalidOperationException("adapter boom")
         };
@@ -132,7 +171,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         Assert.Contains("adapter boom", run.FailureDetail ?? "", StringComparison.Ordinal);
         Assert.NotNull(run.ConfigSnapshotJson);
         Assert.Contains("backup_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":3", run.ConfigSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":4", run.ConfigSnapshotJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -140,7 +179,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_v_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum);
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance));
         var verifier = new ThrowingBackupVerificationService();
 
         var scopeFactory = CreateScopeFactory(dbName, s => s.AddSingleton<IBackupVerificationService>(_ => verifier));
@@ -163,7 +202,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_j_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum);
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance));
         var verifier = new MalformedDetailsJsonVerificationService();
 
         var scopeFactory = CreateScopeFactory(dbName, s => s.AddSingleton<IBackupVerificationService>(_ => verifier));
@@ -306,7 +345,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Assert.Contains("list boom", run.FailureDetail ?? "", StringComparison.Ordinal);
             Assert.NotNull(run.ConfigSnapshotJson);
             Assert.Contains("restore_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-            Assert.Contains("\"schemaVersion\":3", run.ConfigSnapshotJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\":4", run.ConfigSnapshotJson, StringComparison.Ordinal);
             alerts.Verify(
                 a => a.Publish(It.Is<BackupAlertEvent>(e =>
                     e.Kind == BackupAlertKind.RestoreVerificationFailed

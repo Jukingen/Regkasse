@@ -1,7 +1,15 @@
-import { DEFAULT_TEXT_LOCALE, isSupportedTextLocale, normalizeTextLocale, type TextLocale } from './config';
+import {
+  DEFAULT_TEXT_LOCALE,
+  type TextLocale,
+  isSupportedTextLocale,
+  normalizeTextLocale,
+} from './config';
 
 export const APP_LANGUAGE_STORAGE_KEY = 'app_language';
 const LEGACY_LANGUAGE_STORAGE_KEY = 'regkasse.admin.textLocale';
+
+/** Intl format locale (de-AT / en-US / tr-TR). Cleared on logout with other preferences. */
+export const FORMAT_STORAGE_KEY = 'regkasse.admin.formatLocale';
 
 /**
  * Kalıcı olarak kayıtlı metin dilini döndürür.
@@ -11,7 +19,9 @@ const LEGACY_LANGUAGE_STORAGE_KEY = 'regkasse.admin.textLocale';
 export function getStoredLanguage(): TextLocale {
   if (typeof window === 'undefined') return DEFAULT_TEXT_LOCALE;
   try {
-    const raw = window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
     if (raw) {
       const normalized = raw.toLowerCase().trim();
       return isSupportedTextLocale(normalized) ? normalized : DEFAULT_TEXT_LOCALE;

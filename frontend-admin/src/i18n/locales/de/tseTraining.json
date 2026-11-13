@@ -1,0 +1,53 @@
+{
+  "title": "TSE-Training",
+  "subtitle": "Schulungsmodule und Development-Simulationen für TSE-Betrieb. Keine fiskalischen Signaturen.",
+  "diagnosticNote": "Nur Diagnostik. Fehlersimulationen mutieren Geräte-Health-Felder und sind nur in Development aktiv.",
+  "cardTitle": "TSE Training & Simulation",
+  "tabModules": "Trainingsmodule",
+  "tabSimulation": "Simulation",
+  "progress": "{{completed}} / {{total}} Module abgeschlossen",
+  "start": "Starten",
+  "completed": "Abgeschlossen",
+  "moduleCompleted": "Modul als abgeschlossen markiert",
+  "selectDevice": "TSE-Gerät wählen",
+  "deviceRequired": "Bitte zuerst ein TSE-Gerät wählen.",
+  "btnNetworkTimeout": "Network Timeout",
+  "btnCertificateExpiry": "Certificate Expiry",
+  "btnSignatureError": "Signature Error",
+  "simulateSuccess": "Simulation angewendet",
+  "reset": "Simulation zurücksetzen",
+  "resetSuccess": "Simulation zurückgesetzt",
+  "clearConsole": "Konsole leeren",
+  "consoleCleared": "Konsole geleert",
+  "consoleTitle": "Simulationskonsole",
+  "consoleEmpty": "Noch keine Simulationsereignisse.",
+  "simulationDevOnly": "Fehlersimulationen sind nur in Development verfügbar.",
+  "forbidden": "Sie haben keine Berechtigung für diese Seite.",
+  "loadError": "Trainingsumgebung konnte nicht geladen werden.",
+  "modules": {
+    "tse_basics": {
+      "title": "TSE-Grundlagen",
+      "description": "Health-Status, Verbindung und wann die POS Belege ausstellen darf."
+    },
+    "certificate_lifecycle": {
+      "title": "Zertifikatslebenszyklus",
+      "description": "Ablauf, Erneuerung und ungültige Zertifikate üben."
+    },
+    "network_failures": {
+      "title": "Netzwerkfehler",
+      "description": "Timeouts und Verbindungsverlust — ohne fiskalische Zeilen zu ändern."
+    },
+    "signature_errors": {
+      "title": "Signaturfehler",
+      "description": "Geräte-Fehlerflags vs. echte RKSV-JWS (nur Diagnostik)."
+    },
+    "failover_drill": {
+      "title": "Failover-Übung",
+      "description": "Primary/Standby-Bewusstsein und Super-Admin-Werkzeuge."
+    },
+    "offline_queue": {
+      "title": "Offline-Warteschlange",
+      "description": "Legacy-Intents vs. Offline-Orders — getrennte Systeme."
+    }
+  }
+}

@@ -1,7 +1,5 @@
 using Cronos;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Npgsql;
 
 namespace KasseAPI_Final.Services.Backup;

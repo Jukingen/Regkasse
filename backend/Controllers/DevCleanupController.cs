@@ -6,7 +6,6 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -17,6 +16,7 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/dev/cleanup")]
 [Produces("application/json")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public sealed class DevCleanupController : ControllerBase
 {
     private readonly IHostEnvironment _environment;

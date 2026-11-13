@@ -6,13 +6,14 @@ import {
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   writeReport,
   ROOT,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
 const manifest = await readManifest();
-const appIds = (args.app ? [args.app] : Object.keys(manifest.apps)).sort((a, b) => a.localeCompare(b));
+const appIds = (args.app ? [args.app] : listActiveAppIds(manifest)).sort((a, b) => a.localeCompare(b));
 const strictMissing = args.strictMissing === 'true';
 const strictDe = args.strictDe === 'true';
 const hardcodedAsError = args.hardcodedAsError === 'true';
@@ -57,6 +58,10 @@ function resolveUsageBudgets(appId) {
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const localeMatrix = await buildLocaleMatrix(app, manifest.locales);
   const knownNamespaces = new Set(app.namespaces);
   if (app.id === 'frontend-admin') {
@@ -90,7 +95,7 @@ for (const appId of appIds) {
   }
 
   for (const entry of expandedUsedEntries) {
-    const normalized = normalizeUsage(app.id, entry.rawKey, knownNamespaces);
+    const normalized = normalizeUsage(app.id, entry.rawKey, knownNamespaces, entry.defaultNs ?? null);
     if (!normalized) continue;
 
     const { namespace, keyPath } = normalized;
@@ -324,6 +329,7 @@ async function scanUsage(appId, knownNamespaces) {
     const content = await fs.readFile(file, 'utf8').catch(() => '');
     if (!content) continue;
     const isJsxLike = /\.(tsx|jsx)$/.test(file);
+    const defaultNs = extractDefaultNamespaceFromSource(content, knownNamespaces);
 
     for (const match of content.matchAll(/\b(?:i18n\.)?t\(\s*['"`]([^'"`]+)['"`]\s*[,)]/g)) {
       const rawKey = match[1];
@@ -332,6 +338,7 @@ async function scanUsage(appId, knownNamespaces) {
         file: toRelative(file),
         line,
         rawKey,
+        defaultNs,
       });
     }
 
@@ -378,7 +385,15 @@ async function scanUsage(appId, knownNamespaces) {
   };
 }
 
-function normalizeUsage(appId, rawKey, knownNamespaces) {
+/** First useTranslation('ns') / useTranslation(['ns', ...]) in a file — default NS for bare t('key') calls. */
+function extractDefaultNamespaceFromSource(content, knownNamespaces) {
+  const match = content.match(/useTranslation\(\s*(?:\[\s*)?['"`]([a-zA-Z0-9_-]+)['"`]/);
+  if (!match) return null;
+  const ns = match[1];
+  return knownNamespaces.has(ns) ? ns : null;
+}
+
+function normalizeUsage(appId, rawKey, knownNamespaces, defaultNs = null) {
   if (!rawKey || typeof rawKey !== 'string') return null;
   const key = rawKey.trim();
   if (!key) return null;
@@ -391,6 +406,12 @@ function normalizeUsage(appId, rawKey, knownNamespaces) {
 
   if (appId === 'frontend-admin') {
     const [namespace, ...rest] = key.split('.');
+    if (knownNamespaces.has(namespace) && rest.length > 0) {
+      return { namespace: namespace.trim(), keyPath: rest.join('.').trim() };
+    }
+    if (defaultNs && knownNamespaces.has(defaultNs)) {
+      return { namespace: defaultNs, keyPath: key };
+    }
     if (!namespace || rest.length === 0) return null;
     return { namespace: namespace.trim(), keyPath: rest.join('.').trim() };
   }
@@ -400,6 +421,9 @@ function normalizeUsage(appId, rawKey, knownNamespaces) {
     const [first, ...rest] = key.split('.');
     if (knownNamespaces.has(first) && rest.length > 0) {
       return { namespace: first, keyPath: rest.join('.').trim() };
+    }
+    if (defaultNs && knownNamespaces.has(defaultNs)) {
+      return { namespace: defaultNs, keyPath: key };
     }
   }
 

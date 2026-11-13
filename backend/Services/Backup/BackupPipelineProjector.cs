@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
@@ -152,9 +151,12 @@ public static class BackupPipelineProjector
 
     private static string StepWorker(BackupRun run, BackupArtifact? logical, bool materialized)
     {
-        if (run.Status == BackupRunStatus.Queued) return "pending";
-        if (run.Status == BackupRunStatus.Running) return "running";
-        if (run.Status == BackupRunStatus.Failed && materialized && logical == null) return "failed";
+        if (run.Status == BackupRunStatus.Queued)
+            return "pending";
+        if (run.Status == BackupRunStatus.Running)
+            return "running";
+        if (run.Status == BackupRunStatus.Failed && materialized && logical == null)
+            return "failed";
         if (run.Status >= BackupRunStatus.AwaitingVerification || run.Status == BackupRunStatus.Succeeded ||
             run.Status == BackupRunStatus.VerificationFailed)
             return "success";
@@ -163,9 +165,12 @@ public static class BackupPipelineProjector
 
     private static string StepDumpComplete(BackupRun run, BackupArtifact? logical, bool materialized)
     {
-        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running) return "pending";
-        if (run.Status == BackupRunStatus.Failed && materialized && logical == null) return "failed";
-        if (!materialized && run.Status == BackupRunStatus.Failed) return "pending";
+        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running)
+            return "pending";
+        if (run.Status == BackupRunStatus.Failed && materialized && logical == null)
+            return "failed";
+        if (!materialized && run.Status == BackupRunStatus.Failed)
+            return "pending";
         if (run.Status >= BackupRunStatus.AwaitingVerification || run.Status == BackupRunStatus.Succeeded ||
             run.Status == BackupRunStatus.VerificationFailed)
             return "success";
@@ -174,10 +179,14 @@ public static class BackupPipelineProjector
 
     private static string StepLogicalArtifact(BackupRun run, BackupArtifact? logical, bool materialized)
     {
-        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running) return "pending";
-        if (logical != null) return "success";
-        if (!materialized) return "pending";
-        if (run.Status == BackupRunStatus.Failed || run.Status == BackupRunStatus.VerificationFailed) return "failed";
+        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running)
+            return "pending";
+        if (logical != null)
+            return "success";
+        if (!materialized)
+            return "pending";
+        if (run.Status == BackupRunStatus.Failed || run.Status == BackupRunStatus.VerificationFailed)
+            return "failed";
         return "pending";
     }
 
@@ -186,7 +195,8 @@ public static class BackupPipelineProjector
         BackupVerification? pv,
         bool materialized)
     {
-        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running) return "pending";
+        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running)
+            return "pending";
         if (!materialized || pv == null)
             return run.Status == BackupRunStatus.AwaitingVerification ? "running" : "pending";
 
@@ -205,11 +215,16 @@ public static class BackupPipelineProjector
         BackupArtifact? logical,
         bool materialized)
     {
-        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running) return "pending";
-        if (manifest != null) return "success";
-        if (!materialized) return "pending";
-        if (run.Status == BackupRunStatus.Failed || run.Status == BackupRunStatus.VerificationFailed) return "failed";
-        if (run.Status == BackupRunStatus.Succeeded && logical != null) return "pending";
+        if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running)
+            return "pending";
+        if (manifest != null)
+            return "success";
+        if (!materialized)
+            return "pending";
+        if (run.Status == BackupRunStatus.Failed || run.Status == BackupRunStatus.VerificationFailed)
+            return "failed";
+        if (run.Status == BackupRunStatus.Succeeded && logical != null)
+            return "pending";
         return "pending";
     }
 
@@ -219,7 +234,8 @@ public static class BackupPipelineProjector
         bool wantExternal,
         bool materialized)
     {
-        if (!wantExternal) return ("not_required", null, null);
+        if (!wantExternal)
+            return ("not_required", null, null);
         if (!materialized || logical == null)
             return ("pending", null, null);
 
@@ -231,15 +247,18 @@ public static class BackupPipelineProjector
         var terminalVerifyFail = run.Status == BackupRunStatus.VerificationFailed;
         var externalNotRunThisRun = wantExternal && stagingVerified && terminalOk;
 
-        if (externalBad) return ("degraded", "External archive copy failed.", "EXTERNAL_ARCHIVE_FAILED");
-        if (externalOk) return ("success", null, null);
+        if (externalBad)
+            return ("degraded", "External archive copy failed.", "EXTERNAL_ARCHIVE_FAILED");
+        if (externalOk)
+            return ("success", null, null);
         if (externalNotRunThisRun)
             return ("skipped", "External archive not executed for this run (eligibility/policy).", null);
         if (run.Status is BackupRunStatus.Queued or BackupRunStatus.Running or BackupRunStatus.AwaitingVerification)
             return ("pending", null, null);
         if (stagingVerified && terminalVerifyFail)
             return ("degraded", "Staging verified but pipeline failed before or during external phase.", null);
-        if (terminalOk || terminalVerifyFail) return ("pending", null, null);
+        if (terminalOk || terminalVerifyFail)
+            return ("pending", null, null);
         return ("pending", null, null);
     }
 
@@ -250,9 +269,12 @@ public static class BackupPipelineProjector
         bool materialized,
         string copyStatus)
     {
-        if (!wantExternal) return ("not_required", null, null);
-        if (copyStatus is "not_required" or "skipped") return (copyStatus, null, null);
-        if (!materialized || logical == null) return ("pending", null, null);
+        if (!wantExternal)
+            return ("not_required", null, null);
+        if (copyStatus is "not_required" or "skipped")
+            return (copyStatus, null, null);
+        if (!materialized || logical == null)
+            return ("pending", null, null);
 
         var ls = logical.LifecycleState;
         var stagingVerified = ls == BackupArtifactLifecycleState.StagingVerified;
@@ -262,16 +284,21 @@ public static class BackupPipelineProjector
         var terminalVerifyFail = run.Status == BackupRunStatus.VerificationFailed;
         var externalNotRunThisRun = wantExternal && stagingVerified && terminalOk;
 
-        if (externalOk) return ("success", null, null);
-        if (externalBad) return ("failed", "Post-copy checksum verification failed.", "EXTERNAL_ARCHIVE_FAILED");
-        if (externalNotRunThisRun) return ("skipped", null, null);
-        if (stagingVerified && terminalVerifyFail) return ("degraded", null, null);
+        if (externalOk)
+            return ("success", null, null);
+        if (externalBad)
+            return ("failed", "Post-copy checksum verification failed.", "EXTERNAL_ARCHIVE_FAILED");
+        if (externalNotRunThisRun)
+            return ("skipped", null, null);
+        if (stagingVerified && terminalVerifyFail)
+            return ("degraded", null, null);
         return ("pending", null, null);
     }
 
     private static DateTime? ExternalStepCompletedAtUtc(BackupRun run, string stepStatus)
     {
-        if (stepStatus is not ("success" or "failed" or "degraded" or "skipped" or "not_required")) return null;
+        if (stepStatus is not ("success" or "failed" or "degraded" or "skipped" or "not_required"))
+            return null;
         return run.CompletedAt;
     }
 
@@ -280,7 +307,8 @@ public static class BackupPipelineProjector
         var list = run.Verifications.Where(v => v.BackupRunId == run.Id).ToList();
         if (list.Count == 0)
             list = run.Verifications.ToList();
-        if (list.Count == 0) return null;
+        if (list.Count == 0)
+            return null;
         return list
             .OrderByDescending(v => v.CompletedAt ?? DateTime.MinValue)
             .ThenByDescending(v => v.StartedAt)

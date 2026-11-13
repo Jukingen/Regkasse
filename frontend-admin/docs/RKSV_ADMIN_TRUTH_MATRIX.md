@@ -8,14 +8,14 @@
 
 **Legend**
 
-| Class | Meaning |
-|-------|---------|
-| **A** | Authoritative API (primary DTO field for that row/widget) |
-| **D** | Display-only / operator label (may be formatted time, currency) |
-| **J** | Joined / composed in UI from another sub-object (e.g. FO row keyed by `paymentId`) |
-| **C** | Client-derived filter or subset (not server-enforced semantics) |
+| Class | Meaning                                                                                  |
+| ----- | ---------------------------------------------------------------------------------------- |
+| **A** | Authoritative API (primary DTO field for that row/widget)                                |
+| **D** | Display-only / operator label (may be formatted time, currency)                          |
+| **J** | Joined / composed in UI from another sub-object (e.g. FO row keyed by `paymentId`)       |
+| **C** | Client-derived filter or subset (not server-enforced semantics)                          |
 | **B** | Best-effort / diagnostic / slice-scoped (explicitly not global legal or fiscal finality) |
-| **I** | Inferred — local interface or untyped transport; not guaranteed by Orval |
+| **I** | Inferred — local interface or untyped transport; not guaranteed by Orval                 |
 
 ---
 
@@ -23,30 +23,30 @@
 
 **Route:** `/rksv/status` · `src/app/(protected)/rksv/status/page.tsx`
 
-| # | Source endpoint(s) | Generated / transport type |
-|---|-------------------|-----------------------------|
-| 1 | `GET /api/Tse/status` | `TseStatusResponse` (`getApiTseStatus`) |
-| 2 | `GET /api/FinanzOnline/status` | `FinanzOnlineStatusResponse` (`getApiFinanzOnlineStatus`) |
+| #   | Source endpoint(s)             | Generated / transport type                                |
+| --- | ------------------------------ | --------------------------------------------------------- |
+| 1   | `GET /api/Tse/status`          | `TseStatusResponse` (`getApiTseStatus`)                   |
+| 2   | `GET /api/FinanzOnline/status` | `FinanzOnlineStatusResponse` (`getApiFinanzOnlineStatus`) |
 
 ### Field matrix — TSE card
 
-| UI / concept | API field | Class | Notes |
-|--------------|-----------|-------|-------|
-| Connection tag | `isConnected` | A | |
-| Serial | `serialNumber` | A | nullable in OpenAPI |
-| Kassen-ID | `kassenId` | A | display identifier; register FK policy for links is on other surfaces |
-| Certificate | `certificateStatus` | A | |
-| Can create invoices | `canCreateInvoices` | A | |
-| Error banner | query `error` | D | React Query error, not a fiscal field |
+| UI / concept        | API field           | Class | Notes                                                                 |
+| ------------------- | ------------------- | ----- | --------------------------------------------------------------------- |
+| Connection tag      | `isConnected`       | A     |                                                                       |
+| Serial              | `serialNumber`      | A     | nullable in OpenAPI                                                   |
+| Kassen-ID           | `kassenId`          | A     | display identifier; register FK policy for links is on other surfaces |
+| Certificate         | `certificateStatus` | A     |                                                                       |
+| Can create invoices | `canCreateInvoices` | A     |                                                                       |
+| Error banner        | query `error`       | D     | React Query error, not a fiscal field                                 |
 
 ### Field matrix — FinanzOnline card
 
-| UI / concept | API field | Class | Notes |
-|--------------|-----------|-------|-------|
-| Connected tag | `isConnected` | A | Backend uses TSE-device-scoped check; **not** payment reconciliation (see `FINANZONLINE_ADMIN_SOURCE_OF_TRUTH.md`) |
-| Pending invoices (label) | `pendingInvoices` | B | **Misleading if read as FO Abgleich queue** — TSE device counters, not `PaymentDetails` FO status |
-| Last sync | `lastSync` | A | Same scope as status endpoint |
-| Link „Open FinanzOnline Operations“ | — | D | Navigation only |
+| UI / concept                        | API field         | Class | Notes                                                                                                              |
+| ----------------------------------- | ----------------- | ----- | ------------------------------------------------------------------------------------------------------------------ |
+| Connected tag                       | `isConnected`     | A     | Backend uses TSE-device-scoped check; **not** payment reconciliation (see `FINANZONLINE_ADMIN_SOURCE_OF_TRUTH.md`) |
+| Pending invoices (label)            | `pendingInvoices` | B     | **Misleading if read as FO Abgleich queue** — TSE device counters, not `PaymentDetails` FO status                  |
+| Last sync                           | `lastSync`        | A     | Same scope as status endpoint                                                                                      |
+| Link „Open FinanzOnline Operations“ | —                 | D     | Navigation only                                                                                                    |
 
 ### Missing operational-truth fields
 
@@ -63,8 +63,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                                                            | Frontend-only                                                                               |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | Clarify descriptions on `FinanzOnlineStatusResponse` (`pendingInvoices` / `lastSync` semantics vs reconciliation). | Add Abgleich link + German copy clarifying non-reconciliation scope; align language policy. |
 
 ---
@@ -73,28 +73,28 @@
 
 **Route:** `/rksv/cmc-certificate` · `src/app/(protected)/rksv/cmc-certificate/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/Tse/status` | `TseStatusResponse` |
-| 2 | `GET /api/Tse/devices` | `TseDevice[]` (`getApiTseDevices`) |
+| #   | Source endpoint(s)     | Generated type(s)                  |
+| --- | ---------------------- | ---------------------------------- |
+| 1   | `GET /api/Tse/status`  | `TseStatusResponse`                |
+| 2   | `GET /api/Tse/devices` | `TseDevice[]` (`getApiTseDevices`) |
 
 ### Field matrix — Certificate Status card
 
-| UI label | API field | Class | Notes |
-|----------|-----------|-------|-------|
-| Certificate Status | `certificateStatus` | A | from `TseStatusResponse` |
-| Serial Number | `serialNumber` | A | |
-| Kassen-ID | `kassenId` | A | |
-| Memory Status | `memoryStatus` | A | |
-| Last Signature Time | `lastSignatureTime` | A | |
+| UI label            | API field           | Class | Notes                    |
+| ------------------- | ------------------- | ----- | ------------------------ |
+| Certificate Status  | `certificateStatus` | A     | from `TseStatusResponse` |
+| Serial Number       | `serialNumber`      | A     |                          |
+| Kassen-ID           | `kassenId`          | A     |                          |
+| Memory Status       | `memoryStatus`      | A     |                          |
+| Last Signature Time | `lastSignatureTime` | A     |                          |
 
 ### Field matrix — Available TSE Devices
 
-| UI | API field | Class | Notes |
-|----|-----------|-------|-------|
-| Row label | `serialNumber` | D | Used as Descriptions label |
+| UI           | API field                            | Class | Notes                                                                                                  |
+| ------------ | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------ |
+| Row label    | `serialNumber`                       | D     | Used as Descriptions label                                                                             |
 | Cell content | `kassenId` ?? `serialNumber` ?? `id` | A / D | **Client fallback chain** — first non-empty wins (**C** composition, not a single API „display“ field) |
-| Device id | `id` | A | |
+| Device id    | `id`                                 | A     |                                                                                                        |
 
 ### Missing operational-truth fields
 
@@ -111,8 +111,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                             | Frontend-only                                              |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Optional: explicit `displayLabel` for device row if product wants stable semantics. | German copy; optional `AdminTruthBadge` on fallback chain. |
 
 ---
@@ -121,26 +121,26 @@
 
 **Route:** `/rksv/verifications` · `src/app/(protected)/rksv/verifications/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/AuditLog?page=&pageSize=` | `AuditLogsResponse` → `AuditLogEntryDto[]` |
-| 2 | `GET /api/AuditLog/correlation/{correlationId}` | `AuditLogsResponse` (when query param set) |
+| #   | Source endpoint(s)                              | Generated type(s)                          |
+| --- | ----------------------------------------------- | ------------------------------------------ |
+| 1   | `GET /api/AuditLog?page=&pageSize=`             | `AuditLogsResponse` → `AuditLogEntryDto[]` |
+| 2   | `GET /api/AuditLog/correlation/{correlationId}` | `AuditLogsResponse` (when query param set) |
 
 ### Field matrix — table columns (typical)
 
-| Column / concept | API field | Class | Notes |
-|------------------|-----------|-------|-------|
-| Timestamp | `timestamp` | A | |
-| User | `actorDisplayName` ?? `userId` | A | **Client fallback** |
-| Action | `action` | A | free-form string in practice |
-| Entity / correlation / etc. | various `AuditLogEntryDto` | A | per column |
+| Column / concept            | API field                      | Class | Notes                        |
+| --------------------------- | ------------------------------ | ----- | ---------------------------- |
+| Timestamp                   | `timestamp`                    | A     |                              |
+| User                        | `actorDisplayName` ?? `userId` | A     | **Client fallback**          |
+| Action                      | `action`                       | A     | free-form string in practice |
+| Entity / correlation / etc. | various `AuditLogEntryDto`     | A     | per column                   |
 
 ### Client-derived subset
 
-| Concept | Class | Notes |
-|---------|-------|-------|
-| „Signature-related“ filter | **C** | Keyword filter on `action` / `entityType` — **not** backed by OpenAPI enum; action renames **silently narrow** (documented in source comment) |
-| Toggle filters (offline / failed replay / timing) | **C** | Same risk |
+| Concept                                           | Class | Notes                                                                                                                                         |
+| ------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| „Signature-related“ filter                        | **C** | Keyword filter on `action` / `entityType` — **not** backed by OpenAPI enum; action renames **silently narrow** (documented in source comment) |
+| Toggle filters (offline / failed replay / timing) | **C** | Same risk                                                                                                                                     |
 
 ### Missing operational-truth fields
 
@@ -157,8 +157,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                          | Frontend-only                                                                                                 |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Optional: enums or tags for replay/signature actions if stable contract desired. | Pagination control; stronger „diagnostic subset“ banner; keyword filter disclaimer already partially in code. |
 
 ---
@@ -168,45 +168,45 @@
 **Route:** `/rksv/finanz-online-operations` · `src/app/(protected)/rksv/finanz-online-operations/page.tsx`  
 **Ref:** `docs/FINANZONLINE_ADMIN_SOURCE_OF_TRUTH.md`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/FinanzOnline/status` | `FinanzOnlineStatusResponse` |
-| 2 | `GET /api/FinanzOnline/config` | `FinanzOnlineConfigResponse` |
-| 3 | `GET /api/FinanzOnline/errors` | `FinanzOnlineErrorResponse[]` |
-| 4 | `GET /api/FinanzOnline/history/{invoiceId}` | `FinanzOnlineSubmission[]` |
-| 5 | `POST /api/FinanzOnline/test-connection` | `FinanzOnlineTestResponse` |
+| #   | Source endpoint(s)                          | Generated type(s)             |
+| --- | ------------------------------------------- | ----------------------------- |
+| 1   | `GET /api/FinanzOnline/status`              | `FinanzOnlineStatusResponse`  |
+| 2   | `GET /api/FinanzOnline/config`              | `FinanzOnlineConfigResponse`  |
+| 3   | `GET /api/FinanzOnline/errors`              | `FinanzOnlineErrorResponse[]` |
+| 4   | `GET /api/FinanzOnline/history/{invoiceId}` | `FinanzOnlineSubmission[]`    |
+| 5   | `POST /api/FinanzOnline/test-connection`    | `FinanzOnlineTestResponse`    |
 
 ### Field matrix — status card
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `isConnected`, `apiVersion`, `lastSync`, `pendingInvoices`, `pendingReports`, `errorMessage` | A | Values are API-authored |
-| Operational meaning vs payment FO | **B** | `pending*` / connection are **TSE/legacy simulation paths**, not reconciliation queue |
+| Field                                                                                        | Class | Notes                                                                                 |
+| -------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
+| `isConnected`, `apiVersion`, `lastSync`, `pendingInvoices`, `pendingReports`, `errorMessage` | A     | Values are API-authored                                                               |
+| Operational meaning vs payment FO                                                            | **B** | `pending*` / connection are **TSE/legacy simulation paths**, not reconciliation queue |
 
 ### Field matrix — config card
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `isEnabled`, `autoSubmit`, `submitInterval`, `retryAttempts`, `apiUrl`, `username`, `enableValidation` | A | Snapshot from company + device flags |
+| Field                                                                                                  | Class | Notes                                |
+| ------------------------------------------------------------------------------------------------------ | ----- | ------------------------------------ |
+| `isEnabled`, `autoSubmit`, `submitInterval`, `retryAttempts`, `apiUrl`, `username`, `enableValidation` | A     | Snapshot from company + device flags |
 
 ### Field matrix — errors table
 
-| Field | Class | Notes |
-|-------|-------|-------|
+| Field                                                         | Class | Notes                                                                                                |
+| ------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
 | `code`, `message`, `timestamp`, `invoiceNumber`, `retryCount` | **I** | **Backend currently returns placeholder list** — fields are API-shaped but **not operational truth** |
 
 ### Field matrix — history table
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `submittedAt`, `success`, `responseStatusCode`, `errorMessage`, etc. | A | From `FinanzOnlineSubmission` entity |
-| Coverage vs current checkout FO | **B** | May **not** reflect `PaymentDetails` FO state |
+| Field                                                                | Class | Notes                                         |
+| -------------------------------------------------------------------- | ----- | --------------------------------------------- |
+| `submittedAt`, `success`, `responseStatusCode`, `errorMessage`, etc. | A     | From `FinanzOnlineSubmission` entity          |
+| Coverage vs current checkout FO                                      | **B** | May **not** reflect `PaymentDetails` FO state |
 
 ### Field matrix — test connection result
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `success`, `message`, `responseTime`, `timestamp`, `apiVersion` | A | **Simulated** path in backend — diagnostic, not production FO outcome per payment |
+| Field                                                           | Class | Notes                                                                             |
+| --------------------------------------------------------------- | ----- | --------------------------------------------------------------------------------- |
+| `success`, `message`, `responseTime`, `timestamp`, `apiVersion` | A     | **Simulated** path in backend — diagnostic, not production FO outcome per payment |
 
 ### Missing operational-truth fields
 
@@ -223,8 +223,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                                                         | Frontend-only                                                      |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Deprecate or document `errors`; document `history` vs payment pipeline; `FinanzOnlineStatusResponse` semantics. | Badges: `diagnostic_support`; rename cards (see FINANZONLINE doc). |
 
 ---
@@ -233,42 +233,42 @@
 
 **Route:** `/rksv/finanz-online-queue` · `src/app/(protected)/rksv/finanz-online-queue/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/admin/finanzonline-reconciliation` | `FinanzOnlineReconciliationListResponse`, `FinanzOnlineReconciliationItemDto` |
-| 2 | `GET /api/admin/finanzonline-reconciliation/metrics` | `FinanzOnlineMetricsResponse` |
-| 3 | `POST /api/admin/finanzonline-reconciliation/retry/{paymentId}` | `FinanzOnlineRetryResponse` |
-| 4 | `GET /api/CashRegister` (via `getAdminCashRegisters`) | Normalized `CashRegisterRow[]` (**I** adapter) |
+| #   | Source endpoint(s)                                              | Generated type(s)                                                             |
+| --- | --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 1   | `GET /api/admin/finanzonline-reconciliation`                    | `FinanzOnlineReconciliationListResponse`, `FinanzOnlineReconciliationItemDto` |
+| 2   | `GET /api/admin/finanzonline-reconciliation/metrics`            | `FinanzOnlineMetricsResponse`                                                 |
+| 3   | `POST /api/admin/finanzonline-reconciliation/retry/{paymentId}` | `FinanzOnlineRetryResponse`                                                   |
+| 4   | `GET /api/CashRegister` (via `getAdminCashRegisters`)           | Normalized `CashRegisterRow[]` (**I** adapter)                                |
 
 ### Field matrix — list row (`FinanzOnlineReconciliationItemDto`)
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `paymentId` | A | Retry and investigation key |
-| `receiptNumber` | A | Display + correlation |
-| `createdAt` | A | |
-| `totalAmount` | A | |
-| `cashRegisterId` | A | Register FK; use `viewFinanzReconciliationRegister` for link-safe UUID (**A** + policy) |
-| `finanzOnlineStatus` | A | |
-| `finanzOnlineError` | A | |
-| `finanzOnlineReferenceId` | A | |
-| `finanzOnlineLastAttemptAtUtc` | A | |
-| `finanzOnlineRetryCount` | A | |
-| Register display label (human) | — | **Missing in DTO** — gap in `RKSv_ADMIN_CONTRACT_GAPS.finanzReconciliationRegisterDisplay` |
+| Field                          | Class | Notes                                                                                      |
+| ------------------------------ | ----- | ------------------------------------------------------------------------------------------ |
+| `paymentId`                    | A     | Retry and investigation key                                                                |
+| `receiptNumber`                | A     | Display + correlation                                                                      |
+| `createdAt`                    | A     |                                                                                            |
+| `totalAmount`                  | A     |                                                                                            |
+| `cashRegisterId`               | A     | Register FK; use `viewFinanzReconciliationRegister` for link-safe UUID (**A** + policy)    |
+| `finanzOnlineStatus`           | A     |                                                                                            |
+| `finanzOnlineError`            | A     |                                                                                            |
+| `finanzOnlineReferenceId`      | A     |                                                                                            |
+| `finanzOnlineLastAttemptAtUtc` | A     |                                                                                            |
+| `finanzOnlineRetryCount`       | A     |                                                                                            |
+| Register display label (human) | —     | **Missing in DTO** — gap in `RKSv_ADMIN_CONTRACT_GAPS.finanzReconciliationRegisterDisplay` |
 
 ### Field matrix — metrics
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `submitTotal`, `submitFailed*` | A | **Volatile process counters** (restart) — **B** for long-term truth |
+| Field                          | Class | Notes                                                               |
+| ------------------------------ | ----- | ------------------------------------------------------------------- |
+| `submitTotal`, `submitFailed*` | A     | **Volatile process counters** (restart) — **B** for long-term truth |
 
 ### URL query params (`cashRegisterId`, `status`, `fromUtc`, `toUtc`, investigation context)
 
-| Param | Class | Notes |
-|-------|-------|-------|
-| `cashRegisterId` | A | Only applied when `parseAuthoritativeRegisterGuid` accepts — else rejected banner (**A** policy, honest UI) |
-| `focusPaymentId` | **C** | Row highlight only, not server filter |
-| `investigationBatchCorrelationId` | **C** | Context-only (documented in `OPERATOR_INVESTIGATION_CONTEXT_COPY`) |
+| Param                             | Class | Notes                                                                                                       |
+| --------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------- |
+| `cashRegisterId`                  | A     | Only applied when `parseAuthoritativeRegisterGuid` accepts — else rejected banner (**A** policy, honest UI) |
+| `focusPaymentId`                  | **C** | Row highlight only, not server filter                                                                       |
+| `investigationBatchCorrelationId` | **C** | Context-only (documented in `OPERATOR_INVESTIGATION_CONTEXT_COPY`)                                          |
 
 ### Missing operational-truth fields
 
@@ -285,8 +285,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                     | Frontend-only                                                         |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Optional register label; optional `invoiceId`; document metrics volatility. | Already uses `viewFinanzReconciliationRegister`, investigation hrefs. |
 
 ---
@@ -295,21 +295,21 @@
 
 **Route:** `/rksv/fiscal-export-diagnostics` · `src/app/(protected)/rksv/fiscal-export-diagnostics/page.tsx`
 
-| # | Source endpoint(s) | Type situation |
-|---|-------------------|----------------|
-| 1 | `GET /api/admin/fiscal-export?format=json&…` | Orval `getApiAdminFiscalExport` returns **`void`** — **contract defect** |
-| 2 | Same URL via `getFiscalExportPreview` in `src/api/admin-rksv/client.ts` | Response = **I** (`axios` `.data` unconstrained) |
-| 3 | Page-local `FiscalExportPackage` / `FiscalExportIntegrity` | **I** — structural assumption of JSON shape |
-| 4 | `GET /api/CashRegister` (picker) | Via `getAdminCashRegisters` → **I** normalized rows |
+| #   | Source endpoint(s)                                                      | Type situation                                                           |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1   | `GET /api/admin/fiscal-export?format=json&…`                            | Orval `getApiAdminFiscalExport` returns **`void`** — **contract defect** |
+| 2   | Same URL via `getFiscalExportPreview` in `src/api/admin-rksv/client.ts` | Response = **I** (`axios` `.data` unconstrained)                         |
+| 3   | Page-local `FiscalExportPackage` / `FiscalExportIntegrity`              | **I** — structural assumption of JSON shape                              |
+| 4   | `GET /api/CashRegister` (picker)                                        | Via `getAdminCashRegisters` → **I** normalized rows                      |
 
 ### Field matrix — preview / summary (representative)
 
-| Concept | Class | Notes |
-|---------|-------|-------|
-| `receiptCount`, `closingCount`, `receiptsTruncated`, `totalReceiptsMatchingPeriod` | **I** | Treated as authoritative **if** backend matches assumed shape |
-| `notLegalProofNotice` | **I** | Critical honesty field when present |
-| `exportScopeWarnings`, `chainContinuityWarnings` | **I** | |
-| `integrity.*` (chain, offline coverage, hash mismatch ratio, …) | **I** / **B** | **Slice-scoped** export integrity; page Alert points to Datenintegrität for DB-wide checks |
+| Concept                                                                            | Class         | Notes                                                                                      |
+| ---------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
+| `receiptCount`, `closingCount`, `receiptsTruncated`, `totalReceiptsMatchingPeriod` | **I**         | Treated as authoritative **if** backend matches assumed shape                              |
+| `notLegalProofNotice`                                                              | **I**         | Critical honesty field when present                                                        |
+| `exportScopeWarnings`, `chainContinuityWarnings`                                   | **I**         |                                                                                            |
+| `integrity.*` (chain, offline coverage, hash mismatch ratio, …)                    | **I** / **B** | **Slice-scoped** export integrity; page Alert points to Datenintegrität for DB-wide checks |
 
 ### Missing operational-truth fields
 
@@ -325,8 +325,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                                                     | Frontend-only                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | **Required:** define fiscal export JSON schema; fix `getApiAdminFiscalExport` return type (replace `void`). | Until then: keep **I** documentation; optional runtime validator (zod) **only** if product accepts — would be new dep/discipline. |
 
 ---
@@ -335,23 +335,23 @@
 
 **Route:** `/rksv/integrity` · `src/app/(protected)/rksv/integrity/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/admin/integrity` | `IntegrityReportDto` |
+| #   | Source endpoint(s)         | Generated type(s)    |
+| --- | -------------------------- | -------------------- |
+| 1   | `GET /api/admin/integrity` | `IntegrityReportDto` |
 
 ### Field matrix — `IntegrityReportDto`
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `generatedAtUtc` | A | |
-| `sequenceIssues` → `duplicateReceiptNumberCount`, `nonMonotonicSequenceCount`, `duplicateReceiptNumbers`, `nonMonotonicKeys` | A | Details gated by `includeDetails` query param |
-| `orphanRefunds` → counts / id lists | A | |
-| `paymentWithoutInvoice` → `count`, `paymentIds` | A | |
+| Field                                                                                                                        | Class | Notes                                         |
+| ---------------------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------- |
+| `generatedAtUtc`                                                                                                             | A     |                                               |
+| `sequenceIssues` → `duplicateReceiptNumberCount`, `nonMonotonicSequenceCount`, `duplicateReceiptNumbers`, `nonMonotonicKeys` | A     | Details gated by `includeDetails` query param |
+| `orphanRefunds` → counts / id lists                                                                                          | A     |                                               |
+| `paymentWithoutInvoice` → `count`, `paymentIds`                                                                              | A     |                                               |
 
 ### Client adjustment
 
-| Concept | Class | Notes |
-|---------|-------|-------|
+| Concept                  | Class | Notes                                                                                              |
+| ------------------------ | ----- | -------------------------------------------------------------------------------------------------- |
 | Date range inclusive end | **C** | UI sends `toDate` as day+1 — **documented in file comment**; backend rule is exclusive upper bound |
 
 ### Missing operational-truth fields
@@ -368,8 +368,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                               | Frontend-only                                                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Optional: severity or recommended action per section. | Remove redundant `as IntegrityReportDto` if query typing sufficient; keep threshold tags labeled as UI heuristic. |
 
 ---
@@ -378,33 +378,33 @@
 
 **Route:** `/rksv/replay-batch/[correlationId]` · `src/app/(protected)/rksv/replay-batch/[correlationId]/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/admin/replay-batch/{correlationId}` | `ReplayBatchDetailResponse` |
+| #   | Source endpoint(s)                            | Generated type(s)           |
+| --- | --------------------------------------------- | --------------------------- |
+| 1   | `GET /api/admin/replay-batch/{correlationId}` | `ReplayBatchDetailResponse` |
 
 ### Field matrix — `ReplayBatchDetailResponse`
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `correlationId` | A | Batch correlation |
-| `auditCorrelationId` | A | May differ; drives Verifications link via `viewReplayBatchTraceIds(..., { verificationsAuditOnly: true })` |
-| `totalItems`, `successCount`, `failedOrDuplicateCount` | A | |
-| `coverageSampleCount` | A | **B** — observability sample, footnoted |
-| `offlineSyncedAuditCount` | A | **B** — audit label count |
-| `offlineFinalFailureAuditCount` | A | **B** — not automatic „finality“ (see `OPERATOR_REPLAY_COPY`) |
-| `payments[]` → `ReplayBatchPaymentItemDto` | A | |
+| Field                                                  | Class | Notes                                                                                                      |
+| ------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------------------------------- |
+| `correlationId`                                        | A     | Batch correlation                                                                                          |
+| `auditCorrelationId`                                   | A     | May differ; drives Verifications link via `viewReplayBatchTraceIds(..., { verificationsAuditOnly: true })` |
+| `totalItems`, `successCount`, `failedOrDuplicateCount` | A     |                                                                                                            |
+| `coverageSampleCount`                                  | A     | **B** — observability sample, footnoted                                                                    |
+| `offlineSyncedAuditCount`                              | A     | **B** — audit label count                                                                                  |
+| `offlineFinalFailureAuditCount`                        | A     | **B** — not automatic „finality“ (see `OPERATOR_REPLAY_COPY`)                                              |
+| `payments[]` → `ReplayBatchPaymentItemDto`             | A     |                                                                                                            |
 
 ### Field matrix — `ReplayBatchPaymentItemDto`
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `paymentId`, `receiptId`, `receiptNumber`, `offlineTransactionId`, `totalAmount`, `createdAtUtc` | A | |
-| FO status / correlation per payment | **Missing** | Documented in UI: no FO fields on DTO — use Incident / Abgleich |
+| Field                                                                                            | Class       | Notes                                                           |
+| ------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------- |
+| `paymentId`, `receiptId`, `receiptNumber`, `offlineTransactionId`, `totalAmount`, `createdAtUtc` | A           |                                                                 |
+| FO status / correlation per payment                                                              | **Missing** | Documented in UI: no FO fields on DTO — use Incident / Abgleich |
 
 ### Derived / navigation
 
-| Concept | Class | Notes |
-|---------|-------|-------|
+| Concept                                   | Class         | Notes                                                                                                                                                                                  |
+| ----------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Incident / Verifications / FO queue links | **D** + **C** | `buildIncidentInvestigationHref`, `buildVerificationsAuditHref`, `buildFinanzOnlineQueueInvestigationHref` — **separate data sources** (`OPERATOR_REPLAY_COPY.investigationPathIntro`) |
 
 ### Missing operational-truth fields
@@ -421,8 +421,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                                       | Frontend-only                                              |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Extend `ReplayBatchPaymentItemDto` if product needs FO/register on batch row. | Already uses `viewReplayBatchTraceIds`, badges, gap Alert. |
 
 ---
@@ -431,36 +431,36 @@
 
 **Route:** `/rksv/incident` · `src/app/(protected)/rksv/incident/page.tsx`
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `GET /api/admin/incidents/{correlationId}` | `IncidentInvestigationResponse` |
+| #   | Source endpoint(s)                         | Generated type(s)               |
+| --- | ------------------------------------------ | ------------------------------- |
+| 1   | `GET /api/admin/incidents/{correlationId}` | `IncidentInvestigationResponse` |
 
 ### Field matrix — aggregate
 
-| Sub-object | Class | Notes |
-|------------|-------|-------|
-| `replayBatch` | A | Same `ReplayBatchDetailResponse` semantics as §8 |
-| `auditLogs[]` | A | `AuditLogEntryDto` |
-| `finanzOnlineReconciliation[]` | A | `FinanzOnlineReconciliationItemDto` rows for correlated payments |
-| `hints` | A | `IncidentInvestigationHintsDto` |
+| Sub-object                     | Class | Notes                                                            |
+| ------------------------------ | ----- | ---------------------------------------------------------------- |
+| `replayBatch`                  | A     | Same `ReplayBatchDetailResponse` semantics as §8                 |
+| `auditLogs[]`                  | A     | `AuditLogEntryDto`                                               |
+| `finanzOnlineReconciliation[]` | A     | `FinanzOnlineReconciliationItemDto` rows for correlated payments |
+| `hints`                        | A     | `IncidentInvestigationHintsDto`                                  |
 
 ### Field matrix — `IncidentInvestigationHintsDto`
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `finanzOnlineSubmittedCount`, `finanzOnlineOpenOrProblemCount` | A | **J**/**B** — aggregate over included FO rows; **not** row-granular truth (`OPERATOR_INCIDENT_COPY.foAggregateLine`) |
-| `hasLockTimeoutAudit`, `hasPayloadImmutableMismatchAudit` | A | Derived on server from audit scan |
+| Field                                                          | Class | Notes                                                                                                                |
+| -------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------- |
+| `finanzOnlineSubmittedCount`, `finanzOnlineOpenOrProblemCount` | A     | **J**/**B** — aggregate over included FO rows; **not** row-granular truth (`OPERATOR_INCIDENT_COPY.foAggregateLine`) |
+| `hasLockTimeoutAudit`, `hasPayloadImmutableMismatchAudit`      | A     | Derived on server from audit scan                                                                                    |
 
 ### Joined FO column on payment table
 
-| Concept | Class | Notes |
-|---------|-------|-------|
+| Concept        | Class | Notes                                                                                  |
+| -------------- | ----- | -------------------------------------------------------------------------------------- |
 | FO status cell | **J** | Map `paymentId` → `finanzOnlineReconciliation` row; badge **derived_from_foreign_row** |
 
 ### Inferred (documented in code)
 
-| Concept | Class | Notes |
-|---------|-------|-------|
+| Concept                                     | Class | Notes                                                                                            |
+| ------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
 | `replayPath`, `payloadRepaired` in timeline | **I** | Parsed from `requestData` / `responseData` JSON via `parseReplayMeta` — **not** typed DTO fields |
 
 ### Missing operational-truth fields
@@ -477,8 +477,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                                      | Frontend-only                                                        |
+| ------------------------------------------------------------ | -------------------------------------------------------------------- |
 | Optional structured fields on audit entries for replay meta. | Keep `parseReplayMeta` strict (no silent success on malformed JSON). |
 
 ---
@@ -488,34 +488,34 @@
 **Route:** `/rksv/payload-hash-conflicts` · `src/app/(protected)/rksv/payload-hash-conflicts/page.tsx`  
 **Note:** File header comment says „read-only“ / „no repair“ but the page implements **dry-run and apply repair** — treat as **mixed** (doc drift).
 
-| # | Source endpoint(s) | Generated type(s) |
-|---|-------------------|-------------------|
-| 1 | `POST /api/admin/offline-payload-hash/analyze` | `OfflinePayloadHashAnalyzeResult` |
-| 2 | `POST /api/admin/offline-payload-hash/repair` | `OfflinePayloadHashRepairResult` |
-| 3 | `GET /api/admin/offline-payload-hash/export` | `Blob` (**I** — manual client in `admin-rksv/client.ts`) |
-| 4 | `GET /api/CashRegister` (picker) | `getAdminCashRegisters` (**I** adapter) |
+| #   | Source endpoint(s)                             | Generated type(s)                                        |
+| --- | ---------------------------------------------- | -------------------------------------------------------- |
+| 1   | `POST /api/admin/offline-payload-hash/analyze` | `OfflinePayloadHashAnalyzeResult`                        |
+| 2   | `POST /api/admin/offline-payload-hash/repair`  | `OfflinePayloadHashRepairResult`                         |
+| 3   | `GET /api/admin/offline-payload-hash/export`   | `Blob` (**I** — manual client in `admin-rksv/client.ts`) |
+| 4   | `GET /api/CashRegister` (picker)               | `getAdminCashRegisters` (**I** adapter)                  |
 
 ### Field matrix — analyze result
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `scanned`, `runtimeMismatchCount`, `nullOrEmptyPayloadHash`, `skippedWouldConflictCount`, `repairableNoConflictCount` | A | |
-| `mismatchRatioPercent`, `legacyDataQualityRiskHigh` | A | |
-| `conflictGroups[]` | A | See `PayloadHashConflictGroup` |
-| `repairableItems[]` | A | `PayloadHashRepairableItem` |
-| `sampleMismatchIds`, `warningMessage` | A | |
+| Field                                                                                                                 | Class | Notes                          |
+| --------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------ |
+| `scanned`, `runtimeMismatchCount`, `nullOrEmptyPayloadHash`, `skippedWouldConflictCount`, `repairableNoConflictCount` | A     |                                |
+| `mismatchRatioPercent`, `legacyDataQualityRiskHigh`                                                                   | A     |                                |
+| `conflictGroups[]`                                                                                                    | A     | See `PayloadHashConflictGroup` |
+| `repairableItems[]`                                                                                                   | A     | `PayloadHashRepairableItem`    |
+| `sampleMismatchIds`, `warningMessage`                                                                                 | A     |                                |
 
 ### Field matrix — `PayloadHashConflictGroup` (table)
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `cashRegisterId`, `canonicalHash`, `skipReason`, `severitySuggestion`, `latestCreatedAtUtc`, `mismatchRowIds`, `occupantRowIds` | A | UI may truncate display (**D**) |
+| Field                                                                                                                           | Class | Notes                           |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------- |
+| `cashRegisterId`, `canonicalHash`, `skipReason`, `severitySuggestion`, `latestCreatedAtUtc`, `mismatchRowIds`, `occupantRowIds` | A     | UI may truncate display (**D**) |
 
 ### Field matrix — repair result
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `dryRun`, `updated`, `scanned`, `skipped*` | A | |
+| Field                                      | Class | Notes |
+| ------------------------------------------ | ----- | ----- |
+| `dryRun`, `updated`, `scanned`, `skipped*` | A     |       |
 
 ### Missing operational-truth fields
 
@@ -531,8 +531,8 @@
 
 ### OpenAPI vs frontend-only
 
-| OpenAPI | Frontend-only |
-|---------|----------------|
+| OpenAPI                                       | Frontend-only                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------ |
 | Ensure analyze/repair/export fully described. | Fix file header comment; confirm German strings for destructive actions. |
 
 ---

@@ -29,6 +29,11 @@ public static class Roles
     public const string Accountant = "Accountant";
 
     /// <summary>
+    /// Platform compliance officer: production deployment sign-off (RKSV gate). Not POS.
+    /// </summary>
+    public const string ComplianceOfficer = "ComplianceOfficer";
+
+    /// <summary>
     /// Fallback when no role is assigned (e.g. token build). Not a real role; do not use for authorization.
     /// </summary>
     public const string FallbackUnknown = "User";
@@ -47,8 +52,23 @@ public static class Roles
         Waiter,
         Kitchen,
         ReportViewer,
-        Accountant
+        Accountant,
+        ComplianceOfficer
     };
+
+    /// <summary>True when <paramref name="role"/> is a seeded system role (matrix-backed; not a custom Identity role).</summary>
+    public static bool IsCanonical(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+            return false;
+        foreach (var canonical in Canonical)
+        {
+            if (string.Equals(canonical, role, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Names that must not be used for custom roles (merged/removed or reserved). Demo reserved: use IsDemo flag only.

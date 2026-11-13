@@ -1,27 +1,24 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
-import {
-  DailyClosingApiError,
-  downloadDailyClosingReportPdf,
-} from '../services/api/shiftService';
+import { DailyClosingModal } from './DailyClosingModal';
 import { useShift } from '../hooks/useShift';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
+import { downloadDailyClosingReportPdf } from '../services/api/shiftService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   printDailyClosingReport,
   printDailyClosingReportPdf,
 } from '../utils/dailyClosingReportPrint';
+import {
+  extractDailyClosingErrorDetails,
+  getDailyClosingErrorMessage,
+} from '../utils/errorMessages';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 import { formatPrice } from '../utils/formatPrice';
+import { resolveDailyClosingStatusMessage } from '../utils/resolveDailyClosingStatusMessage';
 
 function parseMoneyInput(value: string): number | null {
   const normalized = value.trim().replace(/\s/g, '').replace(',', '.');
@@ -36,99 +33,94 @@ export function ShiftManager() {
     activeShift,
     cashRegisterId,
     dailyClosingStatus,
-    startShift,
-    endShift,
     performDailyClosing,
     isLoading,
     error,
     refresh,
     refreshDailyClosingStatus,
   } = useShift();
-  const [showStartModal, setShowStartModal] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
   const [showDailyClosingModal, setShowDailyClosingModal] = useState(false);
-  const [startBalance, setStartBalance] = useState('');
-  const [endBalance, setEndBalance] = useState('');
   const [cashCount, setCashCount] = useState('');
-  const [notes, setNotes] = useState('');
   const [dailyClosingNotes, setDailyClosingNotes] = useState('');
+  const [dailyClosingError, setDailyClosingError] = useState<string | null>(null);
 
   const reportLabels = useCallback(
     () => ({
       title: t('settings:shift.dailyClosing.reportTitle'),
       date: t('settings:shift.dailyClosing.reportDate'),
+      period: t('settings:shift.dailyClosing.reportPeriod'),
+      cashRegisterId: t('settings:shift.dailyClosing.reportCashRegisterId'),
       register: t('settings:shift.dailyClosing.reportRegister'),
+      cashier: t('settings:shift.dailyClosing.reportCashier'),
+      tseStatus: t('settings:shift.dailyClosing.reportTseStatus'),
+      tseProvider: t('settings:shift.dailyClosing.reportTseProvider'),
+      depExport: t('settings:shift.dailyClosing.reportDepExport'),
       sales: t('settings:shift.dailyClosing.reportSales'),
       cash: t('settings:shift.dailyClosing.reportCash'),
       card: t('settings:shift.dailyClosing.reportCard'),
+      voucher: t('settings:shift.dailyClosing.reportVoucher'),
+      other: t('settings:shift.dailyClosing.reportOther'),
+      paymentMethodsSection: t('settings:shift.dailyClosing.reportPaymentMethods'),
+      financialSummarySection: t('settings:shift.dailyClosing.reportFinancialSummary'),
+      transactionBreakdownSection: t('settings:shift.dailyClosing.reportTransactionBreakdown'),
+      rksvStatusSection: t('settings:shift.dailyClosing.reportRksvStatus'),
+      startbeleg: t('settings:shift.dailyClosing.reportStartbeleg'),
+      monatsbeleg: t('settings:shift.dailyClosing.reportMonatsbeleg'),
+      jahresbeleg: t('settings:shift.dailyClosing.reportJahresbeleg'),
+      breakdownCash: t('settings:shift.dailyClosing.reportBreakdownCash'),
+      breakdownCard: t('settings:shift.dailyClosing.reportBreakdownCard'),
+      breakdownVoucher: t('settings:shift.dailyClosing.reportBreakdownVoucher'),
+      breakdownCancellations: t('settings:shift.dailyClosing.reportBreakdownCancellations'),
+      breakdownTotal: t('settings:shift.dailyClosing.reportBreakdownTotal'),
       cashCount: t('settings:shift.dailyClosing.reportCashCount'),
       difference: t('settings:shift.dailyClosing.reportDifference'),
       fiscalTotal: t('settings:shift.dailyClosing.reportFiscalTotal'),
+      fiscalNet: t('settings:shift.dailyClosing.reportFiscalNet'),
       fiscalTax: t('settings:shift.dailyClosing.reportFiscalTax'),
+      taxSection: t('settings:shift.dailyClosing.reportTaxSection'),
+      tax20: t('settings:shift.dailyClosing.reportTax20'),
+      tax10: t('settings:shift.dailyClosing.reportTax10'),
+      tax0: t('settings:shift.dailyClosing.reportTax0'),
       transactions: t('settings:shift.dailyClosing.reportTransactions'),
       tseSignature: t('settings:shift.dailyClosing.reportTse'),
+      tseVerification: t('settings:shift.dailyClosing.reportTseVerification'),
+      previousSignature: t('settings:shift.dailyClosing.reportPreviousSignature'),
       disclaimer: t('settings:shift.dailyClosing.reportDisclaimer'),
     }),
     [t]
   );
 
-  const closeStartModal = useCallback(() => {
-    setShowStartModal(false);
-    setStartBalance('');
-  }, []);
-
-  const closeEndModal = useCallback(() => {
-    setShowEndModal(false);
-    setEndBalance('');
-    setNotes('');
-  }, []);
-
   const closeDailyClosingModal = useCallback(() => {
     setShowDailyClosingModal(false);
     setCashCount('');
     setDailyClosingNotes('');
+    setDailyClosingError(null);
   }, []);
 
-  const handleStart = useCallback(async () => {
-    const amount = parseMoneyInput(startBalance);
-    if (amount == null) {
-      Alert.alert(t('settings:shift.invalidAmountTitle'), t('settings:shift.invalidAmountMessage'));
+  /** Opens the Tagesabschluss modal (settings → ShiftManager button). */
+  const openDailyClosingModal = useCallback(() => {
+    const canRun = Boolean(activeShift && dailyClosingStatus?.canClose && !isLoading);
+    if (__DEV__) {
+      safeLog('🔄 Tagesabschluss button clicked', {
+        canRunDailyClosing: canRun,
+        hasActiveShift: Boolean(activeShift),
+        canClose: dailyClosingStatus?.canClose ?? null,
+        blockReason: dailyClosingStatus?.blockReason ?? null,
+        isLoading,
+      });
+    }
+    if (!canRun) {
+      if (__DEV__) {
+        safeLog('⚠️ Tagesabschluss modal not opened (button gated)');
+      }
       return;
     }
-    try {
-      await startShift(amount);
-      closeStartModal();
-      Alert.alert(t('settings:shift.startedTitle'), t('settings:shift.startedMessage'));
-    } catch (e) {
-      const noRegister = e instanceof Error && e.message === 'NO_REGISTER';
-      Alert.alert(
-        t('settings:shift.errorTitle'),
-        noRegister ? t('settings:shift.noRegisterMessage') : t('settings:shift.startFailedMessage')
-      );
+    setDailyClosingError(null);
+    setShowDailyClosingModal(true);
+    if (__DEV__) {
+      safeLog('✅ setShowDailyClosingModal(true)');
     }
-  }, [startBalance, startShift, closeStartModal, t]);
-
-  const handleEnd = useCallback(async () => {
-    const amount = parseMoneyInput(endBalance);
-    if (amount == null) {
-      Alert.alert(t('settings:shift.invalidAmountTitle'), t('settings:shift.invalidAmountMessage'));
-      return;
-    }
-    try {
-      const result = await endShift(amount, notes);
-      closeEndModal();
-      const diff = formatPrice(result.receipt.difference);
-      Alert.alert(
-        t('settings:shift.endedTitle'),
-        t('settings:shift.endedMessage', {
-          sales: formatPrice(result.receipt.totalSales),
-          difference: diff,
-        })
-      );
-    } catch {
-      Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.endFailedMessage'));
-    }
-  }, [endBalance, notes, endShift, closeEndModal, t]);
+  }, [activeShift, dailyClosingStatus, isLoading]);
 
   const handleDailyClosing = useCallback(async () => {
     const amount = parseMoneyInput(cashCount);
@@ -136,6 +128,7 @@ export function ShiftManager() {
       Alert.alert(t('settings:shift.invalidAmountTitle'), t('settings:shift.invalidAmountMessage'));
       return;
     }
+    setDailyClosingError(null);
     try {
       const result = await performDailyClosing(amount, dailyClosingNotes);
       closeDailyClosingModal();
@@ -151,8 +144,10 @@ export function ShiftManager() {
             getFormattingLocaleForTextLocale(i18n.language)
           );
         }
-      } catch {
-        Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+      } catch (printErr) {
+        if (!isPrintCancelled(printErr)) {
+          Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+        }
       }
       Alert.alert(
         t('settings:shift.dailyClosing.successTitle'),
@@ -162,17 +157,16 @@ export function ShiftManager() {
         })
       );
     } catch (e) {
-      const blocked =
-        e instanceof DailyClosingApiError &&
-        typeof e.paymentsWithoutInvoiceCount === 'number' &&
-        e.paymentsWithoutInvoiceCount > 0;
-      const detail = blocked
-        ? ` (${e.paymentsWithoutInvoiceCount})`
-        : '';
-      Alert.alert(
-        t('settings:shift.errorTitle'),
-        (e instanceof Error ? e.message : t('settings:shift.dailyClosing.failedMessage')) + detail
-      );
+      const details = extractDailyClosingErrorDetails(e);
+      const userMessage = getDailyClosingErrorMessage(details.code, { count: details.count });
+      setDailyClosingError(userMessage);
+      if (__DEV__) {
+        console.error('[DailyClosing] Technical error:', {
+          errorCode: details.code,
+          technicalMessage: details.technicalMessage,
+        });
+      }
+      Alert.alert(t('settings:shift.errorTitle'), userMessage);
       void refreshDailyClosingStatus();
     }
   }, [
@@ -186,11 +180,10 @@ export function ShiftManager() {
     refreshDailyClosingStatus,
   ]);
 
-  const canRunDailyClosing = Boolean(
-    activeShift && dailyClosingStatus?.canClose && !isLoading
-  );
+  const canRunDailyClosing = Boolean(activeShift && dailyClosingStatus?.canClose && !isLoading);
+  const shiftStatus = activeShift ? 'open' : 'closed';
 
-  if (isLoading && !activeShift && !showStartModal && !showEndModal && !showDailyClosingModal) {
+  if (isLoading && !activeShift && !showDailyClosingModal) {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('settings:shift.title')}</Text>
@@ -217,166 +210,52 @@ export function ShiftManager() {
         <Text style={styles.warnText}>{t('settings:shift.noRegisterMessage')}</Text>
       ) : null}
 
+      <View style={styles.shiftStatus} accessibilityRole="text">
+        <Text style={styles.statusText}>
+          {shiftStatus === 'open'
+            ? t('settings:shift.statusIndicatorOpen')
+            : t('settings:shift.statusIndicatorClosed')}
+        </Text>
+      </View>
+
       {activeShift ? (
-        <View style={styles.activeCard}>
-          <Text style={styles.activeTitle}>{t('settings:shift.active')}</Text>
-          <Text style={styles.row}>
-            {t('settings:shift.startBalance')}: {formatPrice(activeShift.startBalance)}
-          </Text>
-          <Text style={styles.row}>
-            {t('settings:shift.sales')}: {formatPrice(activeShift.totalSales)}
-          </Text>
-          {dailyClosingStatus && !dailyClosingStatus.canClose ? (
-            <Text style={styles.statusHint}>
-              {dailyClosingStatus.message || t('settings:shift.dailyClosing.statusBlocked')}
+        <View style={styles.dailyClosingBlock}>
+          {dailyClosingStatus ? (
+            <Text
+              style={[
+                styles.statusHint,
+                dailyClosingStatus.canClose ? styles.statusHintReady : styles.statusHintBlocked,
+              ]}>
+              {resolveDailyClosingStatusMessage(dailyClosingStatus, t)}
             </Text>
           ) : null}
           <Pressable
-            style={[styles.primaryBtn, styles.closingBtn, !canRunDailyClosing && styles.btnDisabled]}
-            onPress={() => setShowDailyClosingModal(true)}
-            disabled={!canRunDailyClosing}
+            style={[
+              styles.primaryBtn,
+              styles.closingBtn,
+              !canRunDailyClosing && styles.btnDisabled,
+            ]}
+            onPress={openDailyClosingModal}
+            // Keep pressable while gated so __DEV__ click logs still fire (disabled swallows onPress).
+            accessibilityState={{ disabled: !canRunDailyClosing }}
             accessibilityRole="button"
-            accessibilityLabel={t('settings:shift.dailyClosing.button')}
-          >
+            accessibilityLabel={t('settings:shift.dailyClosing.button')}>
             <Text style={styles.primaryBtnText}>{t('settings:shift.dailyClosing.button')}</Text>
           </Pressable>
-          <Pressable
-            style={[styles.primaryBtn, styles.endBtn]}
-            onPress={() => setShowEndModal(true)}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel={t('settings:shift.endShift')}
-          >
-            <Text style={styles.primaryBtnText}>{t('settings:shift.endShift')}</Text>
-          </Pressable>
         </View>
-      ) : (
-        <Pressable
-          style={[styles.primaryBtn, !cashRegisterId && styles.btnDisabled]}
-          onPress={() => setShowStartModal(true)}
-          disabled={!cashRegisterId || isLoading}
-          accessibilityRole="button"
-          accessibilityLabel={t('settings:shift.startShift')}
-        >
-          <Text style={styles.primaryBtnText}>{t('settings:shift.startShift')}</Text>
-        </Pressable>
-      )}
+      ) : null}
 
-      <Modal visible={showStartModal} transparent animationType="slide" onRequestClose={closeStartModal}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('settings:shift.startModalTitle')}</Text>
-            <Text style={styles.modalLabel}>{t('settings:shift.startBalanceLabel')}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={startBalance}
-              onChangeText={setStartBalance}
-              placeholder="0,00"
-              placeholderTextColor="#999"
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryBtn} onPress={closeStartModal}>
-                <Text style={styles.secondaryBtnText}>{t('common:cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryBtn, isLoading && styles.btnDisabled]}
-                onPress={() => void handleStart()}
-                disabled={isLoading}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isLoading ? t('settings:shift.working') : t('settings:shift.confirmStart')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={closeEndModal}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('settings:shift.endModalTitle')}</Text>
-            <Text style={styles.modalLabel}>{t('settings:shift.endBalanceLabel')}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={endBalance}
-              onChangeText={setEndBalance}
-              placeholder="0,00"
-              placeholderTextColor="#999"
-            />
-            <Text style={styles.modalLabel}>{t('settings:shift.notesLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder={t('settings:shift.notesPlaceholder')}
-              placeholderTextColor="#999"
-              multiline
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryBtn} onPress={closeEndModal}>
-                <Text style={styles.secondaryBtnText}>{t('common:cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryBtn, styles.endBtn, isLoading && styles.btnDisabled]}
-                onPress={() => void handleEnd()}
-                disabled={isLoading}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isLoading ? t('settings:shift.working') : t('settings:shift.confirmEnd')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
+      <DailyClosingModal
         visible={showDailyClosingModal}
-        transparent
-        animationType="slide"
-        onRequestClose={closeDailyClosingModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('settings:shift.dailyClosing.modalTitle')}</Text>
-            <Text style={styles.modalLabel}>{t('settings:shift.dailyClosing.cashCountLabel')}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={cashCount}
-              onChangeText={setCashCount}
-              placeholder="0,00"
-              placeholderTextColor="#999"
-            />
-            <Text style={styles.modalLabel}>{t('settings:shift.dailyClosing.notesLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              value={dailyClosingNotes}
-              onChangeText={setDailyClosingNotes}
-              placeholder={t('settings:shift.notesPlaceholder')}
-              placeholderTextColor="#999"
-              multiline
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryBtn} onPress={closeDailyClosingModal}>
-                <Text style={styles.secondaryBtnText}>{t('common:cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryBtn, styles.closingBtn, isLoading && styles.btnDisabled]}
-                onPress={() => void handleDailyClosing()}
-                disabled={isLoading}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isLoading ? t('settings:shift.working') : t('settings:shift.dailyClosing.confirm')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={closeDailyClosingModal}
+        onConfirm={() => void handleDailyClosing()}
+        cashCount={cashCount}
+        onCashCountChange={setCashCount}
+        notes={dailyClosingNotes}
+        onNotesChange={setDailyClosingNotes}
+        error={dailyClosingError}
+        isLoading={isLoading}
+      />
     </View>
   );
 }
@@ -416,23 +295,20 @@ const styles = StyleSheet.create({
   },
   retryBtn: { marginTop: 6 },
   retryText: { color: '#1976d2', fontWeight: '600' },
-  activeCard: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
-    gap: 6,
+  shiftStatus: {
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
   },
-  activeTitle: {
+  statusText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#2e7d32',
-    marginBottom: 4,
+    fontWeight: '600',
+    color: '#334155',
   },
-  row: {
-    fontSize: 14,
-    color: '#333',
+  dailyClosingBlock: {
+    gap: 8,
   },
   primaryBtn: {
     backgroundColor: '#1976d2',
@@ -442,17 +318,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
-  endBtn: {
-    backgroundColor: '#c62828',
-  },
   closingBtn: {
     backgroundColor: '#5e35b1',
   },
   statusHint: {
     fontSize: 13,
-    color: '#6d4c41',
     marginTop: 4,
     lineHeight: 18,
+  },
+  statusHintReady: {
+    color: '#2e7d32',
+  },
+  statusHintBlocked: {
+    color: '#6d4c41',
   },
   btnDisabled: {
     opacity: 0.5,
@@ -461,55 +339,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
-  },
-  modalLabel: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#333',
-  },
-  notesInput: {
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
-  },
-  secondaryBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  secondaryBtnText: {
-    color: '#666',
-    fontWeight: '600',
   },
 });

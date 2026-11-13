@@ -7,14 +7,14 @@ import { normalizePosPaymentItemsForRequest } from '../utils/paymentTaxType';
 
 /** Same shape as PaymentModal: cartItems → payment items (productId, quantity, taxType only). Mirrors paymentService boundary. */
 function buildPaymentItemsForPOS(
-  cartItems: Array<{
+  cartItems: {
     productId: string;
     quantity: number;
     qty?: number;
     taxType?: string | number;
-    modifiers?: Array<{ modifierId: string; name?: string; priceDelta?: number }>;
-  }>
-): Array<{ productId: string; quantity: number; taxType: string }> {
+    modifiers?: { modifierId: string; name?: string; priceDelta?: number }[];
+  }[]
+): { productId: string; quantity: number; taxType: string }[] {
   return normalizePosPaymentItemsForRequest(
     cartItems.map((item) => ({
       productId: item.productId,
@@ -32,7 +32,7 @@ describe('Phase D: payment request does not emit modifierIds/modifiers', () => {
     ];
     const items = buildPaymentItemsForPOS(cartItems);
     expect(items).toHaveLength(2);
-    items.forEach(item => {
+    items.forEach((item) => {
       expect(item).toHaveProperty('productId');
       expect(item).toHaveProperty('quantity');
       expect(item).toHaveProperty('taxType');

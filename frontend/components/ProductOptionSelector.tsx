@@ -1,9 +1,9 @@
 // Türkçe Açıklama: Ürün seçenekleri (toppings, ek malzemeler, özel istekler) için dinamik komponent. Farklı seçenek tiplerini destekler.
 
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 
 export interface ProductOptionValue {
   id: string;
@@ -37,14 +37,12 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
   options,
   selectedOptions,
   onOptionChange,
-  disabled = false
+  disabled = false,
 }) => {
   const { t } = useTranslation();
 
   // Aktif seçenekleri sırala
-  const activeOptions = options
-    .filter(o => o.isActive)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeOptions = options.filter((o) => o.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
 
   const handleSingleChoice = (optionId: string, valueId: string) => {
     if (!disabled) {
@@ -56,9 +54,9 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
     if (!disabled) {
       const currentValues = (selectedOptions[optionId] as string[]) || [];
       const newValues = currentValues.includes(valueId)
-        ? currentValues.filter(v => v !== valueId)
+        ? currentValues.filter((v) => v !== valueId)
         : [...currentValues, valueId];
-      
+
       onOptionChange(optionId, newValues);
     }
   };
@@ -78,7 +76,9 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
 
   const renderSingleChoice = (option: ProductOption) => {
     const selectedValue = selectedOptions[option.id] as string;
-    const activeValues = option.optionValues.filter(v => v.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+    const activeValues = option.optionValues
+      .filter((v) => v.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
 
     return (
       <View key={option.id} style={styles.optionContainer}>
@@ -86,9 +86,7 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
           {option.name}
           {option.isRequired && <Text style={styles.required}> *</Text>}
         </Text>
-        {option.description && (
-          <Text style={styles.optionDescription}>{option.description}</Text>
-        )}
+        {option.description && <Text style={styles.optionDescription}>{option.description}</Text>}
         <View style={styles.valuesContainer}>
           {activeValues.map((value) => (
             <TouchableOpacity
@@ -98,24 +96,32 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
                 {
                   backgroundColor: selectedValue === value.id ? '#1976d2' : '#f5f5f5',
                   borderColor: selectedValue === value.id ? '#1976d2' : '#ddd',
-                }
+                },
               ]}
-              onPress={() => handleSingleChoice(option.id, value.id)}
+              onPress={() => {
+                handleSingleChoice(option.id, value.id);
+              }}
               disabled={disabled}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.valueText,
-                { color: selectedValue === value.id ? '#fff' : '#333' }
-              ]}>
+              activeOpacity={0.7}>
+              <Text
+                style={[styles.valueText, { color: selectedValue === value.id ? '#fff' : '#333' }]}>
                 {value.value}
               </Text>
               {value.priceModifier !== 0 && (
-                <Text style={[
-                  styles.priceModifier,
-                  { color: selectedValue === value.id ? '#fff' : (value.priceModifier > 0 ? '#d32f2f' : '#388e3c') }
-                ]}>
-                  {value.priceModifier > 0 ? '+' : ''}{value.priceModifier.toFixed(2)} €
+                <Text
+                  style={[
+                    styles.priceModifier,
+                    {
+                      color:
+                        selectedValue === value.id
+                          ? '#fff'
+                          : value.priceModifier > 0
+                            ? '#d32f2f'
+                            : '#388e3c',
+                    },
+                  ]}>
+                  {value.priceModifier > 0 ? '+' : ''}
+                  {value.priceModifier.toFixed(2)} €
                 </Text>
               )}
             </TouchableOpacity>
@@ -127,7 +133,9 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
 
   const renderMultipleChoice = (option: ProductOption) => {
     const selectedValues = (selectedOptions[option.id] as string[]) || [];
-    const activeValues = option.optionValues.filter(v => v.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+    const activeValues = option.optionValues
+      .filter((v) => v.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
 
     return (
       <View key={option.id} style={styles.optionContainer}>
@@ -135,9 +143,7 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
           {option.name}
           {option.isRequired && <Text style={styles.required}> *</Text>}
         </Text>
-        {option.description && (
-          <Text style={styles.optionDescription}>{option.description}</Text>
-        )}
+        {option.description && <Text style={styles.optionDescription}>{option.description}</Text>}
         <View style={styles.valuesContainer}>
           {activeValues.map((value) => {
             const isSelected = selectedValues.includes(value.id);
@@ -149,30 +155,36 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
                   {
                     backgroundColor: isSelected ? '#1976d2' : '#f5f5f5',
                     borderColor: isSelected ? '#1976d2' : '#ddd',
-                  }
+                  },
                 ]}
-                onPress={() => handleMultipleChoice(option.id, value.id)}
+                onPress={() => {
+                  handleMultipleChoice(option.id, value.id);
+                }}
                 disabled={disabled}
-                activeOpacity={0.7}
-              >
+                activeOpacity={0.7}>
                 <Ionicons
                   name={isSelected ? 'checkbox' : 'square-outline'}
                   size={16}
                   color={isSelected ? '#fff' : '#666'}
                   style={styles.checkbox}
                 />
-                <Text style={[
-                  styles.valueText,
-                  { color: isSelected ? '#fff' : '#333' }
-                ]}>
+                <Text style={[styles.valueText, { color: isSelected ? '#fff' : '#333' }]}>
                   {value.value}
                 </Text>
                 {value.priceModifier !== 0 && (
-                  <Text style={[
-                    styles.priceModifier,
-                    { color: isSelected ? '#fff' : (value.priceModifier > 0 ? '#d32f2f' : '#388e3c') }
-                  ]}>
-                    {value.priceModifier > 0 ? '+' : ''}{value.priceModifier.toFixed(2)} €
+                  <Text
+                    style={[
+                      styles.priceModifier,
+                      {
+                        color: isSelected
+                          ? '#fff'
+                          : value.priceModifier > 0
+                            ? '#d32f2f'
+                            : '#388e3c',
+                      },
+                    ]}>
+                    {value.priceModifier > 0 ? '+' : ''}
+                    {value.priceModifier.toFixed(2)} €
                   </Text>
                 )}
               </TouchableOpacity>
@@ -192,13 +204,13 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
           {option.name}
           {option.isRequired && <Text style={styles.required}> *</Text>}
         </Text>
-        {option.description && (
-          <Text style={styles.optionDescription}>{option.description}</Text>
-        )}
+        {option.description && <Text style={styles.optionDescription}>{option.description}</Text>}
         <TextInput
           style={styles.textInput}
           value={currentValue}
-          onChangeText={(text) => handleTextInput(option.id, text)}
+          onChangeText={(text) => {
+            handleTextInput(option.id, text);
+          }}
           placeholder={t('product.enterText', 'Metin girin...')}
           editable={!disabled}
           multiline
@@ -217,23 +229,23 @@ const ProductOptionSelector: React.FC<ProductOptionSelectorProps> = ({
           {option.name}
           {option.isRequired && <Text style={styles.required}> *</Text>}
         </Text>
-        {option.description && (
-          <Text style={styles.optionDescription}>{option.description}</Text>
-        )}
+        {option.description && <Text style={styles.optionDescription}>{option.description}</Text>}
         <View style={styles.numberInputContainer}>
           <TouchableOpacity
             style={styles.numberButton}
-            onPress={() => handleNumberInput(option.id, (currentValue - 1).toString())}
-            disabled={disabled || currentValue <= 0}
-          >
+            onPress={() => {
+              handleNumberInput(option.id, (currentValue - 1).toString());
+            }}
+            disabled={disabled || currentValue <= 0}>
             <Ionicons name="remove" size={20} color="#666" />
           </TouchableOpacity>
           <Text style={styles.numberValue}>{currentValue}</Text>
           <TouchableOpacity
             style={styles.numberButton}
-            onPress={() => handleNumberInput(option.id, (currentValue + 1).toString())}
-            disabled={disabled}
-          >
+            onPress={() => {
+              handleNumberInput(option.id, (currentValue + 1).toString());
+            }}
+            disabled={disabled}>
             <Ionicons name="add" size={20} color="#666" />
           </TouchableOpacity>
         </View>
@@ -349,4 +361,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductOptionSelector; 
+export default ProductOptionSelector;

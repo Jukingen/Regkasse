@@ -16,14 +16,14 @@ public sealed class AdminShiftOverviewServiceTests
             .UseInMemoryDatabase($"AdminShiftOverview_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task GetOverview_SplitsActiveHistoryAndClosings()
     {
         await using var ctx = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var regId = Guid.NewGuid();
         var closingId = Guid.NewGuid();
 
@@ -102,5 +102,51 @@ public sealed class AdminShiftOverviewServiceTests
         Assert.Equal(closingId, overview.DailyClosings[0].DailyClosingId);
         Assert.Equal("K1", overview.DailyClosings[0].RegisterNumber);
         Assert.True(overview.DailyClosings[0].HasTseSignature);
+    }
+
+    [Fact]
+    public async Task GetOverview_CompletedShiftAndClosedRegister_ShowsNoActiveRows()
+    {
+        await using var ctx = CreateContext();
+        var tenantId = SystemTenantIds.Platform;
+        var regId = Guid.NewGuid();
+
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = regId,
+            CashierId = "c1",
+            CashierName = "Done Cashier",
+            StartBalance = 40m,
+            StartedAt = DateTime.UtcNow.AddHours(-4),
+            EndedAt = DateTime.UtcNow.AddHours(-1),
+            TotalSales = 100m,
+            Status = CashierShiftStatuses.Completed,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await ctx.SaveChangesAsync();
+
+        var svc = new AdminShiftOverviewService(ctx);
+        var overview = await svc.GetOverviewAsync(tenantId, null, null, null);
+
+        Assert.Empty(overview.ActiveShifts);
+        Assert.Single(overview.ShiftHistory);
     }
 }

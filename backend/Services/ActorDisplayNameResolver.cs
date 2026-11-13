@@ -1,6 +1,6 @@
+using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services
 {
@@ -29,6 +29,28 @@ namespace KasseAPI_Final.Services
             {
                 var name = $"{u.FirstName} {u.LastName}".Trim();
                 dict[u.Id] = string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
+            }
+            return dict;
+        }
+
+        public async Task<IReadOnlyDictionary<string, string>> ResolveLoginLabelsAsync(IList<string> userIds)
+        {
+            if (userIds == null || userIds.Count == 0)
+                return new Dictionary<string, string>();
+
+            var users = await _userManager.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Email, u.UserName })
+                .ToListAsync();
+
+            var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var u in users)
+            {
+                var label = !string.IsNullOrWhiteSpace(u.Email)
+                    ? u.Email.Trim()
+                    : (!string.IsNullOrWhiteSpace(u.UserName) ? u.UserName.Trim() : null);
+                if (!string.IsNullOrEmpty(label))
+                    dict[u.Id] = label;
             }
             return dict;
         }

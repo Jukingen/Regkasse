@@ -24,6 +24,17 @@ public interface ICashRegisterShiftService
         Guid registerId,
         string shiftOperatorUserId,
         decimal closingBalance,
+        CancellationToken cancellationToken = default,
+        bool completeActiveShifts = true);
+
+    /// <summary>
+    /// Closes an open register regardless of current shift owner (Manager/Super Admin recovery).
+    /// </summary>
+    Task<CashRegisterCloseResult> TryForceCloseCashRegisterAsync(
+        Guid registerId,
+        string actorUserId,
+        decimal closingBalance,
+        string description,
         CancellationToken cancellationToken = default);
 }
 

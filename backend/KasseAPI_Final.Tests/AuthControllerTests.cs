@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -12,12 +9,18 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Token;
+using KasseAPI_Final.Services.TwoFactor;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -64,7 +67,8 @@ public class AuthControllerTests
         var loginUsers = new List<ApplicationUser>();
         void TrackUser(ApplicationUser? u)
         {
-            if (u == null) return;
+            if (u == null)
+                return;
             if (string.IsNullOrEmpty(u.NormalizedUserName) && !string.IsNullOrEmpty(u.UserName))
                 u.NormalizedUserName = keyNormalizer.NormalizeName(u.UserName);
             if (string.IsNullOrEmpty(u.NormalizedEmail) && !string.IsNullOrEmpty(u.Email))
@@ -75,7 +79,20 @@ public class AuthControllerTests
 
         TrackUser(userByEmail);
         TrackUser(userByName);
-        mgr.SetupGet(m => m.Users).Returns(loginUsers.AsQueryable());
+
+        var usersDb = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"AuthMockUsers_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            NullCurrentTenantAccessor.Instance);
+        if (loginUsers.Count > 0)
+        {
+            usersDb.Users.AddRange(loginUsers);
+            usersDb.SaveChanges();
+        }
+
+        mgr.SetupGet(m => m.Users).Returns(usersDb.Users);
         mgr.Setup(m => m.NormalizeName(It.IsAny<string>()))
             .Returns((string? name) => name == null ? null : keyNormalizer.NormalizeName(name));
 
@@ -93,6 +110,10 @@ public class AuthControllerTests
 
         if (userByEmail != null)
             mgr.Setup(m => m.FindByIdAsync(userByEmail.Id)).ReturnsAsync(userByEmail);
+
+        mgr.Setup(m => m.UpdateSecurityStampAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => u.SecurityStamp = Guid.NewGuid().ToString("D"))
+            .ReturnsAsync(IdentityResult.Success);
 
         return mgr.Object;
     }
@@ -127,9 +148,9 @@ public class AuthControllerTests
     {
         var mock = new Mock<IAuthTenantSnapshotProvider>();
         var snapshot = new AuthTenantSnapshot(
-            LegacyDefaultTenantIds.Primary.ToString("D"),
+            SystemTenantIds.Platform.ToString("D"),
             "Default",
-            LegacyDefaultTenantIds.PrimarySlug,
+            SystemTenantIds.PlatformSlug,
             null,
             null);
         mock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
@@ -142,9 +163,9 @@ public class AuthControllerTests
     private static Mock<ILoginTenantResolver> CreateLoginTenantResolverMock(AuthTenantSnapshot? snapshot = null)
     {
         var snap = snapshot ?? new AuthTenantSnapshot(
-            LegacyDefaultTenantIds.Primary.ToString("D"),
+            SystemTenantIds.Platform.ToString("D"),
             "Default",
-            LegacyDefaultTenantIds.PrimarySlug,
+            SystemTenantIds.PlatformSlug,
             null,
             null);
         var mock = new Mock<ILoginTenantResolver>();
@@ -253,7 +274,9 @@ public class AuthControllerTests
         ApplicationUser? userByName = null,
         UserManager<ApplicationUser>? userManagerOverride = null,
         AppDbContext? appDbOverride = null,
-        Mock<ISessionService>? sessionServiceMock = null)
+        Mock<ISessionService>? sessionServiceMock = null,
+        IAccountLockoutService? accountLockoutService = null,
+        Mock<IRefreshTokenService>? refreshTokenServiceMock = null)
     {
         var userManager = userManagerOverride
             ?? CreateMockUserManager(userByEmail, passwordValid, roles, userByName);
@@ -268,8 +291,25 @@ public class AuthControllerTests
         {
             AllowLegacyLoginWithoutClientApp = allowLegacy,
             RequireTenantMembershipForLogin = requireTenantMembershipForLogin,
+            RequireSuperAdminTwoFactor = false,
         });
-        var refreshTokenService = new Mock<IRefreshTokenService>();
+        var refreshTokenService = refreshTokenServiceMock ?? new Mock<IRefreshTokenService>();
+        refreshTokenService.Setup(x => x.LogoutSessionAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        refreshTokenService.Setup(x => x.RevokeForUserAndClientAppAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        refreshTokenService.Setup(x => x.LogoutAllAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         refreshTokenService.Setup(x => x.IssueLoginTokensAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
@@ -292,17 +332,12 @@ public class AuthControllerTests
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             NullCurrentTenantAccessor.Instance);
-        var usernameHistory = new Mock<IUserUsernameHistoryService>();
-        usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "cashier1" });
-
         var forgotUsernameEmail = CreateForgotUsernameEmailMock();
         var forgotPasswordEmail = CreateForgotPasswordEmailMock();
 
         var sessionService = sessionServiceMock ?? new Mock<ISessionService>();
+        var environment = new Mock<IHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
 
         var controller = new AuthController(
             appDb,
@@ -317,18 +352,63 @@ public class AuthControllerTests
             loginTenant.Object,
             authService.Object,
             provisioner.Object,
-            usernameHistory.Object,
             forgotUsernameEmail.Object,
             forgotPasswordEmail.Object,
             sessionPolicy.Object,
             sessionService.Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>(),
+            accountLockoutService ?? CreateAccountLockoutService(),
+            environment.Object,
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(environment.Object),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
         };
         return controller;
+    }
+
+    private static ITwoFactorService CreateTwoFactorServiceMock(IHostEnvironment environment)
+    {
+        var mock = new Mock<ITwoFactorService>();
+        mock.SetupGet(s => s.IsDevelopment).Returns(environment.IsDevelopment());
+        mock.SetupGet(s => s.IsBypassActive).Returns(environment.IsDevelopment());
+        mock.Setup(s => s.GenerateTwoFactorToken(It.IsAny<ApplicationUser>()))
+            .Returns((ApplicationUser _) =>
+                environment.IsDevelopment() ? ITwoFactorService.DevelopmentBypassToken : null);
+        mock.Setup(s => s.VerifyTwoFactorTokenAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock.Object;
+    }
+
+    private static IAccountLockoutService CreateAccountLockoutService(
+        int maxAttempts = 5,
+        int lockoutMinutes = 15,
+        bool enabled = true)
+    {
+        var options = new OptionsMonitorStub<AccountLockoutOptions>(new AccountLockoutOptions
+        {
+            Enabled = enabled,
+            MaxAttempts = maxAttempts,
+            LockoutMinutes = lockoutMinutes,
+        });
+        return new AccountLockoutService(new MemoryCache(new MemoryCacheOptions()), options);
+    }
+
+    private sealed class OptionsMonitorStub<T> : IOptionsMonitor<T>
+    {
+        public OptionsMonitorStub(T current) => CurrentValue = current;
+        public T CurrentValue { get; }
+        public T Get(string? name) => CurrentValue;
+        public IDisposable? OnChange(Action<T, string?> listener) => null;
     }
 
     private static Mock<IForgotUsernameEmailService> CreateForgotUsernameEmailMock()
@@ -455,6 +535,26 @@ public class AuthControllerTests
     }
 
     [Fact]
+    public async Task Login_AfterMaxFailedAttempts_ReturnsAccountLocked()
+    {
+        var user = ActiveUser();
+        var lockout = CreateAccountLockoutService(maxAttempts: 3, lockoutMinutes: 15);
+        var controller = CreateController(user, passwordValid: false, allowLegacy: true, accountLockoutService: lockout);
+
+        for (var i = 0; i < 3; i++)
+        {
+            var fail = await controller.Login(new LoginModel { Email = user.Email, Password = "wrong" });
+            Assert.IsType<UnauthorizedObjectResult>(fail);
+        }
+
+        var locked = await controller.Login(new LoginModel { Email = user.Email, Password = "wrong" });
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(locked);
+        var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("ACCOUNT_LOCKED", body.Code);
+        Assert.Equal("Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.", body.Message);
+    }
+
+    [Fact]
     public async Task Login_CredentialFailures_ReturnSameCodeAndMessage_ToPreventEnumeration()
     {
         var inactiveUser = ActiveUser();
@@ -483,7 +583,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "cashier1";
-        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        user.Email = "cashier_a3f9k2@dev.regkasse.at";
         var controller = await CreateControllerWithIdentityUserAsync(user, allowLegacy: true);
 
         var result = await controller.Login(new LoginModel
@@ -500,7 +600,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "cashier1";
-        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        user.Email = "cashier_a3f9k2@dev.regkasse.at";
         var controller = await CreateControllerWithIdentityUserAsync(
             user,
             allowLegacy: false,
@@ -521,7 +621,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "Mustafa";
-        user.Email = "mustafa_a3f9k2@cafe.regkasse.at";
+        user.Email = "mustafa_a3f9k2@dev.regkasse.at";
         user.NormalizedUserName = "MUSTAFA";
         var controller = await CreateControllerWithIdentityUserAsync(
             user,
@@ -592,6 +692,7 @@ public class AuthControllerTests
     [Theory]
     [InlineData("Cashier")]
     [InlineData("SuperAdmin")]
+    [InlineData("Kitchen")]
     public async Task Login_Pos_AllowedRoles_Succeeds(string role)
     {
         var controller = CreateController(ActiveUser(role), roles: new List<string> { role }, allowLegacy: false);
@@ -606,7 +707,6 @@ public class AuthControllerTests
     [InlineData("Accountant")]
     [InlineData("ReportViewer")]
     [InlineData("Waiter")]
-    [InlineData("Kitchen")]
     public async Task Login_Pos_DeniedRoles_Returns403(string role)
     {
         var controller = CreateController(ActiveUser(role), roles: new List<string> { role }, allowLegacy: false);
@@ -682,7 +782,7 @@ public class AuthControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.Contains("resolver.contract.test", json, StringComparison.Ordinal);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"tenantDisplayName\":\"Default\"", json, StringComparison.Ordinal);
     }
 
@@ -815,7 +915,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -830,7 +930,7 @@ public class AuthControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.Contains("acme", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -839,7 +939,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -862,7 +962,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -880,7 +980,7 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public async Task Login_RequireTenantMembershipForLogin_ReturnsBadRequest_When_No_Membership()
+    public async Task Login_RequireMembershipTrue_BlocksNonMembership()
     {
         var loginMock = new Mock<ILoginTenantResolver>();
         loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -898,8 +998,101 @@ public class AuthControllerTests
         var bad = Assert.IsType<BadRequestObjectResult>(result);
         var json = JsonSerializer.Serialize(bad.Value);
         Assert.Contains("TENANT_MEMBERSHIP_REQUIRED", json, StringComparison.Ordinal);
-        Assert.Contains("Kein Zugriff auf diesen Mandanten", json, StringComparison.Ordinal);
+        Assert.Contains("Benutzer hat keine aktive Mandanten-Mitgliedschaft", json, StringComparison.Ordinal);
         loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipTrue_AllowsMembership()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(DemoTenantIds.Dev.ToString("D"), "Development", "dev", null, null));
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipFalse_AllowsAll()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(DemoTenantIds.Dev.ToString("D"), "Development", "dev", null, null));
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: false);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MembershipRequired_ReturnsCorrectErrorCode()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var json = JsonSerializer.Serialize(bad.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("TENANT_MEMBERSHIP_REQUIRED", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal(
+            "Benutzer hat keine aktive Mandanten-Mitgliedschaft",
+            doc.RootElement.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipTrue_SuperAdmin_ExemptWithoutMembership()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Platform", "platform", null, null));
+
+        var controller = CreateController(
+            ActiveUser(Roles.SuperAdmin),
+            roles: new List<string> { Roles.SuperAdmin },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "admin" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -919,11 +1112,7 @@ public class AuthControllerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var history = new Mock<IUserUsernameHistoryService>();
-        history.Setup(x => x.GetKnownUsernamesForUserAsync("u1", "cashier1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "cashier1", "oldcashier" });
-
-        var controller = CreateForgotUsernameController(user, forgotEmail, history);
+        var controller = CreateForgotUsernameController(user, forgotEmail);
 
         var result = await controller.ForgotUsername(
             new ForgotUsernameRequest { Email = "user@test.com", ClientApp = "admin" });
@@ -933,7 +1122,8 @@ public class AuthControllerTests
             x => x.TrySendForgotUsernameAsync(
                 It.Is<ForgotUsernameEmailRequest>(r =>
                     r.ToEmail == "user@test.com"
-                    && r.Usernames.Count == 2),
+                    && r.Usernames.Count == 1
+                    && r.Usernames[0] == "cashier1"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.NotNull(ok.Value);
@@ -1022,7 +1212,7 @@ public class AuthControllerTests
         sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TenantSessionPolicyDto());
 
-        return new AuthController(
+        var controller = new AuthController(
             new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase($"AuthForgotPwd_{Guid.NewGuid():N}")
@@ -1034,42 +1224,45 @@ public class AuthControllerTests
             new Mock<ILogger<AuthController>>().Object,
             CreateTokenClaimsMock().Object,
             CreateEffectivePermissionResolverMock().Object,
-            Options.Create(new AuthOptions()),
+            Options.Create(new AuthOptions { RequireSuperAdminTwoFactor = false }),
             new Mock<IRefreshTokenService>().Object,
             CreateAuthTenantSnapshotMock().Object,
             CreateLoginTenantResolverMock().Object,
             CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
             CreateMembershipProvisionerMock().Object,
-            new Mock<IUserUsernameHistoryService>().Object,
             CreateForgotUsernameEmailMock().Object,
             forgotPasswordEmail.Object,
             sessionPolicy.Object,
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>(),
+            CreateAccountLockoutService(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(
+                Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development)),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = CreateHttpContextWithEmptyServices(),
+        };
+        return controller;
     }
 
     private static AuthController CreateForgotUsernameController(
         ApplicationUser user,
-        Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null,
-        Mock<IUserUsernameHistoryService>? usernameHistory = null)
+        Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null)
     {
         forgotUsernameEmail ??= new Mock<IForgotUsernameEmailService>();
-        if (usernameHistory == null)
-        {
-            usernameHistory = new Mock<IUserUsernameHistoryService>();
-            usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { user.UserName ?? "user" });
-        }
 
         var sessionPolicy = new Mock<ITenantSessionPolicyService>();
         sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TenantSessionPolicyDto());
 
-        return new AuthController(
+        var controller = new AuthController(
             new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase($"AuthForgot_{Guid.NewGuid():N}")
@@ -1081,19 +1274,39 @@ public class AuthControllerTests
             new Mock<ILogger<AuthController>>().Object,
             CreateTokenClaimsMock().Object,
             CreateEffectivePermissionResolverMock().Object,
-            Options.Create(new AuthOptions()),
+            Options.Create(new AuthOptions { RequireSuperAdminTwoFactor = false }),
             new Mock<IRefreshTokenService>().Object,
             CreateAuthTenantSnapshotMock().Object,
             CreateLoginTenantResolverMock().Object,
             CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
             CreateMembershipProvisionerMock().Object,
-            usernameHistory.Object,
             forgotUsernameEmail.Object,
             CreateForgotPasswordEmailMock().Object,
             sessionPolicy.Object,
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>(),
+            CreateAccountLockoutService(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(
+                Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development)),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = CreateHttpContextWithEmptyServices(),
+        };
+        return controller;
+    }
+
+    private static Microsoft.AspNetCore.Http.DefaultHttpContext CreateHttpContextWithEmptyServices()
+    {
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.RequestServices = Mock.Of<IServiceProvider>();
+        return http;
     }
 
     [Fact]
@@ -1128,6 +1341,49 @@ public class AuthControllerTests
             s => s.TouchSessionActivityAsync(sessionId, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Logout_RotatesSecurityStamp_AndRevokesClientAppSessions()
+    {
+        var stampBefore = "stamp-before";
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            Email = "cashier@example.com",
+            UserName = "cashier1",
+            SecurityStamp = stampBefore,
+        };
+        var refreshTokenService = new Mock<IRefreshTokenService>();
+        var controller = CreateController(userByEmail: user, refreshTokenServiceMock: refreshTokenService);
+        var sessionId = Guid.NewGuid();
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim("sid", sessionId.ToString("D")),
+                    new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin),
+                },
+                authenticationType: "Test")),
+        };
+        http.RequestServices = Mock.Of<IServiceProvider>();
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+
+        var result = await controller.Logout();
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotEqual(stampBefore, user.SecurityStamp);
+        refreshTokenService.Verify(
+            s => s.LogoutSessionAsync(sessionId, "logout", It.IsAny<CancellationToken>()),
+            Times.Once);
+        refreshTokenService.Verify(
+            s => s.RevokeForUserAndClientAppAsync(user.Id, "admin", "logout", It.IsAny<CancellationToken>()),
+            Times.Once);
+        refreshTokenService.Verify(
+            s => s.LogoutAllAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
 
 // -------- ClientAppPolicy unit tests --------
@@ -1155,8 +1411,9 @@ public class ClientAppPolicyTests
     }
 
     [Theory]
-    [InlineData("pos", "Cashier", true)]
-    [InlineData("pos", "SuperAdmin", true)]
+        [InlineData("pos", "Cashier", true)]
+        [InlineData("pos", "Kitchen", true)]
+        [InlineData("pos", "SuperAdmin", true)]
     [InlineData("pos", "Admin", false)]
     [InlineData("pos", "Manager", false)]
     [InlineData("pos", "ReportViewer", false)]

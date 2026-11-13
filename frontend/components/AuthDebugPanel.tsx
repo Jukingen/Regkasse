@@ -1,11 +1,13 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu component, auth durumunu debug etmek ve otomatik logout sorununu izlemek için kullanılır
 // Sadece development modunda görünür
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../contexts/AuthContext';
+import { formatUserTime } from '../utils/dateFormatter';
 
 export const AuthDebugPanel: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -14,7 +16,7 @@ export const AuthDebugPanel: React.FC = () => {
 
   // Her render'da sayacı artır
   useEffect(() => {
-    setRenderCount(prev => prev + 1);
+    setRenderCount((prev) => prev + 1);
     setLastRender(Date.now());
   });
 
@@ -29,23 +31,29 @@ export const AuthDebugPanel: React.FC = () => {
       'Bu işlem kullanıcıyı zorla logout yapacak. Devam etmek istiyor musunuz?',
       [
         { text: 'İptal', style: 'cancel' },
-        { 
-          text: 'Evet', 
+        {
+          text: 'Evet',
           style: 'destructive',
           onPress: () => {
-            // AsyncStorage'ı temizle
+            // SecureStore auth session keys
             const clearStorage = async () => {
               try {
-                const { AsyncStorage } = await import('@react-native-async-storage/async-storage');
-                await AsyncStorage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
-                console.log('🔴 Force logout: Storage cleared');
+                const { secureStorage } = await import('../services/secureStorage');
+                const { SESSION_KEYS } = await import('../services/session/sessionManager');
+                await secureStorage.multiRemove([
+                  SESSION_KEYS.token,
+                  SESSION_KEYS.refreshToken,
+                  SESSION_KEYS.user,
+                  SESSION_KEYS.tokenExpiry,
+                ]);
+                safeLog('🔴 Force logout: Storage cleared');
               } catch (error) {
                 console.error('Force logout storage clear failed:', error);
               }
             };
             clearStorage();
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -58,7 +66,7 @@ Email: ${user?.email || 'N/A'}
 Role: ${user?.role || 'N/A'}
 Token: ${user?.token ? 'Present' : 'Missing'}
 Render Count: ${renderCount}
-Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
+Last Render: ${formatUserTime(lastRender, { includeSeconds: true })}`,
       [{ text: 'Tamam' }]
     );
   };
@@ -66,22 +74,17 @@ Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔍 Auth Debug Panel</Text>
-      
+
       <View style={styles.infoSection}>
         <Text style={styles.infoText}>
-          Status: {isLoading ? '🔄 Loading' : isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+          Status:{' '}
+          {isLoading ? '🔄 Loading' : isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
         </Text>
+        <Text style={styles.infoText}>User: {user ? user.email : 'None'}</Text>
+        <Text style={styles.infoText}>Role: {user?.role || 'None'}</Text>
+        <Text style={styles.infoText}>Render Count: {renderCount}</Text>
         <Text style={styles.infoText}>
-          User: {user ? user.email : 'None'}
-        </Text>
-        <Text style={styles.infoText}>
-          Role: {user?.role || 'None'}
-        </Text>
-        <Text style={styles.infoText}>
-          Render Count: {renderCount}
-        </Text>
-        <Text style={styles.infoText}>
-          Last Render: {new Date(lastRender).toLocaleTimeString()}
+          Last Render: {formatUserTime(lastRender, { includeSeconds: true })}
         </Text>
       </View>
 
@@ -90,7 +93,7 @@ Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
           <Ionicons name="information-circle" size={16} color="white" />
           <Text style={styles.buttonText}>Auth Status</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.dangerButton} onPress={handleForceLogout}>
           <Ionicons name="log-out" size={16} color="white" />
           <Text style={styles.buttonText}>Force Logout</Text>
@@ -98,9 +101,7 @@ Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
       </View>
 
       <View style={styles.warningSection}>
-        <Text style={styles.warningText}>
-          ⚠️ Bu panel sadece development modunda görünür
-        </Text>
+        <Text style={styles.warningText}>⚠️ Bu panel sadece development modunda görünür</Text>
         <Text style={styles.warningText}>
           Otomatik logout sorununu izlemek için render count'u takip edin
         </Text>

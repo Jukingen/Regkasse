@@ -1,0 +1,18 @@
+{
+  "pageTitle": "Datenbank-Migrationen",
+  "accessDenied": "Nur Super-Administratoren können den Migrationsstatus einsehen.",
+  "introTitle": "Additive Schema-Strategie",
+  "introBody": "Pending- und angewandte EF Core Migrationen der verbundenen Datenbank.",
+  "strategyHint": "Nur additive, rückwärtskompatible Änderungen. Details: docs/DATABASE_MIGRATION_STRATEGY.md. Staging/Canary migrieren automatisch; Production braucht Environment-Freigabe.",
+  "status": "Status",
+  "appliedCount": "Angewandt",
+  "pendingCount": "Ausstehend",
+  "latestApplied": "Zuletzt angewandt",
+  "pendingWarning": "Es gibt ausstehende Migrationen — Deploy/Migrate prüfen, bevor Traffic steigt.",
+  "pendingTitle": "Ausstehende Migrationen",
+  "recentTitle": "Zuletzt angewandte Migrationen",
+  "noPending": "Keine ausstehenden Migrationen",
+  "columns": {
+    "id": "Migration-ID"
+  }
+}

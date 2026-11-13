@@ -6,25 +6,72 @@ namespace KasseAPI_Final.Services.Dashboard;
 /// <summary>Static catalog of admin dashboard widgets exposed to FA.</summary>
 public static class DashboardWidgetCatalog
 {
+    public const string ActionRequired = "action-required";
+    public const string DailyClosing = "daily-closing";
+    public const string ManagerLicenseStatus = "manager-license-status";
+    public const string ManagerKpiStrip = "manager-kpi-strip";
+    public const string ManagerMonatsbeleg = "manager-monatsbeleg";
+    public const string ManagerActivity = "manager-activity";
+    public const string ManagerTseHealth = "manager-tse-health";
+    public const string FiskalyStatus = "fiskaly-status";
+    public const string ManagerOfflineQueue = "manager-offline-queue";
+    public const string ManagerLicenseChecklist = "manager-license-checklist";
+    public const string ManagerLicenseSupport = "manager-license-support";
+    public const string ManagerHospitalityLinks = "manager-hospitality-links";
+    public const string ManagerExportQuickActions = "manager-export-quick-actions";
+
     public const string TodaySales = "today-sales";
     public const string ActiveCashRegisters = "active-cash-registers";
     public const string LowStockAlerts = "low-stock-alerts";
     public const string RecentUsers = "recent-users";
+    public const string RecentPermissionChanges = "recent-permission-changes";
     public const string LicenseExpiry = "license-expiry";
     public const string FinanzOnlineStatus = "finanzonline-status";
+    public const string OfflineSystemStatus = "offline-system-status";
+    public const string BackupStatus = "backup-status";
+    public const string DataRetention = "data-retention";
     public const string TopSellingProducts = "top-selling-products";
     public const string PaymentTrends = "payment-trends";
+    public const string SystemMetrics = "system-metrics";
+    public const string PreorderStatus = "preorder-status";
+    public const string FinanzOnlineOutbox = "finanzonline-outbox";
 
     private static readonly IReadOnlyList<DashboardWidgetDefinition> All =
     [
-        new(TodaySales, "Heutiger Umsatz", "Umsatz und Verkäufe für heute", AppPermissions.ReportView, 0, true, true),
-        new(PaymentTrends, "Zahlungstrends", "Tägliche, wöchentliche und monatliche Zahlungsentwicklung", AppPermissions.PaymentView, 1, true, true),
-        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 2, true, true),
-        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 3, true, true),
-        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 4, true, true),
-        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 5, true, true),
-        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.SettingsManage, 6, true, true),
-        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 7, true, true),
+        // Compliance Handlungsbedarf (Tagesabschluss + RKSV reminders) — default first for Mandanten-Admin.
+        new(ActionRequired, "Handlungsbedarf", "Tagesabschluss und RKSV-Sonderbeleg Erinnerungen", AppPermissions.DailyClosingView, 0, true, true),
+        new(DailyClosing, "Tagesabschluss", "Heutiger Kassenabschluss, Wochenstand und Schnellaktion", AppPermissions.DailyClosingView, 1, true, true),
+
+        // Manager dashboard cards (migrated from fixed ManagerDashboard layout)
+        new(ManagerLicenseStatus, "Lizenz-Status", "Mandantenlizenz Countdown und Gesundheit", AppPermissions.LicenseView, 2, true, true),
+        new(ManagerKpiStrip, "Kennzahlen", "Umsatz, Schichten, Personal und Kassenstand", AppPermissions.ReportView, 3, true, true),
+        new(ManagerMonatsbeleg, "Monatsbeleg & RKSV", "Monatsbeleg-Status und Compliance-Hinweise", AppPermissions.CashRegisterView, 4, true, true),
+        new(ManagerActivity, "Aktivität", "Letzte Aktivitäten im Mandanten", AppPermissions.AuditView, 5, true, true),
+        new(ManagerTseHealth, "TSE-Gesundheit", "TSE-Status und Offline-Hinweise", AppPermissions.CashRegisterView, 6, true, true),
+        new(FiskalyStatus, "Fiskaly TSE", "fiskaly SIGN AT Aktivierung, Umgebung und Authentifizierung", AppPermissions.CashRegisterView, 7, true, true),
+        new(ManagerOfflineQueue, "Offline-Warteschlange", "Ausstehende Offline-Zahlungen", AppPermissions.PaymentView, 8, true, true),
+        new(ManagerLicenseChecklist, "Lizenz-Checkliste", "Erneuerungs-Checkliste", AppPermissions.LicenseView, 9, true, true),
+        new(ManagerLicenseSupport, "Lizenz-Support", "Support- und Zahlungsoptionen", AppPermissions.LicenseView, 10, true, true),
+        new(ManagerHospitalityLinks, "Gastronomie-Links", "Schnelle Links für den Betrieb", AppPermissions.CashRegisterView, 11, true, false),
+        new(ManagerExportQuickActions, "Export-Schnellaktionen", "Häufige Exporte starten", AppPermissions.ReportExport, 12, true, false),
+
+        // Existing catalog widgets
+        new(TodaySales, "Heutiger Umsatz", "Umsatz und Verkäufe für heute", AppPermissions.ReportView, 13, true, true),
+        new(PaymentTrends, "Zahlungstrends", "Tägliche, wöchentliche und monatliche Zahlungsentwicklung", AppPermissions.PaymentView, 14, true, true),
+        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 15, true, true),
+        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 16, true, true),
+        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 17, true, true),
+        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 18, true, true),
+        new(RecentPermissionChanges, "📜 Berechtigungsänderungen", "Zuletzt geänderte Rollen und Berechtigungen", AppPermissions.AuditView, 19, true, true),
+        // Slim expiry widget — off by default so Mandanten-Admin uses manager-license-status (no duplicate).
+        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.LicenseManage, 20, false, true),
+        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 21, true, true),
+        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 22, true, true),
+        new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 23, true, true),
+        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 24, true, true),
+        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 25, true, true),
+        new(PreorderStatus, "Vorbestellungen", "Ausstehende, bereite und abgeholte Vorbestellungen", AppPermissions.OrderView, 26, true, true),
+        new(FinanzOnlineOutbox, "FinanzOnline-Outbox", "Ausstehende und fehlgeschlagene Übermittlungen, letzte erfolgreiche Abgabe", AppPermissions.FinanzOnlineView, 27, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;
@@ -35,7 +82,9 @@ public static class DashboardWidgetCatalog
     public static IReadOnlyList<DashboardWidgetDefinition> FilterByPermissions(IEnumerable<string> grantedPermissions)
     {
         var set = new HashSet<string>(grantedPermissions, StringComparer.OrdinalIgnoreCase);
-        return All.Where(w => set.Contains(w.RequiredPermission)).ToList();
+        // Exact Contains would hide cash_register.view widgets from Mandanten-Admin
+        // (matrix grants cash_register.manage only; manage→view via PermissionImplication).
+        return All.Where(w => PermissionImplication.IsSatisfied(w.RequiredPermission, set)).ToList();
     }
 
     public static List<Models.DashboardWidget> BuildDefaultLayout(IEnumerable<string> grantedPermissions)

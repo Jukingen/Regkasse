@@ -1,52 +1,37 @@
 /**
- * German TSE status strip for POS (Online / slow / offline).
+ * Compact TSE status chip for the POS header (always visible).
+ * Active / Degraded / Inactive with tooltip details.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useTseHealth } from '../hooks/useTseHealth';
+import { formatUserTime } from '../utils/dateFormatter';
+import { TseStatusBadge } from './TseStatusBadge';
 
+/** Operator-facing offline copy — keep in sync with contract test. */
+export const TSE_OFFLINE_BANNER_LABEL = 'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE';
+
+/** Compact header chip: green/amber/red dot + TSE status. Tap shows details. */
 export function TseStatusBanner() {
-  const {
-    bannerVariant,
-    pendingOfflineQueueCount,
-    estimatedRecoveryTimeUtc,
-    lastLatencyMs,
-  } = useTseHealth();
+  return <TseStatusBadge />;
+}
 
-  const palette =
-    bannerVariant === 'offline'
-      ? { bg: '#5c1010', fg: '#fff', label: 'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE' }
-      : bannerVariant === 'slow'
-        ? { bg: '#7a5b00', fg: '#fff', label: 'TSE langsam – bitte warten' }
-        : { bg: '#1b5e20', fg: '#e8f5e9', label: 'TSE online' };
+/** Full-width critical strip — only when TSE is offline (Barzahlung-only warning). */
+export function TseOfflineRestrictionBanner() {
+  const { bannerVariant, estimatedRecoveryTimeUtc } = useTseHealth();
 
-  const queueHint =
-    typeof pendingOfflineQueueCount === 'number' && pendingOfflineQueueCount > 0
-      ? ` · Offline-Warteschlange: ${pendingOfflineQueueCount}`
-      : '';
+  if (bannerVariant !== 'offline') return null;
 
-  const latencyHint =
-    lastLatencyMs != null && bannerVariant !== 'offline'
-      ? ` · ${Math.round(lastLatencyMs)} ms`
-      : '';
-
-  const etaHint =
-    bannerVariant === 'offline' && estimatedRecoveryTimeUtc
-      ? ` · Nächste Prüfung ca. ${new Date(estimatedRecoveryTimeUtc).toLocaleTimeString('de-AT', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })}`
-      : '';
+  const etaHint = estimatedRecoveryTimeUtc
+    ? ` · Nächste Prüfung ca. ${formatUserTime(estimatedRecoveryTimeUtc, { includeSeconds: true }) || '—'}`
+    : '';
 
   return (
-    <View style={[styles.wrap, { backgroundColor: palette.bg }]} accessibilityRole="summary">
-      <Text style={[styles.text, { color: palette.fg }]} numberOfLines={2}>
-        {palette.label}
-        {queueHint}
-        {latencyHint}
+    <View style={styles.offlineStrip} accessibilityRole="alert">
+      <Text style={styles.offlineStripText} numberOfLines={2}>
+        {TSE_OFFLINE_BANNER_LABEL}
         {etaHint}
       </Text>
     </View>
@@ -54,16 +39,18 @@ export function TseStatusBanner() {
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  offlineStrip: {
     paddingVertical: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.md,
     borderRadius: SoftRadius.sm,
     marginHorizontal: SoftSpacing.md,
     marginBottom: SoftSpacing.sm,
+    backgroundColor: '#5c1010',
   },
-  text: {
+  offlineStripText: {
     ...SoftTypography.caption,
     fontWeight: '700',
+    color: SoftColors.textInverse,
     textAlign: 'center',
   },
 });

@@ -26,7 +26,9 @@ export function resolveUserSettingsRecord(raw: unknown): Record<string, unknown>
   return isRecord(raw) ? raw : {};
 }
 
-export function readCashRegisterIdFromSettingsPayload(o: Record<string, unknown>): string | undefined {
+export function readCashRegisterIdFromSettingsPayload(
+  o: Record<string, unknown>
+): string | undefined {
   const v = o.cashRegisterId ?? o.CashRegisterId;
   if (typeof v === 'string' && v.trim() !== '') return v.trim();
   return undefined;

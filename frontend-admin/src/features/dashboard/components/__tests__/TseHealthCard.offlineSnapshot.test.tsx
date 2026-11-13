@@ -1,12 +1,14 @@
 /**
  * Admin dashboard TSE card: offline snapshot maps to German operator-facing labels.
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
+import { I18nProvider } from '@/i18n/I18nProvider';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -41,9 +43,17 @@ vi.mock('@/api/generated/tse/tse', () => ({
   })),
 }));
 
+vi.mock('@/hooks/useAuthorizedQuery', () => ({
+  useAuthorizationGate: vi.fn(() => ({ isAuthorized: true })),
+}));
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(
+    <I18nProvider>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </I18nProvider>
+  );
 }
 
 describe('TseHealthCard', () => {

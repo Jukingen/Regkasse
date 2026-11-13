@@ -44,7 +44,7 @@ export enum OrderStatus {
   Ready = 'Ready',
   Served = 'Served',
   Completed = 'Completed',
-  Cancelled = 'Cancelled'
+  Cancelled = 'Cancelled',
 }
 
 // API Request/Response tipleri
@@ -56,6 +56,12 @@ export interface CreateOrderRequest {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+  locationData?: {
+    street?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+    notes?: string | null;
+  } | null;
   items: CreateOrderItemRequest[];
   cartId?: string;
 }
@@ -65,6 +71,13 @@ export interface CreateOrderItemRequest {
   quantity: number;
   specialNotes?: string;
 }
+
+export type OrdersPage = {
+  items: Order[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
 
 export interface OrderResponse {
   orderId: string;

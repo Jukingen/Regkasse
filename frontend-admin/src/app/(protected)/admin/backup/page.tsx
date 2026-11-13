@@ -1,32 +1,8 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import React from 'react';
-import { Typography } from 'antd';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import {
-  AdminBackupPage,
-  AdminBackupPageHeaderActions,
-} from '@/features/backup/pages/AdminBackupPage';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
+import { BACKUP_RUNS_PATH } from '@/shared/backupAreaRoutes';
 
-export default function AdminBackupPageRoute() {
-  const { t } = useI18n();
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <AdminPageHeader
-        title={t('backupDr.adminBackup.pageTitle')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t('backupDr.adminBackup.pageTitle'), href: '/admin/backup' },
-        ]}
-        actions={<AdminBackupPageHeaderActions />}
-      />
-      <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        {t('backupDr.adminBackup.pageSubtitle')}
-      </Typography.Paragraph>
-      <AdminBackupPage />
-    </div>
-  );
+/** Legacy `/admin/backup` → canonical backup runs list. */
+export default function LegacyAdminBackupRedirect() {
+  redirect(BACKUP_RUNS_PATH);
 }

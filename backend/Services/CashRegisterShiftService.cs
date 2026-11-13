@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
@@ -85,12 +86,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterOpenResult.InvalidState();
             }
 
-            if (!string.IsNullOrEmpty(register.CurrentUserId) &&
-                !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return CashRegisterOpenResult.ConflictOtherUser();
-            }
+            // Closed is not an active session. A leftover CurrentUserId must not block the
+            // assigned cashier. Another holder is rejected only while Status is Open (above).
 
             var user = await _userManager.FindByIdAsync(shiftOperatorUserId);
             if (user == null)
@@ -131,20 +128,18 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterOpenResult.StartbelegRequired();
             }
 
-            if (_rksvMonatsbelegPolicy.SessionGateApplies)
+            var monatsbelegGate = await _rksvMonatsbelegPolicy
+                .EvaluateSalesGateAsync(registerId, cancellationToken)
+                .ConfigureAwait(false);
+            if (monatsbelegGate.BlocksSales)
             {
-                var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-                if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
-                        .ConfigureAwait(false))
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    _logger.LogWarning(
-                        "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for {Year}-{Month}",
-                        registerId,
-                        y,
-                        m);
-                    return CashRegisterOpenResult.MonatsbelegRequired();
-                }
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogWarning(
+                    "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for previous month (mode={Mode}, day={Day})",
+                    registerId,
+                    monatsbelegGate.Mode,
+                    monatsbelegGate.ViennaDayOfMonth);
+                return CashRegisterOpenResult.MonatsbelegRequired();
             }
 
             register.Status = RegisterStatus.Open;
@@ -212,9 +207,14 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         Guid registerId,
         string shiftOperatorUserId,
         decimal closingBalance,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool completeActiveShifts = true)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var ownsTransaction = _context.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction
+            ? await _context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
         try
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
@@ -226,26 +226,30 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
 
             if (register == null)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.NotFound();
             }
 
             if (register.Status == RegisterStatus.Closed)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.AlreadyClosed();
             }
 
             if (register.Status == RegisterStatus.Decommissioned)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.AlreadyClosed();
             }
 
             if (string.IsNullOrEmpty(shiftOperatorUserId) ||
                 !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.Forbidden();
             }
 
@@ -269,8 +273,22 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             };
 
             _context.CashRegisterTransactions.Add(closeTx);
+
+            if (completeActiveShifts)
+            {
+                await CashierShiftCompletionHelper.CompleteActiveShiftsForRegisterAsync(
+                    _context,
+                    tenantId,
+                    registerId,
+                    shiftOperatorUserId,
+                    "Register closed",
+                    cancellationToken);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+
+            if (ownsTransaction)
+                await transaction!.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, shiftOperatorUserId);
 
@@ -292,9 +310,149 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            if (ownsTransaction)
+                await transaction!.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "TryCloseCashRegisterAsync failed for register {RegisterId}", registerId);
             throw;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<CashRegisterCloseResult> TryForceCloseCashRegisterAsync(
+        Guid registerId,
+        string actorUserId,
+        decimal closingBalance,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
+
+            var register = await _context.CashRegisters
+                .Include(r => r.CurrentUser)
+                .FirstOrDefaultAsync(r => r.Id == registerId && r.TenantId == tenantId, cancellationToken);
+
+            if (register == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.NotFound();
+            }
+
+            if (register.Status == RegisterStatus.Closed || register.Status == RegisterStatus.Decommissioned)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.AlreadyClosed();
+            }
+
+            var previousOwnerId = register.CurrentUserId;
+            var resolvedActorUserId = await ResolveForceCloseActorUserIdAsync(
+                    actorUserId,
+                    previousOwnerId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            register.Status = RegisterStatus.Closed;
+            register.CurrentBalance = closingBalance;
+            register.LastBalanceUpdate = DateTime.UtcNow;
+            register.UpdatedAt = DateTime.UtcNow;
+            register.CurrentUser = null;
+            register.CurrentUserId = null;
+
+            var closeDescription = description.Length > 500 ? description[..500] : description;
+            var closeTx = new CashRegisterTransaction
+            {
+                CashRegisterId = register.Id,
+                TransactionType = TransactionType.Close,
+                Amount = closingBalance,
+                Description = closeDescription,
+                UserId = resolvedActorUserId,
+                TransactionDate = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            _context.CashRegisterTransactions.Add(closeTx);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogWarning(
+                "Cash register {RegisterId} force-closed by {ActorUserId} (resolved={ResolvedActorUserId}, previous owner {PreviousOwnerId})",
+                registerId,
+                actorUserId,
+                resolvedActorUserId,
+                previousOwnerId ?? "(none)");
+
+            if (_activityEvents != null)
+            {
+                await _activityEvents.TryPublishAsync(
+                    new ActivityEventPublishRequest(
+                        tenantId,
+                        ActivityEventType.CashRegisterClosed,
+                        "Cash register force-closed",
+                        Description: $"Register {register.RegisterNumber} was force-closed.",
+                        ActorUserId: resolvedActorUserId,
+                        EntityType: "cash_register",
+                        EntityId: registerId.ToString()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return CashRegisterCloseResult.Success();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(
+                ex,
+                "Failed to force-close cash register {RegisterId} for user {UserId}: {Error}",
+                registerId,
+                actorUserId,
+                ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Resolves a real AspNetUsers id for force-close transactions.
+    /// Auto-close passes "system", which is not a valid FK target.
+    /// </summary>
+    private async Task<string> ResolveForceCloseActorUserIdAsync(
+        string? actorUserId,
+        string? previousOwnerId,
+        CancellationToken cancellationToken)
+    {
+        if (!IsPlaceholderActorUserId(actorUserId))
+        {
+            var actor = await _userManager.FindByIdAsync(actorUserId!).ConfigureAwait(false);
+            if (actor is not null)
+                return actor.Id;
+        }
+
+        if (!string.IsNullOrWhiteSpace(previousOwnerId))
+        {
+            var owner = await _userManager.FindByIdAsync(previousOwnerId).ConfigureAwait(false);
+            if (owner is not null)
+                return owner.Id;
+        }
+
+        var superAdmins = await _userManager.GetUsersInRoleAsync(Roles.SuperAdmin).ConfigureAwait(false);
+        var fallback = superAdmins.FirstOrDefault(u => u.IsActive) ?? superAdmins.FirstOrDefault();
+        if (fallback is not null)
+        {
+            _logger.LogWarning(
+                "Force-close actor {ActorUserId} is invalid; using SuperAdmin {FallbackUserId}",
+                actorUserId ?? "(null)",
+                fallback.Id);
+            return fallback.Id;
+        }
+
+        throw new InvalidOperationException(
+            "Cannot force-close cash register: no valid AspNetUsers actor for cash_register_transactions.UserId.");
+    }
+
+    private static bool IsPlaceholderActorUserId(string? actorUserId) =>
+        string.IsNullOrWhiteSpace(actorUserId)
+        || string.Equals(actorUserId.Trim(), "system", StringComparison.OrdinalIgnoreCase);
 }

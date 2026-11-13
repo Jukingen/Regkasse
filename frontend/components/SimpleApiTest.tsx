@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
+
 import { apiClient } from '../services/api/config';
 
 /**
@@ -19,23 +15,23 @@ export const SimpleApiTest: React.FC = () => {
   const testHealth = async () => {
     setIsLoading(true);
     setResult('');
-    
+
     try {
-      console.log('🧪 Testing health endpoint...');
+      safeLog('🧪 Testing health endpoint...');
       const response = await apiClient.get('/health');
-      console.log('✅ Health test successful:', response);
+      safeLog('✅ Health test successful:', response);
       setResult(`✅ Başarılı: ${JSON.stringify(response, null, 2)}`);
     } catch (error: any) {
       console.error('❌ Health test failed:', error);
       setResult(`❌ Hata: ${error.message || 'Bilinmeyen hata'}`);
-      
+
       // Detaylı hata bilgisi
       if (error.code === 'ECONNABORTED') {
         Alert.alert('Timeout Hatası', 'API isteği zaman aşımına uğradı. Backend çalışıyor mu?');
       } else if (error.status === 404) {
         Alert.alert('404 Hatası', 'Endpoint bulunamadı. URL doğru mu?');
       } else if (error.status === 0) {
-        Alert.alert('Bağlantı Hatası', 'Backend\'e bağlanılamıyor. Backend çalışıyor mu?');
+        Alert.alert('Bağlantı Hatası', "Backend'e bağlanılamıyor. Backend çalışıyor mu?");
       }
     } finally {
       setIsLoading(false);
@@ -45,11 +41,11 @@ export const SimpleApiTest: React.FC = () => {
   const testPing = async () => {
     setIsLoading(true);
     setResult('');
-    
+
     try {
-      console.log('🏓 Testing ping endpoint...');
+      safeLog('🏓 Testing ping endpoint...');
       const response = await apiClient.get('/test/ping');
-      console.log('✅ Ping test successful:', response);
+      safeLog('✅ Ping test successful:', response);
       setResult(`✅ Ping başarılı: ${JSON.stringify(response, null, 2)}`);
     } catch (error: any) {
       console.error('❌ Ping test failed:', error);
@@ -66,13 +62,12 @@ export const SimpleApiTest: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔌 Basit API Test</Text>
-      
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.healthButton]}
           onPress={testHealth}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>
             {isLoading ? '🔄 Test Ediliyor...' : '🏥 Health Test'}
           </Text>
@@ -81,17 +76,13 @@ export const SimpleApiTest: React.FC = () => {
         <TouchableOpacity
           style={[styles.button, styles.pingButton]}
           onPress={testPing}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>
             {isLoading ? '🔄 Test Ediliyor...' : '🏓 Ping Test'}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.clearButton]}
-          onPress={clearResult}
-        >
+        <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={clearResult}>
           <Text style={styles.buttonText}>🗑️ Temizle</Text>
         </TouchableOpacity>
       </View>

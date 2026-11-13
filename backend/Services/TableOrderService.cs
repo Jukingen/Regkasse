@@ -1,9 +1,8 @@
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace KasseAPI_Final.Services
 {
@@ -51,8 +50,8 @@ namespace KasseAPI_Final.Services
 
                 // Aynı masa için TableOrder zaten var mı kontrol et
                 var existingTableOrder = await _context.TableOrders
-                    .FirstOrDefaultAsync(to => to.TableNumber == cart.TableNumber && 
-                                              to.UserId == userId && 
+                    .FirstOrDefaultAsync(to => to.TableNumber == cart.TableNumber &&
+                                              to.UserId == userId &&
                                               to.Status == TableOrderStatus.Active);
 
                 if (existingTableOrder != null)
@@ -144,7 +143,7 @@ namespace KasseAPI_Final.Services
                 _context.TableOrders.Add(tableOrder);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Cart converted to TableOrder successfully - TableOrderId: {TableOrderId}, CartId: {CartId}, TableNumber: {TableNumber}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}", 
+                _logger.LogInformation("✅ Cart converted to TableOrder successfully - TableOrderId: {TableOrderId}, CartId: {CartId}, TableNumber: {TableNumber}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}",
                     tableOrder.TableOrderId, cartId, tableOrder.TableNumber, tableOrderItems.Count, tableOrder.TotalAmount);
 
                 return tableOrder;
@@ -237,7 +236,7 @@ namespace KasseAPI_Final.Services
 
                 // await _context.SaveChangesAsync(); // GEÇİCİ OLARAK DEVRE DIŞI
 
-                _logger.LogInformation("🔄 TableOrder updated from Cart - TableOrderId: {TableOrderId}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}", 
+                _logger.LogInformation("🔄 TableOrder updated from Cart - TableOrderId: {TableOrderId}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}",
                     existingTableOrder.TableOrderId, newItems.Count, existingTableOrder.TotalAmount);
 
                 return existingTableOrder;
@@ -284,7 +283,7 @@ namespace KasseAPI_Final.Services
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ TableOrder completed - TableOrderId: {TableOrderId}, TotalAmount: {TotalAmount}", 
+                _logger.LogInformation("✅ TableOrder completed - TableOrderId: {TableOrderId}, TotalAmount: {TotalAmount}",
                     tableOrderId, tableOrder.TotalAmount);
 
                 return true;
@@ -306,7 +305,7 @@ namespace KasseAPI_Final.Services
 
             try
             {
-                return JsonSerializer.Deserialize<List<TableOrderStatusChange>>(statusHistoryJson) 
+                return JsonSerializer.Deserialize<List<TableOrderStatusChange>>(statusHistoryJson)
                        ?? new List<TableOrderStatusChange>();
             }
             catch
@@ -322,10 +321,10 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                        var activeCarts = await _context.Carts
-            .Include(c => c.Items)
-            .Where(c => c.Status == CartStatus.Active && c.TableNumber.HasValue)
-            .ToListAsync();
+                var activeCarts = await _context.Carts
+    .Include(c => c.Items)
+    .Where(c => c.Status == CartStatus.Active && c.TableNumber.HasValue)
+    .ToListAsync();
 
                 int migratedCount = 0;
 

@@ -1,4 +1,5 @@
-import { keepPreviousData, useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { type UseQueryOptions, keepPreviousData, useQuery } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
 
 export type AdminCardTransactionRow = {
@@ -38,7 +39,7 @@ export type AdminCardTransactionListParams = {
 
 export async function fetchAdminCardTransactions(
   params: AdminCardTransactionListParams,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<AdminCardTransactionListResponse> {
   return customInstance<AdminCardTransactionListResponse>({
     url: '/api/admin/card-transactions',
@@ -57,7 +58,7 @@ export function useAdminCardTransactionsList<TData = AdminCardTransactionListRes
   params: AdminCardTransactionListParams,
   options?: {
     query?: Partial<UseQueryOptions<AdminCardTransactionListResponse, unknown, TData>>;
-  },
+  }
 ) {
   const { query: queryOptions } = options ?? {};
   return useQuery({

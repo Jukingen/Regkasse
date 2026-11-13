@@ -16,7 +16,9 @@ export interface Category {
 // Kategorileri getir
 export const getCategories = async (includeProductCount: boolean = true): Promise<Category[]> => {
   try {
-    const response = await apiClient.get<Category[]>(`/categories?includeProductCount=${includeProductCount}`);
+    const response = await apiClient.get<Category[]>(
+      `/categories?includeProductCount=${includeProductCount}`
+    );
     return response || [];
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -36,7 +38,9 @@ export const getCategoryById = async (categoryId: string): Promise<Category> => 
 };
 
 // Yeni kategori oluştur
-export const createCategory = async (categoryData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category> => {
+export const createCategory = async (
+  categoryData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Category> => {
   try {
     const response = await apiClient.post<Category>('/categories', categoryData);
     return response;
@@ -47,7 +51,10 @@ export const createCategory = async (categoryData: Omit<Category, 'id' | 'create
 };
 
 // Kategori güncelle
-export const updateCategory = async (categoryId: string, categoryData: Partial<Category>): Promise<void> => {
+export const updateCategory = async (
+  categoryId: string,
+  categoryData: Partial<Category>
+): Promise<void> => {
   try {
     await apiClient.put(`/categories/${categoryId}`, categoryData);
   } catch (error) {
@@ -67,7 +74,10 @@ export const deleteCategory = async (categoryId: string): Promise<void> => {
 };
 
 // Kategori durumunu güncelle
-export const updateCategoryStatus = async (categoryId: string, isActive: boolean): Promise<void> => {
+export const updateCategoryStatus = async (
+  categoryId: string,
+  isActive: boolean
+): Promise<void> => {
   try {
     await apiClient.put(`/categories/${categoryId}/status`, { isActive });
   } catch (error) {
@@ -85,4 +95,4 @@ export const getCategoryNames = async (): Promise<string[]> => {
     console.error('Error fetching category names:', error);
     throw new Error('Kategori isimleri yüklenemedi');
   }
-}; 
+};

@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
 import { Alert, Button, Card, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { TablePaginationConfig } from 'antd/es/table/interface';
+import React from 'react';
+
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 
 export interface RecentRestoreDrillsTableProps {
@@ -58,7 +59,7 @@ export function RecentRestoreDrillsTable({
         locale={{ emptyText }}
       />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-        {t('backupDr.restoreHistory.statusHint')}
+        {t('backupDr.recentRestoreDrills.statusHint')}
       </Typography.Paragraph>
     </Card>
   );

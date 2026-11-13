@@ -2,8 +2,9 @@
  * Manuel tetik onay metinleri — etkin mod / adaptör ve istenen-etkin sapmaları.
  */
 import { describe, expect, it } from 'vitest';
-import { buildManualActionsConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
+
 import type { BackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
+import { buildManualActionsConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
 
 function t(k: string, o?: Record<string, string | number>): string {
   if (o && Object.keys(o).length > 0) return `${k}:${JSON.stringify(o)}`;
@@ -32,8 +33,14 @@ const baseEm = (p: Partial<BackupExecutionModeTruth>): BackupExecutionModeTruth 
 describe('buildManualActionsConfirmations — effective mode in backup trigger copy', () => {
   it('includes effective execution line with effective user-facing mode and PgDump behavior line', () => {
     const c = buildManualActionsConfirmations(baseEm({}), null, t);
-    expect(c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.effectiveExecutionLine'))).toBe(true);
-    expect(c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.confirmBackupBehaviorRealPgDump'))).toBe(true);
+    expect(
+      c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.effectiveExecutionLine'))
+    ).toBe(true);
+    expect(
+      c.backupDescriptionParts.some((x) =>
+        x.includes('backupDr.manual.confirmBackupBehaviorRealPgDump')
+      )
+    ).toBe(true);
   });
 
   it('uses simulated behavior line when effective adapter is Fake', () => {
@@ -45,9 +52,13 @@ describe('buildManualActionsConfirmations — effective mode in backup trigger c
         effectiveIsPgDumpAdapter: false,
       }),
       null,
-      t,
+      t
     );
-    expect(c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.confirmBackupBehaviorSimulated'))).toBe(true);
+    expect(
+      c.backupDescriptionParts.some((x) =>
+        x.includes('backupDr.manual.confirmBackupBehaviorSimulated')
+      )
+    ).toBe(true);
   });
 
   it('adds mismatch paragraph when requested Real but effective simulated', () => {
@@ -61,13 +72,17 @@ describe('buildManualActionsConfirmations — effective mode in backup trigger c
         requestedRealButEffectiveSimulated: true,
       }),
       null,
-      t,
+      t
     );
     expect(
-      c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.confirmBackupMismatchRequestedRealEffectiveSimulated')),
+      c.backupDescriptionParts.some((x) =>
+        x.includes('backupDr.manual.confirmBackupMismatchRequestedRealEffectiveSimulated')
+      )
     ).toBe(true);
     expect(c.cardAlert?.severity).toBe('error');
-    expect(c.cardAlert?.message).toContain('backupDr.manual.cardAlertRequestedRealEffectiveSimulated');
+    expect(c.cardAlert?.message).toContain(
+      'backupDr.manual.cardAlertRequestedRealEffectiveSimulated'
+    );
   });
 
   it('adds blocked paragraph and warning card alert when requested Real is blocked', () => {
@@ -77,11 +92,13 @@ describe('buildManualActionsConfirmations — effective mode in backup trigger c
         effectiveModeRunnable: false,
       }),
       null,
-      t,
+      t
     );
-    expect(c.backupDescriptionParts.some((x) => x.includes('backupDr.manual.confirmBackupMismatchRequestedRealBlocked'))).toBe(
-      true,
-    );
+    expect(
+      c.backupDescriptionParts.some((x) =>
+        x.includes('backupDr.manual.confirmBackupMismatchRequestedRealBlocked')
+      )
+    ).toBe(true);
     expect(c.cardAlert?.severity).toBe('warning');
     expect(c.cardAlert?.message).toContain('backupDr.manual.cardAlertRequestedRealBlocked');
   });

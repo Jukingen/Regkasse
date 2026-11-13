@@ -1,3 +1,4 @@
+import type { RksvEnvironmentStatusDto } from './rksvEnvironmentTypes';
 import type { LicensePublicStatusDto } from '../../api/license';
 import type { PosCashRegisterContextDto } from '../../utils/posCashRegisterReadinessParse';
 
@@ -22,4 +23,5 @@ export type PosStatusOverviewDto = {
   healthLicense: PosStatusLicenseHealthDto;
   cashRegister: PosCashRegisterContextDto;
   settings: PosStatusSettingsSnapshotDto;
+  rksvEnvironment: RksvEnvironmentStatusDto | null;
 };

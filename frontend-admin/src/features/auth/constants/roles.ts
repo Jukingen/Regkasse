@@ -19,8 +19,8 @@ export type CanonicalRole = (typeof ROLES_CANONICAL)[number];
 /** Roles that have user.view (list/roles/search). Backend: Manager, SuperAdmin. */
 export const ROLES_CAN_VIEW_USERS = ['SuperAdmin', 'Manager'] as const;
 
-/** Roles that have user.manage. Backend: SuperAdmin only. */
-export const ROLES_CAN_MANAGE_USERS = ['SuperAdmin'] as const;
+/** Roles that have user.manage. Backend: SuperAdmin + Mandanten-Admin (Manager). */
+export const ROLES_CAN_MANAGE_USERS = ['SuperAdmin', 'Manager'] as const;
 
 /** Sadece SuperAdmin rol oluşturabilir (POST /api/UserManagement/roles) */
 export const ROLES_CAN_CREATE_ROLE = ['SuperAdmin'] as const;
@@ -55,11 +55,17 @@ export function canDeleteRole(role: UserRole | undefined | null): boolean {
 }
 
 export function canEditRolePermissions(role: UserRole | undefined | null): boolean {
-  return ROLES_CAN_EDIT_ROLE_PERMISSIONS.includes(role as (typeof ROLES_CAN_EDIT_ROLE_PERMISSIONS)[number]);
+  return ROLES_CAN_EDIT_ROLE_PERMISSIONS.includes(
+    role as (typeof ROLES_CAN_EDIT_ROLE_PERMISSIONS)[number]
+  );
 }
 
 export function isSuperAdmin(role: UserRole | undefined | null): boolean {
   return role === 'SuperAdmin';
+}
+
+export function isManager(role: UserRole | undefined | null): boolean {
+  return role === 'Manager';
 }
 
 /** One-time tenant user passwords and platform tenant-user API — SuperAdmin only. */
@@ -79,13 +85,15 @@ export function canDeactivateReactivate(role: UserRole | undefined | null): bool
 
 /**
  * Force-reset another user's password.
- * Backend: only SuperAdmin can reset a SuperAdmin target.
+ * Backend: Manager with user.reset.password (tenant-scoped); SuperAdmin with user.manage or user.reset.password.
+ * Only SuperAdmin can reset a SuperAdmin target.
  */
 export function canResetPassword(
   actorRole: UserRole | undefined | null,
   targetRole: UserRole | undefined | null
 ): boolean {
-  if (!canManageUsers(actorRole)) return false;
+  if (actorRole == null || actorRole === '') return false;
+  if (actorRole !== 'SuperAdmin' && actorRole !== 'Manager') return false;
   if (targetRole === 'SuperAdmin') return isSuperAdmin(actorRole);
   return true;
 }

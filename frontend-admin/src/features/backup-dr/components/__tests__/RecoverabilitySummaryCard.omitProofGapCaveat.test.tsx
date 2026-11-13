@@ -1,12 +1,13 @@
 /**
  * Kanıt boşluğu caveats tekrarı: üst tarama ile aynı mesajı çift göstermemek.
  */
-import React from 'react';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
+import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -56,9 +57,11 @@ describe('RecoverabilitySummaryCard — omitProofGapCaveat', () => {
         restoreStatusLabel={() => 'ok'}
         omitProofGapCaveat
         t={t}
-      />,
+      />
     );
-    expect(screen.queryByText('backupDr.operatorTruth.recoverabilityProofGap')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.operatorTruth.recoverabilityProofGap')
+    ).not.toBeInTheDocument();
   });
 
   it('shows recoverability proof gap in caveats when omitProofGapCaveat is false', () => {
@@ -72,7 +75,7 @@ describe('RecoverabilitySummaryCard — omitProofGapCaveat', () => {
         restoreStatusLabel={() => 'ok'}
         omitProofGapCaveat={false}
         t={t}
-      />,
+      />
     );
     expect(screen.getByText('backupDr.operatorTruth.recoverabilityProofGap')).toBeInTheDocument();
   });

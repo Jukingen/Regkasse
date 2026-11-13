@@ -1,5 +1,4 @@
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Tse;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -9,6 +8,7 @@ public sealed class TseChainContinuityAnalyzerTests
     [Theory]
     [InlineData("AT-K1-20260527-1", 1, "20260527", true)]
     [InlineData("AT-K1-20260527-42", 42, "20260527", true)]
+    [InlineData("AT-KASSE-001-b0000001000140018001000000000001-20261101-1", 1, "20261101", true)]
     [InlineData("INVALID", 0, null, false)]
     public void TryParseBelegNrSequence_ParsesAtFormat(string belegNr, int seq, string? ymd, bool ok)
     {

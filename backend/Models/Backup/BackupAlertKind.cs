@@ -20,4 +20,19 @@ public enum BackupAlertKind
 
     /// <summary>Scheduled restore proof cadence exceeded, unhealthy config, or worker off while scheduling on.</summary>
     RestoreDrillOperationalRisk = 8,
+
+    /// <summary>
+    /// Succeeded-dump storage budget or staging volume usage at/above configured alert threshold
+    /// (see <c>StorageAlertService</c> / <c>Backup:StagingDiskUsageAlertPercent</c>).
+    /// </summary>
+    StoragePressure = 9,
+
+    /// <summary>
+    /// No successful System strategy backup within <c>Backup:AlertOnNoBackupDays</c>
+    /// (see <c>BackupRpoOverdueAlertService</c>).
+    /// </summary>
+    RpoOverdue = 10,
+
+    /// <summary>Indicative monthly storage cost exceeded <c>Backup:StorageCostAlertEurPerMonth</c>.</summary>
+    StorageCostHigh = 11,
 }

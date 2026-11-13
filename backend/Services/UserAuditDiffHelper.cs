@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using KasseAPI_Final.Models;
 
@@ -26,9 +24,14 @@ namespace KasseAPI_Final.Services
         /// </summary>
         public static readonly IReadOnlySet<string> ForbiddenKeys = new HashSet<string>(new[]
         {
-            "password", "PasswordHash", "NormalizedUserName", "NormalizedEmail",
+            "password", "PasswordHash", "passwordHash", "newPassword", "oldPassword", "confirmPassword",
+            "generatedPassword",
+            "NormalizedUserName", "NormalizedEmail",
             "SecurityStamp", "ConcurrencyStamp",
-            "token", "access_token", "refresh_token", "credentials", "apiKey"
+            "token", "access_token", "refresh_token", "accessToken", "refreshToken",
+            "credentials", "apiKey", "api_key",
+            "voucherCode", "VoucherCode",
+            "taxNumber", "TaxNumber"
         }, System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -37,7 +40,8 @@ namespace KasseAPI_Final.Services
         /// </summary>
         public static object CreateSafeSnapshot(ApplicationUser user)
         {
-            if (user == null) return new { };
+            if (user == null)
+                return new { };
             return new
             {
                 user.FirstName,
@@ -62,10 +66,12 @@ namespace KasseAPI_Final.Services
             var keys = AllowedKeys.Where(k => oldDict.ContainsKey(k) || newDict.ContainsKey(k)).ToList();
             foreach (var key in keys)
             {
-                if (ForbiddenKeys.Contains(key)) continue;
+                if (ForbiddenKeys.Contains(key))
+                    continue;
                 var oldVal = oldDict.TryGetValue(key, out var o) ? o : null;
                 var newVal = newDict.TryGetValue(key, out var n) ? n : null;
-                if (Equals(oldVal, newVal)) continue;
+                if (Equals(oldVal, newVal))
+                    continue;
                 changes.Add(new AuditChangeItem
                 {
                     Field = key,
@@ -78,12 +84,14 @@ namespace KasseAPI_Final.Services
 
         private static Dictionary<string, string?> ToStringDictionary(object? obj)
         {
-            if (obj == null) return new Dictionary<string, string?>();
+            if (obj == null)
+                return new Dictionary<string, string?>();
             try
             {
                 var json = JsonSerializer.Serialize(obj);
                 var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-                if (dict == null) return new Dictionary<string, string?>();
+                if (dict == null)
+                    return new Dictionary<string, string?>();
                 return dict.ToDictionary(
                     kvp => kvp.Key,
                     kvp => kvp.Value.ValueKind == JsonValueKind.Null || kvp.Value.ValueKind == JsonValueKind.Undefined
@@ -99,8 +107,10 @@ namespace KasseAPI_Final.Services
 
         private static bool Equals(string? a, string? b)
         {
-            if (a == null && b == null) return true;
-            if (a == null || b == null) return false;
+            if (a == null && b == null)
+                return true;
+            if (a == null || b == null)
+                return false;
             return string.Equals(a, b, System.StringComparison.Ordinal);
         }
     }

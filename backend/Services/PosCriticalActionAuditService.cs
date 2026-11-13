@@ -1,7 +1,6 @@
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services;
 
@@ -308,7 +307,8 @@ public sealed class PosCriticalActionAuditService : IPosCriticalActionAuditServi
 
     private static string? Truncate(string? s, int max)
     {
-        if (string.IsNullOrEmpty(s)) return s;
+        if (string.IsNullOrEmpty(s))
+            return s;
         return s.Length <= max ? s : s[..(max - 3)] + "...";
     }
 }

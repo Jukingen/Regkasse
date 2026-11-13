@@ -1,10 +1,13 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -21,6 +24,7 @@ public sealed class PosShiftController : ControllerBase
     private readonly IPosDailyClosingService _dailyClosing;
     private readonly IDailyClosingReportService _dailyClosingReport;
     private readonly IAuditLogService _auditLog;
+    private readonly AppDbContext _db;
     private readonly ILogger<PosShiftController> _logger;
 
     public PosShiftController(
@@ -28,12 +32,14 @@ public sealed class PosShiftController : ControllerBase
         IPosDailyClosingService dailyClosing,
         IDailyClosingReportService dailyClosingReport,
         IAuditLogService auditLog,
+        AppDbContext db,
         ILogger<PosShiftController> logger)
     {
         _shiftService = shiftService;
         _dailyClosing = dailyClosing;
         _dailyClosingReport = dailyClosingReport;
         _auditLog = auditLog;
+        _db = db;
         _logger = logger;
     }
 
@@ -100,6 +106,12 @@ public sealed class PosShiftController : ControllerBase
         {
             return NotFound(new { error = ex.Message });
         }
+        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterNotAssigned)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { error = ex.Message, code = CashRegisterPermissionCodes.RegisterNotAssignedToActor });
+        }
         catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterOpenConflict)
         {
             return Conflict(new { error = ex.Message });
@@ -109,6 +121,77 @@ public sealed class PosShiftController : ControllerBase
             _logger.LogWarning(ex, "StartShift failed for user {UserId}", userId);
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Auto-opens a cashier shift for the caller's register (body id, else persisted default).
+    /// Idempotent if already active. Missing/unavailable registers return structured 400 codes
+    /// rather than a raw model-binding failure.
+    /// </summary>
+    [HttpPost("auto-open")]
+    [HasPermission(AppPermissions.ShiftOpen)]
+    [ProducesResponseType(typeof(ShiftAutoOpenResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ShiftAutoOpenResult), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ShiftAutoOpenResult>> AutoOpenShift(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AutoOpenShiftRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        // Empty/invalid cashRegisterId must not become a raw model-binding 400.
+        if (!ModelState.IsValid)
+        {
+            ModelState.Remove("request");
+            ModelState.Remove("CashRegisterId");
+            ModelState.Remove("request.CashRegisterId");
+        }
+
+        var registerId = TryParseOptionalRegisterId(request?.CashRegisterId);
+        var result = await _shiftService.AutoOpenShiftAsync(
+            userId,
+            User.Identity?.Name ?? string.Empty,
+            registerId,
+            cancellationToken);
+
+        if (result.Success)
+            return Ok(result);
+
+        _logger.LogInformation(
+            "AutoOpenShift declined for user {UserId} with code {Code}",
+            userId,
+            result.Code);
+        return BadRequest(result);
+    }
+
+    private static Guid? TryParseOptionalRegisterId(string? raw)
+    {
+        var trimmed = raw?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return null;
+        return Guid.TryParse(trimmed, out var id) && id != Guid.Empty ? id : null;
+    }
+
+    /// <summary>
+    /// Soft-closes the caller's active CashierShift without closing the cash register (idempotent).
+    /// </summary>
+    [HttpPost("auto-close")]
+    [HasPermission(AppPermissions.ShiftClose)]
+    [ProducesResponseType(typeof(CashierShiftDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AutoCloseShift(CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+        var shift = await _shiftService.AutoCloseShiftAsync(userId, actorRole, cancellationToken);
+        if (shift == null)
+            return NoContent();
+
+        return Ok(shift);
     }
 
     /// <summary>Ends the active shift, closes the register, and returns a non-fiscal closing summary.</summary>
@@ -152,7 +235,7 @@ public sealed class PosShiftController : ControllerBase
 
     /// <summary>Readiness for fiscal Tagesabschluss on the active shift register.</summary>
     [HttpGet("daily-closing/status")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [ProducesResponseType(typeof(PosDailyClosingStatusDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PosDailyClosingStatusDto>> GetDailyClosingStatus(CancellationToken cancellationToken)
     {
@@ -168,7 +251,7 @@ public sealed class PosShiftController : ControllerBase
     /// Fiscal daily closing (Tagesabschluss) for the active shift register; records cash count on the shift row.
     /// </summary>
     [HttpPost("daily-closing")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [ProducesResponseType(typeof(PosDailyClosingResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -215,6 +298,14 @@ public sealed class PosShiftController : ControllerBase
                 paymentsWithoutInvoiceCount = ex.PaymentsWithoutInvoiceCount,
             });
         }
+        catch (PosDailyClosingException ex) when (ex.Kind == PosDailyClosingFailureKind.RegisterCloseForbidden)
+        {
+            return Forbid();
+        }
+        catch (PosDailyClosingException ex) when (ex.Kind == PosDailyClosingFailureKind.RegisterCloseFailed)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
         catch (PosDailyClosingException ex)
         {
             _logger.LogWarning(ex, "DailyClosing failed for user {UserId}", userId);
@@ -224,7 +315,7 @@ public sealed class PosShiftController : ControllerBase
 
     /// <summary>Localized PDF report for a completed daily closing linked to the caller's shift.</summary>
     [HttpGet("daily-closing/{dailyClosingId:guid}/report.pdf")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [Produces("application/pdf")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -237,7 +328,7 @@ public sealed class PosShiftController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "User not authenticated" });
 
-        var pdf = await _dailyClosingReport.TryGenerateStoredDailyReportPdfAsync(
+        var pdf = await _dailyClosingReport.TryGenerateClosingReportPdfAsync(
             dailyClosingId,
             userId,
             language ?? "de",
@@ -246,7 +337,21 @@ public sealed class PosShiftController : ControllerBase
         if (pdf == null || pdf.Length == 0)
             return NotFound(new { error = "Daily closing report not found" });
 
-        var fileName = $"Tagesabschluss_{dailyClosingId:N}.pdf";
+        var closing = await _db.DailyClosings.AsNoTracking()
+            .Where(c => c.Id == dailyClosingId)
+            .Select(c => new { c.ClosingDate, c.ClosingType, c.TenantId })
+            .FirstOrDefaultAsync(cancellationToken);
+        var tenantSlug = closing is null
+            ? null
+            : await _db.Tenants.AsNoTracking()
+                .Where(t => t.Id == closing.TenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken);
+        var reportType = ReportPdfTypes.FromClosingType(closing?.ClosingType);
+        var fileName = ReportPdfStorageService.BuildDownloadFileName(
+            reportType,
+            tenantSlug,
+            closing?.ClosingDate ?? DateTime.UtcNow);
         return File(pdf, "application/pdf", fileName);
     }
 }

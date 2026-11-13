@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -47,7 +45,8 @@ public static class OfflineVoucherFieldAesEncryption
             throw new CryptographicException("Invalid offline voucher AES payload (too short).");
 
         var iv = raw.AsSpan(0, 16);
-        var cipher = raw.AsSpan(16);
+
+        _ = raw.AsSpan(16);
         using var aes = Aes.Create();
         aes.Key = key.ToArray();
         aes.IV = iv.ToArray();

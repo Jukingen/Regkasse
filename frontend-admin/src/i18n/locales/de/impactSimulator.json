@@ -1,0 +1,15 @@
+{
+  "modalTitle": "Auswirkungs-Simulation",
+  "cancel": "Abbrechen",
+  "confirm": "Änderung bestätigen",
+  "statProducts": "Betroffene Produkte",
+  "statPayments": "Betroffene Zahlungen",
+  "statInvoices": "Betroffene Rechnungen",
+  "statFinancial": "Geschätzte finanzielle Auswirkung",
+  "recommendations": "Empfehlungen",
+  "warnings": "Warnungen",
+  "historicalTitle": "Historische Daten bleiben unverändert",
+  "historicalBody": "Diese Änderung betrifft nur neue Transaktionen und Datensätze. Bestehende Zahlungen und Rechnungen werden nicht rückwirkend geändert.",
+  "noFinancialEstimate": "Keine Schätzung verfügbar",
+  "loadError": "Auswirkungs-Simulation konnte nicht geladen werden."
+}

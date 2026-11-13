@@ -2,9 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
-Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) where release tags are cut.
 
-Older waves: [`docs/CHANGELOG_RECENT.md`](docs/CHANGELOG_RECENT.md), [`docs/CHANGELOG_TENANT_MANAGEMENT.md`](docs/CHANGELOG_TENANT_MANAGEMENT.md).
+**Older waves** (detailed narrative):
+
+- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — digital services / online orders
+- [`docs/CHANGELOG_RECENT.md`](docs/CHANGELOG_RECENT.md) — recent engineering waves
+- [`docs/CHANGELOG_TENANT_MANAGEMENT.md`](docs/CHANGELOG_TENANT_MANAGEMENT.md) — tenant / license FA
 
 ---
 
@@ -12,40 +17,111 @@ Older waves: [`docs/CHANGELOG_RECENT.md`](docs/CHANGELOG_RECENT.md), [`docs/CHAN
 
 ### Added
 
-- **Username-based login:** Users can sign in with either **email** or **username** (`loginIdentifier` on `POST /api/Auth/login`).
-- **Auto-generated usernames:** **Schnell anlegen** (Quick Create) and manual admin user create generate unique login names when `userName` is omitted (`{rolePrefix}{n}`, e.g. `manager1`, `cashier2`).
-- **Username display:** FA success modals show **username**, **email**, and one-time password with per-field copy and **copy all** (`QuickUserSuccessModal`, `UserCreatedSuccessModal`).
-- **API contract supplement:** [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md) — login and user-create request/response deltas.
+- **Secret scan (pre-commit + CI):** Husky blocks commits that add sensitive filenames or high-confidence secrets (`scripts/git-hooks/scan-secrets.mjs`). Policy in [`SECURITY.md`](SECURITY.md); `npm run verify:secrets` / `npm run test:secrets`.
+
+- **POS receipt P0/P1 + Dankesnachricht:** printed receipts include `Kassen-ID` (`cashRegister.registerNumber`) and the full compact JWS (`TSE-Signatur`, not truncated). Optional `Filiale` from register `Location` and `Terminal` when present. Configurable thank-you line stored on `company_settings.thank_you_message` (default `Vielen Dank für Ihren Einkauf!`). API `GET/POST /api/admin/settings/receipt` (`settings.view`); FA `/settings/receipt`.
+
+- **POS Belegliste / Nachdruck:** cashiers can list the last 20 receipts of the current cash register and reprint them (`receipt.reprint`) without creating a new fiscal Beleg. API `GET /api/pos/receipts` and `GET /api/pos/receipts/{receiptId}/reprint`. POS entry: user menu **Belegliste** (not a footer tab).
+
+- **RKSV runtime config (Super Admin):** persisted instance overlay for `RKSV.Mode` / `TseMode` / `FinanzOnlineMode` / `ShowDemoLabel` / `BypassTseInDevelopment` (`rksv_runtime_config`). API `GET/POST /api/admin/rksv/config`; FA `/admin/rksv/config`. `TseMode=Real` disables Development TSE health bypass. Guide: [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md).
+
+- **POS online payments (Kreditkarte / PayPal):** hosted initiate + poll (`POST/GET /api/pos/payment/initiate`), provider webhooks (`POST /api/webhooks/payment/{provider}`), intents on `gateway_payment_intents`. Webhooks never create TSE/RKSV receipts. Super Admin FA **Online-Zahlungen** (`/admin/online-payments`, `online-payments.manage`) lists intents and runs a non-fiscal test console. Guide: [`docs/ONLINE_PAYMENTS.md`](docs/ONLINE_PAYMENTS.md).
+
+- **Dashboard widget customization (P2):** Manager license / KPI / Monatsbeleg / activity / TSE / offline / license checklist / export quick-actions participate in existing `@dnd-kit` `WidgetGrid` + `GET/POST /api/admin/dashboard/preferences`. Handlungsbedarf (Tagesabschluss + RKSV) remains pinned. Reset layout + i18n for “Widgets anpassen”. See [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md).
+- **DEP export history:** download token / expiry / `download_count` / `is_simulated` migrations; Soft TSE leaf/chain fallback for **demo/simulation only** when historical thumbprint is missing; `DepExportStatus` JSON string enum for FA.
+- **EF snapshot sync migration** `20260808214645_SyncDepExportAndPendingModelSnapshot` (no SQL) so `dotnet ef migrations has-pending-model-changes` is clean.
+- **Production release notes:** [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md); expanded Production checklist in [`DEPLOYMENT.md`](DEPLOYMENT.md).
+- **Comprehensive Windows script ecosystem:**
+  - **13** root-level `.bat` files for common tasks (`start-dev`, `start-backend` / `admin` / `pos` / `sites`, `test-all`, `clean-all`, `docker-up` / `down` / `clean` / `status`, `deploy`, `rollback`)
+  - **8** `scripts\` maintenance helpers (`clean-backend`, `dev-purge-tenant`, `generate-dep-export`, `ensure-bmf-prueftool`, `fix-antd`, `dev-mail`, `smoke-test`, `run-with-log`)
+  - Full documentation in [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md)
+  - Quick reference in [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
+  - Ecosystem map [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md), test plan [`docs/SCRIPTS_TEST_PLAN.md`](docs/SCRIPTS_TEST_PLAN.md), getting started [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md), checklist [`docs/SCRIPTS_TEST_CHECKLIST.md`](docs/SCRIPTS_TEST_CHECKLIST.md), announcements [`docs/TEAM_ANNOUNCEMENT_SCRIPTS.md`](docs/TEAM_ANNOUNCEMENT_SCRIPTS.md) / [`docs/SCRIPTS_TEAM_ANNOUNCEMENT.md`](docs/SCRIPTS_TEAM_ANNOUNCEMENT.md), summaries [`docs/SCRIPTS_COMPLETION_SUMMARY.md`](docs/SCRIPTS_COMPLETION_SUMMARY.md) / [`docs/SCRIPTS_FINAL_SUMMARY.md`](docs/SCRIPTS_FINAL_SUMMARY.md), inventory [`docs/BATCH_FILES.md`](docs/BATCH_FILES.md)
+  - Validation: `scripts/validate-scripts.ps1` · structural dry-run: `scripts/test-scripts.ps1` (`npm run validate:scripts` / `test:scripts`)
+  - Pairing gate: `scripts/verify-bat-ps1-pairing.mjs` + `create-bat-wrappers.ps1`
+  - CI: [`.github/workflows/scripts-bat-ps1-pairing.yml`](.github/workflows/scripts-bat-ps1-pairing.yml) (pairing + validate + test-scripts)
+- **Monorepo DX docs:** root [`README.md`](README.md) (Scripts section), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`DEPLOYMENT.md`](DEPLOYMENT.md), [`CONTRIBUTING.md`](CONTRIBUTING.md) (Scripts section), [`API_CONTRACT.md`](API_CONTRACT.md); package READMEs for `docs/`, `ai/`, `scripts/`, `tools/`, `localization/`, `frontend-sites/`.
+- **npm workspaces** at repo root (`backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`) with `npm run dev` parallel runner (`scripts/dev-workspaces.mjs`).
+- **Husky pre-commit** — staged-package lint/typecheck + OpenAPI/API client verify (`scripts/git-hooks/pre-commit.mjs`); opt-in `HUSKY_RUN_TESTS=1`.
+- **API client automation:** `scripts/verify-api-client.mjs` (incl. `--openapi-only`), CI `api-client-alignment.yml` / `api-client-auto-generate.yml`.
+- **CI coverage:** frontend POS / sites workflows; backend unit + Postgres integration improvements; reusable failure notify; workflow inventory [`.github/workflows/README.md`](.github/workflows/README.md).
+- **TestSprite runners:** `testsprite/validate-specs.mjs` (YAML ↔ `swagger.json` CI gate), `testsprite/run-api-smoke.mjs` (live smoke); suites for offline-orders and sites-public.
+- **i18n CI hard gates** for Admin/POS via `localization/`; `frontend-sites` deferred in namespace manifest.
+- **SuperAdmin 2FA (TOTP):** Production authenticator after password; Development bypass — [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
+- **Digital services & online orders:** website/app generation, Manager preview/requests, non-fiscal online-order inbox — [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md).
+- **Username-based login:** `loginIdentifier` on `POST /api/Auth/login` (email or username).
+- **Auto-generated usernames:** Quick Create / admin create when `userName` omitted (`{rolePrefix}{n}`).
+- **Username UX (FA):** success modals with username, email, one-time password + copy helpers.
+- **License tools docs:** [`tools/README.md`](tools/README.md); portable Redis notes under `tools/redis/`.
 
 ### Changed
 
-- `POST /api/Auth/login` accepts **`loginIdentifier`** (email or username); resolves user via `FindByEmailAsync` then `FindByNameAsync`.
-- **Frontend Admin** login form accepts email or username (`LoginForm` → `loginIdentifier`, legacy `email` mirrored).
-- **Frontend POS** login screen accepts email or username (`login.tsx`, `authService.buildLoginPayload`).
-- Tenant user create: `UserName` is no longer forced equal to email; optional `userName` on `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminCreateUserRequest`.
-- Quick Create response and manual create responses include **`userName`** (`CreateTenantUserResultDto`, `AdminCreateUserResponseDto`).
+- **TSE health bypass is opt-in in Development:** no longer implied by `ASPNETCORE_ENVIRONMENT=Development`. Default is **do not bypass** (`DevelopmentOptions:BypassTseInDevelopment=false`, `bypassTseCheck` seed false). FA `/admin/rksv/config` overlay `TseMode=Real` always runs real probes/signing. See [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md).
+
+- **Legacy API aliases removed:** `/api/Payment`, `/api/Cart`, `/api/Product` no longer bind. Use `/api/pos/payment/*`, `/api/pos/cart/*`, `/api/pos/*` (admin products: `/api/admin/products`). See [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
+
+- **Dashboard catalog:** `DashboardWidgetCatalog.FilterByPermissions` honors `PermissionImplication` (manage→view) so Mandanten-Admin sees cash-register / license view widgets.
+- **POS Expo SDK 56 patch bump:** `expo` `~56.0.16` → `~56.0.18` (plus aligned `expo-router`, `expo-linking`, `expo-sharing`, `expo-splash-screen`, `expo-web-browser`, `expo-build-properties`, `react-native-screens` `~4.26.0`, TypeScript `~6.0.3` via `npx expo install --fix`). Pins updated in `AGENTS.md`, `frontend/README.md`, onboarding / comprehensive docs.
+- **Documentation accuracy:** Single POS UI hosts (`pos` / `admin` / `api`.regkasse.at); JWT tenant; Dev-only `X-Tenant-Id` — updates across `docs/`, `ai/`, offline deploy, impersonation, onboarding.
+- **Backup FA docs:** hub `/backup` (+ costs/compliance); Mandanten-Admin `backup.manage`; auto-cleanup audit `BACKUP_AUTO_DELETED`.
+- **`POST /api/Auth/login`:** prefers `loginIdentifier`; resolves email then username (`IdentityLoginLookup`).
+- **FA / POS login clients:** send `loginIdentifier` (legacy `email` mirrored where needed).
+- **Tenant user create:** `UserName` no longer forced equal to email; optional `userName` on create/quick DTOs; responses include `userName`.
+- **AGENTS / onboarding:** stack pins (.NET/EF 10.0.10, Next 16, Expo 56), workspaces, Sites, backup extras.
+- **TestSprite CI:** validates OpenAPI alignment instead of non-existent `testsprite-cli`; live smoke on `workflow_dispatch`.
+- **`tools/i18n`:** thin wrappers over `localization/scripts/*` (no parallel validator).
+
+### Fixed
+
+- **POS receipt MwSt table:** printed receipts now show a single MwSt header (`MwSt% Netto MwSt Brutto`) instead of a duplicated pipe-separated title plus table header. Thank-you text is always the configured Dankesnachricht (default `Vielen Dank für Ihren Einkauf!`); `CompanyDescription` prints after it, not as a substitute.
+
+- **Elmah PostgreSQL `"User"` column:** `elmah_error` created from lowercase `"user"` DDL could not accept ElmahCore.Postgresql inserts (`42703 column "User" does not exist`). Migration `20260827170615_AddElmahUserColumn` creates the table when missing, ensures a single nullable `"User"` (quoted PascalCase), backfills/renames leftover `"user"`, and is idempotent.
+
+- **Staging host user secrets:** `WebApplication.CreateBuilder` skips user secrets outside Development, so local `ASPNETCORE_ENVIRONMENT=Staging` never resolved `ConnectionStrings:DefaultConnection` / `JwtSettings:SecretKey`. `ApplicationHost` now loads user secrets in Staging (optional; no-op on servers without a secrets file).
+- **AuditLog Manager 500:** removed `.Include(a => a.User)` / search on ignored navigation; actor display names resolved after materialization — [`docs/FIXES.md`](docs/FIXES.md).
+- **DEP Soft TSE missing certificate (demo only):** fallback to current Soft leaf/chain; Production still throws.
+- **DEP history FA download disabled:** `DepExportStatus` string enum + FA status normalizers.
+- **AI contracts:** removed false “Customer not `ITenantEntity`” claim; Production tenancy framed as JWT on reserved hosts (not subdomain-only).
+- **Auth docs:** invalid login expected status **401** (not 400) in TestSprite / API contract summaries.
+- **Seed / smoke scripts:** `seed-test-data.mjs` uses `loginIdentifier` and clearer API-unreachable errors; FA E2E uses Dev tenant header `dev`.
+- **TestSprite POS smoke script:** portable `npx @testsprite/testsprite-mcp` (no machine-specific npm-cache path).
 
 ### Deprecated
 
-- **`email`** field on login requests — still supported when `loginIdentifier` is empty; new clients should use **`loginIdentifier`**.
+- **`email`** on login request bodies — still accepted when `loginIdentifier` is empty; new clients must use **`loginIdentifier`** (OpenAPI marks `email` deprecated).
+- **Legacy slug POS entry** (`{slug}.regkasse.at` as primary POS) — prefer `pos.regkasse.at` + JWT; FA impersonation slug handoff treated as technical debt vs shared Admin host.
 
-### Backend
+### Removed
 
-- Added **`UniqueUsernameGenerator`** and **`IUserCreationService`** / **`UserCreationService`** for username allocation and uniqueness checks (`IUserUniquenessValidationService.IsUserNameTakenByOtherUserAsync`).
-- Updated **`TenantUserService`** (`CreateAsync`, `CreateQuickAsync`), **`AdminUsersController.Create`**, and **`QuickUserGeneratorService`** for optional/auto `userName`.
-- **`LoginModel`** with `loginIdentifier` + `ResolveLoginIdentifier()`; **`AuthController`** username/email lookup.
-- Quick Create email pattern: `{role}_{random6}@{tenantSlug}.regkasse.at` (`QuickUserEmailGenerator`).
+- **Legacy API aliases** `/api/Payment`, `/api/Cart`, `/api/Product` (2026-08-13). Controllers remain on `/api/pos/*`.
+- Obsolete scripts: `migrate_i18n.js`, `patch-swagger-backup-dr.cjs`, `parse-demo-menu-html.*`, `ci-smoke-test.sh` (legacy Cart smoke).
+- Empty `tools/LicenseTools.slnx`; duplicate TestSprite YAML (`multi-tenant.yml`, `backup-restore.yml` merged into remaining suites).
+- Broken standalone `tools/i18n/projects.mjs` / legacy validate implementation (replaced by localization wrappers).
 
-### Frontend-Admin
+---
 
-- **Schnell anlegen** tab: username pattern preview (`quickUserPreview.ts`, `CreateUserModal`).
-- **`QuickUserSuccessModal`**: username, email, password rows + clipboard helpers (`clipboard.ts`).
-- i18n: login identifier label/validation; quick-create result labels (de / en / tr).
-- Documentation: [`frontend-admin/README.md`](frontend-admin/README.md), [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) (Authentication).
+## Older notes (pre–Keep a Changelog consolidation)
 
-### Frontend-POS
+The following narrative was previously nested under `[Unreleased]` without standard categories. Behaviour is still current; prefer the sections above for new entries.
 
-- Login field and persistence: **`loginIdentifier`** (`savedLoginIdentifier`, legacy `savedUsername` fallback).
-- **`authService`**: `buildLoginPayload` sends `loginIdentifier` + legacy `email`.
-- i18n: `auth.loginIdentifierPlaceholder`, `validation.loginIdentifierRequired` (de / en / tr).
-- Documentation: [`frontend/README.md`](frontend/README.md) (Authentication).
+### Backend (username / login wave)
+
+- **`UniqueUsernameGenerator`** and **`IUserCreationService`** / **`UserCreationService`**.
+- **`TenantUserService`**, **`AdminUsersController.Create`**, **`QuickUserGeneratorService`** for optional/auto `userName`.
+- **`LoginModel`** + **`AuthController`** username/email lookup.
+- Quick Create email: `{role}_{random6}@{tenantSlug}.regkasse.at`.
+
+### Frontend-Admin (username / login wave)
+
+- Schnell anlegen preview; **`QuickUserSuccessModal`**; i18n de/en/tr for login identifier.
+- Docs: FA README, onboarding Authentication section.
+
+### Frontend-POS (username / login wave)
+
+- **`loginIdentifier`** persistence; **`authService.buildLoginPayload`**; i18n placeholders.
+
+---
+
+## [0.0.0] — placeholder
+
+No dated SemVer release tag has been published in this changelog yet. When cutting a release, move `[Unreleased]` items into `## [x.y.z] - YYYY-MM-DD` and keep an empty `[Unreleased]` stub.

@@ -28,7 +28,16 @@ internal static class NotificationConfigEvaluator
         && MeetsSeverityThreshold(config, type, severity);
 
     public static bool RequiresImmediateCriticalEmail(ActivityEventType type) =>
-        type is ActivityEventType.BackupFailed or ActivityEventType.LicenseExpired;
+        type is ActivityEventType.BackupFailed
+            or ActivityEventType.LicenseExpired
+            or ActivityEventType.RoleDeleted
+            or ActivityEventType.SystemPermissionChange
+            or ActivityEventType.TseFailoverStarted
+            or ActivityEventType.TseFailoverActivated
+            or ActivityEventType.TseFailoverNoBackup
+            or ActivityEventType.TseFailoverFailed
+            or ActivityEventType.TseCertificateExpired
+            or ActivityEventType.MonatsbelegAutoCreateMissed;
 
     public static bool ShouldDeliverEmail(NotificationConfig config, ActivityEventType type, string severity)
     {

@@ -1,0 +1,51 @@
+import {
+  type MandantLicenseOverviewKind,
+  mapTenantLicenseOverviewApiStatus,
+} from '@/features/license/utils/mandantLicenseOverviewStatus';
+import { AXIOS_INSTANCE } from '@/lib/axios';
+
+export type TenantLicenseOverviewItem = {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  licenseKey: string | null;
+  validUntilUtc: string | null;
+  status: MandantLicenseOverviewKind;
+  hasOwnerAdmin: boolean;
+  createdAt: string;
+};
+
+export const tenantLicenseOverviewQueryKey = ['admin', 'tenants', 'license-overview'] as const;
+
+/** GET /api/admin/tenants/license-overview — Super Admin mandant license inventory. */
+export async function getTenantLicenseOverview(): Promise<TenantLicenseOverviewItem[]> {
+  const { data } = await AXIOS_INSTANCE.get<TenantLicenseOverviewApiDto[]>(
+    '/api/admin/tenants/license-overview'
+  );
+
+  return data.map(mapTenantLicenseOverviewItem);
+}
+
+type TenantLicenseOverviewApiDto = {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  licenseKey?: string | null;
+  validUntilUtc?: string | null;
+  status: string;
+  hasOwnerAdmin: boolean;
+  createdAt: string;
+};
+
+function mapTenantLicenseOverviewItem(row: TenantLicenseOverviewApiDto): TenantLicenseOverviewItem {
+  return {
+    tenantId: row.tenantId,
+    tenantName: row.tenantName,
+    tenantSlug: row.tenantSlug,
+    licenseKey: row.licenseKey ?? null,
+    validUntilUtc: row.validUntilUtc ?? null,
+    status: mapTenantLicenseOverviewApiStatus(row.status),
+    hasOwnerAdmin: row.hasOwnerAdmin,
+    createdAt: row.createdAt,
+  };
+}

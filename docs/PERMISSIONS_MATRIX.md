@@ -1,0 +1,187 @@
+# Permissions Matrix
+
+Default role grants from `RolePermissionMatrix` / `PermissionCatalog`.  
+Implication rules: `PermissionImplication` (composites + manage→view + digital/website).
+
+**Source of truth:** `backend/Authorization/AppPermissions.cs`, `RolePermissionMatrix.cs`, `PermissionImplication.cs`  
+**FA mirror:** `frontend-admin/src/shared/auth/permissionImplication.ts` (+ `hasPermission` uses implication)  
+**Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
+**Last updated:** 2026-10-03
+
+Legend: ✅ granted by default · ❌ not granted · *(via implication)* satisfied without an explicit matrix row.
+
+---
+
+## Fiskaly operations
+
+FA signing test UI: `/admin/tse/fiskaly/test` (`system.critical`). Receipt/batch APIs: `POST /api/admin/fiskaly/receipt/*`. Tenant isolation: Manager uses ambient JWT tenant (other tenant’s cash register → HTTP **404**). Missing permission → HTTP **403**. SuperAdmin compact JWT (`system.critical`) satisfies every key.
+
+FON/SCU/cash-register **initialize** stays SuperAdmin (`fiskaly.operations.config`). The tenant Fiskaly enable overlay (`POST /api/admin/fiskaly/settings`) remains `cash_register.manage`.
+
+No EF migration: keys are catalog/JWT (`RolePermissionMatrix`). Existing sessions pick up new Manager claims on the next login.
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `fiskaly.operations.view` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.normal` | ✅ | ✅ (own tenant; TEST only) | ❌ |
+| `fiskaly.operations.cancel` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.nullbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.startbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.monatsbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.jahresbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.schlussbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.tagesabschluss` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.dep-export` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.config` | ✅ | ❌ | ❌ |
+
+Each operation key (and `dep-export` / `config`) implies `fiskaly.operations.view`.
+
+---
+
+## Digital Services
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `digital.view` | ✅ | ✅ *(via `website.manage`)* | ❌ |
+| `digital.preview` | ✅ | ✅ *(via `website.manage`)* | ❌ |
+| `digital.request` | ✅ | ✅ *(via `website.manage`)* | ❌ |
+| `digital.create` | ✅ | ❌ | ❌ |
+| `digital.publish` | ✅ | ❌ | ❌ |
+| `digital.edit` | ✅ | ❌ | ❌ |
+| `digital.delete` | ✅ | ❌ | ❌ |
+| `digital.manage` | ✅ | ❌ | ❌ |
+| `digital.pricing.manage` | ✅ | ❌ | ❌ |
+| `digital.activate` | ✅ | ❌ | ❌ |
+| `digital.orders.view` | ✅ | ✅ *(via `digital.orders.manage`)* | ❌ |
+| `digital.orders.manage` | ✅ | ✅ | ❌ |
+| `digital.orders.approve` | ✅ | ❌ | ❌ |
+
+Notes:
+
+- **Manager** holds `website.manage` (domains / customization) — that implies view/preview/request only, **not** create/publish.
+- Explicit Manager matrix rows for `digital.view` / `preview` / `request` / `digital.orders.view` were removed (2026-07-21); authorization still succeeds via implication.
+- Legacy keys (`digital.web.*`, `digital.app.*`) remain in the catalog; prefer the simplified `digital.*` surface. Super Admin gets them via the full catalog / `digital.manage`.
+- **Cashier / Waiter / Kitchen / Accountant / ReportViewer:** no `digital.*` / `digital.orders.*` by default.
+
+---
+
+## Online payments (POS gateway intents)
+
+Not website **online orders**. Super Admin FA console for `gateway_payment_intents` and synthetic test webhooks. See [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md).
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `online-payments.manage` | ✅ | ❌ | ❌ |
+
+POS cashiers use `payment.take` / `payment.view` on `/api/pos/payment/initiate*` — not this admin key.
+
+---
+
+## Online Orders (capabilities)
+
+Mapped to permission keys used by `AdminOnlineOrdersController`.
+
+| Capability | Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|------------|---------|---------|
+| View orders / analytics / timeline | `digital.orders.view` | ✅ | ✅ | ❌ |
+| Update status (forward steps) | `digital.orders.manage` | ✅ | ✅ | ❌ |
+| Cancel orders (status → `cancelled`) | `digital.orders.manage` | ✅ | ✅ | ❌ |
+| Accept → POS cart bridge | `digital.orders.approve` | ✅ | ❌ | ❌ |
+| Hard-delete online orders | — | ❌ (no API) | ❌ | ❌ |
+
+There is **no** `DELETE /api/admin/online-orders/{id}` endpoint. Cancellation is a status transition, not row deletion.
+
+---
+
+## Manager matrix thinning (2026-07-21)
+
+Removed **redundant explicit grants** (still effective via `PermissionImplication`):
+
+| Removed from Manager matrix | Still satisfied by |
+|-----------------------------|--------------------|
+| `user.reset.password` | `user.manage` |
+| `cash_register.view` | `cash_register.manage` / `cash_register.decommission` |
+| `daily-closing.view` | `daily-closing.execute` |
+| `digital.view` / `preview` / `request` | `website.manage` |
+| `digital.orders.view` | `digital.orders.manage` |
+
+**Kept explicit:** `table.view` — `table.manage` is stripped from admin JWTs (POS terminal write strip), so Manager FA needs the view claim embedded.
+
+Cashier / Waiter keep explicit `table.view` / `daily-closing.view` for POS JWT clients that may not expand implication.
+
+---
+
+## Catalog-only / reserved keys (unused gates)
+
+Marked `[Obsolete]` in `AppPermissions` with planned removal after **2026-12-31**. Still registered in `PermissionCatalog` (SuperAdmin full set).
+
+| Permission | Notes |
+|------------|--------|
+| `payment.export` | No controller; use `report.export` / payment list export paths |
+| `report.schedule` | Schedulers (`AuditReportScheduler`, operational reports) do not check this key |
+| `creditnote.create` | Live credit-note API uses `invoice.manage` |
+| `tse.diagnostics` | No controller yet; SuperAdmin-only policy tests remain |
+
+### Grant-only (matrix / strip; no live `[HasPermission]` yet)
+
+Keep until features land or are explicitly cancelled: `kitchen.view`, `kitchen.update`, `cashdrawer.open/close`, `discount.apply`, `price.override`, `sale.cancel`.
+
+### Tenants API
+
+`/api/admin/tenants/*` is gated by **role `SuperAdmin`**, not `tenant.manage`. Catalog `tenant.*` keys remain for FA / future permission-based tenancy.
+
+### Backup
+
+Live gate is **`backup.manage`**. `settings.backup` is a composite child of `settings.manage` only.
+
+---
+
+## Implication summary
+
+| Holding | Also satisfies (selected) |
+|---------|---------------------------|
+| `system.critical` | Entire catalog (compact SuperAdmin JWT) |
+| `*.manage` (user/product/category/…) | Matching `*.view` (one-way) |
+| `user.manage` | Granular `user.create/edit/delete/change.*` / `reset.password` |
+| `digital.manage` | All `digital.*` simplified + legacy web/app + `digital.orders.*` |
+| `digital.orders.manage` | `digital.orders.view` |
+| `digital.orders.approve` | `digital.orders.view` + `digital.orders.manage` |
+| `website.manage` | `digital.view` / `preview` / `request` (+ legacy view/preview/request) — **not** create/publish/delete/orders |
+| `cash_register.manage` | `cash_register.view` |
+| `daily-closing.execute` | `daily-closing.view` |
+| `settings.manage` | `settings.backup`, `backup.manage`, `website.manage` (+ `settings.view`) |
+
+`PermissionClaimHelper` and `RolePermissionMatrix.RoleHasPermission` use `PermissionImplication.IsSatisfied` (aligned with `PermissionAuthorizationHandler`).
+
+---
+
+## Vertical profile actions
+
+Profile-specific back-office keys. SuperAdmin receives them through the full catalog (`PermissionCatalog.All`); `system.critical` still satisfies every key. Manager holds view and manage explicitly. Cashier, Waiter, Kitchen, Accountant, and ReportViewer do not. A Cashier can receive a key only through a user or custom-role override.
+
+`*.manage` implies the matching `*.view`.
+
+| Permission | Profile | SuperAdmin | Manager | Cashier |
+|------------|---------|------------|---------|---------|
+| `room.view` / `room.manage` | beherbergung | ✅ | ✅ | ❌ |
+| `ticket.view` / `ticket.manage` | ticket-sales | ✅ | ✅ | ❌ |
+| `appointment.view` / `appointment.manage` | hair-salon | ✅ | ✅ | ❌ |
+| `patient.view` / `patient.manage` | vet | ✅ | ✅ | ❌ |
+| `imei.view` / `imei.manage` | handy-shop | ✅ | ✅ | ❌ |
+| `taxi.trip.view` / `taxi.trip.manage` | taxi | ✅ | ✅ | ❌ |
+
+---
+
+## FA route gates (typical)
+
+| Route | Typical permission |
+|-------|-------------------|
+| `/settings/digital`, website preview | `digital.view` / `digital.preview` |
+| Digital request actions | `digital.request` |
+| `/admin/digital`, generators, publish | `digital.create` / `publish` / `manage` (Super Admin) |
+| `/admin/digital/requests` | `digital.manage` |
+| `/orders/online`, `/tenant/{id}/orders` | `digital.orders.view` (legacy `order.view` may still open list in FA) |
+| Status buttons | `digital.orders.manage` |
+| Accept → POS | `digital.orders.approve` |
+
+Cross-tenant access still returns **HTTP 404** (not 403), even when the permission key is present.

@@ -1,29 +1,29 @@
-# Tagesabschluss Schema Quality Sprint
+# Tagesabschluss schema quality sprint
 
-Bu not, `backend -> swagger -> Orval -> frontend-admin` akışında Tagesabschluss kontratlarının güçlendirilmesi için yapılan düzeltmeleri özetler.
+This note summarizes the contract hardening for Tagesabschluss in the `backend → swagger → Orval → frontend-admin` flow.
 
-## Önceki sorunlar
+## Previous issues
 
-- `TagesabschlussResult` şemasında temel alanlar (`success`, `closingDate`, `totalAmount`, `totalTaxAmount`, `transactionCount`, `paymentsWithoutInvoiceCount`) OpenAPI'de zorunlu görünmüyordu.
-- `TagesabschlussCanCloseResponse` içinde `canClose` ve `paymentsWithoutInvoiceCount` zorunlu tanımlı değildi.
-- `TagesabschlussStatisticsResponse` içindeki numerik özet alanları zorunlu tanımlı değildi.
-- Bu yüzden Orval ürettiği tiplerde kritik alanları opsiyonel (`?`) üretiyor, sayfa tarafında gereksiz null/void savunması oluşuyordu.
+- Core fields on `TagesabschlussResult` (`success`, `closingDate`, `totalAmount`, `totalTaxAmount`, `transactionCount`, `paymentsWithoutInvoiceCount`) were not marked required in OpenAPI.
+- `canClose` and `paymentsWithoutInvoiceCount` were not required on `TagesabschlussCanCloseResponse`.
+- Numeric summary fields on `TagesabschlussStatisticsResponse` were not required.
+- Orval therefore generated those fields as optional (`?`), which pushed extra null/void defenses into the page.
 
-## Yapılan düzeltmeler
+## Fixes
 
-- Backend Swagger üretimine `TagesabschlussSchemaRequiredFilter` eklendi.
-- Bu filter, aşağıdaki endpoint response şemalarında gerekli alanları explicit olarak `required` listesine yazıyor:
+- Added `TagesabschlussSchemaRequiredFilter` to backend Swagger generation.
+- The filter writes required fields explicitly on these endpoint response schemas:
   - `POST /api/Tagesabschluss/daily`
   - `POST /api/Tagesabschluss/monthly`
   - `POST /api/Tagesabschluss/yearly`
   - `GET /api/Tagesabschluss/history`
   - `GET /api/Tagesabschluss/can-close/{cashRegisterId}`
   - `GET /api/Tagesabschluss/statistics`
-- Controller tarafında anonymous error body kullanımları `TagesabschlussErrorResponse` ile tipli hale getirildi.
-- Swagger ve Orval yeniden üretildi.
+- Anonymous error bodies on the controller were typed as `TagesabschlussErrorResponse`.
+- Swagger and Orval were regenerated.
 
-## Sonuç
+## Result
 
-- Orval tiplerinde kritik Tagesabschluss alanları artık zorunlu geliyor.
-- `frontend-admin` Tagesabschluss sayfasındaki bazı `?? 0` / `number | undefined` kaynaklı savunmacı kodlar temizlendi.
-- Runtime davranışı değiştirilmeden kontrat güvenilirliği artırıldı.
+- Critical Tagesabschluss fields are required in Orval types.
+- Some `?? 0` / `number | undefined` defensive code on the frontend-admin Tagesabschluss page was removed.
+- Runtime behavior is unchanged; contract reliability improved.

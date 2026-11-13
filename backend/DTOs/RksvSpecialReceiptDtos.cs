@@ -7,9 +7,11 @@ public sealed class CreateNullbelegRequest
     [Required]
     public Guid CashRegisterId { get; set; }
 
+    /// <summary>Vienna calendar year. When omitted, server uses the current Vienna year.</summary>
     [Range(2000, 2100)]
-    public int Year { get; set; }
+    public int? Year { get; set; }
 
+    /// <summary>Vienna calendar month 1–12. When omitted, server uses the current Vienna month.</summary>
     [Range(1, 12)]
     public int? Month { get; set; }
 
@@ -64,6 +66,30 @@ public sealed class CreateMonatsbelegResponse
     public Guid ReceiptId { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string QrData { get; set; } = string.Empty;
+
+    /// <summary>True when created nachträglich or past the legal Monatsbeleg deadline.</summary>
+    public bool IsLateCreated { get; set; }
+
+    /// <summary>Whole days past the legal deadline (0 when on time or within grace).</summary>
+    public int DaysLate { get; set; }
+
+    /// <summary>Last day of the covered Vienna calendar month.</summary>
+    public DateTime? IntendedPeriodDate { get; set; }
+
+    /// <summary>Covered Vienna calendar year (same as request).</summary>
+    public int Year { get; set; }
+
+    /// <summary>Covered Vienna calendar month 1–12 (same as request).</summary>
+    public int Month { get; set; }
+
+    /// <summary>Real UTC timestamp when the receipt was signed and persisted (never backdated).</summary>
+    public DateTime CreatedAtUtc { get; set; }
+
+    /// <summary>True when force=true replaced the active Monatsbeleg with a newly signed receipt.</summary>
+    public bool Reissued { get; set; }
+
+    /// <summary>Previous active payment kept for the audit trail. Null on the first Monatsbeleg of the month.</summary>
+    public Guid? SupersededPaymentId { get; set; }
 }
 
 /// <summary>Returned when a past Vienna calendar month is requested without <c>force=true</c>.</summary>
@@ -104,6 +130,21 @@ public sealed class CreateJahresbelegResponse
     public Guid ReceiptId { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string QrData { get; set; } = string.Empty;
+
+    /// <summary>True when created nachträglich or past the January 31 legal deadline.</summary>
+    public bool IsLateCreated { get; set; }
+
+    /// <summary>Whole days past the legal Jahresbeleg deadline (January 31 of the following year).</summary>
+    public int DaysLate { get; set; }
+
+    /// <summary>Last day of the covered Vienna calendar year (December 31).</summary>
+    public DateTime? IntendedPeriodDate { get; set; }
+
+    /// <summary>Covered Vienna calendar year (same as request).</summary>
+    public int Year { get; set; }
+
+    /// <summary>Real UTC timestamp when the receipt was signed and persisted (never backdated).</summary>
+    public DateTime CreatedAtUtc { get; set; }
 }
 
 /// <summary>RKSV Schlussbeleg (Endbeleg): final zero signed receipt when permanently decommissioning a cash register.</summary>

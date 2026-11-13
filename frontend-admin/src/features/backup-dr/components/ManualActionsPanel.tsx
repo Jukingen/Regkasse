@@ -1,12 +1,19 @@
 'use client';
 
-import React from 'react';
-import { Alert, Button, Card, Popconfirm, Space, Tooltip, Typography } from 'antd';
 import { CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Popconfirm, Space, Tooltip, Typography } from 'antd';
+import React from 'react';
+
 import type { ManualActionsModeConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
 
 export interface ManualActionsPanelProps {
+  /** Manuel yedek tetikleme yetkisi (Manager: backup.manage). */
   canManage: boolean;
+  /**
+   * Restore-drill kuyruğa alma yetkisi — platform operatörü (settings.manage / SuperAdmin).
+   * Verilmezse geriye dönük olarak <see cref="canManage"/> kullanılır.
+   */
+  canRestore?: boolean;
   /** Orval mutation — geniş imza ile uyumlu. */
   backupTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
   restoreTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
@@ -52,22 +59,28 @@ function PopconfirmDescription({ parts }: { parts: string[] }) {
 
 export function ManualActionsPanel({
   canManage,
+  canRestore,
   backupTrigger,
   restoreTrigger,
   simulatedOperationalMode = false,
   modeAwareConfirmations,
   t,
 }: ManualActionsPanelProps) {
+  const canRestoreEffective = canRestore ?? canManage;
   const permissionTip = t('backupDr.permission.manualActionsTooltip');
   const backupDisabled = !canManage || backupTrigger.isPending;
-  const restoreDisabled = !canManage || restoreTrigger.isPending;
+  const restoreDisabled = !canRestoreEffective || restoreTrigger.isPending;
 
-  const backupTitle = modeAwareConfirmations?.backupTitle ?? t('backupDr.manual.confirmBackupTitle');
-  const backupDescParts =
-    modeAwareConfirmations?.backupDescriptionParts ?? [t('backupDr.manual.confirmBackupDescription')];
-  const restoreTitle = modeAwareConfirmations?.restoreTitle ?? t('backupDr.manual.confirmRestoreTitle');
-  const restoreDescParts =
-    modeAwareConfirmations?.restoreDescriptionParts ?? [t('backupDr.manual.confirmRestoreDescription')];
+  const backupTitle =
+    modeAwareConfirmations?.backupTitle ?? t('backupDr.manual.confirmBackupTitle');
+  const backupDescParts = modeAwareConfirmations?.backupDescriptionParts ?? [
+    t('backupDr.manual.confirmBackupDescription'),
+  ];
+  const restoreTitle =
+    modeAwareConfirmations?.restoreTitle ?? t('backupDr.manual.confirmRestoreTitle');
+  const restoreDescParts = modeAwareConfirmations?.restoreDescriptionParts ?? [
+    t('backupDr.manual.confirmRestoreDescription'),
+  ];
 
   const backupControl = (
     <Popconfirm
@@ -100,7 +113,11 @@ export function ManualActionsPanel({
       onConfirm={() => restoreTrigger.mutate({ data: {} })}
       overlayStyle={{ maxWidth: 440 }}
     >
-      <Button icon={<ExperimentOutlined />} disabled={restoreDisabled} loading={restoreTrigger.isPending}>
+      <Button
+        icon={<ExperimentOutlined />}
+        disabled={restoreDisabled}
+        loading={restoreTrigger.isPending}
+      >
         {t('backupDr.actions.enqueueRestoreDrill')}
       </Button>
     </Popconfirm>
@@ -131,7 +148,7 @@ export function ManualActionsPanel({
         <WithPermissionTooltip show={!canManage} title={permissionTip}>
           {backupControl}
         </WithPermissionTooltip>
-        <WithPermissionTooltip show={!canManage} title={permissionTip}>
+        <WithPermissionTooltip show={!canRestoreEffective} title={permissionTip}>
           {restoreControl}
         </WithPermissionTooltip>
       </Space>

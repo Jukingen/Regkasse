@@ -1,5 +1,3 @@
-using System;
-
 namespace KasseAPI_Final.Models
 {
     public class CompanyProfileOptions

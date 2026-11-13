@@ -6,6 +6,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 
@@ -28,7 +31,11 @@ public sealed class AdminLicenseDashboardTests
             .UseInMemoryDatabase($"LicDash_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        // License audit rows are stamped with SystemTenantIds.Platform; ambient must match
+        // so fail-closed tenant filters expose them to dashboard queries.
+        return new AppDbContext(
+            options,
+            new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform });
     }
 
     private static AdminLicenseController CreateController(AppDbContext db, string actorId, string actorRole)
@@ -38,10 +45,16 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
+            Mock.Of<IBillingTenantLicenseService>(),
+            TenantTestDoubles.TenantAccessorReturning(null),
             db,
             Mock.Of<IAdminTenantService>(),
+            TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>
@@ -70,10 +83,16 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
+            Mock.Of<IBillingTenantLicenseService>(),
+            TenantTestDoubles.TenantAccessorReturning(null),
             db,
             adminTenantService,
+            TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>
@@ -151,6 +170,9 @@ public sealed class AdminLicenseDashboardTests
         Assert.Equal(2, stats.ActiveTenantLicenses);
         Assert.Equal(1, stats.ExpiringTenantLicenses);
         Assert.Equal(1, stats.ExpiredTenantLicenses);
+        Assert.Equal(3, stats.TotalTenants);
+        Assert.Equal(1, stats.GraceTenantLicenses);
+        Assert.Equal(0, stats.LockedTenantLicenses);
     }
 
     [Fact]
@@ -377,7 +399,7 @@ public sealed class AdminLicenseDashboardTests
         db.AuditLogs.Add(new AuditLog
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SessionId = Guid.NewGuid().ToString(),
             UserId = "admin-1",
             UserRole = Roles.SuperAdmin,

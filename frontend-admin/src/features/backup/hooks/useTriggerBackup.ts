@@ -1,4 +1,1 @@
-export {
-  useTriggerBackup,
-  type TriggerBackupParams,
-} from "@/features/backup/api/backupHooks";
+export { type TriggerBackupParams, useTriggerBackup } from '@/features/backup/api/backupHooks';

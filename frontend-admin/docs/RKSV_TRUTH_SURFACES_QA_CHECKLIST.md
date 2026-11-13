@@ -14,12 +14,12 @@
 
 Run: `npm run test:contract` (plus full `npm test` before release).
 
-| Area | Files (indicative) |
-|------|---------------------|
-| Contract / navigation helpers | `src/shared/__tests__/rksvAdminTruth.test.ts`, `src/shared/__tests__/investigationNavigation.test.ts`, `src/shared/__tests__/foReconciliationRowTriage.test.ts`, `src/shared/contract/__tests__/*` |
-| Truth semantics (register, links, replay policy, badges a11y) | `src/shared/__tests__/truthSurfaceBehavior.test.ts`, `src/shared/__tests__/adminTruthBadge.semantic.test.tsx` |
-| Invoice sort coercion | `src/features/invoices/utils/__tests__/invoiceListSort.test.ts` |
-| Truth badges copy | `src/shared/__tests__/adminTruthBadges.test.ts` |
+| Area                                                          | Files (indicative)                                                                                                                                                                                 |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contract / navigation helpers                                 | `src/shared/__tests__/rksvAdminTruth.test.ts`, `src/shared/__tests__/investigationNavigation.test.ts`, `src/shared/__tests__/foReconciliationRowTriage.test.ts`, `src/shared/contract/__tests__/*` |
+| Truth semantics (register, links, replay policy, badges a11y) | `src/shared/__tests__/truthSurfaceBehavior.test.ts`, `src/shared/__tests__/adminTruthBadge.semantic.test.tsx`                                                                                      |
+| Invoice sort coercion                                         | `src/features/invoices/utils/__tests__/invoiceListSort.test.ts`                                                                                                                                    |
+| Truth badges copy                                             | `src/shared/__tests__/adminTruthBadges.test.ts`                                                                                                                                                    |
 
 **Gap:** No RTL tests yet for `InvoiceList`, `finanz-online-queue`, `incident`, or `replay-batch` pages — see **Proposed automated test areas** at the end.
 
@@ -189,13 +189,13 @@ Use admin-capable user. Adjust IDs to your environment.
 
 ## Proposed automated test areas (RTL / Vitest)
 
-| Priority | Target | What to assert |
-|----------|--------|----------------|
-| P1 | `InvoiceList` | Error alert **„Liste konnte nicht geladen werden“**; description `Error.message`; **„Erneut laden“** refetch; mock `useQuery` error state. |
-| P1 | `finanz-online-queue` | `useSearchParams` mock: rejected `cashRegisterId` → **„Register-Parameter ungültig“**; `investigationBatchCorrelationId` → banner **„Untersuchungskontext (nur Anzeige, kein API-Filter)“** + Incident link href. |
-| P2 | `incident` page | Loading → notFound → success with minimal `IncidentInvestigationResponse` mock; **„Weiter untersuchen:“** link hrefs. |
-| P2 | `replay-batch/[correlationId]` | `auditCorrelationId` null → **„Audit-Filter mit Batch-Correlation“** link text + **„kann weniger oder andere Treffer liefern)“** fragment present. |
-| P3 | Mutations | Spy `queryClient.invalidateQueries` after FO retry success (mock mutation), matching `rksvAdminQueryKeys.finanzOnline.base`. |
+| Priority | Target                         | What to assert                                                                                                                                                                                                    |
+| -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1       | `InvoiceList`                  | Error alert **„Liste konnte nicht geladen werden“**; description `Error.message`; **„Erneut laden“** refetch; mock `useQuery` error state.                                                                        |
+| P1       | `finanz-online-queue`          | `useSearchParams` mock: rejected `cashRegisterId` → **„Register-Parameter ungültig“**; `investigationBatchCorrelationId` → banner **„Untersuchungskontext (nur Anzeige, kein API-Filter)“** + Incident link href. |
+| P2       | `incident` page                | Loading → notFound → success with minimal `IncidentInvestigationResponse` mock; **„Weiter untersuchen:“** link hrefs.                                                                                             |
+| P2       | `replay-batch/[correlationId]` | `auditCorrelationId` null → **„Audit-Filter mit Batch-Correlation“** link text + **„kann weniger oder andere Treffer liefern)“** fragment present.                                                                |
+| P3       | Mutations                      | Spy `queryClient.invalidateQueries` after FO retry success (mock mutation), matching `rksvAdminQueryKeys.finanzOnline.base`.                                                                                      |
 
 Use **`@testing-library/react`** + **`QueryClientProvider`**; mock `next/navigation` `useSearchParams` / `useParams` as in `users/page.test.tsx`.
 

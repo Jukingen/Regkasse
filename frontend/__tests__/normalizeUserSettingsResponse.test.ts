@@ -6,7 +6,7 @@ import {
 
 describe('normalizeUserSettingsResponse', () => {
   it('reads cashRegisterId from flat payload (null in JSON becomes missing)', () => {
-    const o = { userId: 'u1', id: 's1', cashRegisterId: null as unknown } as Record<string, unknown>;
+    const o = { userId: 'u1', id: 's1', cashRegisterId: null } as Record<string, unknown>;
     expect(readCashRegisterIdFromSettingsPayload(o)).toBeUndefined();
   });
 

@@ -33,7 +33,7 @@ public sealed class DevCleanupControllerTests
         return new DevCleanupController(
             env.Object,
             db,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             Mock.Of<ILogger<DevCleanupController>>());
     }
 
@@ -45,7 +45,8 @@ public sealed class DevCleanupControllerTests
 
         var result = await controller.CleanupOrphanedUsers();
 
-        Assert.IsType<NotFoundResult>(result.Result);
+        var forbidden = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, forbidden.StatusCode);
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public sealed class DevCleanupControllerTests
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             IsActive = false,
             Status = "deleted",
         });
@@ -65,8 +66,8 @@ public sealed class DevCleanupControllerTests
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = "admin@bar.regkasse.at",
-            Email = "admin@bar.regkasse.at",
+            UserName = "admin@prod.regkasse.at",
+            Email = "admin@prod.regkasse.at",
             NormalizedEmail = "ADMIN@BAR.REGKASSE.AT",
             NormalizedUserName = "ADMIN@BAR.REGKASSE.AT",
             FirstName = "Admin",
@@ -102,10 +103,10 @@ public sealed class DevCleanupControllerTests
         db.Users.Add(new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = "admin@dev.regkasse.at",
-            Email = "admin@dev.regkasse.at",
-            NormalizedEmail = "ADMIN@DEV.REGKASSE.AT",
-            NormalizedUserName = "ADMIN@DEV.REGKASSE.AT",
+            UserName = "keepme@example.com",
+            Email = "keepme@example.com",
+            NormalizedEmail = "KEEPME@EXAMPLE.COM",
+            NormalizedUserName = "KEEPME@EXAMPLE.COM",
             FirstName = "Admin",
             LastName = "Dev",
             EmployeeNumber = "EMP-KEEP-1",

@@ -1,10 +1,11 @@
 # API contract supplements
 
+> **Root index (Auth / Users / Digital / Billing):** [`../API_CONTRACT.md`](../API_CONTRACT.md)  
 > **Authoritative OpenAPI:** `backend/swagger.json`  
 > **AI / governance:** `ai/03_API_CONTRACT.md`, `ai/11_OPENAPI_CONTRACT_GOVERNANCE.md`  
 > **User lifecycle (operator):** [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md)
 
-This document records **intentional contract deltas** that may lag swagger until the next regeneration cycle. When code and swagger disagree, **implementation + tests** win until swagger is updated and Orval is re-run.
+This document records **intentional contract deltas** and deep examples that may lag a swagger regeneration cycle. When code and swagger disagree, **implementation + tests** win until swagger is updated and Orval is re-run.
 
 ---
 
@@ -18,7 +19,7 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 
 ```json
 {
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "password": "string",
   "clientApp": "pos"
 }
@@ -34,7 +35,7 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 }
 ```
 
-`loginIdentifier` may be a full **email** or a **username** (e.g. `cashier2`, `manager@cafe.regkasse.at`). **Username lookup is case-insensitive** (`Mustafa`, `mustafa`, `MUSTAFA` resolve to the same account via `NormalizedUserName`).
+`loginIdentifier` may be a full **email** or a **username** (e.g. `cashier2`, `manager@dev.regkasse.at`). **Username lookup is case-insensitive** (`Mustafa`, `mustafa`, `MUSTAFA` resolve to the same account via `NormalizedUserName`).
 
 | Field | Required | Notes |
 |-------|----------|--------|
@@ -47,7 +48,27 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 
 - The `email` field is **deprecated** for new clients but still supported (`LoginModel.ResolveLoginIdentifier()`).
 - New implementations (FA, POS) should send **`loginIdentifier`**; FA also mirrors the value in `email` for older gateways.
-- **Response shape is unchanged** (access token, refresh token, `user` object, permissions).
+- **Success response** (no 2FA): access token, refresh token, `user`, `requires2FA: false`, optional `isDevelopment`.
+- **SuperAdmin 2FA challenge** (Production): HTTP 200 with `requires2FA: true`, `twoFactorToken`, optional setup fields — **no** access/refresh tokens until verify. See [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md).
+
+### `POST /api/Auth/verify-2fa`
+
+Completes SuperAdmin login after TOTP (or Development bypass codes).
+
+```json
+{
+  "twoFactorToken": "opaque-pending-token-from-login",
+  "code": "123456"
+}
+```
+
+| Result | Notes |
+|--------|--------|
+| 200 | Same shape as successful login (tokens + `user`) |
+| 401 `TWO_FACTOR_INVALID` | Bad TOTP / not SuperAdmin |
+| 401 `TWO_FACTOR_CHALLENGE_EXPIRED` | Pending token missing or expired |
+
+**Implementation:** `AuthController.VerifyTwoFactor`, `ITwoFactorService`, `ITwoFactorChallengeService`. Hub: [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md).
 
 **Example — username login**
 
@@ -78,7 +99,7 @@ Unified/platform/tenant list (`type=platform` | `type=tenant`). **`search`** mat
 - Display name (`FirstName` + `LastName`)
 - `EmployeeNumber`
 
-Example: `?search=mustafa` finds `mustafa` and `mustafa@cafe.regkasse.at`.
+Example: `?search=mustafa` finds `mustafa` and `mustafa@dev.regkasse.at`.
 
 ---
 
@@ -91,7 +112,7 @@ Creates a **platform** user when `tenantId` is omitted, or a **tenant** user whe
 ```json
 {
   "userName": "manager1",
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "role": "Manager",
   "tenantId": "00000000-0000-0000-0000-000000000000",
   "firstName": "Anna",
@@ -119,14 +140,14 @@ Creates a **platform** user when `tenantId` is omitted, or a **tenant** user whe
 {
   "id": "string",
   "userName": "manager1",
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "firstName": "Anna",
   "lastName": "Muster",
   "role": "Manager",
   "generatedPassword": "string",
   "forcePasswordChangeOnNextLogin": true,
   "tenantId": "uuid",
-  "tenantSlug": "cafe"
+  "tenantSlug": "dev"
 }
 ```
 
@@ -187,12 +208,12 @@ Recover login usernames for an email address.
 
 ```json
 {
-  "email": "cashier@cafe.regkasse.at",
+  "email": "cashier@dev.regkasse.at",
   "clientApp": "admin"
 }
 ```
 
-Always returns **200** with a generic message (no account enumeration). When an active user exists and SMTP is configured, sends a **German** email listing current username plus all names from `user_username_history`.
+Always returns **200** with a generic message (no account enumeration). When an active user exists and SMTP is configured, sends a **German** email with the **current** login username only (not `user_username_history`).
 
 **FA:** `/login/forgot-username` — `requestForgotUsername` in `frontend-admin/src/features/auth/api/forgotUsername.ts`.
 
@@ -230,7 +251,7 @@ Manual tenant user create (non-quick). Same username rules as platform create.
 
 ```json
 {
-  "email": "new.user@cafe.regkasse.at",
+  "email": "new.user@dev.regkasse.at",
   "userName": "custom_user",
   "role": "Cashier",
   "firstName": "Max",
@@ -244,12 +265,12 @@ Manual tenant user create (non-quick). Same username rules as platform create.
 ```json
 {
   "userId": "string",
-  "email": "new.user@cafe.regkasse.at",
+  "email": "new.user@dev.regkasse.at",
   "userName": "cashier3",
   "generatedPassword": "string",
   "forcePasswordChangeOnNextLogin": true,
   "success": true,
-  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "tenantPortalUrl": "https://dev.regkasse.at",
   "role": "Cashier"
 }
 ```
@@ -301,12 +322,12 @@ Same shape as manual tenant create — `CreateTenantUserResultDto` (201 Created)
 ```json
 {
   "userId": "...",
-  "email": "manager_a3f9k2@cafe.regkasse.at",
+  "email": "manager_a3f9k2@dev.regkasse.at",
   "userName": "manager1",
   "generatedPassword": "...",
   "forcePasswordChangeOnNextLogin": true,
   "success": true,
-  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "tenantPortalUrl": "https://dev.regkasse.at",
   "role": "Manager"
 }
 ```
@@ -314,6 +335,207 @@ Same shape as manual tenant create — `CreateTenantUserResultDto` (201 Created)
 **Implementation:** `CreateQuickTenantUserRequest`, `QuickUserGeneratorService`, `AdminTenantUsersController.CreateQuick`.
 
 **FA client:** `createQuickUser` — `frontend-admin/src/features/super-admin/api/quickUser.ts`.
+
+---
+
+## Billing / License Management
+
+> **Full operator guide:** [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md)  
+> **OpenAPI:** `backend/swagger.json` — regenerate FA client: `cd frontend-admin && npm run generate:api`
+
+Billing-format license keys: `REGK-{yyyyMMdd}-{tenantSlug}-{8chars}`.  
+**Not** deployment / On-Premise `LicenseService` (`issued_licenses`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md).
+
+### Super Admin Endpoints
+
+Controller: `AdminBillingController` — `[Authorize(Roles = SuperAdmin)]` on all routes below.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/admin/billing/license-sales/preview` | Preview a license sale (pricing, key, invoice number) | SuperAdmin |
+| POST | `/api/admin/billing/license-sales` | Create a license sale; updates tenant `license_*` fields | SuperAdmin |
+| GET | `/api/admin/billing/license-sales` | List sales (pagination, `tenantId`, `status`, `search`, date range) | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}` | Get sale detail | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/by-key/{licenseKey}` | Lookup sale by billing license key | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}/pdf` | Download invoice PDF | SuperAdmin |
+| POST | `/api/admin/billing/license-sales/preview-pdf` | Generate preview PDF without persisting sale | SuperAdmin |
+| POST | `/api/admin/billing/license-sales/{id}/cancel` | Cancel a sale; clears tenant license when current | SuperAdmin |
+| GET | `/api/admin/billing/stats` | Sales statistics (revenue, active/expiring counts) | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/expiring` | Licenses expiring within threshold (default 30 days) | SuperAdmin |
+| GET | `/api/admin/billing/tenants/{tenantId}/license` | Mandant license info for a tenant | SuperAdmin |
+| GET | `/api/admin/billing/audit` | Paginated billing audit log | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}/audit` | Audit trail for one sale | SuperAdmin |
+| GET | `/api/admin/billing/tenants/{tenantId}/reminders` | License expiry reminders for tenant | SuperAdmin |
+| POST | `/api/admin/billing/reminders/check` | Manual: create missing reminders | SuperAdmin |
+| POST | `/api/admin/billing/reminders/send` | Manual: process pending reminders | SuperAdmin |
+
+**Create sale body (`CreateLicenseSaleRequest`):**
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `tenantId` | Yes | Target mandant UUID |
+| `licensePlan` | Yes | `6_months` \| `12_months` \| `custom` |
+| `priceNet` | Yes | > 0 |
+| `vatRate` | No | Default 20 |
+| `customValidUntilUtc` | If `custom` | Must be after license start |
+| `notes` | No | Free text |
+
+**List sales query (`GET /api/admin/billing/license-sales`):** `page`, `pageSize`, `tenantId`, `status` (`active` \| `cancelled` \| `refunded` \| `all`), `search`, `fromDate`, `toDate`.
+
+### Manager Endpoints
+
+Mandant SaaS license lifecycle — JWT with **tenant context** required (`ICurrentTenantAccessor.TenantId`). Cross-tenant key → HTTP 400 (German message in body).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/license/status` | License snapshot (deployment + optional mandant overlay when tenant resolved) | Anonymous / JWT |
+| GET | `/api/license/billing/status` | Current mandant billing license status (`TenantLicenseStatus`) | JWT + tenant |
+| POST | `/api/license/activate` | Unified activate: billing-format key → mandant branch; else deployment | JWT + tenant (billing keys) |
+| POST | `/api/license/billing/activate` | Activate billing-format key for current tenant | JWT + tenant |
+| POST | `/api/license/extend` | Extend mandant license with a new billing sale key | JWT + tenant |
+
+**Extend / activate body:**
+
+```json
+{ "licenseKey": "REGK-20270101-cafe-A7F3K2D9" }
+```
+
+**Responses:** `ActivationResult` / `ExtendResult` — `{ success, message, licenseKey, validUntil, plan }` (field names per OpenAPI).
+
+> **Note:** `GET /api/license/status` and `POST /api/license/activate` are shared with POS (anonymous allowed for deployment branch). Billing keys on `POST /api/license/activate` require authenticated user + tenant context. Prefer **`/api/license/billing/*`** for new Admin clients to avoid collision with deployment licensing.
+
+### Legacy Admin Manager paths (still active)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/license/mandant` | `license.manage` | Mandant license overview |
+| POST | `/api/admin/license/mandant/preview` | `license.manage` | Preview key without applying |
+| POST | `/api/admin/license/mandant/extend` | `license.manage` | Extend via REGK key (legacy) |
+| POST | `/api/admin/license/extend` | `settings.manage` | Canonical admin extend (billing service) |
+
+**Implementation:** `AdminBillingController`, `LicenseController` (+ `LicenseController.Manager.cs`), `AdminLicenseController` (mandant + extend partials).
+
+---
+
+## Digital services & online orders (non-fiscal)
+
+> **Operator guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md), [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md)  
+> **Permissions:** [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md)  
+> **Not fiscal:** online orders do **not** create TSE signatures or RKSV receipts. Do not conflate with POS offline orders (`/api/pos/offline-orders`).
+
+### Admin — `/api/admin/digital` (`AdminDigitalController`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/digital/tenants` | `digital.manage` | List tenants with website/app status |
+| GET | `/api/admin/digital/tenants/{tenantId}` | `digital.view` | One tenant status (own tenant unless Super Admin) |
+| POST | `/api/admin/digital/{tenantId}/toggle` | `digital.activate` | Super Admin: platform active flag |
+| POST | `/api/admin/digital/{tenantId}/enable` | `digital.view` | Mandant: own `IsEnabled` preference |
+| PUT | `/api/admin/digital/{tenantId}/price` | `digital.pricing.manage` | Super Admin: custom monthly price |
+| POST | `/api/admin/digital/{tenantId}/request` | `digital.request` | Manager: queue website/app request |
+| GET | `/api/admin/digital/{tenantId}/requests` | `digital.view` | List requests for one tenant |
+| GET | `/api/admin/digital/requests` | `digital.manage` | Super Admin queue (`status`, default Pending) |
+| POST | `/api/admin/digital/requests/{id}/approve` | `digital.manage` | Approve (does **not** auto-generate) |
+| POST | `/api/admin/digital/requests/{id}/reject` | `digital.manage` | Reject pending request |
+
+**Create request body (`CreateDigitalServiceRequestDto`):**
+
+```json
+{ "serviceType": "website", "note": "optional" }
+```
+
+`serviceType`: `website` | `app`. Approve/reject body: `ResolveDigitalServiceRequestDto` `{ "note": "optional" }`.
+
+### Admin — `/api/admin/website` (`AdminWebsiteController`, key routes)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/website/templates` | `digital.view` | Shipped templates (Modern, Classic, Minimal) |
+| GET | `/api/admin/website/pricing` | `digital.view` | Service pricing |
+| GET | `/api/admin/website/my-services` | `digital.view` | Current tenant subscriptions |
+| POST | `/api/admin/website/preview` | `digital.preview` | HTML preview for a template |
+| POST | `/api/admin/website/generate` | `digital.create` | Generate / publish website |
+| POST | `/api/admin/website/menu-sync` | `digital.publish` | Sync catalog into site/app |
+| POST | `/api/admin/website/mobile/generate` | `digital.create` | Mobile app config |
+| POST | `/api/admin/website/mobile/package` | `digital.create` | Download Expo ZIP package |
+
+### Admin — `/api/admin/online-orders` (`AdminOnlineOrdersController`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/online-orders` | `digital.orders.view` | List (`status`, `take`) |
+| GET | `/api/admin/online-orders/analytics` | `digital.orders.view` | Analytics (`fromUtc`, `toUtc`) |
+| GET | `/api/admin/online-orders/{id}` | `digital.orders.view` | Detail |
+| GET | `/api/admin/online-orders/{id}/timeline` | `digital.orders.view` | Status history |
+| PATCH | `/api/admin/online-orders/{id}/status` | `digital.orders.manage` | Fulfillment status only |
+| POST | `/api/admin/online-orders/{id}/payment-intent` | `digital.orders.manage` | Staff-assisted payment intent |
+| POST | `/api/admin/online-orders/{id}/accept` | `digital.orders.approve` | Optional POS cart bridge (Super Admin) |
+
+**Status update (`UpdateOnlineOrderStatusRequestDto` → `UpdateOnlineOrderStatusResponseDto`):**
+
+```json
+{ "status": "accepted" }
+```
+
+Allowed forward chain: `pending` → `accepted` → `preparing` → `ready` → `completed`.  
+From non-terminal: also `cancelled`. Skip → `ONLINE_ORDER_STATUS_TRANSITION_INVALID`.
+
+**FA routes:** `/settings/digital`, `/orders/online`, `/admin/digital`, `/admin/digital/requests`  
+**Wave changelog:** [`CHANGELOG.md`](CHANGELOG.md)
+
+---
+
+## Offline orders API (full POS snapshots)
+
+> **Canonical doc:** [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md)  
+> **Separation guide:** [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](release/OFFLINE_SYSTEMS_SEPARATION.md)  
+> **Legacy (payment intents):** `/api/offline-transactions/replay`, `/api/admin/offline-transactions`, FA `/admin/tse/offline-transactions` — unchanged; separate table `offline_transactions`.
+
+New model stores **full `CreatePaymentRequest` snapshots** in `offline_orders` (not `offline_transactions`).
+
+### POS — `/api/pos/offline-orders`
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| POST | `/api/pos/offline-orders` | `payment.take` | Save offline order |
+| GET | `/api/pos/offline-orders/pending` | `payment.take` | Query `cashRegisterId` required |
+| POST | `/api/pos/offline-orders/replay` | `payment.take` | Replay pending for register; batch BelegNr reserve |
+| GET | `/api/pos/offline-orders/{offlineOrderId}/status` | `payment.take` | Status by business id (`OFFLINE-…`) |
+
+**Save body (`OfflineOrderRequest`):**
+
+```json
+{
+  "cashRegisterId": "uuid",
+  "orderData": { },
+  "orderTotal": 12.50,
+  "paymentMethod": "cash"
+}
+```
+
+**Replay response (`ReplayOfflineOrdersResult`):** `{ total, success, failed, details[] }` with per-order `{ orderId, success, paymentId?, invoiceNumber?, errorMessage? }`.
+
+### Admin — `/api/admin/offline-orders`
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/offline-orders` | `payment.view` | List: `status`, `cashRegisterId`, `pageNumber`, `pageSize` |
+| POST | `/api/admin/offline-orders/{id}/replay` | `payment.view` | Replay one pending order |
+| POST | `/api/admin/offline-orders/replay-all` | `payment.view` | Optional `cashRegisterId` query |
+
+**FA route:** `/rksv/offline-orders` (RKSV → Diagnose). Orval hooks: `useGetApiAdminOfflineOrders`, `usePostApiAdminOfflineOrdersIdReplay`, `usePostApiAdminOfflineOrdersReplayAll` in `@/api/generated/admin/admin`.
+
+**OpenAPI regen:**
+
+```bash
+node scripts/generate-backend-openapi.mjs
+cd frontend-admin && npm run generate:api
+node scripts/verify-api-client.mjs
+```
+
+**Rules:** 72 h expiry (cleanup deletes pending); max 3 sync attempts; **voucher not allowed** offline.
+
+**Implementation:** `PosOfflineOrdersController`, `AdminOfflineOrdersController`, `OfflineOrderService`, `SequenceReservationService`.
 
 ---
 
@@ -327,15 +549,21 @@ Same shape as manual tenant create — `CreateTenantUserResultDto` (201 Created)
 
 After backend DTO changes:
 
-1. Update `backend/swagger.json`
+1. `node scripts/generate-backend-openapi.mjs` (do not hand-edit `backend/swagger.json`)
 2. `cd frontend-admin && npm run generate:api`
-3. `node scripts/verify-api-client.mjs` (repo root)
+3. `node scripts/verify-api-client.mjs` (repo root) — also runs in CI (`api-client-alignment.yml`)
+4. Optional local gate: `npm run install:git-hooks` so commits that touch swagger/generated run the same verify
 
 ---
 
 ## Related documentation
 
 - [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) — operator flows, roles, FA surfaces
+- [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) — billing / mandant license API and services
+- [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) — website / app operator guide
+- [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) — online-order status workflow (non-fiscal)
+- [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) — digital / online-order RBAC defaults
+- [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md) — full POS order snapshots (2026-06-27)
 - [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) — Authentication section
-- [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen
+- [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen + Digital Services
 - [`frontend/README.md`](../frontend/README.md) — POS login

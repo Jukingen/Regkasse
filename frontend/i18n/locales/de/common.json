@@ -16,6 +16,7 @@
   "no": "Nein",
   "step": "Schritt",
   "ok": "OK",
+  "selectDate": "Datum wählen",
   "retry": "Wiederholen",
   "errorLoadingProducts": "Fehler beim Laden der Produkte",
   "loadingMore": "Lade mehr...",
@@ -37,5 +38,27 @@
   "unauthorized": "Nicht autorisiert",
   "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm",
   "tableRestoring": "Tische werden wiederhergestellt",
-  "table": "Tisch"
+  "table": "Tisch",
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Ermäßigt",
+    "special": "Spezial",
+    "exempt": "Befreit"
+  },
+  "barcodeScanner": {
+    "closeA11y": "Schließen",
+    "webFallback": "Kamera-Scan ist im Browser nicht verfügbar. Bitte Code manuell eingeben.",
+    "cameraRequired": "Kamerazugriff wird benötigt.",
+    "allowCamera": "Kamera erlauben",
+    "permissionBlocked": "Kamerazugriff wurde dauerhaft verweigert. Bitte in den Geräteeinstellungen aktivieren.",
+    "openSettings": "Einstellungen öffnen",
+    "cameraUnavailable": "Kamera ist nicht verfügbar. Bitte Gerät neu starten oder manuell eingeben.",
+    "loading": "Kamera wird vorbereitet…"
+  },
+  "errors": {
+    "http400": "Die Anfrage konnte nicht verarbeitet werden. Bitte prüfen Sie Ihre Eingaben.",
+    "http403": "Sie haben keine Berechtigung für diese Aktion.",
+    "http404": "Der gesuchte Eintrag wurde nicht gefunden.",
+    "http409": "Dieser Tisch ist von einem anderen Kassierer geöffnet. Bitte schließen Sie ihn zuerst."
+  }
 }

@@ -19,6 +19,10 @@
     "open": "Details",
     "viewLedger": "Verlauf",
     "create": "Neuer Gutschein",
+    "exportJson": "JSON exportieren",
+    "exportCsv": "CSV exportieren",
+    "exportSuccess": "Export heruntergeladen.",
+    "exportFailed": "Export fehlgeschlagen.",
     "empty": "Keine Gutscheine gefunden.",
     "permissionDenied": "Keine Berechtigung für Gutscheine."
   },

@@ -1,12 +1,11 @@
-using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace KasseAPI_Final.Swagger;
 
 /// <summary>
-/// Assigns POS / Admin tags for <c>/api/pos/*</c> and <c>/api/admin/*</c>. Legacy alias routes are omitted from OpenAPI via
-/// <see cref="LegacySwaggerPathExclusions"/> (DocInclusionPredicate in <c>Program.cs</c>).
+/// Assigns POS / Admin tags for <c>/api/pos/*</c> and <c>/api/admin/*</c>. Retired aliases stay omitted via
+/// <see cref="LegacySwaggerPathExclusions"/> (DocInclusionPredicate in <c>ApplicationHost</c>).
 /// </summary>
 public class PosAdminTagsAndDeprecationFilter : IOperationFilter
 {
@@ -54,6 +53,18 @@ public class PosAdminTagsAndDeprecationFilter : IOperationFilter
                     + "Updates are rejected when the API host environment is not **Development** (see `DevelopmentModeService`). "
                     + "On success the server reloads its in-memory settings cache and appends a system audit event.";
             }
+        }
+
+        if (path.Equals("api/user/session-policy", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(context.ApiDescription.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Summary = "Get session policy";
+            operation.Description =
+                "Returns platform concurrent-session limits from `SessionPolicy` configuration "
+                + "(`maxConcurrentSessions`, `sessionTimeoutMinutes`, `allowMultipleDevices`) "
+                + "plus tenant idle-timeout overrides when available (`warningBeforeTimeoutMinutes`, `keepCartAfterTimeout`, `idleTimeoutEnabled`). "
+                + "Requires authenticated JWT.";
+            operation.Tags = new HashSet<OpenApiTagReference> { new("UserSessions") };
         }
     }
 }

@@ -1,0 +1,1000 @@
+'use client';
+
+import {
+  ClearOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  PlusOutlined,
+  StockOutlined,
+} from '@ant-design/icons';
+import { keepPreviousData } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Flex,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
+import { ColumnType } from 'antd/es/table';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
+
+import { Product } from '@/api/generated/model';
+import { downloadAdminProductExport } from '@/api/admin/products';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
+import { VirtualTable } from '@/components/VirtualTable';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { getEffectiveTenantSlug, isDevelopment } from '@/features/auth/services/devTenant';
+import { useCategories } from '@/features/categories/hooks/useCategories';
+import type { AdminCategory } from '@/features/categories/types';
+import { DevCatalogPurgeButton } from '@/features/products/components/DevCatalogPurgeButton';
+import { ProductFilterBar } from '@/features/products/components/ProductFilterBar';
+import { ProductCategoryBadge } from '@/features/products/components/ProductCategoryBadge';
+import ProductForm, {
+  type ProductFormSubmitValues,
+} from '@/features/products/components/ProductForm';
+import { getOperationLimitStatus } from '@/features/products/api/operationLimits';
+import { useProductStatusCounts } from '@/features/products/hooks/useProductStatusCounts';
+import { useProducts } from '@/features/products/hooks/useProducts';
+import type { ProductFilters } from '@/features/products/types/productFilters';
+import { isAdminProductsLagerUiEnabled } from '@/features/products/utils/adminProductsLagerUi';
+import { countActiveProductFilters } from '@/features/products/utils/countActiveProductFilters';
+import {
+  buildProductListSearchParams,
+  parseProductFiltersFromSearchParams,
+  parseProductPaginationFromSearchParams,
+} from '@/features/products/utils/productFilterUrl';
+import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
+import {
+  mergeCategoriesForProductFilter,
+  resolveProductCategoryDisplay,
+  resolveProductCategoryIds,
+} from '@/features/products/utils/resolveProductCategoryFilter';
+import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
+import {
+  formatProductUnitLabelForLocale,
+  formatTaxTypeLabelForLocale,
+  mapApiProductToUi,
+  mapUiProductToApi,
+  type ApiProduct,
+} from '@/features/products/utils/productMapper';
+import { TaxQuickActions } from '@/features/tax/components/TaxQuickActions';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
+import { useLicenseGuard } from '@/hooks/useLicenseGuard';
+import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
+import { useI18n } from '@/i18n';
+import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
+
+const MIN_SEARCH_LENGTH = 2;
+
+/** Slightly de-emphasize inactive product rows without hiding actions */
+const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
+
+export default function ProductsPage() {
+  const { message, modal } = useAntdApp();
+  const { guard: licenseGuard, isLocked, canWrite } = useLicenseGuard();
+
+  const showProductLagerUi = isAdminProductsLagerUiEnabled();
+  const { t } = useI18n();
+  const { data: taxGroups } = useTaxGroups();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { tenantName, tenantId, tenantSlug, isRealTenantSlug, isSuperAdminUser } =
+    useCurrentTenant();
+  const { user } = useAuth();
+  const canManageProducts = hasPermission(user, PERMISSIONS.PRODUCT_MANAGE);
+  /** Permission + license lockdown: use for disabled UI (never call guard in `disabled=`). */
+  const canWriteProducts = canManageProducts && canWrite;
+  const [exporting, setExporting] = useState<'csv' | 'json' | null>(null);
+  const downloadPreview = useDownloadPreview();
+
+  const filters = useMemo(
+    () => parseProductFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  );
+  const pagination = useMemo(
+    () => parseProductPaginationFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  );
+
+  const {
+    useList,
+    useDetail,
+    useCreate,
+    useUpdate,
+    useDelete,
+    useBulkDeactivate,
+    useDeactivateAll,
+    useUpdateStock,
+    useSetModifierGroups,
+    invalidateList,
+  } = useProducts();
+
+  const { useList: useCategoriesList, invalidateList: invalidateCategoriesList } = useCategories();
+  const categoriesQuery = useCategoriesList();
+  const catalogCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+
+  const filterCategories = useMemo(
+    (): AdminCategory[] => mergeCategoriesForProductFilter(catalogCategories, undefined),
+    [catalogCategories]
+  );
+
+  const listParams = useMemo(() => {
+    const categoryIds = resolveProductCategoryIds(filters, filterCategories);
+    return productFiltersToApiParams(
+      categoryIds?.length ? { ...filters, categoryIds } : filters,
+      pagination
+    );
+  }, [filterCategories, filters, pagination]);
+
+  const listQuery = useList(listParams, { placeholderData: keepPreviousData });
+
+  const categories = useMemo(
+    (): AdminCategory[] =>
+      mergeCategoriesForProductFilter(
+        catalogCategories,
+        listQuery.data?.availableFilters?.categories
+      ),
+    [catalogCategories, listQuery.data?.availableFilters?.categories]
+  );
+
+  const filterTaxTypes = useMemo(() => {
+    const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4, 5];
+    return values.map((value) => ({
+      value,
+      label:
+        value === 1
+          ? t('products.form.taxStandard')
+          : value === 2
+            ? t('products.form.taxReduced')
+            : value === 3
+              ? t('products.form.taxSpecial')
+              : t('products.filters.taxZero'),
+    }));
+  }, [listQuery.data?.availableFilters?.taxTypes, t]);
+
+  const applyFiltersAndPagination = useCallback(
+    (nextFilters: ProductFilters, nextPagination: { page: number; pageSize: number }) => {
+      const params = buildProductListSearchParams(
+        nextFilters,
+        nextPagination,
+        new URLSearchParams(searchParams.toString()),
+        categories
+      );
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [categories, router, searchParams]
+  );
+
+  const handleFilterChange = useCallback(
+    (nextFilters: ProductFilters) => {
+      applyFiltersAndPagination(nextFilters, { page: 1, pageSize: pagination.pageSize });
+    },
+    [applyFiltersAndPagination, pagination.pageSize]
+  );
+
+  const handleCategoryBadgeClick = useCallback(
+    (categoryId?: string, categoryName?: string) => {
+      if (!categoryId && !categoryName) return;
+      handleFilterChange({
+        ...filters,
+        categoryIds: categoryId ? [categoryId] : undefined,
+        categoryName: categoryName?.trim() || undefined,
+      });
+    },
+    [filters, handleFilterChange]
+  );
+
+  const createMutation = useCreate();
+  const updateMutation = useUpdate();
+  const deleteMutation = useDelete();
+  const bulkDeactivateMutation = useBulkDeactivate();
+  const deactivateAllMutation = useDeactivateAll();
+
+  const showDevCatalogPurge =
+    isDevelopment() && isSuperAdminUser && isRealTenantSlug && canManageProducts;
+
+  const statusCounts = useProductStatusCounts(true);
+  const activeProductCount = statusCounts.active;
+  const totalProductCount = statusCounts.all;
+
+  const handleCatalogPurgeSuccess = useCallback(() => {
+    setSelectedRowKeys([]);
+    invalidateList();
+    invalidateCategoriesList();
+    statusCounts.refetch();
+  }, [invalidateCategoriesList, invalidateList, statusCounts]);
+  const stockMutation = useUpdateStock();
+  const setModifierGroupsMutation = useSetModifierGroups();
+
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const editDetailQuery = useDetail(editingProductId ?? '', {
+    enabled: formVisible && !!editingProductId,
+  });
+  const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
+  const [stockQuantity, setStockQuantity] = useState<number>(0);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const { data: listData, isLoading, isError, error, refetch } = listQuery;
+  const filteredResultCount = listData?.pagination?.totalCount;
+
+  const handleExport = (format: 'csv' | 'json') => {
+    const rowCount = filteredResultCount ?? totalProductCount ?? 0;
+    const estimatedBytes = estimateTabularExportBytes(rowCount, format);
+    const isActive =
+      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined;
+    downloadPreview.requestPreview({
+      fileName: buildProductExportFileName(getEffectiveTenantSlug() ?? tenantSlug, format),
+      fileType: format.toUpperCase(),
+      sizeBytes: estimatedBytes,
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      tenantName: tenantName ?? undefined,
+      execute: async () => {
+        setExporting(format);
+        try {
+          await downloadAdminProductExport(format, { isActive });
+          message.success(t('products.actions.exportSuccess'));
+        } catch {
+          message.error(t('products.actions.exportFailed'));
+          throw new Error('export failed');
+        } finally {
+          setExporting(null);
+        }
+      },
+    });
+  };
+
+  const hasNonStatusFilters = useMemo(
+    () => countActiveProductFilters({ ...filters, status: 'active' }) > 0,
+    [filters]
+  );
+  const rawItems = listData?.items ?? [];
+  const products = useMemo(
+    () => rawItems.map((item) => mapApiProductToUi(item as ApiProduct)),
+    [rawItems]
+  );
+  /** Keep table painting responsive while parent state (filters/modals) updates. */
+  const deferredProducts = useDeferredValue(products);
+  const editingProductFallback = useMemo(
+    () => (editingProductId ? (products.find((p) => p.id === editingProductId) ?? null) : null),
+    [editingProductId, products]
+  );
+  const editingInitialValues = editingProductId
+    ? (editDetailQuery.data ?? editingProductFallback)
+    : null;
+  const tablePagination = listData?.pagination
+    ? {
+        current: pagination.page,
+        pageSize: pagination.pageSize,
+        total: listData.pagination.totalCount,
+        showSizeChanger: true,
+        onChange: (p: number, ps: number) => {
+          applyFiltersAndPagination(filters, { page: p, pageSize: ps });
+        },
+      }
+    : false;
+
+  const handleCreate = async (values: ProductFormSubmitValues) => {
+    if (!licenseGuard(t('products.page.newProduct'))) return;
+    try {
+      const apiData = mapUiProductToApi(values);
+      const result = await createMutation.mutateAsync({ data: apiData as unknown as Product });
+      const createdId = result?.id;
+      if (createdId && values.modifierGroupIds?.length) {
+        await setModifierGroupsMutation.mutateAsync({
+          productId: createdId,
+          modifierGroupIds: values.modifierGroupIds,
+        });
+      }
+      message.success(t('products.messages.createSuccess'));
+      setFormVisible(false);
+      invalidateList();
+    } catch (err) {
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        toastLimitExceededOrFallback(message, t, err, t('products.messages.createError'));
+      }
+      throw err;
+    }
+  };
+
+  const handleUpdate = async (values: ProductFormSubmitValues) => {
+    if (!editingProductId) return;
+    if (!licenseGuard(t('products.actions.edit'))) return;
+    try {
+      const apiData = mapUiProductToApi(values);
+      (apiData as Record<string, unknown>).id = editingProductId;
+      const result = await updateMutation.mutateAsync({
+        id: editingProductId,
+        data: apiData as unknown as Product,
+      });
+      if (values.modifierGroupIds !== undefined) {
+        await setModifierGroupsMutation.mutateAsync({
+          productId: editingProductId,
+          modifierGroupIds: values.modifierGroupIds,
+        });
+      }
+      message.success(
+        result?.fromPayload
+          ? t('products.messages.updateSuccessRefreshing')
+          : t('products.messages.updateSuccess')
+      );
+      setFormVisible(false);
+      setEditingProductId(null);
+      invalidateList();
+    } catch (err) {
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        message.error(t('products.messages.updateError'));
+      }
+      throw err;
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!licenseGuard(t('products.actions.delete'))) return;
+    try {
+      await deleteMutation.mutateAsync({ id });
+      message.success(t('products.messages.deleteSuccess'));
+      setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
+      invalidateList();
+    } catch {
+      message.error(t('products.messages.deleteError'));
+    }
+  };
+
+  const selectedActiveCount = useMemo(
+    () =>
+      products.filter(
+        (product) =>
+          product.id && selectedRowKeys.includes(product.id) && product.isActive !== false
+      ).length,
+    [products, selectedRowKeys]
+  );
+
+  const handleBulkDeactivate = useCallback(() => {
+    if (!licenseGuard(t('products.actions.bulkDeactivate'))) return;
+    const activeIds = products
+      .filter(
+        (product) =>
+          product.id && selectedRowKeys.includes(product.id) && product.isActive !== false
+      )
+      .map((product) => product.id as string);
+    if (activeIds.length === 0) return;
+
+    const selectedCount = activeIds.length;
+
+    void (async () => {
+      let limitAlert: React.ReactNode = null;
+      try {
+        const status = await getOperationLimitStatus();
+        const remaining = status.bulkDeleteRemainingToday;
+        const limit = status.maxBulkDeletePerDay;
+        const threshold = status.requireApprovalForBulkDelete;
+        const exceedsApproval = selectedCount >= threshold;
+        const exceedsDaily = status.enabled && selectedCount > remaining;
+
+        limitAlert = (
+          <Alert
+            type={exceedsApproval || exceedsDaily ? 'warning' : 'info'}
+            showIcon
+            style={{ marginBottom: 12 }}
+            title={t('products.actions.bulkDeleteLimitWarning', { count: selectedCount })}
+            description={
+              exceedsApproval
+                ? t('products.actions.bulkDeleteLimitRequiresApproval', { threshold })
+                : exceedsDaily
+                  ? t('products.actions.bulkDeleteLimitExceeded', { limit })
+                  : t('products.actions.bulkDeleteLimitRemaining', { remaining, limit })
+            }
+          />
+        );
+      } catch {
+        // Status is advisory only — backend still enforces when Enabled.
+      }
+
+      modal.confirm({
+        title: t('products.actions.bulkDeactivateTitle'),
+        content: (
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+            {limitAlert}
+            <Typography.Text>
+              {t('products.actions.bulkDeactivateDescription', { count: selectedCount })}
+            </Typography.Text>
+          </Space>
+        ),
+        okText: t('products.actions.bulkDeactivate'),
+        okButtonProps: { danger: true },
+        cancelText: t('common.buttons.cancel'),
+        onOk: async () => {
+          try {
+            const result = await bulkDeactivateMutation.mutateAsync({ productIds: activeIds });
+            const skipped = result.alreadyInactive + result.notFound;
+            if (skipped > 0) {
+              message.warning(
+                t('products.actions.bulkDeactivatePartial', {
+                  deactivated: result.deactivated,
+                  skipped,
+                })
+              );
+            } else {
+              message.success(
+                t('products.actions.bulkDeactivateSuccess', { count: result.deactivated })
+              );
+            }
+            setSelectedRowKeys([]);
+            invalidateList();
+          } catch {
+            message.error(t('products.actions.bulkDeactivateError'));
+          }
+        },
+      });
+    })();
+  }, [
+    bulkDeactivateMutation,
+    invalidateList,
+    licenseGuard,
+    message,
+    modal,
+    products,
+    selectedRowKeys,
+    t,
+  ]);
+
+  const handleDeactivateAllCatalog = useCallback(() => {
+    if (!licenseGuard(t('products.actions.deactivateAllCatalog'))) return;
+    if (activeProductCount === 0) {
+      message.info(t('products.actions.deactivateAllNone'));
+      return;
+    }
+
+    modal.confirm({
+      title: t('products.actions.deactivateAllTitle'),
+      content: t('products.actions.deactivateAllDescription', { count: activeProductCount }),
+      okText: t('products.actions.deactivateAllCatalog'),
+      okButtonProps: { danger: true },
+      cancelText: t('common.buttons.cancel'),
+      onOk: async () => {
+        try {
+          const result = await deactivateAllMutation.mutateAsync();
+          if (result.deactivated > 0) {
+            message.success(
+              t('products.actions.deactivateAllSuccess', { count: result.deactivated })
+            );
+          } else {
+            message.info(t('products.actions.deactivateAllNone'));
+          }
+          setSelectedRowKeys([]);
+          invalidateList();
+          statusCounts.refetch();
+        } catch {
+          message.error(t('products.actions.deactivateAllError'));
+        }
+      },
+    });
+  }, [
+    activeProductCount,
+    deactivateAllMutation,
+    invalidateList,
+    licenseGuard,
+    message,
+    modal,
+    statusCounts,
+    t,
+  ]);
+
+  const openCreate = () => {
+    if (!licenseGuard(t('products.page.newProduct'))) return;
+    setEditingProductId(null);
+    setFormVisible(true);
+  };
+
+  const openEdit = (product: Product) => {
+    if (!product.id) return;
+    if (!licenseGuard(t('products.actions.edit'))) return;
+    setEditingProductId(product.id);
+    setFormVisible(true);
+  };
+
+  const openStockModal = (product: Product) => {
+    if (!licenseGuard(t('products.actions.stock'))) return;
+    setStockModalProduct(product);
+    setStockQuantity(Number(product.stockQuantity) ?? 0);
+  };
+
+  const handleStockSave = async () => {
+    if (!stockModalProduct?.id) return;
+    if (!licenseGuard(t('products.actions.stock'))) return;
+    try {
+      await stockMutation.mutateAsync({
+        id: stockModalProduct.id,
+        data: { quantity: stockQuantity },
+      });
+      message.success(t('products.messages.stockUpdateSuccess'));
+      setStockModalProduct(null);
+      invalidateList();
+    } catch {
+      message.error(t('products.messages.stockUpdateError'));
+    }
+  };
+
+  const stockColumn: ColumnType<Product> = {
+    title: t('products.table.stock'),
+    dataIndex: 'stockQuantity',
+    key: 'stockQuantity',
+    width: 120,
+    render: (qty: number, record: Product) => {
+      const min = Number(record.minStockLevel) ?? 0;
+      const isLow = Number(qty) <= min;
+      const unit = formatProductUnitLabelForLocale(record.unit, t);
+      const tag = (
+        <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
+          {Number(qty)} {unit}
+        </Tag>
+      );
+      return (
+        <Space orientation="vertical" size={0}>
+          {tag}
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            {t('products.table.minLabel')}: {min} {unit}
+            {isLow && min > 0 ? ` · ${t('products.table.minReached')}` : ''}
+          </Typography.Text>
+        </Space>
+      );
+    },
+  };
+
+  const resolveRowCategory = (record: Product) =>
+    resolveProductCategoryDisplay(record, categories);
+
+  const columns: ColumnType<Product>[] = [
+    {
+      title: t('products.table.product'),
+      key: 'product',
+      ellipsis: true,
+      width: 300,
+      render: (_: unknown, record: Product) => {
+        const desc = record.description?.trim();
+        const bc = record.barcode?.trim();
+        const rksv = record.rksvProductType?.trim();
+        const taxExempt = record.taxExemptionReason?.trim();
+        const tipLines: string[] = [];
+        if (desc) tipLines.push(desc);
+        if (taxExempt) tipLines.push(`${t('products.table.taxExemption')}: ${taxExempt}`);
+        const tipExtra =
+          tipLines.length > 0 ? (
+            <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
+          ) : undefined;
+        const category = resolveRowCategory(record);
+        const cell = (
+          <Space orientation="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
+            <Space size={8} align="center" wrap>
+              <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
+              </Typography.Text>
+              {(record as Product & { hasVariants?: boolean }).hasVariants ? (
+                <Tag variant="filled">{t('products.table.variantsBadge')}</Tag>
+              ) : null}
+              {category.name ? (
+                <ProductCategoryBadge
+                  name={category.name}
+                  color={category.color}
+                  title={t('products.table.filterByCategory', { name: category.name })}
+                  onClick={() => handleCategoryBadgeClick(category.id, category.name)}
+                />
+              ) : null}
+            </Space>
+            {bc ? (
+              <Typography.Text
+                code
+                copyable={{ text: bc }}
+                ellipsis
+                style={{ display: 'block', fontSize: 11, maxWidth: '100%' }}
+              >
+                {bc}
+              </Typography.Text>
+            ) : null}
+            {rksv ? (
+              <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11 }}>
+                {t('products.table.rksvLabel')}: {rksv}
+              </Typography.Text>
+            ) : null}
+          </Space>
+        );
+        return tipExtra ? <Tooltip title={tipExtra}>{cell}</Tooltip> : cell;
+      },
+    },
+    {
+      title: t('products.table.price'),
+      dataIndex: 'price',
+      key: 'price',
+      width: 100,
+      align: 'right',
+      render: (price: number) => (
+        <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+          €{Number(price).toFixed(2)}
+        </Typography.Text>
+      ),
+    },
+    ...(showProductLagerUi ? [stockColumn] : []),
+    {
+      title: t('products.table.status'),
+      dataIndex: 'isActive',
+      key: 'isActive',
+      width: 96,
+      render: (isActive: boolean) => (
+        <StatusBadge
+          status={isActive ? 'active' : 'inactive'}
+          label={isActive ? t('products.table.active') : t('products.table.inactive')}
+        />
+      ),
+    },
+    {
+      title: t('products.table.category'),
+      dataIndex: 'category',
+      key: 'category',
+      width: 140,
+      ellipsis: true,
+      render: (_text: string, record: Product) => {
+        const category = resolveRowCategory(record);
+        return (
+          <ProductCategoryBadge
+            name={category.name}
+            color={category.color}
+            title={
+              category.name
+                ? t('products.table.filterByCategory', { name: category.name })
+                : undefined
+            }
+            onClick={
+              category.name
+                ? () => handleCategoryBadgeClick(category.id, category.name)
+                : undefined
+            }
+          />
+        );
+      },
+    },
+    {
+      title: t('products.table.tax'),
+      key: 'tax',
+      width: 120,
+      align: 'right',
+      render: (_: unknown, record: Product & {
+        taxGroup?: {
+          color?: string | null;
+          icon?: string | null;
+          rate?: number;
+          name?: string;
+        } | null;
+        taxGroupId?: string | null;
+      }) => {
+        const group =
+          record.taxGroup ??
+          resolveTaxGroupForProduct(taxGroups, {
+            taxGroupId: record.taxGroupId,
+            taxRate: record.taxRate,
+          });
+        const rate = Number(group?.rate ?? record.taxRate ?? 0);
+        const label = group?.name
+          ? `${group.name} (${rate}%)`
+          : formatTaxTypeLabelForLocale(Number(record.taxType ?? 1), record.taxRate, t);
+        const short = `${group?.icon ? `${group.icon} ` : ''}${rate}%`;
+        return (
+          <Tooltip title={label}>
+            <Tag color={group?.color ?? undefined} style={{ marginInlineEnd: 0 }}>
+              {short}
+            </Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: t('products.table.actions'),
+      key: 'actions',
+      width: showProductLagerUi ? 220 : 160,
+      fixed: 'right',
+      align: 'right',
+      render: (_: unknown, record: Product) => (
+        <Space size="small" wrap>
+          <Button
+            type="primary"
+            size="small"
+            icon={<EditOutlined />}
+            disabled={isLocked}
+            onClick={() => openEdit(record)}
+          >
+            {t('products.actions.edit')}
+          </Button>
+          {showProductLagerUi ? (
+            <Button
+              type="default"
+              size="small"
+              icon={<StockOutlined />}
+              disabled={isLocked}
+              onClick={() => openStockModal(record)}
+            >
+              {t('products.actions.stock')}
+            </Button>
+          ) : null}
+          {record.isActive !== false ? (
+            <Popconfirm
+              title={t('products.actions.deleteConfirmTitle')}
+              description={t('products.actions.deleteConfirmDescription')}
+              onConfirm={() => record.id && handleDelete(record.id)}
+              okText={t('common.buttons.yes')}
+              cancelText={t('common.buttons.no')}
+              disabled={isLocked}
+            >
+              <Button
+                type="default"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleteMutation.isPending}
+                disabled={isLocked}
+              >
+                {t('products.actions.delete')}
+              </Button>
+            </Popconfirm>
+          ) : null}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+      <AdminPageHeader
+        title={t('products.page.title')}
+        breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
+        actions={
+          <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'csv'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('csv')}
+            >
+              {t('products.actions.exportCsv')}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'json'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('json')}
+            >
+              {t('products.actions.exportJson')}
+            </Button>
+            {isRealTenantSlug && tenantName ? (
+              <DemoImportButton
+                tenantId={tenantId ?? undefined}
+                tenantName={tenantName}
+                tenantSlug={tenantSlug}
+                onSuccess={invalidateList}
+              />
+            ) : null}
+            {showDevCatalogPurge ? (
+              <DevCatalogPurgeButton
+                tenantSlug={tenantSlug ?? 'dev'}
+                tenantId={tenantId ?? undefined}
+                productCount={totalProductCount}
+                categoryCount={categories.length}
+                loading={statusCounts.isLoading || categoriesQuery.isLoading}
+                onSuccess={handleCatalogPurgeSuccess}
+              />
+            ) : null}
+            {canManageProducts ? (
+              <Button
+                danger
+                icon={<ClearOutlined />}
+                disabled={isLocked || activeProductCount === 0}
+                loading={deactivateAllMutation.isPending || statusCounts.isLoading}
+                onClick={handleDeactivateAllCatalog}
+              >
+                {t('products.actions.deactivateAllCatalog')}
+              </Button>
+            ) : null}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              disabled={isLocked}
+              onClick={openCreate}
+            >
+              {t('products.page.newProduct')}
+            </Button>
+          </Flex>
+        }
+      >
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          {t('products.page.searchHint', { min: MIN_SEARCH_LENGTH })}
+        </Typography.Paragraph>
+      </AdminPageHeader>
+
+      <LimitWarning limitKey="maxProductsPerTenant" />
+
+      <ProductFilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        categories={categories.length ? categories : filterCategories}
+        categoriesLoading={categoriesQuery.isLoading}
+        taxTypes={filterTaxTypes}
+        statusCounts={statusCounts}
+        filteredResultCount={
+          hasNonStatusFilters || (filters.searchTerm?.trim().length ?? 0) >= MIN_SEARCH_LENGTH
+            ? filteredResultCount
+            : undefined
+        }
+      />
+
+      {isError ? (
+        <Alert
+          type="error"
+          title={t('products.page.loadErrorTitle')}
+          description={
+            error ? (
+              <ApiErrorAlertDescription
+                t={t}
+                error={error}
+                logContext="ProductsPage"
+                fallbackKey="common.messages.unknownError"
+              />
+            ) : (
+              t('common.messages.unknownError')
+            )
+          }
+          showIcon
+          action={
+            <Button size="small" onClick={() => refetch()}>
+              {t('common.buttons.retry')}
+            </Button>
+          }
+        />
+      ) : null}
+
+      {!isError && selectedRowKeys.length > 0 ? (
+        <Alert
+          type="info"
+          showIcon
+          title={t('products.actions.bulkSelected', { count: selectedRowKeys.length })}
+          action={
+            <Space>
+              <Button size="small" onClick={() => setSelectedRowKeys([])}>
+                {t('products.actions.clearSelection')}
+              </Button>
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                disabled={isLocked || selectedActiveCount === 0}
+                loading={bulkDeactivateMutation.isPending}
+                onClick={handleBulkDeactivate}
+              >
+                {t('products.actions.bulkDeactivate')}
+              </Button>
+            </Space>
+          }
+        />
+      ) : null}
+
+      {!isError && canManageProducts ? (
+        <TaxQuickActions
+          selectedProductIds={selectedRowKeys.map(String)}
+          canManage={canWriteProducts}
+        />
+      ) : null}
+
+      {!isError ? (
+        <VirtualTable<Product>
+          columns={columns}
+          dataSource={deferredProducts}
+          rowKey="id"
+          loading={isLoading}
+          pagination={{
+            ...adminTablePaginationDefaults,
+            ...tablePagination,
+          }}
+          size="middle"
+          scroll={{ x: showProductLagerUi ? 1180 : 1060 }}
+          locale={{
+            emptyText: (
+              <EmptyState
+                title={t('products.page.empty')}
+                actionText={canWrite ? t('products.page.newProduct') : undefined}
+                onAction={canWrite ? openCreate : undefined}
+              />
+            ),
+          }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+            getCheckboxProps: (record) => ({
+              disabled: record.isActive === false,
+            }),
+          }}
+          onRow={(record) =>
+            record.isActive === false ? { style: INACTIVE_PRODUCT_ROW_STYLE } : {}
+          }
+        />
+      ) : null}
+
+      <ProductForm
+        visible={formVisible}
+        initialValues={editingInitialValues}
+        isEditMode={!!editingProductId}
+        onCancel={() => {
+          setFormVisible(false);
+          setEditingProductId(null);
+        }}
+        onSubmit={editingProductId ? handleUpdate : handleCreate}
+        onPriceChanged={async (result) => {
+          invalidateList();
+          if (result.createdNewProductVersion && result.productId) {
+            setEditingProductId(result.productId);
+            message.success(t('products.priceChange.versionCreatedRefreshing'));
+            return;
+          }
+          void editDetailQuery.refetch();
+        }}
+        loading={
+          createMutation.isPending ||
+          updateMutation.isPending ||
+          (!!editingProductId && editDetailQuery.isFetching)
+        }
+      />
+
+      {showProductLagerUi ? (
+        <Modal
+          title={t('products.stockModal.title')}
+          open={!!stockModalProduct}
+          onOk={handleStockSave}
+          onCancel={() => setStockModalProduct(null)}
+          confirmLoading={stockMutation.isPending}
+          okText={t('common.buttons.save')}
+          cancelText={t('common.buttons.cancel')}
+        >
+          {stockModalProduct && (
+            <div style={{ marginTop: 8 }}>
+              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                {t('products.stockModal.productLabel')}
+              </Typography.Text>
+              <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+                {stockModalProduct.name?.trim() ? stockModalProduct.name : FORMAT_EMPTY_DISPLAY}
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                {t('products.stockModal.quantityLabel')}
+              </Typography.Text>
+              <InputNumber
+                min={0}
+                value={stockQuantity}
+                onChange={(v) => setStockQuantity(Number(v) ?? 0)}
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+        </Modal>
+      ) : null}
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
+    </Space>
+  );
+}

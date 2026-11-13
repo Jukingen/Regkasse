@@ -3,8 +3,8 @@
 /**
  * Operational integrity triage: backend consistency checks (sequences, refunds, payment↔invoice).
  */
-
-import React, { useMemo, useState } from 'react';
+import { ReloadOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -19,19 +19,19 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
-import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import React, { useMemo, useState } from 'react';
+
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
+import type { IntegrityReportDto } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
-import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
-import type { IntegrityReportDto } from '@/api/generated/model';
 
 const { RangePicker } = DatePicker;
 
@@ -97,15 +97,21 @@ export default function IntegrityReportPage() {
         description={
           <span>
             {t('rksvHub.integrityPage.alertIntro')}{' '}
-            <Link href="/rksv/fiscal-export-diagnostics">{t('rksvHub.integrityPage.alertLinkFiscalExportDiag')}</Link>
+            <Link href="/rksv/fiscal-export-diagnostics">
+              {t('rksvHub.integrityPage.alertLinkFiscalExportDiag')}
+            </Link>
             {t('rksvHub.integrityPage.alertMidOffline')}{' '}
             <Link href="/rksv/incident">{t('rksvHub.integrityPage.alertLinkIncident')}</Link>
             {t('rksvHub.integrityPage.alertSlashReplay')}
             <Link href="/rksv/replay-batch">{t('rksvHub.integrityPage.alertLinkReplayBatch')}</Link>
             {t('rksvHub.integrityPage.alertMidFo')}{' '}
-            <Link href="/rksv/finanz-online-queue">{t('rksvHub.integrityPage.alertLinkFoQueue')}</Link>
+            <Link href="/rksv/finanz-online-queue">
+              {t('rksvHub.integrityPage.alertLinkFoQueue')}
+            </Link>
             {t('rksvHub.integrityPage.alertMidHash')}{' '}
-            <Link href="/rksv/payload-hash-conflicts">{t('rksvHub.integrityPage.alertLinkPayloadHash')}</Link>
+            <Link href="/rksv/payload-hash-conflicts">
+              {t('rksvHub.integrityPage.alertLinkPayloadHash')}
+            </Link>
             {t('rksvHub.integrityPage.alertEnd')}
           </span>
         }
@@ -114,12 +120,21 @@ export default function IntegrityReportPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap align="center">
           <Typography.Text strong>{t('rksvHub.integrityPage.filterRangeLabel')}</Typography.Text>
-          <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} allowClear={false} />
+          <RangePicker
+            format={DAYJS_DATE_FORMAT}
+            value={range}
+            onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])}
+            allowClear={false}
+          />
           <Space align="center">
             <Typography.Text>{t('rksvHub.integrityPage.detailsSwitchLabel')}</Typography.Text>
             <Switch checked={includeDetails} onChange={setIncludeDetails} />
           </Space>
-          <Button icon={<ReloadOutlined />} loading={isLoading || isFetching} onClick={() => refetch()}>
+          <Button
+            icon={<ReloadOutlined />}
+            loading={isLoading || isFetching}
+            onClick={() => refetch()}
+          >
             {t('common.buttons.refresh')}
           </Button>
         </Space>
@@ -152,7 +167,12 @@ export default function IntegrityReportPage() {
       {!error && report && (
         <>
           {hasAnyIssue ? (
-            <Alert type="warning" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.integrityPage.hasIssuesTitle')} />
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={t('rksvHub.integrityPage.hasIssuesTitle')}
+            />
           ) : (
             <Alert
               type="success"
@@ -177,21 +197,25 @@ export default function IntegrityReportPage() {
                     {seq?.nonMonotonicSequenceCount ?? 0}
                   </Descriptions.Item>
                 </Descriptions>
-                {includeDetails && seq?.duplicateReceiptNumbers && seq.duplicateReceiptNumbers.length > 0 && (
-                  <Table
-                    size="small"
-                    pagination={{ pageSize: 8 }}
-                    rowKey={(r) => r}
-                    dataSource={seq.duplicateReceiptNumbers}
-                    columns={[
-                      {
-                        title: t('rksvHub.integrityPage.colReceiptNumber'),
-                        key: 'n',
-                        render: (_: unknown, r: string) => <Typography.Text code>{r}</Typography.Text>,
-                      },
-                    ]}
-                  />
-                )}
+                {includeDetails &&
+                  seq?.duplicateReceiptNumbers &&
+                  seq.duplicateReceiptNumbers.length > 0 && (
+                    <Table
+                      size="small"
+                      pagination={{ pageSize: 8 }}
+                      rowKey={(r) => r}
+                      dataSource={seq.duplicateReceiptNumbers}
+                      columns={[
+                        {
+                          title: t('rksvHub.integrityPage.colReceiptNumber'),
+                          key: 'n',
+                          render: (_: unknown, r: string) => (
+                            <Typography.Text code>{r}</Typography.Text>
+                          ),
+                        },
+                      ]}
+                    />
+                  )}
                 {includeDetails && seq?.nonMonotonicKeys && seq.nonMonotonicKeys.length > 0 && (
                   <Table
                     size="small"
@@ -203,7 +227,9 @@ export default function IntegrityReportPage() {
                       {
                         title: t('rksvHub.integrityPage.colRegisterDate'),
                         key: 'k',
-                        render: (_: unknown, r: string) => <Typography.Text code>{r}</Typography.Text>,
+                        render: (_: unknown, r: string) => (
+                          <Typography.Text code>{r}</Typography.Text>
+                        ),
                       },
                     ]}
                   />
@@ -228,27 +254,33 @@ export default function IntegrityReportPage() {
                     {orphans?.refundWithoutInvoiceCount ?? 0}
                   </Descriptions.Item>
                 </Descriptions>
-                {includeDetails && orphans?.orphanPaymentIds && orphans.orphanPaymentIds.length > 0 && (
-                  <Table
-                    size="small"
-                    style={{ marginTop: 8 }}
-                    pagination={{ pageSize: 8 }}
-                    rowKey="id"
-                    dataSource={orphans.orphanPaymentIds.map((id) => ({ id }))}
-                    columns={[
-                      {
-                        title: t('rksvHub.integrityPage.colPaymentId'),
-                        dataIndex: 'id',
-                        key: 'id',
-                        render: (id: string) => (
-                          <Link href={`/payments?paymentId=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer">
-                            <Typography.Text code>{id.slice(0, 8)}…</Typography.Text>
-                          </Link>
-                        ),
-                      },
-                    ]}
-                  />
-                )}
+                {includeDetails &&
+                  orphans?.orphanPaymentIds &&
+                  orphans.orphanPaymentIds.length > 0 && (
+                    <Table
+                      size="small"
+                      style={{ marginTop: 8 }}
+                      pagination={{ pageSize: 8 }}
+                      rowKey="id"
+                      dataSource={orphans.orphanPaymentIds.map((id) => ({ id }))}
+                      columns={[
+                        {
+                          title: t('rksvHub.integrityPage.colPaymentId'),
+                          dataIndex: 'id',
+                          key: 'id',
+                          render: (id: string) => (
+                            <Link
+                              href={`/payments?paymentId=${encodeURIComponent(id)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <Typography.Text code>{id.slice(0, 8)}…</Typography.Text>
+                            </Link>
+                          ),
+                        },
+                      ]}
+                    />
+                  )}
                 {includeDetails &&
                   orphans?.refundReceiptNumbersMissingInvoice &&
                   orphans.refundReceiptNumbersMissingInvoice.length > 0 && (
@@ -262,7 +294,9 @@ export default function IntegrityReportPage() {
                         {
                           title: t('rksvHub.integrityPage.colRefundReceipt'),
                           key: 'n',
-                          render: (_: unknown, r: string) => <Typography.Text code>{r || '—'}</Typography.Text>,
+                          render: (_: unknown, r: string) => (
+                            <Typography.Text code>{r || '—'}</Typography.Text>
+                          ),
                         },
                       ]}
                     />
@@ -271,9 +305,15 @@ export default function IntegrityReportPage() {
             </Col>
 
             <Col xs={24} lg={8}>
-              <Card size="small" title={t('rksvHub.integrityPage.cardPwiTitle')} extra={severityTag(pwi?.count ?? 0, t)}>
+              <Card
+                size="small"
+                title={t('rksvHub.integrityPage.cardPwiTitle')}
+                extra={severityTag(pwi?.count ?? 0, t)}
+              >
                 <Descriptions column={1} size="small">
-                  <Descriptions.Item label={t('rksvHub.integrityPage.pwiCountLabel')}>{pwi?.count ?? 0}</Descriptions.Item>
+                  <Descriptions.Item label={t('rksvHub.integrityPage.pwiCountLabel')}>
+                    {pwi?.count ?? 0}
+                  </Descriptions.Item>
                 </Descriptions>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
                   {t('rksvHub.integrityPage.pwiHint')}{' '}
@@ -293,7 +333,11 @@ export default function IntegrityReportPage() {
                         dataIndex: 'id',
                         key: 'id',
                         render: (id: string) => (
-                          <Link href={`/payments?paymentId=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer">
+                          <Link
+                            href={`/payments?paymentId=${encodeURIComponent(id)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             <Typography.Text code>{id}</Typography.Text>
                           </Link>
                         ),
@@ -305,17 +349,27 @@ export default function IntegrityReportPage() {
             </Col>
           </Row>
 
-          <Card size="small" title={t('rksvHub.integrityPage.relatedToolsTitle')} style={{ marginTop: 16 }}>
+          <Card
+            size="small"
+            title={t('rksvHub.integrityPage.relatedToolsTitle')}
+            style={{ marginTop: 16 }}
+          >
             <Space wrap>
-              <Link href="/rksv/fiscal-export-diagnostics">{t('rksvHub.integrityPage.linkFiscalExportDiagShort')}</Link>
+              <Link href="/rksv/fiscal-export-diagnostics">
+                {t('rksvHub.integrityPage.linkFiscalExportDiagShort')}
+              </Link>
               <span>·</span>
-              <Link href="/rksv/finanz-online-queue">{t('rksvHub.integrityPage.linkFoQueueShort')}</Link>
+              <Link href="/rksv/finanz-online-queue">
+                {t('rksvHub.integrityPage.linkFoQueueShort')}
+              </Link>
               <span>·</span>
               <Link href="/rksv/incident">{t('rksvHub.integrityPage.linkIncidentCorr')}</Link>
               <span>·</span>
               <Link href="/rksv/payload-hash-conflicts">{t('rksvHub.link.payloadHash')}</Link>
               <span>·</span>
-              <Link href="/rksv/offline-intent-coverage">{t('rksvHub.integrityPage.linkOfflineCoverage')}</Link>
+              <Link href="/rksv/offline-intent-coverage">
+                {t('rksvHub.integrityPage.linkOfflineCoverage')}
+              </Link>
               <span>·</span>
               <Link href="/payments">{t('rksvHub.integrityPage.paymentsLink')}</Link>
             </Space>

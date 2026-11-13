@@ -1,12 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 
 import { useColorScheme } from '../hooks/useColorScheme';
 
@@ -46,14 +40,9 @@ export function SearchBar({
           styles.searchContainer,
           {
             backgroundColor: colorScheme === 'dark' ? '#2C2C2E' : '#F2F2F7',
-            borderColor: isFocused
-              ? '#007AFF'
-              : colorScheme === 'dark'
-              ? '#3A3A3C'
-              : '#E5E5EA',
+            borderColor: isFocused ? '#007AFF' : colorScheme === 'dark' ? '#3A3A3C' : '#E5E5EA',
           },
-        ]}
-      >
+        ]}>
         <Ionicons
           name="search"
           size={20}
@@ -71,8 +60,12 @@ export function SearchBar({
           placeholderTextColor={colorScheme === 'dark' ? '#8E8E93' : '#8E8E93'}
           value={value}
           onChangeText={onChangeText}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={() => {
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+          }}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
           autoCapitalize="none"
@@ -114,6 +107,9 @@ const styles = StyleSheet.create({
       android: {
         elevation: 2,
       },
+      web: {
+        boxShadow: '0px 1px 2px 0px rgba(0, 0, 0, 0.1)',
+      },
     }),
   },
   searchIcon: {
@@ -128,4 +124,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 2,
   },
-}); 
+});

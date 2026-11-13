@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  normalizeCashRegisterListBody,
-} from './normalizers';
+
+import { normalizeCashRegisterListBody } from './normalizers';
 
 describe('tagesabschluss normalizers', () => {
   it('normalizeCashRegisterListBody reads registers array', () => {
@@ -16,5 +15,4 @@ describe('tagesabschluss normalizers', () => {
   it('normalizeCashRegisterListBody returns empty when registers missing', () => {
     expect(normalizeCashRegisterListBody({ message: 'ok' })).toEqual([]);
   });
-
 });

@@ -1,35 +1,81 @@
-"use client";
+'use client';
 
 /**
  * Paginated backup runs table (GET /api/admin/backup/runs) with operator columns.
  */
+import { useQueryClient } from '@tanstack/react-query';
+import { DownloadOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Badge,
+  Button,
+  DatePicker,
+  Modal,
+  Popconfirm,
+  Progress,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
+import type { Dayjs } from 'dayjs';
+import type { ColumnsType, TableProps } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
 
-import React, { useCallback, useMemo, useState } from "react";
-import { App, Alert, Badge, Button, Popconfirm, Progress, Select, Space, Table, Tooltip, Typography } from 'antd';
-import type { ColumnsType, TableProps } from "antd/es/table";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
-import { backupQueryKeys, useBackupRuns, useTriggerBackup } from "@/features/backup/api/backupHooks";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { useI18n } from "@/i18n";
-import { formatDateTime as formatDisplayDateTime } from "@/i18n/formatting";
-import { formatUserTime } from "@/lib/dateFormatter";
-import { useQueryClient } from "@tanstack/react-query";
-import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
-import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useTenants } from "@/features/backup/hooks/useTenants";
+import { dateColumnRender } from '@/components/DateColumn';
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { BackupStrategyKind } from '@/api/generated/model/backupStrategyKind';
 import {
   BACKUP_RECENT_RUNS_PAGE_SIZE,
   usePollAlignedWithLatestDashboardBackup,
   usePollBackupLatestDashboardInterval,
-} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
-import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
-import { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
-import { BackupVerificationReport } from "@/features/backup/components/BackupVerificationReport";
-import { isBackupRunSucceeded } from "@/features/backup/logic/backupRunDetailPresentation";
-import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
+import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
+import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/backupManualTriggerMessaging';
+import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import { downloadBackupRunFile } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { isSystemBackupStrategy } from '@/features/backup/logic/backupStrategyKind';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
+import {
+  backupQueryKeys,
+  useBackupRuns,
+  useTriggerBackup,
+} from '@/features/backup/api/backupHooks';
+import { BackupDetailModal } from '@/features/backup/components/BackupDetailModal';
+import {
+  BackupContentValidationReport,
+  ContentValidationStatusBadge,
+} from '@/features/backup/components/BackupContentValidationReport';
+import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import trafficLight from '@/features/backup/backupRunTrafficLight.module.css';
+import { backupRunTrafficLightRowClass } from '@/features/backup/logic/backupRunTrafficLight';
+import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useMoveBackupRunToCold } from '@/features/backup/hooks/useBackupRetentionPolicy';
+import { useTenants } from '@/features/backup/hooks/useTenants';
+import { verifyBackup } from '@/features/backup/logic/backupChecksumVerifyApi';
+import {
+  getBackupContentValidation,
+  normalizeContentValidationStatus,
+  type BackupContentValidationDto,
+} from '@/features/backup/logic/backupContentValidationApi';
+import { resolveContentValidationBadgeStatus } from '@/features/backup/logic/backupContentValidationPresentation';
+import { runRestoreDrill } from '@/features/backup/logic/backupDrillApi';
+import { isBackupRunSucceeded } from '@/features/backup/logic/backupRunDetailPresentation';
+import {
+  asBackupRunDisplay,
+  isScheduledBackupActor,
+} from '@/features/backup/logic/backupRunDisplay';
 import {
   compareBackupRunsByRequestedAtDesc,
   filterBackupRunsByTenantIdempotency,
@@ -37,7 +83,16 @@ import {
   resolveBackupRunDurationLabel,
   resolveBackupRunSizeLabel,
   resolveBackupRunTotalBytes,
-} from "@/features/backup/logic/backupRunTablePresentation";
+} from '@/features/backup/logic/backupRunTablePresentation';
+import {
+  canShowManualVerifyAction,
+  isVerificationFailed,
+  isVerificationPassed,
+  resolveLatestVerification,
+} from '@/features/backup/logic/backupVerificationPresentation';
+import { useNotify } from '@/hooks/useNotify';
+import { useI18n } from '@/i18n';
+import { formatUserTime } from '@/lib/dateFormatter';
 
 export interface BackupRunsTableProps {
   onViewDetails?: (run: BackupRunResponseDto) => void;
@@ -51,40 +106,55 @@ export function BackupRunsTable({
   onRetryInvalidate,
   hideTitle = false,
 }: BackupRunsTableProps) {
-  const { message } = App.useApp();
+  const notify = useNotify();
 
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
   const permissions = useBackupPermissions();
-  const { canTrigger, canFilterRunsByTenant, isSuperAdmin } = permissions;
+  const { canTrigger, canFilterRunsByTenant, isSuperAdmin: isSuperAdminRole, canRestore, canConfigure, canDownloadBackup } =
+    permissions;
+  const { user } = useAuth();
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
   const [page, setPage] = useState(1);
   const [selectedTenantId, setSelectedTenantId] = useState<string | undefined>();
+  const [strategyFilter, setStrategyFilter] = useState<number | undefined>();
+  const [createdByFilter, setCreatedByFilter] = useState<string | undefined>();
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [downloadingRunId, setDownloadingRunId] = useState<string | null>(null);
   const [detailRunId, setDetailRunId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [verificationReportRunId, setVerificationReportRunId] = useState<string | null>(null);
   const [verificationReportOpen, setVerificationReportOpen] = useState(false);
+  const [verifyingRunId, setVerifyingRunId] = useState<string | null>(null);
+  const [contentValidatingRunId, setContentValidatingRunId] = useState<string | null>(null);
+  const [contentReport, setContentReport] = useState<BackupContentValidationDto | null>(null);
+  const [contentReportOpen, setContentReportOpen] = useState(false);
+  const [contentStatusByRunId, setContentStatusByRunId] = useState<Record<string, string>>({});
+  const [drillingRunId, setDrillingRunId] = useState<string | null>(null);
 
   const { tenants, isLoading: tenantsLoading } = useTenants({
     enabled: canFilterRunsByTenant,
   });
 
   const triggerBackup = useTriggerBackup();
+  const moveToCold = useMoveBackupRunToCold();
 
   const handleRetrySuccess = useCallback(
     async (res: Awaited<ReturnType<typeof triggerBackup.mutateAsync>>) => {
       const fb = describeBackupTriggerOutcome(res);
       const suffix = res.orchestrationState?.trim()
-        ? ` ${t("backupDr.messages.orchestrationStateSuffix", { state: res.orchestrationState })}`
-        : "";
+        ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
+        : '';
       const text = `${t(fb.messageKey)}${suffix}`;
-      if (fb.level === "success") message.success(text);
-      else message.info(text);
+      if (fb.level === 'success') notify.success(text);
+      else notify.info(text);
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.recoverability() });
       if (onRetryInvalidate) await onRetryInvalidate();
     },
-    [onRetryInvalidate, queryClient, t],
+    [notify, onRetryInvalidate, queryClient, t]
   );
 
   const pollPeek = usePollBackupLatestDashboardInterval();
@@ -99,34 +169,30 @@ export function BackupRunsTable({
       page,
       pageSize: BACKUP_RECENT_RUNS_PAGE_SIZE,
       tenantId: canFilterRunsByTenant ? selectedTenantId : undefined,
+      strategy: strategyFilter,
+      createdBy: createdByFilter,
+      fromUtc: dateRange?.[0]?.toISOString(),
+      toUtc: dateRange?.[1]?.endOf('day').toISOString(),
     },
-    { refetchInterval: pollAlignedRuns },
-  );
-
-  const formatDateTime = useCallback(
-    (iso: string | undefined | null) => {
-      if (!iso) return t("backupDr.runsTable.noValue");
-      return formatDisplayDateTime(iso, formatLocale);
-    },
-    [formatLocale, t],
+    { refetchInterval: pollAlignedRuns }
   );
 
   const formatTime = useCallback(
     (iso: string | undefined | null) => {
-      if (!iso) return t("backupDr.runsTable.noValue");
+      if (!iso) return t('backupDr.runsTable.noValue');
       return formatUserTime(iso) || iso;
     },
-    [t],
+    [t]
   );
 
   const artifactTypeLabel = useCallback(
     (type: number | undefined) => {
-      if (type === undefined) return t("backupDr.runsTable.noValue");
+      if (type === undefined) return t('backupDr.runsTable.noValue');
       const key = `backupDr.runsTable.artifactType.${type}`;
       const label = t(key);
       return label === key ? String(type) : label;
     },
-    [t],
+    [t]
   );
 
   const viewDetails = useCallback(
@@ -140,44 +206,223 @@ export function BackupRunsTable({
         setDetailModalOpen(true);
       }
     },
-    [onViewDetails],
+    [onViewDetails]
+  );
+
+  const handleDownloadRun = useCallback(
+    async (record: BackupRunResponseDto) => {
+      if (!record.id || !canDownloadBackup) return;
+      const row = asBackupRunDisplay(record);
+      const fallback = row.primaryDownloadFileName || `backup-${record.id}`;
+      setDownloadingRunId(record.id);
+      try {
+        const execute = async (headers?: Record<string, string>) => {
+          const label = t('common.downloadProgress.labelBackup');
+          await progressiveDownload.runCustom({
+            fileName: fallback,
+            label,
+            expectedTotalBytes: row.totalSizeBytes ?? null,
+            execute: async ({ session, onProgress }) => {
+              await downloadBackupRunFile(
+                record.id!,
+                fallback,
+                {
+                  session,
+                  onProgress,
+                  label,
+                  expectedSizeBytes: row.totalSizeBytes,
+                },
+                headers ? { headers } : undefined
+              );
+            },
+          });
+        };
+        if (isSystemBackupStrategy(record.strategy)) {
+          sensitiveGate.run({
+            kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+            resourceId: record.id,
+            isSuperAdmin: isSuperAdmin(user?.role),
+            execute,
+          });
+        } else {
+          await execute();
+        }
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.download',
+          fallbackKey: 'backupDr.runsTable.downloadFailed',
+        });
+      } finally {
+        setDownloadingRunId(null);
+      }
+    },
+    [canDownloadBackup, notify, progressiveDownload, sensitiveGate, t, user?.role]
+  );
+
+  const handleVerify = useCallback(
+    async (runId: string) => {
+      setVerifyingRunId(runId);
+      try {
+        const result = await verifyBackup(runId);
+        if (result.isValid) {
+          notify.successKey('backupDr.checksumVerify.verifyPassed');
+        } else if (
+          result.artifacts?.some((a) => a.status === 'missing_hash') &&
+          !result.artifacts.some((a) => a.status === 'failed' || a.status === 'missing_file')
+        ) {
+          notify.warning('backupDr.checksumVerify.checksumNotAvailable');
+        } else {
+          notify.error('backupDr.checksumVerify.verifyFailed', {
+            description: result.failureReason ?? undefined,
+          });
+        }
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.run(runId) });
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.verify',
+          fallbackKey: 'backupDr.checksumVerify.verifyFailed',
+        });
+      } finally {
+        setVerifyingRunId(null);
+      }
+    },
+    [notify, queryClient]
+  );
+
+  const handleValidateContent = useCallback(
+    async (runId: string) => {
+      setContentValidatingRunId(runId);
+      try {
+        const result = await getBackupContentValidation(runId);
+        setContentReport(result);
+        setContentReportOpen(true);
+        setContentStatusByRunId((prev) => ({ ...prev, [runId]: result.overallStatus }));
+        const status = normalizeContentValidationStatus(result.overallStatus);
+        if (status === 'passed') {
+          notify.successKey('backup.contentValidationPassed');
+        } else if (status === 'partial') {
+          notify.warning(t('backup.contentValidationPartial'));
+        } else if (status === 'unavailable') {
+          notify.warning(t('backup.contentValidationUnavailable'));
+        } else {
+          notify.error(t('backup.contentValidationFailed'), {
+            description: result.summary ?? undefined,
+          });
+        }
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.validateContent',
+          fallbackKey: 'backup.contentValidationFailed',
+        });
+      } finally {
+        setContentValidatingRunId(null);
+      }
+    },
+    [notify, t]
+  );
+
+  const handleRunDrill = useCallback(
+    async (runId: string) => {
+      setDrillingRunId(runId);
+      notify.info(t('backup.drillRunning'));
+      try {
+        const result = await runRestoreDrill({ backupRunId: runId });
+        if (result.success) {
+          if (result.newQueuedRunCreated) {
+            notify.successKey('backup.drillCompleted');
+          } else if (result.existingRunReturned) {
+            notify.info(t('backup.drillExisting'));
+          } else {
+            notify.successKey('backup.drillCompleted');
+          }
+        } else {
+          notify.error(t('backup.drillFailed'), {
+            description: result.errors?.join(' · ') || result.status,
+          });
+        }
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
+        await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.runDrill',
+          fallbackKey: 'backup.drillFailed',
+        });
+      } finally {
+        setDrillingRunId(null);
+      }
+    },
+    [notify, queryClient, t]
   );
 
   const columns: ColumnsType<BackupRunResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.runsTable.startTime"),
-        dataIndex: "requestedAt",
-        key: "requestedAt",
-        render: (v: string | undefined) => formatDateTime(v),
+        title: t('backupDr.runsTable.startTime'),
+        dataIndex: 'requestedAt',
+        key: 'requestedAt',
+        render: dateColumnRender('datetime'),
         sorter: (a, b) => compareBackupRunsByRequestedAtDesc(a, b) * -1,
-        defaultSortOrder: "descend",
+        defaultSortOrder: 'descend',
       },
       {
-        title: t("backupDr.runsTable.statusColumn"),
-        dataIndex: "status",
-        key: "status",
+        title: t('backupDr.runsTable.createdBy'),
+        key: 'createdBy',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const row = asBackupRunDisplay(record);
+          if (isScheduledBackupActor(row)) {
+            return t('backupDr.runsTable.createdBySystemCron');
+          }
+          return row.requestedByLabel || row.requestedByDisplayName || row.requestedByUserId || '—';
+        },
+      },
+      {
+        title: t('backupDr.runsTable.statusColumn'),
+        dataIndex: 'status',
+        key: 'status',
         render: (status: number | undefined) => <BackupStatusBadge status={status} />,
         filters: [
-          { text: t("backupDr.runsTable.statusLabels.succeeded"), value: BackupRunStatus.NUMBER_3 },
-          { text: t("backupDr.runsTable.statusLabels.failed"), value: BackupRunStatus.NUMBER_4 },
+          { text: t('backupDr.runsTable.statusLabels.succeeded'), value: BackupRunStatus.Succeeded },
+          { text: t('backupDr.runsTable.statusLabels.failed'), value: BackupRunStatus.Failed },
           {
-            text: t("backupDr.runsTable.statusLabels.verificationFailed"),
-            value: BackupRunStatus.NUMBER_5,
+            text: t('backupDr.runsTable.statusLabels.verificationFailed'),
+            value: BackupRunStatus.VerificationFailed,
           },
-          { text: t("backupDr.runsTable.statusLabels.running"), value: BackupRunStatus.NUMBER_1 },
-          { text: t("backupDr.runsTable.statusLabels.queued"), value: BackupRunStatus.NUMBER_0 },
+          { text: t('backupDr.runsTable.statusLabels.running'), value: BackupRunStatus.Running },
+          { text: t('backupDr.runsTable.statusLabels.queued'), value: BackupRunStatus.Queued },
         ],
         onFilter: (value, record) => record.status === value,
       },
       {
-        title: t("backupDr.runsTable.duration"),
-        key: "duration",
+        title: t('backupDr.runsTable.retention'),
+        key: 'retention',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const row = record as BackupRunResponseDto & {
+            retentionStatus?: string;
+            legalHold?: boolean;
+            storageTier?: number | string;
+            inColdStorage?: boolean;
+          };
+          if (row.legalHold) {
+            return <Tag color="purple">{t('backupDr.retention.statusLegalHold')}</Tag>;
+          }
+          if (row.inColdStorage || row.retentionStatus === 'cold') {
+            return <Tag color="blue">{t('backupDr.retention.statusCold')}</Tag>;
+          }
+          if (row.retentionStatus === 'warm') {
+            return <Tag color="gold">{t('backupDr.retention.statusWarm')}</Tag>;
+          }
+          return <Tag>{t('backupDr.retention.statusHot')}</Tag>;
+        },
+      },
+      {
+        title: t('backupDr.runsTable.duration'),
+        key: 'duration',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const label = resolveBackupRunDurationLabel(record, t);
           return (
             <Tooltip
-              title={t("backupDr.runsTable.durationTooltip", {
+              title={t('backupDr.runsTable.durationTooltip', {
                 start: formatTime(record.startedAt),
                 end: formatTime(record.completedAt),
               })}
@@ -188,14 +433,14 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.size"),
-        key: "size",
+        title: t('backupDr.runsTable.size'),
+        key: 'size',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const label = resolveBackupRunSizeLabel(record, t);
           const bytes = resolveBackupRunTotalBytes(record);
           const tooltip =
             bytes > 0
-              ? t("backupDr.runsTable.sizeBytesTooltip", {
+              ? t('backupDr.runsTable.sizeBytesTooltip', {
                   bytes: bytes.toLocaleString(formatLocale),
                 })
               : undefined;
@@ -207,30 +452,30 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.compression"),
-        key: "compression",
+        title: t('backupDr.runsTable.compression'),
+        key: 'compression',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const ratio = record.compressionRatio;
           if (ratio == null || Number.isNaN(ratio)) {
-            return t("backupDr.runsTable.noValue");
+            return t('backupDr.runsTable.noValue');
           }
           const percent = Math.round(ratio);
           return (
             <Progress
               percent={percent}
               size="small"
-              status={percent < 50 ? "success" : "normal"}
+              status={percent < 50 ? 'success' : 'normal'}
               format={() => `${percent}%`}
             />
           );
         },
       },
       {
-        title: t("backupDr.runsTable.artifacts"),
-        key: "artifacts",
+        title: t('backupDr.runsTable.artifacts'),
+        key: 'artifacts',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const list = record.artifacts ?? [];
-          if (!list.length) return t("backupDr.runsTable.noValue");
+          if (!list.length) return t('backupDr.runsTable.noValue');
           return (
             <Space size={[4, 4]} wrap>
               {list.map((artifact) => {
@@ -240,11 +485,11 @@ export function BackupRunsTable({
                   formatBackupBytes(artifact.byteSize ?? undefined, t);
                 return (
                   <Tooltip
-                    key={artifact.id ?? `${typeLabel}-${artifact.storageLocator ?? ""}`}
+                    key={artifact.id ?? `${typeLabel}-${artifact.storageLocator ?? ''}`}
                     title={`${typeLabel}: ${sizeLabel}`}
                   >
                     <Badge
-                      status={(artifact.byteSize ?? 0) > 0 ? "success" : "default"}
+                      status={(artifact.byteSize ?? 0) > 0 ? 'success' : 'default'}
                       text={<Typography.Text style={{ fontSize: 12 }}>{typeLabel}</Typography.Text>}
                     />
                   </Tooltip>
@@ -255,13 +500,13 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.error"),
-        dataIndex: "failureDetail",
-        key: "failureDetail",
+        title: t('backupDr.runsTable.error'),
+        dataIndex: 'failureDetail',
+        key: 'failureDetail',
         ellipsis: true,
         render: (text: string | null | undefined, record: BackupRunResponseDto) => {
           const detail = text?.trim() || record.failureCode?.trim();
-          if (!detail) return t("backupDr.runsTable.noValue");
+          if (!detail) return t('backupDr.runsTable.noValue');
           return (
             <Typography.Text type="danger" ellipsis={{ tooltip: detail }}>
               {detail}
@@ -270,8 +515,64 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.actions"),
-        key: "actions",
+        title: t('backupDr.runsTable.lastVerification'),
+        key: 'lastVerification',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const latest = resolveLatestVerification(record);
+          if (!latest) return t('backupDr.runsTable.noValue');
+          const when = formatTime(latest.completedAt ?? latest.startedAt);
+          if (isVerificationPassed(latest.status)) {
+            return (
+              <Badge
+                status="success"
+                text={
+                  <Typography.Text style={{ fontSize: 12 }}>
+                    {when}
+                  </Typography.Text>
+                }
+              />
+            );
+          }
+          if (isVerificationFailed(latest.status)) {
+            return (
+              <Badge
+                status="error"
+                text={
+                  <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                    {when}
+                  </Typography.Text>
+                }
+              />
+            );
+          }
+          return (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {when}
+            </Typography.Text>
+          );
+        },
+      },
+      {
+        title: t('backup.contentValidation'),
+        key: 'contentValidation',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const status = resolveContentValidationBadgeStatus(
+            record,
+            record.id ? contentStatusByRunId[record.id] : null
+          );
+          if (!status) {
+            return (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t('backup.contentValidationUnknown')}
+              </Typography.Text>
+            );
+          }
+          return <ContentValidationStatusBadge status={status} />;
+        },
+      },
+      {
+        title: t('backupDr.runsTable.actions'),
+        key: 'actions',
         render: (_: unknown, record: BackupRunResponseDto) => (
           <Space
             size="small"
@@ -280,8 +581,65 @@ export function BackupRunsTable({
             onKeyDown={(e) => e.stopPropagation()}
           >
             <Button type="link" size="small" onClick={() => viewDetails(record)}>
-              {t("backupDr.runsTable.details")}
+              {t('backupDr.runsTable.details')}
             </Button>
+            {record.id && isBackupRunSucceeded(record.status) && canDownloadBackup ? (
+              <Button
+                type="link"
+                size="small"
+                icon={<DownloadOutlined />}
+                loading={downloadingRunId === record.id}
+                disabled={downloadingRunId != null}
+                onClick={() => void handleDownloadRun(record)}
+              >
+                {t('backupDr.runsTable.download')}
+              </Button>
+            ) : null}
+            {canShowManualVerifyAction(record, canConfigure) ? (
+              <Button
+                type="link"
+                size="small"
+                loading={verifyingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleVerify(record.id!)}
+              >
+                {t('backupDr.runsTable.verify')}
+              </Button>
+            ) : null}
+            {record.id && isBackupRunSucceeded(record.status) ? (
+              <Button
+                type="link"
+                size="small"
+                loading={contentValidatingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleValidateContent(record.id!)}
+              >
+                {t('backup.validateContent')}
+              </Button>
+            ) : null}
+            {record.id && isBackupRunSucceeded(record.status) && canRestore ? (
+              <Button
+                type="link"
+                size="small"
+                loading={drillingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleRunDrill(record.id!)}
+              >
+                {t('backup.runRestoreDrill')}
+              </Button>
+            ) : null}
             {record.id && isBackupRunSucceeded(record.status) ? (
               <Button
                 type="link"
@@ -291,20 +649,22 @@ export function BackupRunsTable({
                   setVerificationReportOpen(true);
                 }}
               >
-                {t("backupDr.verificationReport.openReportShort")}
+                {t('backupDr.verificationReport.openReportShort')}
               </Button>
             ) : null}
             {isBackupRunFailed(record.status) && canTrigger ? (
               <Popconfirm
-                title={t("backupDr.runsTable.retryConfirmTitle")}
-                description={t("backupDr.runsTable.retryConfirmDescription")}
-                okText={t("backupDr.manual.confirmBackupOk")}
-                cancelText={t("backupDr.manual.confirmBackupCancel")}
+                title={t('backupDr.runsTable.retryConfirmTitle')}
+                description={t('backupDr.runsTable.retryConfirmDescription')}
+                okText={t('backupDr.manual.confirmBackupOk')}
+                cancelText={t('backupDr.manual.confirmBackupCancel')}
                 onConfirm={() =>
                   void triggerBackup
                     .mutateAsync({ tenantId: selectedTenantId })
                     .then(handleRetrySuccess)
-                    .catch((err) => message.error(triggerErrorMessageBackupDashboard(err, t)))
+                    .catch((err) =>
+                      notify.error(triggerErrorMessageBackupDashboard(err, t))
+                    )
                 }
               >
                 <Button
@@ -313,14 +673,51 @@ export function BackupRunsTable({
                   loading={triggerBackup.isPending}
                   disabled={triggerBackup.isPending}
                 >
-                  {t("backupDr.runsTable.retry")}
+                  {t('backupDr.runsTable.retry')}
                 </Button>
               </Popconfirm>
             ) : null}
-            {isSuperAdmin ? (
-              <Tooltip title={t("backupDr.runsTable.deleteUnavailable")}>
+            {isSuperAdminRole &&
+            record.id &&
+            isBackupRunSucceeded(record.status) &&
+            !(record as BackupRunResponseDto & { inColdStorage?: boolean }).inColdStorage ? (
+              <Popconfirm
+                title={t('backupDr.runsTable.moveToColdConfirmTitle')}
+                description={t('backupDr.runsTable.moveToColdConfirmDescription')}
+                okText={t('backupDr.manual.confirmBackupOk')}
+                cancelText={t('backupDr.manual.confirmBackupCancel')}
+                onConfirm={() =>
+                  void moveToCold
+                    .mutateAsync(record.id!)
+                    .then((res) => {
+                      if (res.success) {
+                        notify.successKey('backupDr.runsTable.moveToColdSuccess');
+                      } else {
+                        notify.error(res.message || t('backupDr.runsTable.moveToColdFailed'));
+                      }
+                    })
+                    .catch((err: unknown) =>
+                      notify.apiError(err, {
+                        logContext: 'BackupRunsTable.moveToCold',
+                        fallbackKey: 'backupDr.runsTable.moveToColdFailed',
+                      })
+                    )
+                }
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  loading={moveToCold.isPending && moveToCold.variables === record.id}
+                  disabled={moveToCold.isPending}
+                >
+                  {t('backupDr.runsTable.moveToCold')}
+                </Button>
+              </Popconfirm>
+            ) : null}
+            {isSuperAdminRole ? (
+              <Tooltip title={t('backupDr.runsTable.deleteUnavailable')}>
                 <Button type="link" size="small" danger disabled>
-                  {t("backupDr.runsTable.delete")}
+                  {t('backupDr.runsTable.delete')}
                 </Button>
               </Tooltip>
             ) : null}
@@ -330,18 +727,45 @@ export function BackupRunsTable({
     ],
     [
       artifactTypeLabel,
+      canConfigure,
+      canDownloadBackup,
+      downloadingRunId,
+      handleDownloadRun,
+      canRestore,
       canTrigger,
-      formatDateTime,
+      contentStatusByRunId,
+      contentValidatingRunId,
+      drillingRunId,
       formatLocale,
       formatTime,
       handleRetrySuccess,
-      isSuperAdmin,
+      handleRunDrill,
+      handleValidateContent,
+      handleVerify,
+      isSuperAdminRole,
+      moveToCold,
+      notify,
       selectedTenantId,
       t,
       triggerBackup.isPending,
+      verifyingRunId,
       viewDetails,
-    ],
+    ]
   );
+
+  const creatorOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of runsQuery.data?.items ?? []) {
+      const row = asBackupRunDisplay(item);
+      if (isScheduledBackupActor(row) || !row.requestedByUserId) continue;
+      if (seen.has(row.requestedByUserId)) continue;
+      seen.set(
+        row.requestedByUserId,
+        row.requestedByLabel || row.requestedByDisplayName || row.requestedByUserId
+      );
+    }
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [runsQuery.data?.items]);
 
   const tenantOptions = useMemo(
     () =>
@@ -349,7 +773,7 @@ export function BackupRunsTable({
         label: `${row.name} (${row.slug})`,
         value: row.id,
       })),
-    [tenants],
+    [tenants]
   );
 
   const dataSource = useMemo(() => {
@@ -364,8 +788,8 @@ export function BackupRunsTable({
   }, [onRetryInvalidate, runsQuery]);
 
   const tableProps: TableProps<BackupRunResponseDto> = {
-    rowKey: (r) => r.id ?? r.requestedAt ?? "",
-    size: "small",
+    rowKey: (r) => r.id ?? r.requestedAt ?? '',
+    size: 'small',
     loading: runsQuery.isFetching,
     dataSource,
     columns,
@@ -376,9 +800,10 @@ export function BackupRunsTable({
       showSizeChanger: false,
       onChange: (p) => setPage(p),
     },
+    rowClassName: (record) => backupRunTrafficLightRowClass(record.status, trafficLight),
     onRow: (record) => ({
       onClick: () => viewDetails(record),
-      style: { cursor: "pointer" },
+      style: { cursor: 'pointer' },
     }),
   };
 
@@ -389,48 +814,92 @@ export function BackupRunsTable({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          title={t("backupDr.errors.partialTable")}
+          title={t('backupDr.errors.partialTable')}
           action={
             <Button type="link" size="small" onClick={() => void onRetry()}>
-              {t("backupDr.actions.refresh")}
+              {t('backupDr.actions.refresh')}
             </Button>
           }
         />
       ) : null}
       {!hideTitle ? (
         <Typography.Title level={5} style={{ marginTop: 0 }}>
-          {t("backupDr.adminBackup.recentBackupsTitle")}
+          {t('backupDr.adminBackup.recentBackupsTitle')}
         </Typography.Title>
       ) : null}
       <Alert
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title={t("backupDr.runsTable.instanceScopeTitle")}
-        description={t("backupDr.runsTable.instanceScopeDescription")}
+        title={t('backupDr.runsTable.instanceScopeTitle')}
+        description={t('backupDr.runsTable.instanceScopeDescription')}
       />
-      {canFilterRunsByTenant ? (
-        <Space style={{ marginBottom: 12 }} wrap>
-          <Typography.Text type="secondary">{t("backupDr.runsTable.tenantFilterLabel")}</Typography.Text>
-          <Select
-            allowClear
-            showSearch
-            style={{ minWidth: 280 }}
-            placeholder={t("backupDr.runsTable.tenantFilterPlaceholder")}
-            value={selectedTenantId}
-            onChange={(v) => {
-              setSelectedTenantId(v);
-              setPage(1);
-            }}
-            loading={tenantsLoading}
-            options={tenantOptions}
-            optionFilterProp="label"
-          />
-        </Space>
-      ) : null}
+      <Space style={{ marginBottom: 12 }} wrap>
+        <Typography.Text type="secondary">{t('backupDr.runsTable.filterType')}</Typography.Text>
+        <Select
+          allowClear
+          style={{ minWidth: 160 }}
+          placeholder={t('backupDr.runsTable.filterTypePlaceholder')}
+          value={strategyFilter}
+          onChange={(v) => {
+            setStrategyFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: BackupStrategyKind.Tenant, label: t('backupDr.runsTable.strategyTenant') },
+            { value: BackupStrategyKind.System, label: t('backupDr.runsTable.strategySystem') },
+          ]}
+        />
+        <Typography.Text type="secondary">{t('backupDr.runsTable.createdBy')}</Typography.Text>
+        <Select
+          allowClear
+          showSearch
+          style={{ minWidth: 220 }}
+          placeholder={t('backupDr.runsTable.filterCreatedByPlaceholder')}
+          value={createdByFilter}
+          onChange={(v) => {
+            setCreatedByFilter(v);
+            setPage(1);
+          }}
+          optionFilterProp="label"
+          options={[
+            { value: 'system', label: t('backupDr.runsTable.createdBySystemCron') },
+            ...creatorOptions,
+          ]}
+        />
+        <Typography.Text type="secondary">{t('backupDr.runsTable.filterDate')}</Typography.Text>
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={(v) => {
+            setDateRange(v);
+            setPage(1);
+          }}
+        />
+        {canFilterRunsByTenant ? (
+          <>
+            <Typography.Text type="secondary">
+              {t('backupDr.runsTable.tenantFilterLabel')}
+            </Typography.Text>
+            <Select
+              allowClear
+              showSearch
+              style={{ minWidth: 280 }}
+              placeholder={t('backupDr.runsTable.tenantFilterPlaceholder')}
+              value={selectedTenantId}
+              onChange={(v) => {
+                setSelectedTenantId(v);
+                setPage(1);
+              }}
+              loading={tenantsLoading}
+              options={tenantOptions}
+              optionFilterProp="label"
+            />
+          </>
+        ) : null}
+      </Space>
       <Table<BackupRunResponseDto> {...tableProps} />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-        {t("backupDr.runs.statusHint")}
+        {t('backupDr.runs.statusHint')}
       </Typography.Paragraph>
       <BackupDetailModal
         runId={detailRunId}
@@ -447,6 +916,22 @@ export function BackupRunsTable({
           }}
         />
       ) : null}
+      <Modal
+        title={t('backup.contentValidation')}
+        open={contentReportOpen}
+        onCancel={() => setContentReportOpen(false)}
+        footer={
+          <Button onClick={() => setContentReportOpen(false)}>
+            {t('backupDr.verificationReport.close')}
+          </Button>
+        }
+        width={720}
+        destroyOnHidden
+      >
+        {contentReport ? <BackupContentValidationReport report={contentReport} /> : null}
+      </Modal>
+      <DownloadProgressModal {...progressiveDownload.modalProps} />
+      {sensitiveGate.modals}
     </>
   );
 }

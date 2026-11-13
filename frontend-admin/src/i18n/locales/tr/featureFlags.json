@@ -1,0 +1,28 @@
+{
+  "pageTitle": "Feature Flags",
+  "accessDenied": "Yalnızca Super Admin feature flag yönetebilir.",
+  "introTitle": "Kademeli açılış",
+  "introBody": "Global varsayılanlar appsettings (FeatureFlags) içindedir. Tenant override'ları tenant_settings tablosunda tutulur. Özellikler kapalıyken kod yayınlayıp tenant bazında açabilirsiniz.",
+  "tenantScope": "Tenant kapsamı (isteğe bağlı)",
+  "tenantIdInputPlaceholder": "Override için tenant UUID (boş = global)",
+  "tenantIdPasteHint": "Global override için boş bırakın. Geçerli UUID tenant kapsamına geçer.",
+  "saved": "Feature flag kaydedildi.",
+  "saveFailed": "Feature flag kaydedilemedi.",
+  "clearOverride": "Override'ı kaldır",
+  "bool": {
+    "true": "Evet",
+    "false": "Hayır"
+  },
+  "columns": {
+    "name": "Flag",
+    "enabled": "Aktif",
+    "configDefault": "Config varsayılanı",
+    "source": "Kaynak",
+    "actions": "İşlemler"
+  },
+  "source": {
+    "config": "Config",
+    "global_override": "Global override",
+    "tenant_override": "Tenant override"
+  }
+}

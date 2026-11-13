@@ -12,7 +12,8 @@ public static class DemoUserHelper
     /// </summary>
     public static bool IsDemoUser(ApplicationUser? user)
     {
-        if (user == null) return false;
+        if (user == null)
+            return false;
         return user.IsDemo;
     }
 
@@ -21,8 +22,10 @@ public static class DemoUserHelper
     /// </summary>
     public static string? GetDemoRejectionReason(ApplicationUser? user)
     {
-        if (user == null) return null;
-        if (!IsDemoUser(user)) return null;
+        if (user == null)
+            return null;
+        if (!IsDemoUser(user))
+            return null;
         return "DEMO_BY_FLAG";
     }
 
@@ -31,7 +34,8 @@ public static class DemoUserHelper
     /// </summary>
     public static bool IsRoleAllowedForDemo(string? role)
     {
-        if (string.IsNullOrWhiteSpace(role)) return false;
+        if (string.IsNullOrWhiteSpace(role))
+            return false;
         return string.Equals(role.Trim(), Roles.Cashier, StringComparison.OrdinalIgnoreCase);
     }
 }

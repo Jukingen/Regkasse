@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -41,19 +36,22 @@ public sealed class TestModeFinanzOnlineTransmissionQueryClient : IFinanzOnlineT
     private readonly IFinanzOnlineCommandMapper _mapper;
     private readonly IFinanzOnlineTransmissionQueryTransport _transport;
     private readonly ILogger<TestModeFinanzOnlineTransmissionQueryClient> _logger;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public TestModeFinanzOnlineTransmissionQueryClient(
         IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> options,
         IFinanzOnlineSessionClient sessionClient,
         IFinanzOnlineCommandMapper mapper,
         IFinanzOnlineTransmissionQueryTransport transport,
-        ILogger<TestModeFinanzOnlineTransmissionQueryClient> logger)
+        ILogger<TestModeFinanzOnlineTransmissionQueryClient> logger,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _options = options;
         _sessionClient = sessionClient;
         _mapper = mapper;
         _transport = transport;
         _logger = logger;
+        _runtime = runtime;
     }
 
     public async Task<FinanzOnlineTransmissionStatusQueryResponse> QueryStatusAsync(FinanzOnlineTransmissionStatusQueryRequest request, CancellationToken cancellationToken = default)
@@ -69,7 +67,7 @@ public sealed class TestModeFinanzOnlineTransmissionQueryClient : IFinanzOnlineT
             };
         }
 
-        if (!_options.CurrentValue.EnableRealTestQuery)
+        if (!(_runtime?.TransmissionQuery ?? _options.CurrentValue).EnableRealTestQuery)
         {
             return new FinanzOnlineTransmissionStatusQueryResponse
             {

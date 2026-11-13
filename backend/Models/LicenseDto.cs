@@ -29,17 +29,54 @@ public sealed class LicensePublicStatusDto
     /// <summary>Mandant transaction flag when tenant context is resolved; otherwise null.</summary>
     public bool? CanTransact { get; init; }
 
-    /// <summary>German mandant status copy when tenant context is resolved.</summary>
+    /// <summary>German mandant status copy when tenant context is resolved (localized when Accept-Language is set).</summary>
     public string? StatusMessage { get; init; }
+
+    /// <summary>Stable message key for clients (<c>license.status.*</c>).</summary>
+    public string? StatusMessageKey { get; init; }
 
     /// <summary>True when mandant license is expired but still within the grace window.</summary>
     public bool IsInGracePeriod { get; init; }
 
+    /// <summary>True when mandant license is past grace (POS locked).</summary>
+    public bool IsLocked { get; init; }
+
+    /// <summary>Elapsed whole days since expiry when expired; otherwise 0.</summary>
+    public int DaysOverdue { get; init; }
+
     /// <summary>Remaining mandant grace days when <see cref="IsInGracePeriod"/> is true.</summary>
     public int GracePeriodRemaining { get; init; }
 
+    /// <summary>UTC instant when POS lock starts (expiry + grace); null when not expired.</summary>
+    public DateTime? LockDate { get; init; }
+
+    /// <summary>Restriction codes (e.g. <c>POS_LOCKED</c>, <c>SUPERADMIN_UNLOCK_ONLY</c>).</summary>
+    public IReadOnlyList<string> Restrictions { get; init; } = Array.Empty<string>();
+
     /// <summary>True when mandant license requires renewal (lockdown).</summary>
     public bool RequiresRenewal { get; init; }
+
+    /// <summary>Coarse combined label: <c>active</c>, <c>grace</c>, or <c>expired</c>.</summary>
+    public string Status { get; init; } = "expired";
+
+    public LicenseLayerPublicStatusDto? SystemLicense { get; init; }
+
+    public LicenseLayerPublicStatusDto? TenantLicense { get; init; }
+
+    public bool AnyActive { get; init; }
+
+    public bool AllActive { get; init; }
+}
+
+/// <summary>One license layer in <see cref="LicensePublicStatusDto"/> (system host or mandant).</summary>
+public sealed class LicenseLayerPublicStatusDto
+{
+    public DateTime? ValidUntil { get; init; }
+
+    /// <summary><c>active</c>, <c>grace</c>, <c>expired</c>, or <c>locked</c> (tenant past grace).</summary>
+    public string Status { get; init; } = "expired";
+
+    public bool IsActive { get; init; }
 }
 
 /// <summary>Optional POS feature flags from <c>GET /api/license/features</c> plus enabled license feature ids.</summary>

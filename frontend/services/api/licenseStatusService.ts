@@ -1,4 +1,6 @@
 import { licenseApi, type TenantLicenseStatusDto } from '../../api/license';
+import { formatLicenseRemainingDe } from '../../utils/licenseExpiryRemaining';
+import { saveLicenseLockoutSnapshot } from '../../utils/licenseLockoutSnapshot';
 import { showToast } from '../../utils/toast';
 
 const EXPIRY_WARNING_DAYS = 14;
@@ -6,6 +8,7 @@ const EXPIRY_WARNING_DAYS = 14;
 /**
  * Post-login mandant license gate. Uses GET /api/license/status?tenantId=…
  * Returns false when access is blocked; shows German warnings for grace / pre-expiry.
+ * Lockout details are persisted for the license-expired screen (no toast — full-screen UX).
  */
 export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
   try {
@@ -14,31 +17,34 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
       canAccess,
       statusMessage,
       daysRemaining,
+      daysOverdue,
       isInGracePeriod,
       gracePeriodRemaining,
+      validUntil,
     } = data;
 
     if (canAccess === false) {
-      showToast('Lizenz', statusMessage ?? 'Mandantenlizenz ungültig. Bitte verlängern.');
+      await saveLicenseLockoutSnapshot(
+        typeof daysOverdue === 'number' && Number.isFinite(daysOverdue) ? daysOverdue : 0
+      );
       return false;
     }
 
     if (isInGracePeriod) {
       showToast(
         'Lizenz',
-        `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`,
+        statusMessage ??
+          `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`
       );
     } else if (daysRemaining <= EXPIRY_WARNING_DAYS && daysRemaining > 0) {
-      showToast(
-        'Lizenz',
-        `Lizenz läuft in ${daysRemaining} Tagen ab. Bitte rechtzeitig verlängern.`,
-      );
+      const remainingLabel =
+        formatLicenseRemainingDe(daysRemaining, validUntil) ?? `${daysRemaining} Tagen`;
+      showToast('Lizenz', `Lizenz läuft in ${remainingLabel} ab. Bitte rechtzeitig verlängern.`);
     }
 
     return true;
   } catch (error) {
     if (__DEV__) {
-      // eslint-disable-next-line no-console
       console.error('License check failed:', error);
     }
     return false;

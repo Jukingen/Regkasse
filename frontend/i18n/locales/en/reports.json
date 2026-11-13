@@ -23,5 +23,15 @@
   "createBtn": "Run End-of-Day (Tagesende)",
   "export": "Export",
   "print": "Print",
-  "dateRange": "Date Range"
+  "dateRange": "Date Range",
+  "startDate": "From",
+  "endDate": "To",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "lastWeek": "Last 7 days",
+  "lastMonth": "Last 30 days",
+  "searchPlaceholder": "Search…",
+  "advancedFilters": "Advanced filters",
+  "apply": "Apply",
+  "reset": "Reset"
 }

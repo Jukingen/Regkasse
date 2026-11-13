@@ -1,26 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
-const mem = new Map<string, string>();
-
-jest.mock('../utils/storage', () => ({
-  storage: {
-    getItem: async (key: string) => mem.get(key) ?? null,
-    setItem: async (key: string, value: string) => {
-      mem.set(key, value);
-    },
-    removeItem: async (key: string) => {
-      mem.delete(key);
-    },
-    multiRemove: async (keys: string[]) => {
-      keys.forEach((k) => mem.delete(k));
-    },
-    clear: async () => {
-      mem.clear();
-    },
-    getAllKeys: async () => Array.from(mem.keys()),
-  },
-}));
-
 import {
   enqueueCartMutation,
   getPendingCartMutations,
@@ -28,9 +7,30 @@ import {
   clearCartMutationQueueForTests,
 } from '../services/cart/pendingCartMutationQueue';
 
+const mockMem = new Map<string, string>();
+
+jest.mock('../utils/storage', () => ({
+  storage: {
+    getItem: async (key: string) => mockMem.get(key) ?? null,
+    setItem: async (key: string, value: string) => {
+      mockMem.set(key, value);
+    },
+    removeItem: async (key: string) => {
+      mockMem.delete(key);
+    },
+    multiRemove: async (keys: string[]) => {
+      keys.forEach((k) => mockMem.delete(k));
+    },
+    clear: async () => {
+      mockMem.clear();
+    },
+    getAllKeys: async () => Array.from(mockMem.keys()),
+  },
+}));
+
 describe('pendingCartMutationQueue', () => {
   beforeEach(async () => {
-    mem.clear();
+    mockMem.clear();
     await clearCartMutationQueueForTests();
   });
 

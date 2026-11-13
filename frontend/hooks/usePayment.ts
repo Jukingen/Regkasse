@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
+
+import {
+  getPaymentErrorDisplayMessage,
+  normalizePaymentError,
+} from '../features/payment/paymentErrors';
 import {
   paymentService,
   PaymentRequest,
@@ -7,9 +13,8 @@ import {
   PaymentMethod,
   type VoucherValidateResult,
 } from '../services/api/paymentService';
-import { getPaymentErrorDisplayMessage, normalizePaymentError } from '../features/payment/paymentErrors';
-import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import { sessionManager } from '../services/session/sessionManager';
+import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import { extractApiMessage, showToast } from '../utils/toast';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
@@ -20,15 +25,23 @@ export const usePayment = (cashRegisterId?: string | null) => {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
+  useEffect(() => {
+    if (!cashRegisterId?.trim()) {
+      setPaymentMethods([]);
+      setError(null);
+    }
+  }, [cashRegisterId]);
+
   // Ödeme yöntemlerini getir
   const getPaymentMethods = useCallback(async () => {
+    if (!cashRegisterId?.trim()) {
+      // Register assignment still loading — caller should retry when id is available.
+      return [];
+    }
+
     try {
       setMethodsLoading(true);
       setError(null);
-
-      if (!cashRegisterId?.trim()) {
-        throw new Error('cashRegisterId is required to load payment methods');
-      }
 
       const methods = await paymentService.getPaymentMethods(cashRegisterId.trim());
       setPaymentMethods(methods);
@@ -37,9 +50,28 @@ export const usePayment = (cashRegisterId?: string | null) => {
       console.error('Failed to load payment methods', err);
       // Hata olsa bile UI bloklanmasın, default listeyi dön
       const defaultMethods: PaymentMethod[] = [
-        { id: 'cash', name: 'Bar', type: 'cash', icon: 'cash-outline', isDefault: true, requiresReceivedAmount: true },
-        { id: 'card', name: 'Kreditkarte', type: 'card', icon: 'card-outline', requiresReceivedAmount: false },
-        { id: 'transfer', name: 'Überweisung', type: 'transfer', icon: 'swap-horizontal-outline', requiresReceivedAmount: false },
+        {
+          id: 'cash',
+          name: 'Bar',
+          type: 'cash',
+          icon: 'cash-outline',
+          isDefault: true,
+          requiresReceivedAmount: true,
+        },
+        {
+          id: 'card',
+          name: 'Kreditkarte',
+          type: 'card',
+          icon: 'card-outline',
+          requiresReceivedAmount: false,
+        },
+        {
+          id: 'transfer',
+          name: 'Überweisung',
+          type: 'transfer',
+          icon: 'swap-horizontal-outline',
+          requiresReceivedAmount: false,
+        },
       ];
       setPaymentMethods(defaultMethods);
       return defaultMethods;
@@ -48,73 +80,87 @@ export const usePayment = (cashRegisterId?: string | null) => {
     }
   }, [cashRegisterId]);
 
-  const validateVoucher = useCallback(async (voucherCode: string, amount?: number): Promise<VoucherValidateResult> => {
-    const token = await sessionManager.getAccessToken();
-    if (!token) {
-      showToast('Fehler', 'Nicht angemeldet.');
-      return { ok: false, errorCode: 'NO_TOKEN', message: 'Nicht angemeldet.' };
-    }
-    const result = await paymentService.validateVoucher(voucherCode, amount);
-    if (result.ok) {
-      showToast('Gutschein', extractApiMessage(result, 'Gutschein erfolgreich validiert.'));
-    } else {
-      showToast('Gutschein', extractApiMessage(result, 'Gutschein konnte nicht validiert werden.'));
-    }
-    return result;
-  }, []);
-
-  // Ödeme işlemi
-  const processPayment = useCallback(async (paymentRequest: PaymentRequest): Promise<PaymentResponse> => {
-    debugPosPaymentTrace('use_payment_hook_enter', {
-      cashRegisterId: paymentRequest.cashRegisterId,
-      itemCount: paymentRequest.items?.length ?? 0,
-    });
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Align with apiClient: session is JWT in storage, not AuthContext user (can be briefly null during refresh).
+  const validateVoucher = useCallback(
+    async (voucherCode: string, amount?: number): Promise<VoucherValidateResult> => {
       const token = await sessionManager.getAccessToken();
       if (!token) {
-        debugPosPaymentTrace('submit_blocked_missing_token', {});
-        throw new Error('Nicht angemeldet. Bitte erneut anmelden.');
+        showToast('Fehler', 'Nicht angemeldet.');
+        return { ok: false, errorCode: 'NO_TOKEN', message: 'Nicht angemeldet.' };
       }
+      const result = await paymentService.validateVoucher(voucherCode, amount);
+      if (result.ok) {
+        showToast('Gutschein', extractApiMessage(result, 'Gutschein erfolgreich validiert.'));
+      } else {
+        showToast(
+          'Gutschein',
+          extractApiMessage(result, 'Gutschein konnte nicht validiert werden.')
+        );
+      }
+      return result;
+    },
+    []
+  );
 
-      const response = await paymentService.processPayment(paymentRequest);
+  // Ödeme işlemi
+  const processPayment = useCallback(
+    async (paymentRequest: PaymentRequest): Promise<PaymentResponse> => {
+      debugPosPaymentTrace('use_payment_hook_enter', {
+        cashRegisterId: paymentRequest.cashRegisterId,
+        itemCount: paymentRequest.items?.length ?? 0,
+      });
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
-        debugPosPaymentTrace('use_payment_non_fiscal_pending', { pendingQueueId: response.pendingQueueId });
-        showToast('Zahlung', extractApiMessage(response, 'Zahlung ist in der Warteschlange gespeichert.'));
+        // Align with apiClient: session is JWT in storage, not AuthContext user (can be briefly null during refresh).
+        const token = await sessionManager.getAccessToken();
+        if (!token) {
+          debugPosPaymentTrace('submit_blocked_missing_token', {});
+          throw new Error('Nicht angemeldet. Bitte erneut anmelden.');
+        }
+
+        const response = await paymentService.processPayment(paymentRequest);
+
+        if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+          debugPosPaymentTrace('use_payment_non_fiscal_pending', {
+            pendingQueueId: response.pendingQueueId,
+          });
+          showToast(
+            'Zahlung',
+            extractApiMessage(response, 'Zahlung ist in der Warteschlange gespeichert.')
+          );
+          return response;
+        }
+
+        if (!response.success) {
+          debugPosPaymentTrace('use_payment_service_reported_failure', {
+            error: response.error,
+            message: response.message,
+          });
+          const msg =
+            (typeof response.message === 'string' && response.message.trim()) ||
+            response.error ||
+            'Zahlung fehlgeschlagen';
+          showToast('Fehler', msg);
+          throw new Error(msg);
+        }
+
+        debugPosPaymentTrace('use_payment_hook_success', { paymentId: response.paymentId });
+        showToast('Zahlung', extractApiMessage(response, 'Zahlung erfolgreich verarbeitet.'));
         return response;
+      } catch (err) {
+        const normalized = normalizePaymentError(err);
+        const errorMessage = getPaymentErrorDisplayMessage(normalized);
+        setError(errorMessage);
+        debugPosPaymentTrace('use_payment_hook_caught', { errorMessage });
+        showToast('Fehler', errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      if (!response.success) {
-        debugPosPaymentTrace('use_payment_service_reported_failure', {
-          error: response.error,
-          message: response.message,
-        });
-        const msg =
-          (typeof response.message === 'string' && response.message.trim()) ||
-          response.error ||
-          'Zahlung fehlgeschlagen';
-        showToast('Fehler', msg);
-        throw new Error(msg);
-      }
-
-      debugPosPaymentTrace('use_payment_hook_success', { paymentId: response.paymentId });
-      showToast('Zahlung', extractApiMessage(response, 'Zahlung erfolgreich verarbeitet.'));
-      return response;
-    } catch (err) {
-      const normalized = normalizePaymentError(err);
-      const errorMessage = getPaymentErrorDisplayMessage(normalized);
-      setError(errorMessage);
-      debugPosPaymentTrace('use_payment_hook_caught', { errorMessage });
-      showToast('Fehler', errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Fiş oluştur
   const createReceipt = useCallback(async (paymentId: string) => {
@@ -158,15 +204,16 @@ export const usePayment = (cashRegisterId?: string | null) => {
 
       const response = await paymentService.refundPayment(paymentId, amount, reason);
       showToast('Erstattung', extractApiMessage(response, 'Erstattung erfolgreich verarbeitet.'));
-      const responseData =
-        (response as unknown as { data?: { receiptNumber?: string }; receiptNumber?: string }).data;
+      const responseData = (
+        response as unknown as { data?: { receiptNumber?: string }; receiptNumber?: string }
+      ).data;
       const receiptNumber =
         (typeof responseData?.receiptNumber === 'string' && responseData.receiptNumber.trim()) ||
         (typeof (response as unknown as { receiptNumber?: string }).receiptNumber === 'string' &&
-        (response as unknown as { receiptNumber?: string }).receiptNumber?.trim()) ||
+          (response as unknown as { receiptNumber?: string }).receiptNumber?.trim()) ||
         '';
       if (receiptNumber) {
-        console.log('[refund] receiptNumber:', receiptNumber);
+        safeLog('[refund] receiptNumber:', receiptNumber);
       }
       return response;
     } catch (err) {
@@ -195,6 +242,6 @@ export const usePayment = (cashRegisterId?: string | null) => {
     createReceipt,
     cancelPayment,
     refundPayment,
-    clearError
+    clearError,
   };
 };

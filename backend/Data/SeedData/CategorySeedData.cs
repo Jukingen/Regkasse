@@ -18,11 +18,11 @@ public static class CategorySeedData
 
     private static readonly LegacyDevCategorySeed[] LegacyDevCategories =
     [
-        new("Getränke", "Alkoholfreie und alkoholische Getränke", "#3498db", "wine", 1, 20m, RksvProductCategory.Beverage),
-        new("Speisen", "Hauptgerichte und Vorspeisen", "#e74c3c", "restaurant", 2, 20m, RksvProductCategory.Food),
-        new("Desserts", "Süße Nachspeisen und Kuchen", "#f39c12", "ice-cream", 3, 10m, RksvProductCategory.Food),
-        new("Snacks", "Kleine Zwischenmahlzeiten", "#27ae60", "fast-food", 4, 10m, RksvProductCategory.Food),
-        new("Kaffee & Tee", "Heiße Getränke", "#8e44ad", "cafe", 5, 13m, RksvProductCategory.Beverage),
+        new("Getränke", "Alkoholfreie und alkoholische Getränke", "#3498DB", "🥤", 1, 20m, RksvProductCategory.Beverage),
+        new("Speisen", "Hauptgerichte und Vorspeisen", "#E74C3C", "🍽️", 2, 20m, RksvProductCategory.Food),
+        new("Desserts", "Süße Nachspeisen und Kuchen", "#F39C12", "🍰", 3, 10m, RksvProductCategory.Food),
+        new("Snacks", "Kleine Zwischenmahlzeiten", "#27AE60", "🍿", 4, 10m, RksvProductCategory.Food),
+        new("Kaffee & Tee", "Heiße Getränke", "#8E44AD", "☕", 5, 13m, RksvProductCategory.Beverage),
     ];
 
     public static async Task<int> SeedLegacyDevCategoriesAsync(
@@ -56,7 +56,7 @@ public static class CategorySeedData
                     Name = seed.Name,
                     Description = seed.Description,
                     Color = seed.Color,
-                    Icon = seed.Icon,
+                    Icon = CategoryAppearance.NormalizeIcon(seed.Icon),
                     SortOrder = seed.SortOrder,
                     VatRate = seed.VatRate,
                     FiscalCategory = seed.FiscalCategory,
@@ -95,7 +95,7 @@ public static class CategorySeedData
 
             if (string.IsNullOrWhiteSpace(category.Icon) && !string.IsNullOrWhiteSpace(seed.Icon))
             {
-                category.Icon = seed.Icon;
+                category.Icon = CategoryAppearance.NormalizeIcon(seed.Icon);
                 changed = true;
             }
 

@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -121,8 +121,8 @@ namespace KasseAPI_Final.Controllers
 
                 // Aynı dil ve türde template var mı kontrol et
                 var existingTemplate = await _context.ReceiptTemplates
-                    .FirstOrDefaultAsync(t => t.Language == request.Language && 
-                                           t.TemplateType == request.TemplateType && 
+                    .FirstOrDefaultAsync(t => t.Language == request.Language &&
+                                           t.TemplateType == request.TemplateType &&
                                            t.TemplateName == request.TemplateName);
 
                 if (existingTemplate != null)
@@ -152,8 +152,8 @@ namespace KasseAPI_Final.Controllers
                 if (request.IsDefault)
                 {
                     var defaultTemplates = await _context.ReceiptTemplates
-                        .Where(t => t.Language == request.Language && 
-                                  t.TemplateType == request.TemplateType && 
+                        .Where(t => t.Language == request.Language &&
+                                  t.TemplateType == request.TemplateType &&
                                   t.IsDefault)
                         .ToListAsync();
 
@@ -211,9 +211,9 @@ namespace KasseAPI_Final.Controllers
                 if (request.IsDefault)
                 {
                     var defaultTemplates = await _context.ReceiptTemplates
-                        .Where(t => t.Language == template.Language && 
-                                  t.TemplateType == template.TemplateType && 
-                                  t.IsDefault && 
+                        .Where(t => t.Language == template.Language &&
+                                  t.TemplateType == template.TemplateType &&
+                                  t.IsDefault &&
                                   t.Id != id)
                         .ToListAsync();
 
@@ -283,17 +283,17 @@ namespace KasseAPI_Final.Controllers
 
                 // Template'i bul
                 var template = await _context.ReceiptTemplates
-                    .FirstOrDefaultAsync(t => t.Language == request.Language && 
-                                           t.TemplateType == request.TemplateType && 
+                    .FirstOrDefaultAsync(t => t.Language == request.Language &&
+                                           t.TemplateType == request.TemplateType &&
                                            t.IsActive);
 
                 if (template == null)
                 {
                     // Varsayılan template'i bul
                     template = await _context.ReceiptTemplates
-                        .FirstOrDefaultAsync(t => t.Language == request.Language && 
-                                               t.TemplateType == request.TemplateType && 
-                                               t.IsDefault && 
+                        .FirstOrDefaultAsync(t => t.Language == request.Language &&
+                                               t.TemplateType == request.TemplateType &&
+                                               t.IsDefault &&
                                                t.IsActive);
                 }
 

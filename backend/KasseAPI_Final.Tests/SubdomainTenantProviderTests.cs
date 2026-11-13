@@ -73,12 +73,48 @@ public sealed class SubdomainTenantProviderTests
 
     [Theory]
     [InlineData("dev.regkasse.local", "dev")]
-    [InlineData("cafe.regkasse.local", "cafe")]
-    [InlineData("bar.regkasse.local", "bar")]
+    [InlineData("prod.regkasse.local", "prod")]
     [InlineData("tenant.example.local", "tenant")]
     public void GetCurrentTenantId_LocalDevelopmentHost_ReturnsSubdomainSlug(string host, string expectedSlug)
     {
         var provider = Create(host, isDevelopment: false);
         Assert.Equal(expectedSlug, provider.GetCurrentTenantId());
+    }
+
+    [Fact]
+    public void GetCurrentTenantId_Production_IgnoresDevHeaderAndQuery()
+    {
+        var provider = Create(
+            "api.regkasse.at",
+            isDevelopment: false,
+            headerTenant: "dev",
+            queryTenant: "companyC");
+        Assert.Equal("admin", provider.GetCurrentTenantId());
+    }
+
+    [Theory]
+    [InlineData("pos.regkasse.at")]
+    [InlineData("api.regkasse.at")]
+    [InlineData("admin.regkasse.at")]
+    [InlineData("www.regkasse.at")]
+    public void GetCurrentTenantId_Production_ReservedPlatformHosts_ReturnAdmin(string host)
+    {
+        var provider = Create(host, isDevelopment: false);
+        Assert.Equal("admin", provider.GetCurrentTenantId());
+    }
+
+    [Theory]
+    [InlineData("api.regkasse.at")]
+    [InlineData("pos.regkasse.at")]
+    [InlineData("localhost")]
+    public void ShouldSkipPreAuthHostBinding_True_ForPlatformAndLoopback(string host)
+    {
+        Assert.True(TenantHostNames.ShouldSkipPreAuthHostBinding(host));
+    }
+
+    [Fact]
+    public void ShouldSkipPreAuthHostBinding_False_ForMandantSubdomain()
+    {
+        Assert.False(TenantHostNames.ShouldSkipPreAuthHostBinding("dev.regkasse.at"));
     }
 }

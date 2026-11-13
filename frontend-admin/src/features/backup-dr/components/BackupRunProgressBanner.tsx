@@ -3,9 +3,9 @@
 /**
  * Son yedek çalıştırması: kısa başlık + net alt satır; ETA yalnızca ikincil (yanlış kesinlik ima etmesin).
  */
-
-import React, { useMemo } from 'react';
 import { Alert, Space, Typography } from 'antd';
+import React, { useMemo } from 'react';
+
 import type { BackupRunResponseDto } from '@/api/generated/model';
 
 export interface BackupRunProgressBannerProps {
@@ -33,7 +33,7 @@ function buildEtaDescription(
   sampleCount: number | undefined,
   formatDt: (iso: string | undefined | null, locale: string) => string,
   formatLocale: string,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string | undefined {
   if (avgSec == null || sampleCount == null || sampleCount < 1) {
     return t('backupDr.progress.noEta');
@@ -105,7 +105,7 @@ export function BackupRunProgressBanner({
       averageSucceededDurationSampleCount ?? undefined,
       formatDt,
       formatLocale,
-      t,
+      t
     );
   }, [
     s,
@@ -131,7 +131,10 @@ export function BackupRunProgressBanner({
             {body ? <Typography.Text>{body}</Typography.Text> : null}
             {etaLine ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 11, display: 'block', marginBottom: 2 }}
+                >
                   {t('backupDr.progress.etaDemotedLead')}
                 </Typography.Text>
                 {etaLine}
@@ -156,11 +159,17 @@ export function BackupRunProgressBanner({
             : 'error';
   const description =
     s === 3 && isSimulatedExecution && !omitSimulatedSuccessDetail ? (
-      <Typography.Text type="secondary">{t('backupDr.progress.finishedSimulatedOkDetail')}</Typography.Text>
+      <Typography.Text type="secondary">
+        {t('backupDr.progress.finishedSimulatedOkDetail')}
+      </Typography.Text>
     ) : s === 3 && latestRestoreDrillFailed && !isSimulatedExecution ? (
-      <Typography.Text type="secondary">{t('backupDr.progress.finishedOkLatestDrillFailedDetail')}</Typography.Text>
+      <Typography.Text type="secondary">
+        {t('backupDr.progress.finishedOkLatestDrillFailedDetail')}
+      </Typography.Text>
     ) : s === 3 && recoverabilityNotProven ? (
-      <Typography.Text type="secondary">{t('backupDr.progress.finishedOkUnprovenDetail')}</Typography.Text>
+      <Typography.Text type="secondary">
+        {t('backupDr.progress.finishedOkUnprovenDetail')}
+      </Typography.Text>
     ) : s === 3 && !isSimulatedExecution ? (
       <Typography.Text type="secondary">{t('backupDr.progress.finishedOkDetail')}</Typography.Text>
     ) : undefined;

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 
-import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
-
 import { usePosStatusOverview } from './PosStatusOverviewContext';
+import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
 
 export type { MandantLicenseWarningState };
 
@@ -17,12 +16,8 @@ const MandantLicenseWarningContext = createContext<MandantLicenseWarningContextV
 
 /** Mandant warning band data from combined overview (no separate polling). */
 export function MandantLicenseWarningProvider({ children }: { children: React.ReactNode }) {
-  const {
-    mandantWarning,
-    shouldShowGrace,
-    shouldShowPreExpiry,
-    refreshOverview,
-  } = usePosStatusOverview();
+  const { mandantWarning, shouldShowGrace, shouldShowPreExpiry, refreshOverview } =
+    usePosStatusOverview();
 
   const value = useMemo(
     () => ({
@@ -31,7 +26,7 @@ export function MandantLicenseWarningProvider({ children }: { children: React.Re
       shouldShowPreExpiry,
       refetch: () => refreshOverview(true),
     }),
-    [mandantWarning, shouldShowGrace, shouldShowPreExpiry, refreshOverview],
+    [mandantWarning, shouldShowGrace, shouldShowPreExpiry, refreshOverview]
   );
 
   return (

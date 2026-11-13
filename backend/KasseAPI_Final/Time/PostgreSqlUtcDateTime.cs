@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 
 namespace KasseAPI_Final.Time;
@@ -77,6 +76,17 @@ public static class PostgreSqlUtcDateTime
     {
         var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, AustriaTimeZone);
         return (local.Year, local.Month);
+    }
+
+    /// <summary>
+    /// Previous completed Vienna calendar month (RKSV Monatsbeleg session/payment gate).
+    /// Monatsbeleg is created after month end, never for the unfinished current month.
+    /// </summary>
+    public static (int Year, int Month) GetViennaPreviousYearMonth()
+    {
+        var (year, month) = GetViennaCurrentYearMonth();
+        var previous = new DateTime(year, month, 1).AddMonths(-1);
+        return (previous.Year, previous.Month);
     }
 
     /// <summary>

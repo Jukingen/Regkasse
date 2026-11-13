@@ -1,19 +1,19 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Dev;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Dev;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -39,7 +39,7 @@ public sealed class AdminProductsDevPurgeCatalogTests
             .UseInMemoryDatabase($"AdminProductsDevPurge_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AdminProductsController CreateController(AppDbContext ctx, bool isDevelopment)
@@ -53,7 +53,7 @@ public sealed class AdminProductsDevPurgeCatalogTests
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             env,
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
@@ -61,7 +61,12 @@ public sealed class AdminProductsDevPurgeCatalogTests
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)));
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
+            Mock.Of<IProductService>(),
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            Mock.Of<IProductPriceHistoryService>(),
+            Mock.Of<IPriceChangeService>());
     }
 
     [Fact]

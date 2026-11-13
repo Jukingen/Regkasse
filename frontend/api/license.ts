@@ -13,8 +13,13 @@ export type LicensePublicStatusDto = {
   canAccess?: boolean | null;
   canTransact?: boolean | null;
   statusMessage?: string | null;
+  statusMessageKey?: string | null;
   isInGracePeriod?: boolean;
+  isLocked?: boolean;
+  daysOverdue?: number;
   gracePeriodRemaining?: number;
+  lockDate?: string | null;
+  restrictions?: readonly string[];
   requiresRenewal?: boolean;
 };
 
@@ -24,9 +29,15 @@ export type TenantLicenseStatusDto = Pick<
   | 'canAccess'
   | 'canTransact'
   | 'statusMessage'
+  | 'statusMessageKey'
   | 'daysRemaining'
+  | 'daysOverdue'
   | 'isInGracePeriod'
+  | 'isLocked'
   | 'gracePeriodRemaining'
+  | 'lockDate'
+  | 'restrictions'
+  | 'validUntil'
 >;
 
 /** Matches backend `LicenseActivationResult` (camelCase JSON). */
@@ -36,6 +47,10 @@ export type LicenseActivationResultDto = {
   validUntil?: string | null;
   /** Licensed, Trial, or Expired (same coarse labels as GET /api/license/status). */
   licenseType?: string | null;
+  /** Whole days remaining until validUntil when provided by the API. */
+  daysRemaining?: number | null;
+  /** Coarse lifecycle label (e.g. `active`). */
+  status?: string | null;
   tenantId?: string | null;
   tenantSlug?: string | null;
   apiBaseUrl?: string | null;
@@ -60,7 +75,7 @@ export const licenseApi = {
     const res = await apiClient.post<LicenseActivationResultDto>(
       '/license/activate',
       { licenseKey },
-      { headers: { [APP_CONTEXT_HEADER]: 'pos' } },
+      { headers: { [APP_CONTEXT_HEADER]: 'pos' } }
     );
 
     if (res.success) {

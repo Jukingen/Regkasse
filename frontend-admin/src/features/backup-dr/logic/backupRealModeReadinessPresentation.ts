@@ -1,7 +1,6 @@
 /**
  * Real (PgDump) önkoşul tanılarını kategorize eder; engelleyici vs danışmanlık ve i18n başlıkları.
  */
-
 import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 
 export type HypotheticalPgDumpHealthLevel = 'Healthy' | 'Degraded' | 'Unhealthy' | '';
@@ -38,9 +37,12 @@ const codeToSlug: Record<string, string> = {
   BACKUP_SETUP_PG_DUMP_EXTERNAL_ARCHIVE_REQUIRED_NON_DEV: 'pgDumpExternalArchiveRequired',
   BACKUP_SETUP_DEV_EXTERNAL_ARCHIVE_NOT_CONFIGURED: 'devExternalArchiveNotSet',
   BACKUP_SETUP_EXTERNAL_ARCHIVE_ROOT_NOT_ABSOLUTE: 'externalArchiveRootNotAbsolute',
-  BACKUP_SETUP_EXTERNAL_ARCHIVE_IMMUTABILITY_ATTESTATION_MISMATCH: 'externalArchiveImmutabilityMismatch',
-  BACKUP_SETUP_EXTERNAL_ARCHIVE_OPERATOR_DISPOSITION_MISSING_NON_DEV: 'externalArchiveOperatorDispositionMissing',
-  BACKUP_SETUP_EXTERNAL_ARCHIVE_IMMUTABLE_ATTESTATION_ONLY: 'externalArchiveImmutableAttestationOnly',
+  BACKUP_SETUP_EXTERNAL_ARCHIVE_IMMUTABILITY_ATTESTATION_MISMATCH:
+    'externalArchiveImmutabilityMismatch',
+  BACKUP_SETUP_EXTERNAL_ARCHIVE_OPERATOR_DISPOSITION_MISSING_NON_DEV:
+    'externalArchiveOperatorDispositionMissing',
+  BACKUP_SETUP_EXTERNAL_ARCHIVE_IMMUTABLE_ATTESTATION_ONLY:
+    'externalArchiveImmutableAttestationOnly',
   BACKUP_SETUP_PG_DUMP_CONNECTION_STRING_MISSING: 'pgDumpConnectionStringMissing',
   BACKUP_SETUP_PG_DUMP_CONNECTION_STRING_INCOMPLETE: 'pgDumpConnectionStringIncomplete',
   BACKUP_SETUP_PG_DUMP_CONNECTION_STRING_INVALID: 'pgDumpConnectionStringInvalid',
@@ -102,13 +104,17 @@ const categorySortOrder: RealModeIssueCategory[] = [
   'other',
 ];
 
-export function parseHypotheticalPgDumpHealthLevel(raw: string | undefined | null): HypotheticalPgDumpHealthLevel {
+export function parseHypotheticalPgDumpHealthLevel(
+  raw: string | undefined | null
+): HypotheticalPgDumpHealthLevel {
   const s = (raw ?? '').trim();
   if (s === 'Healthy' || s === 'Degraded' || s === 'Unhealthy') return s;
   return '';
 }
 
-export function isRealModeSelectableNow(d: BackupExecutionModeResponseDto | null | undefined): boolean {
+export function isRealModeSelectableNow(
+  d: BackupExecutionModeResponseDto | null | undefined
+): boolean {
   if (!d?.selectableModes?.length) return false;
   const row = d.selectableModes.find((x) => (x.userFacingMode ?? '').trim() === 'RealPgDump');
   return row?.selectable === true;
@@ -124,7 +130,7 @@ function translateCode(
   slug: string,
   part: 'title' | 'action',
   fallbackTitle: string,
-  fallbackAction: string,
+  fallbackAction: string
 ): string {
   const key = `backupDr.executionMode.realReadiness.codes.${slug}.${part}`;
   const v = t(key);
@@ -134,7 +140,7 @@ function translateCode(
 
 export function presentRealModeDiagnostics(
   diagnostics: BackupExecutionModeResponseDto['realModeBlockingDiagnostics'],
-  t: (k: string, o?: Record<string, string | number>) => string,
+  t: (k: string, o?: Record<string, string | number>) => string
 ): PresentedRealModeDiagnostic[] {
   const list = diagnostics ?? [];
   const mapped = list.map((d) => {
@@ -145,11 +151,11 @@ export function presentRealModeDiagnostics(
     const keys = (d.relatedConfigurationKeys ?? []).filter(Boolean) as string[];
     const serverMessage = (d.message ?? '').trim();
     const title =
-      slug === 'unknown'
-        ? code || 'UNKNOWN'
-        : translateCode(t, slug, 'title', code, serverMessage);
+      slug === 'unknown' ? code || 'UNKNOWN' : translateCode(t, slug, 'title', code, serverMessage);
     const action =
-      slug === 'unknown' ? serverMessage : translateCode(t, slug, 'action', serverMessage, serverMessage);
+      slug === 'unknown'
+        ? serverMessage
+        : translateCode(t, slug, 'action', serverMessage, serverMessage);
     return { code, category, tier, title, action, configKeys: keys, serverMessage };
   });
 
@@ -165,7 +171,7 @@ export function presentRealModeDiagnostics(
 export function realReadinessSummaryCopy(
   level: HypotheticalPgDumpHealthLevel,
   realSelectable: boolean,
-  t: (k: string, o?: Record<string, string | number>) => string,
+  t: (k: string, o?: Record<string, string | number>) => string
 ): { alertType: 'success' | 'warning' | 'error' | 'info'; title: string; description: string } {
   if (!level) {
     return {
@@ -209,7 +215,7 @@ export function realReadinessSummaryCopy(
 
 export function healthLevelLabel(
   level: HypotheticalPgDumpHealthLevel,
-  t: (k: string, o?: Record<string, string | number>) => string,
+  t: (k: string, o?: Record<string, string | number>) => string
 ): string {
   if (!level) return t('backupDr.executionMode.realReadiness.health.unknown');
   const key = `backupDr.executionMode.realReadiness.healthLevels.${level}`;

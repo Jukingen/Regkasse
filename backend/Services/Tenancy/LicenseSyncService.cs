@@ -1,7 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Tenancy;
 
@@ -194,7 +193,7 @@ public sealed class LicenseSyncService : ILicenseSyncService
 
     private static bool ShouldSyncTenantFromIssued(Tenant tenant)
     {
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return false;
 
         var key = tenant.LicenseKey?.Trim();
@@ -211,7 +210,8 @@ public sealed class LicenseSyncService : ILicenseSyncService
         && il.SupersededByLicenseId == null;
 
     private static bool IsSyntheticTierKey(string key) =>
-        key.StartsWith("TIER:", StringComparison.OrdinalIgnoreCase);
+        key.StartsWith("TIER:", StringComparison.OrdinalIgnoreCase)
+        || key.StartsWith("TEST-", StringComparison.OrdinalIgnoreCase);
 
     private static string SafePrefix(string key) =>
         key.Length <= 12 ? key : key[..12];

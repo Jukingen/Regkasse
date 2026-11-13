@@ -1,7 +1,6 @@
 /**
  * Backup izleme panosu: saf metrik türetimi (API koşularından).
  */
-
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
 import { RestoreVerificationStatus } from '@/api/generated/model/restoreVerificationStatus';
@@ -13,44 +12,51 @@ const MS_DAY = 86_400_000;
 const THIRTY_DAYS_MS = 30 * MS_DAY;
 
 const TERMINAL_STATUSES = new Set<number>([
-  BackupRunStatus.NUMBER_3,
-  BackupRunStatus.NUMBER_4,
-  BackupRunStatus.NUMBER_5,
-  BackupRunStatus.NUMBER_6,
+  BackupRunStatus.Succeeded,
+  BackupRunStatus.Failed,
+  BackupRunStatus.VerificationFailed,
+  BackupRunStatus.Cancelled,
 ]);
 
 export function mapBackupRunToMetricStatus(
   status: number | undefined,
-  options?: { simulated?: boolean; active?: boolean },
+  options?: { simulated?: boolean; active?: boolean }
 ): MetricStatus | undefined {
   if (status === undefined) return undefined;
-  if (options?.simulated && status === BackupRunStatus.NUMBER_3) return 'warning';
+  if (options?.simulated && status === BackupRunStatus.Succeeded) return 'warning';
   if (
-    status === BackupRunStatus.NUMBER_0 ||
-    status === BackupRunStatus.NUMBER_1 ||
-    status === BackupRunStatus.NUMBER_2
+    status === BackupRunStatus.Queued ||
+    status === BackupRunStatus.Running ||
+    status === BackupRunStatus.AwaitingVerification
   ) {
     return options?.active ? 'info' : 'info';
   }
-  if (status === BackupRunStatus.NUMBER_3) return 'success';
-  if (status === BackupRunStatus.NUMBER_4 || status === BackupRunStatus.NUMBER_5) {
+  if (status === BackupRunStatus.Succeeded) return 'success';
+  if (status === BackupRunStatus.Failed || status === BackupRunStatus.VerificationFailed) {
     return 'error';
   }
-  if (status === BackupRunStatus.NUMBER_6) return 'warning';
+  if (status === BackupRunStatus.Cancelled) return 'warning';
   return 'info';
 }
 
-export function mapRestoreDrillToMetricStatus(status: number | undefined): MetricStatus | undefined {
+export function mapRestoreDrillToMetricStatus(
+  status: number | undefined
+): MetricStatus | undefined {
   if (status === undefined) return undefined;
-  if (status === RestoreVerificationStatus.NUMBER_0 || status === RestoreVerificationStatus.NUMBER_1) {
+  if (
+    status === RestoreVerificationStatus.Queued ||
+    status === RestoreVerificationStatus.Running
+  ) {
     return 'info';
   }
-  if (status === RestoreVerificationStatus.NUMBER_2) return 'success';
-  if (status === RestoreVerificationStatus.NUMBER_3) return 'error';
+  if (status === RestoreVerificationStatus.Succeeded) return 'success';
+  if (status === RestoreVerificationStatus.Failed) return 'error';
   return 'info';
 }
 
-export function mapConfigurationLevelToMetricStatus(level: string | undefined | null): MetricStatus {
+export function mapConfigurationLevelToMetricStatus(
+  level: string | undefined | null
+): MetricStatus {
   const n = (level ?? '').trim().toLowerCase();
   if (n === 'healthy') return 'success';
   if (n === 'degraded') return 'warning';
@@ -67,7 +73,7 @@ export interface SuccessRateWindowResult {
 export function computeSuccessRateInWindow(
   runs: readonly BackupRunResponseDto[],
   windowStartMs: number,
-  windowEndMs: number,
+  windowEndMs: number
 ): SuccessRateWindowResult {
   let terminalCount = 0;
   let succeededCount = 0;
@@ -80,7 +86,7 @@ export function computeSuccessRateInWindow(
     const st = run.status;
     if (st === undefined || !TERMINAL_STATUSES.has(st)) continue;
     terminalCount += 1;
-    if (st === BackupRunStatus.NUMBER_3) succeededCount += 1;
+    if (st === BackupRunStatus.Succeeded) succeededCount += 1;
   }
 
   if (terminalCount === 0) {
@@ -96,17 +102,13 @@ export function computeSuccessRateInWindow(
 /** Son 30 gün vs önceki 30 gün başarı oranı farkı (yüzde puan). */
 export function computeSuccessRateTrendPercent(
   runs: readonly BackupRunResponseDto[],
-  nowMs: number = Date.now(),
+  nowMs: number = Date.now()
 ): number | undefined {
-  const current = computeSuccessRateInWindow(
-    runs,
-    nowMs - THIRTY_DAYS_MS,
-    nowMs,
-  );
+  const current = computeSuccessRateInWindow(runs, nowMs - THIRTY_DAYS_MS, nowMs);
   const prior = computeSuccessRateInWindow(
     runs,
     nowMs - 2 * THIRTY_DAYS_MS,
-    nowMs - THIRTY_DAYS_MS,
+    nowMs - THIRTY_DAYS_MS
   );
   if (current.ratePercent === null || prior.ratePercent === null) return undefined;
   if (prior.terminalCount < 2 && current.terminalCount < 2) return undefined;
@@ -126,7 +128,7 @@ export interface BackupHistory30DayChartRow {
 export function buildBackupHistory30DayChartData(
   runs: readonly BackupRunResponseDto[],
   formatDate: (iso: string) => string,
-  nowMs: number = Date.now(),
+  nowMs: number = Date.now()
 ): BackupHistory30DayChartRow[] {
   const windowStart = nowMs - THIRTY_DAYS_MS;
 
@@ -142,21 +144,19 @@ export function buildBackupHistory30DayChartData(
       const st = run.status;
       const startIso = run.startedAt ?? run.requestedAt;
       const durationMs = formatRunDurationMs(startIso, run.completedAt);
-      const duration =
-        durationMs !== undefined ? Math.round(durationMs / 1000) : 0;
+      const duration = durationMs !== undefined ? Math.round(durationMs / 1000) : 0;
 
       return {
         key: run.id ?? completedAt,
         runId: run.id,
         date: formatDate(completedAt),
-        success: st === BackupRunStatus.NUMBER_3 ? 1 : 0,
-        failed:
-          st === BackupRunStatus.NUMBER_4 || st === BackupRunStatus.NUMBER_5 ? 1 : 0,
+        success: st === BackupRunStatus.Succeeded ? 1 : 0,
+        failed: st === BackupRunStatus.Failed || st === BackupRunStatus.VerificationFailed ? 1 : 0,
         duration,
         ts,
       };
     })
-    .filter((row): row is BackupHistory30DayChartRow & { ts: number } => row !== null)
+    .filter((row): row is NonNullable<typeof row> => row !== null)
     .sort((a, b) => a.ts - b.ts)
     .map(({ ts: _ts, ...row }) => row);
 }
@@ -170,10 +170,10 @@ export interface BackupDurationChartPoint {
 export function buildBackupDurationChartPoints(
   runs: readonly BackupRunResponseDto[],
   formatLabel: (iso: string) => string,
-  maxPoints = 14,
+  maxPoints = 14
 ): BackupDurationChartPoint[] {
   const points = runs
-    .filter((r) => r.status === BackupRunStatus.NUMBER_3)
+    .filter((r) => r.status === BackupRunStatus.Succeeded)
     .map((r) => {
       const ms = formatRunDurationMs(r.requestedAt, r.completedAt);
       const ts = Date.parse(r.completedAt ?? r.requestedAt ?? '');
@@ -190,7 +190,9 @@ export function buildBackupDurationChartPoints(
   }));
 }
 
-export function estimateRpoSeconds(lastSuccessfulBackupAt: string | undefined | null): number | undefined {
+export function estimateRpoSeconds(
+  lastSuccessfulBackupAt: string | undefined | null
+): number | undefined {
   if (!lastSuccessfulBackupAt) return undefined;
   const ts = Date.parse(lastSuccessfulBackupAt);
   if (Number.isNaN(ts)) return undefined;

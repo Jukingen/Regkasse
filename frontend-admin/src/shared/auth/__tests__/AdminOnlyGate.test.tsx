@@ -2,10 +2,12 @@
  * AdminOnlyGate: permission-first; fallback isSuperAdmin. Inline forbidden when not allowed.
  */
 import '@testing-library/jest-dom';
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
+
 import { AdminOnlyGate } from '../AdminOnlyGate';
 
 vi.mock('next/navigation', () => ({

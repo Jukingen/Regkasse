@@ -6,8 +6,10 @@ public sealed class DeferredRestoreOrchestrationBoundary : IRestoreOrchestration
     {
         IsAutomatedRestoreAvailable = false,
         Notes =
-            "Phase 1 delivers backup orchestration metadata and verification scaffolding only. " +
-            "PostgreSQL PITR/pg_verifybackup-based restore automation, monthly restore drills, and TSE vendor backup remain operator-led / deferred. " +
+            "Automated production restore is not available. " +
+            "Super Admin validation-only restore uses dual approval + IRestoreService RKSV same-tenant gate " +
+            "(see RestoreService / ManualRestoreTriggerService). " +
+            "PostgreSQL PITR/pg_verifybackup automation and TSE vendor backup remain operator-led. " +
             "See docs/restore-boundary-notes.md."
     };
 }

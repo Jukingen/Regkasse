@@ -8,5 +8,26 @@
   "permissions": "Permissions",
   "shift": "Shift",
   "clockIn": "Clock In",
-  "clockOut": "Clock Out"
+  "clockOut": "Clock Out",
+  "selectionSheet": {
+    "title": "Staff",
+    "employeeNumberLabel": "Employee no.",
+    "numberPlaceholder": "Enter number",
+    "search": "Search",
+    "benefitsHint": "Benefits are applied at payment.",
+    "or": "or",
+    "chooseFromList": "Choose from list",
+    "filterPlaceholder": "Filter by name or no.",
+    "back": "Back",
+    "loadingList": "Loading list…",
+    "emptyList": "No entries",
+    "numberPrefix": "No.",
+    "closeA11y": "Close",
+    "alertNotFoundTitle": "Not found",
+    "alertNotFoundMessage": "No active employee with this number found.",
+    "alertSearchFailedTitle": "Error",
+    "alertSearchFailedMessage": "Search failed. Please try again.",
+    "alertListFailedTitle": "Notice",
+    "alertListFailedMessage": "Could not load employee list."
+  }
 }

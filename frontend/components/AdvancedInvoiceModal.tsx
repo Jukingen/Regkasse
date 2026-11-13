@@ -15,8 +15,8 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
-import { formatUserDate } from '../utils/dateFormatter';
 import { CartItem } from '../types/cart';
+import { formatUserDate } from '../utils/dateFormatter';
 
 interface InvoiceCustomer {
   name: string;
@@ -75,12 +75,12 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   // Müşteri bilgilerini güncelle
   const updateCustomer = (field: keyof InvoiceCustomer, value: string) => {
-    setCustomer(prev => ({ ...prev, [field]: value }));
+    setCustomer((prev) => ({ ...prev, [field]: value }));
   };
 
   // Ayarları güncelle
   const updateSettings = (field: keyof InvoiceSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   // Sonraki adım
@@ -102,12 +102,18 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   // Fatura oluştur
   const handleCreateInvoice = async () => {
     if (!customer.name.trim()) {
-      Alert.alert(t('invoice.error', 'Error'), t('invoice.customerNameRequired', 'Customer name is required'));
+      Alert.alert(
+        t('invoice.error', 'Error'),
+        t('invoice.customerNameRequired', 'Customer name is required')
+      );
       return;
     }
 
     if (settings.autoSend && !settings.sendToEmail.trim()) {
-      Alert.alert(t('invoice.error', 'Error'), t('invoice.emailRequired', 'Email is required for auto-send'));
+      Alert.alert(
+        t('invoice.error', 'Error'),
+        t('invoice.emailRequired', 'Email is required for auto-send')
+      );
       return;
     }
 
@@ -117,14 +123,14 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
       const invoiceData = {
         customer,
         settings,
-        items: cart?.items?.map(item => ({
+        items: cart?.map((item) => ({
           productId: item.product.id,
           productName: item.product.name,
           description: item.product.description || '',
           quantity: item.quantity,
           unitPrice: item.product.price,
           taxRate: getTaxRate(item.product.taxType),
-          taxAmount: (item.product.price * item.quantity * getTaxRate(item.product.taxType)),
+          taxAmount: item.product.price * item.quantity * getTaxRate(item.product.taxType),
           totalAmount: item.product.price * item.quantity,
           taxType: item.product.taxType,
         })),
@@ -139,14 +145,17 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
       };
 
       await onInvoiceCreate(invoiceData);
-      
+
       Alert.alert(
         t('invoice.success', 'Success'),
         t('invoice.created', 'Invoice created successfully!'),
         [{ text: t('common.ok', 'OK'), onPress: handleClose }]
       );
     } catch (error) {
-      Alert.alert(t('invoice.error', 'Error'), t('invoice.createFailed', 'Failed to create invoice. Please try again.'));
+      Alert.alert(
+        t('invoice.error', 'Error'),
+        t('invoice.createFailed', 'Failed to create invoice. Please try again.')
+      );
     } finally {
       setIsCreating(false);
     }
@@ -173,10 +182,14 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   const getTaxRate = (taxType: string) => {
     switch (taxType) {
-      case 'standard': return 0.20;
-      case 'reduced': return 0.10;
-      case 'special': return 0.13;
-      default: return 0.20;
+      case 'standard':
+        return 0.2;
+      case 'reduced':
+        return 0.1;
+      case 'special':
+        return 0.13;
+      default:
+        return 0.2;
     }
   };
 
@@ -184,24 +197,19 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
-      {[1, 2, 3].map(step => (
+      {[1, 2, 3].map((step) => (
         <View key={step} style={styles.stepContainer}>
-          <View style={[
-            styles.stepCircle,
-            activeStep >= step && styles.stepCircleActive
-          ]}>
-            <Text style={[
-              styles.stepNumber,
-              activeStep >= step && styles.stepNumberActive
-            ]}>
+          <View style={[styles.stepCircle, activeStep >= step && styles.stepCircleActive]}>
+            <Text style={[styles.stepNumber, activeStep >= step && styles.stepNumberActive]}>
               {step}
             </Text>
           </View>
-          <Text style={[
-            styles.stepLabel,
-            activeStep >= step && styles.stepLabelActive
-          ]}>
-            {step === 1 ? t('invoice.customer', 'Customer') : step === 2 ? t('invoice.items', 'Items') : t('invoice.settings', 'Settings')}
+          <Text style={[styles.stepLabel, activeStep >= step && styles.stepLabelActive]}>
+            {step === 1
+              ? t('invoice.customer', 'Customer')
+              : step === 2
+                ? t('invoice.items', 'Items')
+                : t('invoice.settings', 'Settings')}
           </Text>
         </View>
       ))}
@@ -211,13 +219,15 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   const renderCustomerStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>{t('invoice.customerInfo', 'Customer Information')}</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>{t('invoice.customerName', 'Customer Name *')}</Text>
         <TextInput
           style={styles.textInput}
           value={customer.name}
-          onChangeText={(value) => updateCustomer('name', value)}
+          onChangeText={(value) => {
+            updateCustomer('name', value);
+          }}
           placeholder={t('invoice.enterCustomerName', 'Enter customer name')}
         />
       </View>
@@ -227,7 +237,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={styles.textInput}
           value={customer.email}
-          onChangeText={(value) => updateCustomer('email', value)}
+          onChangeText={(value) => {
+            updateCustomer('email', value);
+          }}
           placeholder={t('invoice.emailPlaceholder', 'customer@example.com')}
           keyboardType="email-address"
         />
@@ -238,7 +250,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={styles.textInput}
           value={customer.phone}
-          onChangeText={(value) => updateCustomer('phone', value)}
+          onChangeText={(value) => {
+            updateCustomer('phone', value);
+          }}
           placeholder={t('invoice.phonePlaceholder', '+43 123 456 789')}
           keyboardType="phone-pad"
         />
@@ -249,7 +263,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={customer.address}
-          onChangeText={(value) => updateCustomer('address', value)}
+          onChangeText={(value) => {
+            updateCustomer('address', value);
+          }}
           placeholder={t('invoice.enterAddress', 'Enter full address')}
           multiline
           numberOfLines={3}
@@ -261,7 +277,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={styles.textInput}
           value={customer.taxNumber}
-          onChangeText={(value) => updateCustomer('taxNumber', value)}
+          onChangeText={(value) => {
+            updateCustomer('taxNumber', value);
+          }}
           placeholder={t('invoice.taxNumberPlaceholder', 'ATU12345678')}
           autoCapitalize="characters"
         />
@@ -272,19 +290,22 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   const renderItemsStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>{t('invoice.itemsTitle', 'Invoice Items')}</Text>
-      
+
       <View style={styles.itemsContainer}>
-        {cart?.items?.map((item, index) => (
+        {cart?.map((item, index) => (
           <View key={index} style={styles.itemRow}>
             <View style={styles.itemInfo}>
               <Text style={styles.itemName}>{item.product.name}</Text>
               <Text style={styles.itemDetails}>
-                {item.quantity} x €{item.product.price.toFixed(2)} = €{(item.quantity * item.product.price).toFixed(2)}
+                {item.quantity} x €{item.product.price.toFixed(2)} = €
+                {(item.quantity * item.product.price).toFixed(2)}
               </Text>
             </View>
             <View style={styles.itemTax}>
               <Text style={styles.taxLabel}>{item.product.taxType.toUpperCase()}</Text>
-              <Text style={styles.taxRate}>{Math.round(getTaxRate(item.product.taxType) * 100)}%</Text>
+              <Text style={styles.taxRate}>
+                {Math.round(getTaxRate(item.product.taxType) * 100)}%
+              </Text>
             </View>
           </View>
         ))}
@@ -310,16 +331,18 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   const renderSettingsStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>{t('invoice.settingsTitle', 'Invoice Settings')}</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>{t('invoice.dueDate', 'Due Date')}</Text>
         <TouchableOpacity
           style={styles.dateButton}
           onPress={() => {
             // Date picker burada implement edilecek
-            Alert.alert(t('invoice.datePicker', 'Date Picker'), t('invoice.datePickerMsg', 'Date picker will be implemented'));
-          }}
-        >
+            Alert.alert(
+              t('invoice.datePicker', 'Date Picker'),
+              t('invoice.datePickerMsg', 'Date picker will be implemented')
+            );
+          }}>
           <Text style={styles.dateButtonText}>{formatDate(settings.dueDate)}</Text>
           <Ionicons name="calendar" size={20} color={Colors.light.primary} />
         </TouchableOpacity>
@@ -330,7 +353,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={settings.notes}
-          onChangeText={(value) => updateSettings('notes', value)}
+          onChangeText={(value) => {
+            updateSettings('notes', value);
+          }}
           placeholder={t('invoice.notesPlaceholder', 'Additional notes for the customer')}
           multiline
           numberOfLines={3}
@@ -342,7 +367,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={settings.termsAndConditions}
-          onChangeText={(value) => updateSettings('termsAndConditions', value)}
+          onChangeText={(value) => {
+            updateSettings('termsAndConditions', value);
+          }}
           placeholder={t('invoice.termsPlaceholder', 'Payment terms and conditions')}
           multiline
           numberOfLines={4}
@@ -352,15 +379,11 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
       <View style={styles.autoSendContainer}>
         <TouchableOpacity
           style={styles.checkboxContainer}
-          onPress={() => updateSettings('autoSend', !settings.autoSend)}
-        >
-          <View style={[
-            styles.checkbox,
-            settings.autoSend && styles.checkboxChecked
-          ]}>
-            {settings.autoSend && (
-              <Ionicons name="checkmark" size={16} color="white" />
-            )}
+          onPress={() => {
+            updateSettings('autoSend', !settings.autoSend);
+          }}>
+          <View style={[styles.checkbox, settings.autoSend && styles.checkboxChecked]}>
+            {settings.autoSend && <Ionicons name="checkmark" size={16} color="white" />}
           </View>
           <Text style={styles.checkboxLabel}>{t('invoice.autoSend', 'Auto-send invoice')}</Text>
         </TouchableOpacity>
@@ -371,7 +394,9 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
             <TextInput
               style={styles.textInput}
               value={settings.sendToEmail}
-              onChangeText={(value) => updateSettings('sendToEmail', value)}
+              onChangeText={(value) => {
+                updateSettings('sendToEmail', value);
+              }}
               placeholder={t('invoice.emailPlaceholder', 'customer@example.com')}
               keyboardType="email-address"
             />
@@ -382,11 +407,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -397,8 +418,12 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.previewButton}
-              onPress={() => Alert.alert(t('invoice.preview', 'Preview'), t('invoice.previewMsg', 'Invoice preview will be implemented'))}
-            >
+              onPress={() => {
+                Alert.alert(
+                  t('invoice.preview', 'Preview'),
+                  t('invoice.previewMsg', 'Invoice preview will be implemented')
+                );
+              }}>
               <Ionicons name="eye" size={20} color="white" />
             </TouchableOpacity>
           </View>
@@ -418,20 +443,14 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
         <View style={styles.footer}>
           <View style={styles.footerActions}>
             {activeStep > 1 && (
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={prevStep}
-              >
+              <TouchableOpacity style={styles.secondaryButton} onPress={prevStep}>
                 <Ionicons name="arrow-back" size={20} color={Colors.light.primary} />
                 <Text style={styles.secondaryButtonText}>{t('invoice.previous', 'Previous')}</Text>
               </TouchableOpacity>
             )}
 
             {activeStep < 3 ? (
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={nextStep}
-              >
+              <TouchableOpacity style={styles.primaryButton} onPress={nextStep}>
                 <Text style={styles.primaryButtonText}>{t('invoice.next', 'Next')}</Text>
                 <Ionicons name="arrow-forward" size={20} color="white" />
               </TouchableOpacity>
@@ -439,14 +458,17 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
               <TouchableOpacity
                 style={[styles.primaryButton, isCreating && styles.primaryButtonDisabled]}
                 onPress={handleCreateInvoice}
-                disabled={isCreating}
-              >
+                disabled={isCreating}>
                 {isCreating ? (
-                  <Text style={styles.primaryButtonText}>{t('invoice.creating', 'Creating...')}</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t('invoice.creating', 'Creating...')}
+                  </Text>
                 ) : (
                   <>
                     <Ionicons name="document-text" size={20} color="white" />
-                    <Text style={styles.primaryButtonText}>{t('invoice.createInvoice', 'Create Invoice')}</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t('invoice.createInvoice', 'Create Invoice')}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -714,4 +736,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AdvancedInvoiceModal; 
+export default AdvancedInvoiceModal;

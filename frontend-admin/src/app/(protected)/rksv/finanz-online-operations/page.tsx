@@ -1,19 +1,27 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, Descriptions, Input, Row, Space, Spin, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Input,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
-import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
+import React, { useMemo, useState } from 'react';
+
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
   getApiFinanzOnlineConfig,
   getApiFinanzOnlineErrors,
@@ -21,13 +29,25 @@ import {
   getApiFinanzOnlineStatus,
   postApiFinanzOnlineTestConnection,
 } from '@/api/generated/finanz-online/finanz-online';
-import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { CardSkeleton, TableSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { OPERATOR_FO_OPERATIONS_PAGE_COPY } from '@/shared/operatorTruthCopy';
 
 function connectionTagColor(
   data:
-    | { isConnected?: boolean; finanzOnlineTransportsSimulated?: boolean; isAuthoritative?: boolean }
-    | undefined,
+    | {
+        isConnected?: boolean;
+        finanzOnlineTransportsSimulated?: boolean;
+        isAuthoritative?: boolean;
+      }
+    | undefined
 ): string {
   if (data?.finanzOnlineTransportsSimulated) return 'orange';
   if (data?.isAuthoritative === false) return 'gold';
@@ -68,7 +88,8 @@ export default function FinanzOnlineOperationsPage() {
   const testMutation = useMutation({
     mutationFn: () => postApiFinanzOnlineTestConnection(),
     onSuccess: (result) => {
-      if (result.success) message.success(result.message || t('rksvHub.finanzOnlineOpsPage.testSuccess'));
+      if (result.success)
+        message.success(result.message || t('rksvHub.finanzOnlineOpsPage.testSuccess'));
       else message.warning(result.message || t('rksvHub.finanzOnlineOpsPage.testWarning'));
       queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base });
     },
@@ -105,7 +126,9 @@ export default function FinanzOnlineOperationsPage() {
         actions={
           <Button
             icon={<ReloadOutlined />}
-            onClick={() => queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base })}
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base })
+            }
           >
             {t('common.buttons.refresh')}
           </Button>
@@ -130,14 +153,17 @@ export default function FinanzOnlineOperationsPage() {
 
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
         {OPERATOR_FO_OPERATIONS_PAGE_COPY.introLead}{' '}
-        <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_OPERATIONS_PAGE_COPY.introAbgleichLinkLabel}</Link>.
+        <Link href="/rksv/finanz-online-queue">
+          {OPERATOR_FO_OPERATIONS_PAGE_COPY.introAbgleichLinkLabel}
+        </Link>
+        .
       </Typography.Paragraph>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Card title={t('rksvHub.finanzOnlineOpsPage.detailedStatusCard')} size="small">
             {statusQuery.isLoading ? (
-              <Spin />
+              <CardSkeleton count={1} loading />
             ) : statusQuery.isError ? (
               <Alert
                 type="error"
@@ -157,8 +183,9 @@ export default function FinanzOnlineOperationsPage() {
                   <Tag
                     color={connectionTagColor(statusQuery.data)}
                     icon={
-                      statusQuery.data?.finanzOnlineTransportsSimulated ? undefined : statusQuery.data?.isAuthoritative ===
-                        false ? undefined : statusQuery.data?.isConnected ? (
+                      statusQuery.data?.finanzOnlineTransportsSimulated ? undefined : statusQuery
+                          .data?.isAuthoritative === false ? undefined : statusQuery.data
+                          ?.isConnected ? (
                         <CheckCircleOutlined />
                       ) : (
                         <CloseCircleOutlined />
@@ -199,13 +226,19 @@ export default function FinanzOnlineOperationsPage() {
                 <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.diagnosticWarningLabel')}>
                   {statusQuery.data?.diagnosticWarning || '—'}
                 </Descriptions.Item>
-                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.transportDiagnosticsLabel')}>
+                <Descriptions.Item
+                  label={t('rksvHub.finanzOnlineOpsPage.transportDiagnosticsLabel')}
+                >
                   <Typography.Text code copyable style={{ fontSize: 12 }}>
                     {statusQuery.data?.transportDiagnostics || '—'}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.enableRealTestSubmissionLabel')}>
-                  {statusQuery.data?.enableRealTestSubmission ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                <Descriptions.Item
+                  label={t('rksvHub.finanzOnlineOpsPage.enableRealTestSubmissionLabel')}
+                >
+                  {statusQuery.data?.enableRealTestSubmission
+                    ? t('rksvHub.finanzOnlineOpsPage.yes')
+                    : t('rksvHub.finanzOnlineOpsPage.no')}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.sessionProbeLabel')}>
                   {statusQuery.data?.sessionProbeSucceeded == null
@@ -222,13 +255,17 @@ export default function FinanzOnlineOperationsPage() {
             title={t('rksvHub.finanzOnlineOpsPage.configCardTitle')}
             size="small"
             extra={
-              <Button loading={testMutation.isPending} onClick={() => testMutation.mutate()} type="primary">
+              <Button
+                loading={testMutation.isPending}
+                onClick={() => testMutation.mutate()}
+                type="primary"
+              >
                 {t('rksvHub.finanzOnlineOpsPage.testConnectionButton')}
               </Button>
             }
           >
             {configQuery.isLoading ? (
-              <Spin />
+              <CardSkeleton count={1} loading />
             ) : configQuery.isError ? (
               <Alert
                 type="error"
@@ -248,13 +285,21 @@ export default function FinanzOnlineOperationsPage() {
                   <Col span={12}>
                     <Statistic
                       title={t('rksvHub.finanzOnlineOpsPage.statEnabled')}
-                      value={configQuery.data?.isEnabled ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                      value={
+                        configQuery.data?.isEnabled
+                          ? t('rksvHub.finanzOnlineOpsPage.yes')
+                          : t('rksvHub.finanzOnlineOpsPage.no')
+                      }
                     />
                   </Col>
                   <Col span={12}>
                     <Statistic
                       title={t('rksvHub.finanzOnlineOpsPage.statAutoSubmit')}
-                      value={configQuery.data?.autoSubmit ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                      value={
+                        configQuery.data?.autoSubmit
+                          ? t('rksvHub.finanzOnlineOpsPage.yes')
+                          : t('rksvHub.finanzOnlineOpsPage.no')
+                      }
                     />
                   </Col>
                   <Col span={12}>
@@ -305,16 +350,26 @@ export default function FinanzOnlineOperationsPage() {
                           </Typography.Text>
                         ) : null}
                         {testResult.transportDiagnostics ? (
-                          <Typography.Text code copyable style={{ fontSize: 11, display: 'block', whiteSpace: 'pre-wrap' }}>
+                          <Typography.Text
+                            code
+                            copyable
+                            style={{ fontSize: 11, display: 'block', whiteSpace: 'pre-wrap' }}
+                          >
                             {testResult.transportDiagnostics}
                           </Typography.Text>
                         ) : null}
                         {testResult.diagnosticWarning ? (
-                          <Typography.Text type="warning" style={{ fontSize: 12, display: 'block' }}>
+                          <Typography.Text
+                            type="warning"
+                            style={{ fontSize: 12, display: 'block' }}
+                          >
                             {testResult.diagnosticWarning}
                           </Typography.Text>
                         ) : null}
-                        <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={testResult.message} />
+                        <BackendRawTextBlock
+                          introKey="common.backend.serverHintIntro"
+                          body={testResult.message}
+                        />
                       </Space>
                     }
                     showIcon
@@ -326,15 +381,24 @@ export default function FinanzOnlineOperationsPage() {
         </Col>
       </Row>
 
-      <Card title={t('rksvHub.finanzOnlineOpsPage.recentErrorsTitle', { count: errors.length })} size="small" style={{ marginTop: 16 }}>
+      <Card
+        title={t('rksvHub.finanzOnlineOpsPage.recentErrorsTitle', { count: errors.length })}
+        size="small"
+        style={{ marginTop: 16 }}
+      >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
           {t('rksvHub.finanzOnlineOpsPage.errorsTableHint')}
         </Typography.Paragraph>
         {errorsPayload?.diagnosticWarning ? (
-          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={errorsPayload.diagnosticWarning} />
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            title={errorsPayload.diagnosticWarning}
+          />
         ) : null}
         {errorsQuery.isLoading ? (
-          <Spin />
+          <TableSkeleton rows={5} cols={4} loading />
         ) : errorsQuery.isError ? (
           <Alert
             type="error"
@@ -357,9 +421,23 @@ export default function FinanzOnlineOperationsPage() {
             rowKey={(r) => (r.id ? String(r.id) : `${r.code}-${r.timestamp}-${r.invoiceNumber}`)}
             dataSource={errors}
             columns={[
-              { title: t('rksvHub.finanzOnlineOpsPage.colCode'), dataIndex: 'code', key: 'code', width: 120 },
-              { title: t('rksvHub.finanzOnlineOpsPage.colMessage'), dataIndex: 'message', key: 'message' },
-              { title: t('rksvHub.finanzOnlineOpsPage.colTimestamp'), dataIndex: 'timestamp', key: 'timestamp', width: 180 },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colCode'),
+                dataIndex: 'code',
+                key: 'code',
+                width: 120,
+              },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colMessage'),
+                dataIndex: 'message',
+                key: 'message',
+              },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colTimestamp'),
+                dataIndex: 'timestamp',
+                key: 'timestamp',
+                width: 180,
+              },
               {
                 title: t('rksvHub.finanzOnlineOpsPage.colInvoice'),
                 dataIndex: 'invoiceNumber',
@@ -367,7 +445,12 @@ export default function FinanzOnlineOperationsPage() {
                 width: 180,
                 render: (v: string) => v || '—',
               },
-              { title: t('rksvHub.finanzOnlineOpsPage.colRetry'), dataIndex: 'retryCount', key: 'retryCount', width: 90 },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colRetry'),
+                dataIndex: 'retryCount',
+                key: 'retryCount',
+                width: 90,
+              },
             ]}
           />
         )}
@@ -394,7 +477,7 @@ export default function FinanzOnlineOperationsPage() {
         {!canRunHistory ? (
           <Alert type="info" title={t('rksvHub.finanzOnlineOpsPage.enterInvoiceIdHint')} />
         ) : historyQuery.isLoading ? (
-          <Spin />
+          <TableSkeleton rows={5} cols={4} loading />
         ) : historyQuery.isError ? (
           <Alert
             type="error"
@@ -422,7 +505,7 @@ export default function FinanzOnlineOperationsPage() {
                 dataIndex: 'submittedAt',
                 key: 'submittedAt',
                 width: 180,
-                render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+                render: dateColumnRender('datetimeSeconds'),
               },
               {
                 title: t('rksvHub.finanzOnlineOpsPage.colSuccess'),
@@ -431,12 +514,24 @@ export default function FinanzOnlineOperationsPage() {
                 width: 90,
                 render: (v: boolean) => (
                   <Tag color={v ? 'green' : 'red'}>
-                    {v ? t('rksvHub.finanzOnlineOpsPage.yesShort') : t('rksvHub.finanzOnlineOpsPage.noShort')}
+                    {v
+                      ? t('rksvHub.finanzOnlineOpsPage.yesShort')
+                      : t('rksvHub.finanzOnlineOpsPage.noShort')}
                   </Tag>
                 ),
               },
-              { title: t('rksvHub.finanzOnlineOpsPage.colHttp'), dataIndex: 'responseStatusCode', key: 'responseStatusCode', width: 80 },
-              { title: t('rksvHub.finanzOnlineOpsPage.colError'), dataIndex: 'errorMessage', key: 'errorMessage', ellipsis: true },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colHttp'),
+                dataIndex: 'responseStatusCode',
+                key: 'responseStatusCode',
+                width: 80,
+              },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colError'),
+                dataIndex: 'errorMessage',
+                key: 'errorMessage',
+                ellipsis: true,
+              },
             ]}
           />
         )}

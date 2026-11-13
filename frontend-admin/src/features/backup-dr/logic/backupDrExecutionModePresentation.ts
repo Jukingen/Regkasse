@@ -1,20 +1,20 @@
 /**
  * Yedek çalıştırma modu API yanıtı → operatör için net senaryo metinleri ve seçilebilirlik yardımcıları.
  */
-
-import type { BackupExecutionModeResponseDto, BackupExecutionSelectableModeDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
+import type {
+  BackupExecutionModeResponseDto,
+  BackupExecutionSelectableModeDto,
+} from '@/features/backup-dr/logic/backupExecutionModeApi';
 
 export { isRealRequestedNonRunnableState } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 
 /** Radio değeri → API kullanıcı modu (PUT). */
 export type BackupExecutionModeRadioValue =
-  | 'InheritFromConfiguration'
-  | 'SimulatedFake'
-  | 'PostgreSqlPgDump';
+  'InheritFromConfiguration' | 'SimulatedFake' | 'PostgreSqlPgDump';
 
 export function findSelectableRow(
   modes: BackupExecutionSelectableModeDto[] | undefined,
-  userFacing: string,
+  userFacing: string
 ): BackupExecutionSelectableModeDto | undefined {
   return modes?.find((m) => m.userFacingMode === userFacing);
 }
@@ -24,7 +24,7 @@ export function findSelectableRow(
  */
 export function fakeSwitchNeedsStrongWarning(
   selected: BackupExecutionModeRadioValue,
-  fakeRow: BackupExecutionSelectableModeDto | undefined,
+  fakeRow: BackupExecutionSelectableModeDto | undefined
 ): boolean {
   if (selected !== 'SimulatedFake' || !fakeRow?.selectable) return false;
   return Boolean((fakeRow.blockReason ?? '').trim());

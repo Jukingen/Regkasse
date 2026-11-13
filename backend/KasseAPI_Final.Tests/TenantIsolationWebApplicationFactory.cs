@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using System.Text;
-using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -26,7 +25,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
 {
     internal const string SuspendedTenantSlug = "suspended";
     internal const string ActiveTenantSlug = "activeco";
-    internal const string DevTenantHeaderSlug = "cafe";
+    internal const string DevTenantHeaderSlug = "dev";
     internal const string SecretProductName = "SECRET-LEAK-PRODUCT";
     internal const string SuperAdminEmail = "super@test.com";
     internal const string SuperAdminPassword = "TestPass123!";
@@ -39,11 +38,22 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
     internal static readonly Guid CafeTenantId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
     private readonly string _databaseName = $"TenantIsolation_{Guid.NewGuid():N}";
+    private readonly string? _previousOpenApiExportFlag;
+    private readonly string? _previousInMemoryDbName;
 
     public TenantIsolationWebApplicationFactory()
     {
+        _previousOpenApiExportFlag = Environment.GetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName);
+        _previousInMemoryDbName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
         Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, "true");
         Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _databaseName);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, _previousOpenApiExportFlag);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _previousInMemoryDbName);
+        base.Dispose(disposing);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -73,6 +83,11 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
                 options.TokenValidationParameters.ValidAudience = JwtAudience;
             });
 
+            // Force in-process memory cache for isolation tests (products path uses ICacheService).
+            services.RemoveAll<ICacheService>();
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ICacheService, MemoryCacheService>();
+
             ReplaceWithInMemoryDatabase(services);
         });
     }
@@ -97,13 +112,13 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         {
             options.UseInMemoryDatabase(databaseName);
             options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-        }, ServiceLifetime.Scoped, ServiceLifetime.Singleton);
+        }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
 
         services.AddDbContextFactory<AppDbContext>((_, options) =>
         {
             options.UseInMemoryDatabase(databaseName);
             options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-        });
+        }, ServiceLifetime.Scoped);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -128,9 +143,9 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         db.Tenants.AddRange(
             new Tenant
             {
-                Id = LegacyDefaultTenantIds.Primary,
+                Id = SystemTenantIds.Platform,
                 Name = "Default Legacy",
-                Slug = LegacyDefaultTenantIds.PrimarySlug,
+                Slug = SystemTenantIds.PlatformSlug,
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 CreatedAt = now,
@@ -244,7 +259,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
             new UserTenantMembership
             {
                 UserId = superAdmin.Id,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 IsActive = true,
                 IsOwner = true,
                 CreatedAtUtc = now,

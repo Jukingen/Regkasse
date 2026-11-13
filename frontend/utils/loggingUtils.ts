@@ -38,7 +38,7 @@ export const safeError = (...args: any[]) => {
  */
 export const platformLog = (message: string, level: 'log' | 'warn' | 'error' = 'log') => {
   const prefix = `[${Platform.OS.toUpperCase()}]`;
-  
+
   switch (level) {
     case 'warn':
       safeWarn(`${prefix} ${message}`);
@@ -59,9 +59,9 @@ export const logMemoryUsage = () => {
     const memory = (global.performance as any).memory;
     const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
     const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
-    
+
     safeLog(`Memory: ${usedMB}MB / ${totalMB}MB`);
-    
+
     if (usedMB > 100) {
       safeWarn(`Memory usage high: ${usedMB}MB / ${totalMB}MB`);
     }

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>a8f3e1b2-9c4d-4e7f-a1b2-3c4d5e6f7080</UserSecretsId>
-    <!-- Local verify/test pipelines must not live under the project tree (breaks VS/dotnet incremental copy). -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);_test_build_out/**;_ef_build/**;_build_out/**;artifacts/**;**/verify-build/**;**/verify-obj/**;**/ntp-bypass-build/**</DefaultItemExcludes>
+    <!-- Local verify/test/coverage pipelines must not live under the project tree (breaks VS/dotnet incremental copy). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);_test_build_out/**;_testout/**;_test_out*/**;_ef_build/**;.ef-build/**;tmp-build-out/**;_build_out/**;_cov_out/**;_maint_build_out/**;artifacts/**;artifacts-*/**;**/verify-build/**;**/verify-obj/**;**/ntp-bypass-build/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,44 +16,75 @@
   <ItemGroup>
     <Compile Remove="KasseAPI_Final.Tests\**" />
     <Compile Remove="artifacts\**" />
+    <Compile Remove="artifacts-*\**" />
     <Compile Remove="_test_build_out\**" />
+    <Compile Remove="_testout\**" />
     <Compile Remove="_ef_build\**" />
+    <Compile Remove=".ef-build\**" />
+    <Compile Remove="tmp-build-out\**" />
     <Compile Remove="_build_out\**" />
+    <Compile Remove="_cov_out\**" />
+    <Compile Remove="_maint_build_out\**" />
+    <!-- Historical chain. Not compiled, so EF discovers only the live InitialCreate. -->
+    <Compile Remove="Migrations\_archive\**" />
     <Content Remove="KasseAPI_Final.Tests\**" />
     <Content Remove="artifacts\**" />
+    <Content Remove="artifacts-*\**" />
     <Content Remove="_test_build_out\**" />
+    <Content Remove="_testout\**" />
     <Content Remove="_ef_build\**" />
+    <Content Remove=".ef-build\**" />
+    <Content Remove="tmp-build-out\**" />
     <Content Remove="_build_out\**" />
+    <Content Remove="_cov_out\**" />
+    <Content Remove="_maint_build_out\**" />
     <None Remove="KasseAPI_Final.Tests\**" />
+    <None Remove="artifacts-*\**" />
     <None Remove="_test_build_out\**" />
+    <None Remove="_testout\**" />
     <None Remove="_ef_build\**" />
+    <None Remove=".ef-build\**" />
+    <None Remove="tmp-build-out\**" />
     <None Remove="_build_out\**" />
+    <None Remove="_cov_out\**" />
+    <None Remove="_maint_build_out\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="Cronos" Version="0.13.0" />
-    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
-    <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="ElmahCore" Version="2.1.2" />
+    <PackageReference Include="ElmahCore.Postgresql" Version="2.1.2" />
+    <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
-    <PackageReference Include="QuestPDF" Version="2026.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.14" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Sentry" Version="5.16.3" />
+    <PackageReference Include="Sentry.AspNetCore" Version="5.16.3" />
+    <!-- MIT. NativeAssets.Linux.NoDependencies: the aspnet slim image has no libfontconfig. -->
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
+    <!-- 2026.9+ throws when Arial is missing. Linux CI and the slim image have no Arial. -->
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
-    <PackageReference Include="QRCoder" Version="1.8.0" />
-    <PackageReference Include="Stripe.net" Version="52.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.8" />
-    <PackageReference Include="System.Management" Version="10.0.8" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="QRCoder" Version="1.8.1" />
+    <PackageReference Include="StackExchange.Redis" Version="3.4.29" />
+    <PackageReference Include="Stripe.net" Version="52.4.2" />
+    <!-- 10.2.3+ pulls Microsoft.OpenApi >= 2.7.5 (fixes GHSA-v5pm-xwqc-g5wc). -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
+    <!-- Override ElmahCore's vulnerable System.Data.SqlClient 4.8.2 (GHSA-98g6-xh36-x2p7 / GHSA-8g2p-5pqh-5jmc). -->
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,6 +94,15 @@
 
   <ItemGroup>
     <Content Update="Data\demo-products.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Services\Countries\QrRechnung\ChQrKnownGaps.json">
+      <LogicalName>KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGaps.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Services\Backup\BackupKnownGaps.json">
+      <LogicalName>KasseAPI_Final.Services.Backup.BackupKnownGaps.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <!-- Align embedded resource names with AddLocalization(ResourcesPath = "Resources"). -->

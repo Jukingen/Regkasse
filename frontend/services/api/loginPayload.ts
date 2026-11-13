@@ -11,7 +11,7 @@ export interface LoginRequest {
 export function buildLoginPayload(
   loginIdentifier: string,
   password: string,
-  clientApp: 'pos' | 'admin' = 'pos',
+  clientApp: 'pos' | 'admin' = 'pos'
 ): LoginRequest {
   const trimmed = loginIdentifier.trim();
   return {

@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Git hook entrypoint (works on macOS/Linux/Git Bash). Install via:
+#   node scripts/install-git-hooks.mjs
+ROOT="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT" || exit 1
+exec node scripts/git-hooks/pre-commit.mjs

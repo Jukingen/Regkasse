@@ -1,11 +1,10 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KasseAPI_Final.Services.AdminCashRegisters;
 
@@ -17,6 +16,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     private readonly IAuditLogService _auditLog;
     private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
+    private readonly ITseProvisioningService _tseProvisioning;
+    private readonly ITrialLimitGuard _trialLimitGuard;
+    private readonly ITenantLimitService _tenantLimitService;
     private readonly ILogger<CashRegisterManagementService> _logger;
 
     public CashRegisterManagementService(
@@ -25,6 +27,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         IAuditLogService auditLog,
         ICashRegisterListEnrichmentService enrichment,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
+        ITseProvisioningService tseProvisioning,
+        ITrialLimitGuard trialLimitGuard,
+        ITenantLimitService tenantLimitService,
         ILogger<CashRegisterManagementService> logger)
     {
         _db = db;
@@ -32,6 +37,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         _auditLog = auditLog;
         _enrichment = enrichment;
         _paymentMethodBootstrap = paymentMethodBootstrap;
+        _tseProvisioning = tseProvisioning;
+        _trialLimitGuard = trialLimitGuard;
+        _tenantLimitService = tenantLimitService;
         _logger = logger;
     }
 
@@ -54,6 +62,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             throw new ArgumentException("Location is required.", nameof(request));
 
         var tenantId = await ResolveTargetTenantIdAsync(request, actorIsSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+
+        await _trialLimitGuard.EnsureCanCreateCashRegisterAsync(tenantId, cancellationToken)
             .ConfigureAwait(false);
 
         var exists = await _db.CashRegisters
@@ -99,6 +110,15 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             .EnsureDefaultsForCashRegisterAsync(tenantId, register.Id, cancellationToken)
             .ConfigureAwait(false);
 
+        var tseResult = await _tseProvisioning
+            .ProvisionTseForCashRegisterAsync(register.Id, force: false, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tseResult.IsSuccess)
+        {
+            throw new InvalidOperationException(
+                tseResult.Error ?? "TSE provisioning failed for the new cash register.");
+        }
+
         await TryAuditCreateAsync(register, actorUserId, actorRole).ConfigureAwait(false);
 
         _logger.LogInformation(
@@ -127,7 +147,8 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         query = ApplyExcludeStatusFilter(query, excludeStatus);
 
         var ordered = query
-            .OrderBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
+            .OrderBy(r => r.Status == RegisterStatus.Open ? 0 : r.Status == RegisterStatus.Decommissioned ? 2 : 1)
+            .ThenBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
             .ThenByDescending(r => r.IsDefaultForTenant)
             .ThenBy(r => r.RegisterNumber);
         var totalCount = await ordered.CountAsync(cancellationToken).ConfigureAwait(false);
@@ -267,6 +288,173 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         return dto;
     }
 
+    public async Task<CashRegisterDto> AssignUserAsync(
+        Guid id,
+        AssignCashRegisterUserRequest request,
+        string actorUserId,
+        string actorRole,
+        bool actorIsSuperAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var register = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (register == null)
+            throw new InvalidOperationException("Cash register not found.");
+
+        await EnsureTenantAccessAsync(register.TenantId, actorIsSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (register.Status == RegisterStatus.Decommissioned)
+            throw new InvalidOperationException("Decommissioned cash registers cannot be assigned.");
+
+        var targetUserId = request.UserId?.Trim();
+        if (string.IsNullOrEmpty(targetUserId))
+            targetUserId = null;
+
+        if (targetUserId != null)
+        {
+            var isActiveMember = await _db.UserTenantMemberships
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .AnyAsync(
+                    m => m.UserId == targetUserId && m.TenantId == register.TenantId && m.IsActive,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!isActiveMember)
+            {
+                throw new InvalidOperationException(
+                    "Target user is not an active member of this cash register's tenant.");
+            }
+
+            if (register.Status == RegisterStatus.Open
+                && CashRegisterShiftOccupancy.IsHeldByOtherUser(targetUserId, register.CurrentUserId))
+            {
+                var holderName = await ResolvePersonNameAsync(register.CurrentUserId!, cancellationToken)
+                    .ConfigureAwait(false);
+                var cashierName = await ResolvePersonNameAsync(targetUserId, cancellationToken)
+                    .ConfigureAwait(false);
+                throw new CashRegisterAssignmentConflictException(
+                    $"This register is currently open by {holderName}. Please close it before assigning to {cashierName}.");
+            }
+
+            await EnsureAssignmentWithinTenantLimitsAsync(
+                    register,
+                    targetUserId,
+                    force: request.Force && actorIsSuperAdmin,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var previousUserId = register.AssignedUserId;
+        if (!string.Equals(previousUserId, targetUserId, StringComparison.Ordinal))
+        {
+            register.AssignedUserId = targetUserId;
+            register.UpdatedAt = DateTime.UtcNow;
+            register.UpdatedBy = actorUserId;
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await TryAuditAssignmentAsync(register, actorUserId, actorRole, previousUserId, targetUserId)
+                .ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "Cash register assignment changed RegisterId={RegisterId} TenantId={TenantId} PreviousUserId={PreviousUserId} AssignedUserId={AssignedUserId} Actor={Actor}",
+                register.Id,
+                register.TenantId,
+                previousUserId,
+                targetUserId,
+                actorUserId);
+        }
+
+        var refreshed = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(r => r.Tenant)
+            .Include(r => r.CurrentUser)
+            .Include(r => r.AssignedUser)
+            .FirstAsync(r => r.Id == register.Id, cancellationToken)
+            .ConfigureAwait(false);
+
+        var dto = MapToDto(refreshed);
+        await _enrichment.ApplyAsync([dto], [refreshed], cancellationToken).ConfigureAwait(false);
+        return dto;
+    }
+
+    /// <summary>
+    /// Enforces <see cref="TenantLimitKeys.MaxActiveRegistersPerUser"/>. SuperAdmin may pass
+    /// <paramref name="force"/> to skip the cap. Assignment is 1:1 on <see cref="CashRegister.AssignedUserId"/>.
+    /// </summary>
+    private async Task<string> ResolvePersonNameAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new { u.FirstName, u.LastName, u.UserName })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (user == null)
+            return userId;
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        if (!string.IsNullOrEmpty(fullName))
+            return fullName;
+        if (!string.IsNullOrWhiteSpace(user.UserName))
+            return user.UserName;
+        return userId;
+    }
+
+    private async Task EnsureAssignmentWithinTenantLimitsAsync(
+        CashRegister register,
+        string targetUserId,
+        bool force,
+        CancellationToken cancellationToken)
+    {
+        if (string.Equals(register.AssignedUserId, targetUserId, StringComparison.Ordinal))
+            return;
+
+        if (force)
+        {
+            _logger.LogInformation(
+                "Tenant assignment limits skipped (force) RegisterId={RegisterId} TenantId={TenantId} TargetUserId={TargetUserId}",
+                register.Id,
+                register.TenantId,
+                targetUserId);
+            return;
+        }
+
+        var tenantId = register.TenantId;
+        var maxActiveRegisters = await _tenantLimitService
+            .GetLimitValueAsync(tenantId, TenantLimitKeys.MaxActiveRegistersPerUser, cancellationToken)
+            .ConfigureAwait(false);
+
+        var currentRegistersForUser = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .CountAsync(
+                r => r.TenantId == tenantId
+                    && r.AssignedUserId == targetUserId
+                    && r.Id != register.Id
+                    && r.Status != RegisterStatus.Decommissioned,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (currentRegistersForUser >= maxActiveRegisters)
+        {
+            throw new LimitExceededException(
+                TenantLimitKeys.MaxActiveRegistersPerUser,
+                maxActiveRegisters,
+                currentRegistersForUser,
+                $"Max {maxActiveRegisters} active registers per user reached");
+        }
+    }
+
     private async Task<IQueryable<CashRegister>> BuildAuthorizedListQueryAsync(
         Guid? tenantIdFilter,
         bool actorIsSuperAdmin,
@@ -276,7 +464,8 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(r => r.Tenant)
-            .Include(r => r.CurrentUser);
+            .Include(r => r.CurrentUser)
+            .Include(r => r.AssignedUser);
 
         if (actorIsSuperAdmin)
         {
@@ -291,7 +480,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
                 return query.Where(r => r.TenantId == requestedTenantId);
             }
 
-            return query;
+            return ApplyOperationalBusinessTenantFilter(query);
         }
 
         Guid effectiveTenantId;
@@ -312,6 +501,24 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         }
 
         return query.Where(r => r.TenantId == effectiveTenantId);
+    }
+
+    /// <summary>
+    /// Super Admin "all tenants" inventory: operational business mandants only.
+    /// Hides platform sentinel, leftover cafe/bar demo rows, and soft-deleted tenants.
+    /// Explicit <c>tenantId</c> filters still return that tenant's registers.
+    /// </summary>
+    private static IQueryable<CashRegister> ApplyOperationalBusinessTenantFilter(
+        IQueryable<CashRegister> query)
+    {
+        var leftoverSlugs = LeftoverDemoTenantSlugs.StorageSlugs;
+        return query.Where(r =>
+            r.Tenant != null
+            && r.Tenant.IsActive
+            && !TenantStatuses.RemovedStatuses.Contains(r.Tenant.Status)
+            && r.TenantId != SystemTenantIds.Platform
+            && r.Tenant.Slug != SystemTenantIds.PlatformSlug
+            && !leftoverSlugs.Contains(r.Tenant.Slug));
     }
 
     private static IQueryable<CashRegister> ApplyExcludeStatusFilter(
@@ -471,6 +678,34 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         }
     }
 
+    private async Task TryAuditAssignmentAsync(
+        CashRegister register,
+        string actorUserId,
+        string actorRole,
+        string? previousUserId,
+        string? newUserId)
+    {
+        try
+        {
+            var assigned = newUserId != null;
+            await _auditLog.LogEntityChangeAsync(
+                assigned ? AuditLogActions.CASH_REGISTER_ASSIGNED : AuditLogActions.CASH_REGISTER_UNASSIGNED,
+                AuditLogEntityTypes.CASH_REGISTER,
+                register.Id,
+                actorUserId,
+                actorRole,
+                oldValues: new { assignedUserId = previousUserId },
+                newValues: new { assignedUserId = newUserId },
+                description: assigned
+                    ? $"Cash register {register.RegisterNumber} assigned to user {newUserId}."
+                    : $"Cash register {register.RegisterNumber} assignment removed.").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Audit log failed for cash register assign RegisterId={RegisterId}", register.Id);
+        }
+    }
+
     private static CashRegisterDto MapToDto(CashRegister register) =>
         new()
         {
@@ -485,6 +720,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             CurrentBalance = register.CurrentBalance,
             LastBalanceUpdate = register.LastBalanceUpdate,
             CurrentUserId = register.CurrentUserId,
+            AssignedUserId = register.AssignedUserId,
             IsActive = register.IsActive,
             IsDefaultForTenant = register.IsDefaultForTenant,
             DecommissionedAtUtc = register.DecommissionedAtUtc,
@@ -493,5 +729,6 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             CreatedBy = register.CreatedBy,
             UpdatedAt = register.UpdatedAt,
             UpdatedBy = register.UpdatedBy,
+            StartbelegCreatedAtUtc = register.StartbelegCreatedAt,
         };
 }

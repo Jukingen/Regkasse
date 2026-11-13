@@ -3,645 +3,2214 @@
  * RKSV subtree is attached via `registerRksvSidebar` in `composeAdminSidebarData`.
  *
  * Permission keys for menu filtering match `MENU_PERMISSION` map keys (= `menuKey` for leaves).
+ * Primary IA areas pull `permission` / `permissionGroup` from `MENU_PERMISSION_MAP`.
  */
-
+import {
+  type RksvSidebarRegistryAttachment,
+  registerRksvSidebar,
+} from '@/features/rksv/sidebarPlugin';
+import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
+import {
+  type MenuPermissionMapKey,
+  logMenuPermissionMapWarnings,
+  sidebarFieldsFromMenuMap,
+  validateMenuPermissions,
+} from '@/shared/auth/menuPermissionMapping';
+import type { PermissionGroupKey } from '@/shared/auth/permissionGroupRegistry';
+import { ANY_AUTHENTICATED_PERMISSION, PERMISSIONS } from '@/shared/auth/permissions';
+import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
-import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
-import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
-import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
-import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/shared/auth/permissions';
 
-export type SidebarDomainId =
-    | 'operations'
-    | 'sales'
-    | 'catalog'
-    | 'customers'
-    | 'reporting'
-    | 'fiscalCompliance'
-    | 'administration';
+export type SidebarGroupId =
+  | 'dashboard'
+  | 'license'
+  | 'operations'
+  | 'finance'
+  | 'rksv'
+  | 'catalog'
+  | 'customers'
+  | 'reports'
+  | 'backup'
+  | 'settings'
+  | 'administration'
+  | 'securityTse'
+  | 'deploymentSystem'
+  | 'monitoringLogs'
+  | 'development'
+  | 'system';
 
 /** Keys into `SIDEBAR_ICON_COMPONENTS` in `buildAdminSidebar.tsx`. */
 export type SidebarIconToken =
-    | 'ThunderboltOutlined'
-    | 'ShoppingCartOutlined'
-    | 'AppstoreOutlined'
-    | 'UsergroupAddOutlined'
-    | 'LineChartOutlined'
-    | 'AuditOutlined'
-    | 'ToolOutlined'
-    | 'DashboardOutlined'
-    | 'PieChartOutlined'
-    | 'FundOutlined'
-    | 'TeamOutlined'
-    | 'FileTextOutlined'
-    | 'FileDoneOutlined'
-    | 'BarChartOutlined'
-    | 'AreaChartOutlined'
-    | 'ControlOutlined'
-    | 'TableOutlined'
-    | 'CalendarOutlined'
-    | 'FileSearchOutlined'
-    | 'CreditCardOutlined'
-    | 'SnippetsOutlined'
-    | 'EyeOutlined'
-    | 'ShoppingOutlined'
-    | 'FolderOutlined'
-    | 'GroupOutlined'
-    | 'TagOutlined'
-    | 'InboxOutlined'
-    | 'UserOutlined'
-    | 'GiftOutlined'
-    | 'SafetyCertificateOutlined'
-    | 'SafetyOutlined'
-    | 'SettingOutlined'
-    | 'ShopOutlined'
-    | 'BgColorsOutlined'
-    | 'CloudServerOutlined'
-    | 'ExperimentOutlined'
-    | 'WalletOutlined'
-    | 'ClockCircleOutlined'
-    | 'CloudDownloadOutlined'
-    | 'CloudSyncOutlined'
-    | 'KeyOutlined'
-    | 'ApartmentOutlined';
+  | 'ThunderboltOutlined'
+  | 'ShoppingCartOutlined'
+  | 'AppstoreOutlined'
+  | 'UsergroupAddOutlined'
+  | 'LineChartOutlined'
+  | 'AuditOutlined'
+  | 'ToolOutlined'
+  | 'DashboardOutlined'
+  | 'PieChartOutlined'
+  | 'FundOutlined'
+  | 'TeamOutlined'
+  | 'FileTextOutlined'
+  | 'FileDoneOutlined'
+  | 'BarChartOutlined'
+  | 'AreaChartOutlined'
+  | 'ControlOutlined'
+  | 'TableOutlined'
+  | 'CalendarOutlined'
+  | 'PercentageOutlined'
+  | 'FileSearchOutlined'
+  | 'CreditCardOutlined'
+  | 'SnippetsOutlined'
+  | 'EyeOutlined'
+  | 'ShoppingOutlined'
+  | 'FolderOutlined'
+  | 'GroupOutlined'
+  | 'TagOutlined'
+  | 'HomeOutlined'
+  | 'InboxOutlined'
+  | 'UserOutlined'
+  | 'GiftOutlined'
+  | 'SafetyCertificateOutlined'
+  | 'FlagOutlined'
+  | 'SafetyOutlined'
+  | 'SwapOutlined'
+  | 'ClusterOutlined'
+  | 'AlertOutlined'
+  | 'SettingOutlined'
+  | 'ShopOutlined'
+  | 'GlobalOutlined'
+  | 'BgColorsOutlined'
+  | 'CloudServerOutlined'
+  | 'ExperimentOutlined'
+  | 'WalletOutlined'
+  | 'ClockCircleOutlined'
+  | 'LaptopOutlined'
+  | 'CloudDownloadOutlined'
+  | 'CloudSyncOutlined'
+  | 'DatabaseOutlined'
+  | 'HistoryOutlined'
+  | 'KeyOutlined'
+  | 'ApartmentOutlined'
+  | 'PlusOutlined'
+  | 'DisconnectOutlined'
+  | 'UnorderedListOutlined'
+  | 'BugOutlined'
+  | 'ApiOutlined'
+  | 'MailOutlined'
+  | 'CustomerServiceOutlined';
 
 export type SidebarNavCatalogItem = {
-    /** Stable id for tests and layout references */
-    id: string;
-    /** Ant Design Menu item key (must match MENU_PERMISSION / route guard prefix keys) */
-    menuKey: string;
-    href: string;
-    labelKey: string;
-    icon?: SidebarIconToken;
-    /** Required permission(s) for sidebar visibility (must match `ROUTE_PERMISSIONS[menuKey]`). */
-    permission?: string | string[];
+  /** Stable id for tests and layout references */
+  id: string;
+  /** Ant Design Menu item key (must match MENU_PERMISSION / route guard prefix keys) */
+  menuKey: string;
+  href: string;
+  labelKey: string;
+  icon?: SidebarIconToken;
+  /** Required permission(s) for sidebar visibility (must match `ROUTE_PERMISSIONS[menuKey]`). */
+  permission?: string | string[];
+  /**
+   * Logical IA key from `MENU_PERMISSION_MAP` when this leaf is the area primary.
+   * Prefer setting via `sidebarFieldsFromMenuMap(area)`.
+   */
+  menuArea?: MenuPermissionMapKey;
+  /** Catalog permission group slug (from `MENU_PERMISSION_MAP` when wired). */
+  permissionGroup?: PermissionGroupKey | null;
+  /** When true, route is registered but omitted from sidebar leaves (deep-link only). */
+  sidebarHidden?: boolean;
+  /** When true, leaf is shown only when `NODE_ENV === 'development'`. */
+  developmentOnly?: boolean;
+  /**
+   * Ambient vertical-profile feature. Leaf is shown only when
+   * `posFeatures[requiredFeature] === true`.
+   */
+  requiredFeature?: string;
+  /** Show only when the ambient profile id is in this list. */
+  onlyForProfiles?: string[];
+  /** Hide when the ambient profile id is in this list. */
+  hiddenForProfiles?: string[];
+  /**
+   * Super Admin "all profiles" skips profile gates. Set this when the leaf must
+   * still follow `onlyForProfiles` for the ambient tenant.
+   */
+  enforceProfileInAllView?: boolean;
 };
 
 /**
  * Flat catalog: every non-RKSV routable sidebar leaf (and nested subgroup leaves).
  */
 export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
-    operationsCenter: {
-        id: 'operationsCenter',
-        menuKey: '/operations-center',
-        href: '/operations-center',
-        labelKey: 'nav.operationsCenter',
-        icon: 'ControlOutlined',
-    },
-    tables: {
-        id: 'tables',
-        menuKey: '/tables',
-        href: '/tables',
-        labelKey: 'nav.tables',
-        icon: 'TableOutlined',
-    },
-    kassenverwaltung: {
-        id: 'kassenverwaltung',
-        menuKey: '/kassenverwaltung',
-        href: '/kassenverwaltung',
-        labelKey: 'nav.kassenverwaltung',
-        icon: 'ShopOutlined',
-        permission: AppPermissions.CashRegisterManage,
-    },
-    shiftsOverview: {
-        id: 'shiftsOverview',
-        menuKey: '/shifts',
-        href: '/shifts',
-        labelKey: 'nav.shiftsOverview',
-        icon: 'ClockCircleOutlined',
-        permission: PERMISSIONS.SHIFT_VIEW,
-    },
-    tagesabschluss: {
-        id: 'tagesabschluss',
-        menuKey: '/tagesabschluss',
-        href: '/tagesabschluss',
-        labelKey: 'nav.tagesabschluss',
-        icon: 'CalendarOutlined',
-    },
-    receipts: {
-        id: 'receipts',
-        menuKey: '/receipts',
-        href: '/receipts',
-        labelKey: 'nav.receipts',
-        icon: 'FileSearchOutlined',
-    },
-    payments: {
-        id: 'payments',
-        menuKey: '/payments',
-        href: '/payments',
-        labelKey: 'nav.payments',
-        icon: 'CreditCardOutlined',
-    },
-    stornoRefundAudit: {
-        id: 'stornoRefundAudit',
-        menuKey: '/payments/storno-refund-audit',
-        href: '/payments/storno-refund-audit',
-        labelKey: 'nav.stornoRefundAudit',
-        icon: 'AuditOutlined',
-    },
-    paymentTrends: {
-        id: 'paymentTrends',
-        menuKey: '/payments/trends',
-        href: '/payments/trends',
-        labelKey: 'nav.paymentTrends',
-        icon: 'AreaChartOutlined',
-        permission: PERMISSIONS.PAYMENT_VIEW,
-    },
-    cardTransactions: {
-        id: 'cardTransactions',
-        menuKey: '/admin/payments/card-transactions',
-        href: '/admin/payments/card-transactions',
-        labelKey: 'nav.cardTransactions',
-        icon: 'CreditCardOutlined',
-        permission: PERMISSIONS.PAYMENT_VIEW,
-    },
-    vouchers: {
-        id: 'vouchers',
-        menuKey: '/vouchers',
-        href: '/vouchers',
-        labelKey: 'nav.vouchers',
-        icon: 'WalletOutlined',
-    },
-    invoices: {
-        id: 'invoices',
-        menuKey: '/invoices',
-        href: '/invoices',
-        labelKey: 'nav.invoices',
-        icon: 'FileDoneOutlined',
-    },
-    receiptTemplates: {
-        id: 'receiptTemplates',
-        menuKey: '/receipt-templates',
-        href: '/receipt-templates',
-        labelKey: 'nav.receiptTemplates',
-        icon: 'SnippetsOutlined',
-    },
-    receiptGenerate: {
-        id: 'receiptGenerate',
-        menuKey: '/receipt-generate',
-        href: '/receipt-generate',
-        labelKey: 'nav.receiptGenerate',
-        icon: 'EyeOutlined',
-    },
-    products: {
-        id: 'products',
-        menuKey: '/products',
-        href: '/products',
-        labelKey: 'nav.products',
-        icon: 'ShoppingOutlined',
-        permission: PERMISSIONS.PRODUCT_VIEW,
-    },
-    categories: {
-        id: 'categories',
-        menuKey: '/categories',
-        href: '/categories',
-        labelKey: 'nav.categories',
-        icon: 'FolderOutlined',
-    },
-    modifierGroups: {
-        id: 'modifierGroups',
-        menuKey: '/modifier-groups',
-        href: '/modifier-groups',
-        labelKey: 'nav.modifierGroups',
-        icon: 'GroupOutlined',
-    },
-    pricingRules: {
-        id: 'pricingRules',
-        menuKey: '/pricing-rules',
-        href: '/pricing-rules',
-        labelKey: 'nav.pricingRules',
-        icon: 'TagOutlined',
-    },
-    inventory: {
-        id: 'inventory',
-        menuKey: '/inventory',
-        href: '/inventory',
-        labelKey: 'nav.inventory',
-        icon: 'InboxOutlined',
-    },
-    customers: {
-        id: 'customers',
-        menuKey: '/customers',
-        href: '/customers',
-        labelKey: 'nav.customers',
-        icon: 'UserOutlined',
-    },
-    benefitDefinitions: {
-        id: 'benefitDefinitions',
-        menuKey: '/benefit-definitions',
-        href: '/benefit-definitions',
-        labelKey: 'nav.benefitDefinitions',
-        icon: 'GiftOutlined',
-    },
-    benefitAssignments: {
-        id: 'benefitAssignments',
-        menuKey: '/benefit-assignments',
-        href: '/benefit-assignments',
-        labelKey: 'nav.benefitAssignments',
-        icon: 'TagOutlined',
-    },
-    reportingDashboard: {
-        id: 'reportingDashboard',
-        menuKey: '/dashboard',
-        href: '/dashboard',
-        labelKey: 'nav.reportingDashboard',
-        icon: 'DashboardOutlined',
-        permission: ANY_AUTHENTICATED_PERMISSION,
-    },
-    reportingOverview: {
-        id: 'reportingOverview',
-        menuKey: '/reporting',
-        href: '/reporting',
-        labelKey: 'nav.reporting',
-        icon: 'PieChartOutlined',
-    },
-    reportCenter: {
-        id: 'reportCenter',
-        menuKey: '/reporting/report-center',
-        href: '/reporting/report-center',
-        labelKey: 'nav.reportCenter',
-        icon: 'FundOutlined',
-    },
-    staffPerformance: {
-        id: 'staffPerformance',
-        menuKey: '/reporting/staff',
-        href: '/reporting/staff',
-        labelKey: 'nav.staffPerformance',
-        icon: 'TeamOutlined',
-    },
-    dailyClosingSummary: {
-        id: 'dailyClosingSummary',
-        menuKey: '/reports/daily-closing',
-        href: '/reports/daily-closing',
-        labelKey: 'nav.dailyClosingSummary',
-        icon: 'SnippetsOutlined',
-    },
-    complianceReports: {
-        id: 'complianceReports',
-        menuKey: '/reporting/compliance',
-        href: '/reporting/compliance',
-        labelKey: 'nav.complianceReports',
-        icon: 'SafetyCertificateOutlined',
-    },
-    userActivityReport: {
-        id: 'userActivityReport',
-        menuKey: '/admin/reports/user-activity',
-        href: '/admin/reports/user-activity',
-        labelKey: 'nav.userActivityReport',
-        icon: 'TeamOutlined',
-    },
-    tagesbericht: {
-        id: 'tagesbericht',
-        menuKey: '/reporting/tagesbericht',
-        href: '/reporting/tagesbericht',
-        labelKey: 'nav.tagesbericht',
-        icon: 'FileDoneOutlined',
-    },
-    monatsbericht: {
-        id: 'monatsbericht',
-        menuKey: '/reporting/monatsbericht',
-        href: '/reporting/monatsbericht',
-        labelKey: 'nav.monatsbericht',
-        icon: 'BarChartOutlined',
-    },
-    jahresbericht: {
-        id: 'jahresbericht',
-        menuKey: '/reporting/jahresbericht',
-        href: '/reporting/jahresbericht',
-        labelKey: 'nav.jahresbericht',
-        icon: 'AreaChartOutlined',
-    },
-    auditLogs: {
-        id: 'auditLogs',
-        menuKey: '/audit-logs',
-        href: '/audit-logs',
-        labelKey: 'nav.auditLogs',
-        icon: 'SafetyCertificateOutlined',
-    },
-    fiscalExportAuditLogs: {
-        id: 'fiscalExportAuditLogs',
-        menuKey: '/admin/audit/fiscal-exports',
-        href: '/admin/audit/fiscal-exports',
-        labelKey: 'nav.fiscalExportAuditLogs',
-        icon: 'CloudDownloadOutlined',
-    },
-    offlineTransactionsAdmin: {
-        id: 'offlineTransactionsAdmin',
-        menuKey: '/admin/tse/offline-transactions',
-        href: '/admin/tse/offline-transactions',
-        labelKey: 'nav.offlineTransactionsAdmin',
-        icon: 'InboxOutlined',
-    },
-    users: {
-        id: 'users',
-        menuKey: '/admin/users',
-        href: '/admin/users',
-        labelKey: 'nav.users',
-        icon: 'TeamOutlined',
-        permission: PERMISSIONS.USER_VIEW,
-    },
-    accessOverview: {
-        id: 'accessOverview',
-        menuKey: '/admin/access',
-        href: '/admin/access',
-        labelKey: 'nav.accessOverview',
-        icon: 'KeyOutlined',
-        permission: PERMISSIONS.USER_VIEW,
-    },
-    accessRoles: {
-        id: 'accessRoles',
-        menuKey: '/admin/access/roles',
-        href: '/admin/access/roles',
-        labelKey: 'nav.accessRoles',
-        icon: 'SafetyOutlined',
-        permission: PERMISSIONS.ROLE_VIEW,
-    },
-    accessMatrix: {
-        id: 'accessMatrix',
-        menuKey: '/admin/access/matrix',
-        href: '/admin/access/matrix',
-        labelKey: 'nav.accessMatrix',
-        icon: 'AuditOutlined',
-        permission: PERMISSIONS.ROLE_VIEW,
-    },
-    companySettings: {
-        id: 'companySettings',
-        menuKey: '/settings/company',
-        href: '/settings/company',
-        labelKey: 'nav.companySettings',
-        icon: 'ShopOutlined',
-    },
-    sessionSettings: {
-        id: 'sessionSettings',
-        menuKey: '/settings/session',
-        href: '/settings/session',
-        labelKey: 'nav.sessionSettings',
-        icon: 'ClockCircleOutlined',
-    },
-    personalization: {
-        id: 'personalization',
-        menuKey: '/settings/personalization',
-        href: '/settings/personalization',
-        labelKey: 'nav.personalization',
-        icon: 'BgColorsOutlined',
-    },
-    paymentMethods: {
-        id: 'paymentMethods',
-        menuKey: '/settings/payment-methods',
-        href: '/settings/payment-methods',
-        labelKey: 'nav.paymentMethods',
-        icon: 'CreditCardOutlined',
-    },
-    backupDr: {
-        id: 'backupDr',
-        menuKey: '/settings/backup-dr',
-        href: '/settings/backup-dr',
-        labelKey: 'nav.backupDr',
-        icon: 'CloudServerOutlined',
-    },
-    backupMonitoring: {
-        id: 'backupMonitoring',
-        menuKey: '/admin/backup',
-        href: '/admin/backup',
-        labelKey: 'nav.backupRestore',
-        icon: 'CloudSyncOutlined',
-        permission: PERMISSIONS.SETTINGS_VIEW,
-    },
-    developmentMode: {
-        id: 'developmentMode',
-        menuKey: '/settings/development-mode',
-        href: '/settings/development-mode',
-        labelKey: 'nav.developmentMode',
-        icon: 'ExperimentOutlined',
-    },
-    timeSync: {
-        id: 'timeSync',
-        menuKey: '/admin/system/time-sync',
-        href: '/admin/system/time-sync',
-        labelKey: 'nav.timeSync',
-        icon: 'ClockCircleOutlined',
-    },
-    licenseManagement: {
-        id: 'licenseManagement',
-        menuKey: '/admin/license',
-        href: '/admin/license',
-        labelKey: 'nav.licenseManagement',
-        icon: 'KeyOutlined',
-    },
-    superAdminTenants: {
-        id: 'superAdminTenants',
-        menuKey: '/admin/tenants',
-        href: '/admin/tenants',
-        labelKey: 'nav.superAdminTenants',
-        icon: 'ApartmentOutlined',
-    },
-    superAdminLicenses: {
-        id: 'superAdminLicenses',
-        menuKey: '/admin/licenses',
-        href: '/admin/licenses',
-        labelKey: 'nav.superAdminLicenses',
-        icon: 'SafetyOutlined',
-        permission: AppPermissions.LicenseView,
-    },
-    superAdminCashRegisters: {
-        id: 'superAdminCashRegisters',
-        menuKey: '/admin/cash-registers',
-        href: '/admin/cash-registers',
-        labelKey: 'nav.superAdminCashRegisters',
-        icon: 'ShopOutlined',
-    },
-    rksvTestsDepExport: {
-        id: 'rksvTestsDepExport',
-        menuKey: '/admin/rksv/dep-export',
-        href: '/admin/rksv/dep-export',
-        labelKey: 'nav.rksvTestsDepExport',
-        icon: 'SafetyCertificateOutlined',
-    },
-    rksvTestsSignatureVerify: {
-        id: 'rksvTestsSignatureVerify',
-        menuKey: '/admin/rksv/signature-verify',
-        href: '/admin/rksv/signature-verify',
-        labelKey: 'nav.rksvTestsSignatureVerify',
-        icon: 'SafetyCertificateOutlined',
-    },
+  operationsCenter: {
+    id: 'operationsCenter',
+    menuKey: '/operations-center',
+    href: '/operations-center',
+    labelKey: 'nav.operationsCenter',
+    icon: 'ControlOutlined',
+    ...sidebarFieldsFromMenuMap('operations'),
+  },
+  tables: {
+    id: 'tables',
+    menuKey: '/tables',
+    href: '/tables',
+    labelKey: 'nav.tables',
+    icon: 'TableOutlined',
+    requiredFeature: 'tables',
+    ...sidebarFieldsFromMenuMap('tables'),
+  },
+  kassenverwaltung: {
+    id: 'kassenverwaltung',
+    menuKey: '/kassenverwaltung',
+    href: '/kassenverwaltung',
+    labelKey: 'nav.cashRegisters',
+    icon: 'ShopOutlined',
+    ...sidebarFieldsFromMenuMap('cashRegisters'),
+  },
+  shiftsOverview: {
+    id: 'shiftsOverview',
+    menuKey: '/shifts',
+    href: '/shifts',
+    labelKey: 'nav.shifts',
+    icon: 'ClockCircleOutlined',
+    ...sidebarFieldsFromMenuMap('shifts'),
+  },
+  staffHub: {
+    id: 'staffHub',
+    menuKey: '/staff',
+    href: '/staff',
+    labelKey: 'nav.staff',
+    icon: 'TeamOutlined',
+    ...sidebarFieldsFromMenuMap('employees'),
+  },
+  tagesabschluss: {
+    id: 'tagesabschluss',
+    menuKey: '/tagesabschluss',
+    href: '/tagesabschluss',
+    labelKey: 'nav.dailyClosing',
+    icon: 'CalendarOutlined',
+    ...sidebarFieldsFromMenuMap('tagesabschluss'),
+  },
+  receipts: {
+    id: 'receipts',
+    menuKey: '/receipts',
+    href: '/receipts',
+    labelKey: 'nav.receipts',
+    icon: 'FileSearchOutlined',
+    ...sidebarFieldsFromMenuMap('sales'),
+  },
+  payments: {
+    id: 'payments',
+    menuKey: '/payments',
+    href: '/payments',
+    labelKey: 'nav.payments',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  stornoRefundAudit: {
+    id: 'stornoRefundAudit',
+    menuKey: '/payments/storno-refund-audit',
+    href: '/payments/storno-refund-audit',
+    labelKey: 'nav.cancellations',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  paymentTrends: {
+    id: 'paymentTrends',
+    menuKey: '/payments/trends',
+    href: '/payments/trends',
+    labelKey: 'nav.paymentTrends',
+    icon: 'AreaChartOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  cardTransactions: {
+    id: 'cardTransactions',
+    menuKey: '/admin/payments/card-transactions',
+    href: '/admin/payments/card-transactions',
+    labelKey: 'nav.cardTransactions',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  onlinePayments: {
+    id: 'onlinePayments',
+    menuKey: '/admin/online-payments',
+    href: '/admin/online-payments',
+    labelKey: 'nav.onlinePayments',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
+  },
+  vouchers: {
+    id: 'vouchers',
+    menuKey: '/vouchers',
+    href: '/vouchers',
+    labelKey: 'nav.vouchers',
+    icon: 'WalletOutlined',
+    permission: PERMISSIONS.VOUCHER_READ,
+  },
+  invoices: {
+    id: 'invoices',
+    menuKey: '/invoices',
+    href: '/invoices',
+    labelKey: 'nav.invoices',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.INVOICE_VIEW,
+  },
+  onlineOrders: {
+    id: 'onlineOrders',
+    menuKey: '/orders/online',
+    href: '/orders/online',
+    labelKey: 'nav.onlineOrders',
+    icon: 'ShoppingOutlined',
+    permission: [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
+  },
+  preorders: {
+    id: 'preorders',
+    menuKey: '/orders/preorders',
+    href: '/orders/preorders',
+    labelKey: 'nav.preorders',
+    icon: 'InboxOutlined',
+    permission: PERMISSIONS.ORDER_VIEW,
+  },
+  receiptTemplates: {
+    id: 'receiptTemplates',
+    menuKey: '/receipt-templates',
+    href: '/receipt-templates',
+    labelKey: 'nav.receiptTemplates',
+    icon: 'SnippetsOutlined',
+    sidebarHidden: true,
+  },
+  receiptGenerate: {
+    id: 'receiptGenerate',
+    menuKey: '/receipt-generate',
+    href: '/receipt-generate',
+    labelKey: 'nav.receiptGenerate',
+    icon: 'EyeOutlined',
+    sidebarHidden: true,
+  },
+  products: {
+    id: 'products',
+    menuKey: '/products',
+    href: '/products',
+    labelKey: 'nav.products',
+    icon: 'ShoppingOutlined',
+    ...sidebarFieldsFromMenuMap('products'),
+  },
+  ticketRedemptions: {
+    id: 'ticketRedemptions',
+    menuKey: '/admin/tickets/redemptions',
+    href: '/admin/tickets/redemptions',
+    labelKey: 'nav.ticketRedemptions',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['ticket-sales'],
+  },
+  ticketEvents: {
+    id: 'ticketEvents',
+    menuKey: '/admin/tickets/events',
+    href: '/admin/tickets/events',
+    labelKey: 'nav.ticketEvents',
+    icon: 'CalendarOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['ticket-sales'],
+  },
+  rooms: {
+    id: 'rooms',
+    menuKey: '/admin/rooms',
+    href: '/admin/rooms',
+    labelKey: 'nav.rooms',
+    icon: 'HomeOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['beherbergung'],
+  },
+  folios: {
+    id: 'folios',
+    menuKey: '/admin/folios',
+    href: '/admin/folios',
+    labelKey: 'nav.folios',
+    icon: 'FileTextOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['beherbergung'],
+  },
+  patients: {
+    id: 'patients',
+    menuKey: '/admin/patients',
+    href: '/admin/patients',
+    labelKey: 'nav.patients',
+    icon: 'UserOutlined',
+    permission: PERMISSIONS.PATIENT_VIEW,
+    onlyForProfiles: ['vet', 'doctor'],
+  },
+  appointments: {
+    id: 'appointments',
+    menuKey: '/admin/appointments',
+    href: '/admin/appointments',
+    labelKey: 'nav.appointments',
+    icon: 'CalendarOutlined',
+    permission: PERMISSIONS.APPOINTMENT_VIEW,
+    onlyForProfiles: ['hair-salon'],
+  },
+  imeis: {
+    id: 'imeis',
+    menuKey: '/admin/imeis',
+    href: '/admin/imeis',
+    labelKey: 'nav.imeis',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.IMEI_VIEW,
+    onlyForProfiles: ['handy-shop'],
+  },
+  taxiTrips: {
+    id: 'taxiTrips',
+    menuKey: '/admin/taxi-trips',
+    href: '/admin/taxi-trips',
+    labelKey: 'nav.taxiTrips',
+    icon: 'SwapOutlined',
+    permission: PERMISSIONS.TAXI_TRIP_VIEW,
+    onlyForProfiles: ['taxi'],
+  },
+  customerAddresses: {
+    id: 'customerAddresses',
+    menuKey: '/admin/customer-addresses',
+    href: '/admin/customer-addresses',
+    labelKey: 'nav.customerAddresses',
+    icon: 'HomeOutlined',
+    permission: PERMISSIONS.CUSTOMER_VIEW,
+    onlyForProfiles: ['mobile-services'],
+  },
+  categories: {
+    id: 'categories',
+    menuKey: '/categories',
+    href: '/categories',
+    labelKey: 'nav.categories',
+    icon: 'FolderOutlined',
+    ...sidebarFieldsFromMenuMap('categories'),
+  },
+  modifierGroups: {
+    id: 'modifierGroups',
+    menuKey: '/modifier-groups',
+    href: '/modifier-groups',
+    labelKey: 'nav.addonGroups',
+    icon: 'GroupOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['gastronomy', 'gastronomy-tables'],
+  },
+  pricingRules: {
+    id: 'pricingRules',
+    menuKey: '/pricing-rules',
+    href: '/pricing-rules',
+    labelKey: 'nav.priceRules',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+  },
+  inventory: {
+    id: 'inventory',
+    menuKey: '/inventory',
+    href: '/inventory',
+    labelKey: 'nav.inventory',
+    icon: 'InboxOutlined',
+    permission: PERMISSIONS.INVENTORY_VIEW,
+  },
+  customers: {
+    id: 'customers',
+    menuKey: '/customers',
+    href: '/customers',
+    labelKey: 'nav.customerList',
+    icon: 'UserOutlined',
+    ...sidebarFieldsFromMenuMap('customers'),
+  },
+  benefitDefinitions: {
+    id: 'benefitDefinitions',
+    menuKey: '/benefit-definitions',
+    href: '/benefit-definitions',
+    labelKey: 'nav.benefitDefinitions',
+    icon: 'GiftOutlined',
+    sidebarHidden: true,
+    ...sidebarFieldsFromMenuMap('benefits'),
+  },
+  benefitAssignments: {
+    id: 'benefitAssignments',
+    menuKey: '/benefit-assignments',
+    href: '/benefit-assignments',
+    labelKey: 'nav.benefitAssignments',
+    icon: 'TagOutlined',
+    sidebarHidden: true,
+  },
+  reportingDashboard: {
+    id: 'reportingDashboard',
+    menuKey: '/dashboard',
+    href: '/dashboard',
+    labelKey: 'nav.overview',
+    icon: 'DashboardOutlined',
+    permission: ANY_AUTHENTICATED_PERMISSION,
+  },
+  reportingOverview: {
+    id: 'reportingOverview',
+    menuKey: '/reporting',
+    href: '/reporting',
+    labelKey: 'nav.operationalReports',
+    icon: 'PieChartOutlined',
+    ...sidebarFieldsFromMenuMap('reports'),
+  },
+  reportCenter: {
+    id: 'reportCenter',
+    menuKey: '/reporting/report-center',
+    href: '/reporting/report-center',
+    labelKey: 'nav.reportCenter',
+    icon: 'FundOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  staffPerformance: {
+    id: 'staffPerformance',
+    menuKey: '/reporting/staff',
+    href: '/reporting/staff',
+    labelKey: 'nav.staffPerformance',
+    icon: 'TeamOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  activityLog: {
+    id: 'activityLog',
+    menuKey: '/audit-logs/activity',
+    href: '/audit-logs/activity',
+    labelKey: 'nav.activityLog',
+    icon: 'UnorderedListOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  dailyClosingSummary: {
+    id: 'dailyClosingSummary',
+    menuKey: '/reports/daily-closing',
+    href: '/reports/daily-closing',
+    labelKey: 'nav.dailyClosingSummary',
+    icon: 'SnippetsOutlined',
+    sidebarHidden: true,
+  },
+  complianceReports: {
+    id: 'complianceReports',
+    menuKey: '/reporting/compliance',
+    href: '/reporting/compliance',
+    labelKey: 'nav.complianceReports',
+    icon: 'SafetyCertificateOutlined',
+    sidebarHidden: true,
+  },
+  userActivityReport: {
+    id: 'userActivityReport',
+    menuKey: '/admin/reports/user-activity',
+    href: '/admin/reports/user-activity',
+    labelKey: 'nav.userActivity',
+    icon: 'TeamOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  cashRegisterReports: {
+    id: 'cashRegisterReports',
+    menuKey: '/admin/reports',
+    href: '/admin/reports',
+    labelKey: 'nav.cashRegisterReports',
+    icon: 'BarChartOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  tagesbericht: {
+    id: 'tagesbericht',
+    menuKey: '/reporting/tagesbericht',
+    href: '/reporting/tagesbericht',
+    labelKey: 'nav.tagesbericht',
+    icon: 'FileDoneOutlined',
+    sidebarHidden: true,
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  monatsbericht: {
+    id: 'monatsbericht',
+    menuKey: '/reporting/monatsbericht',
+    href: '/reporting/monatsbericht',
+    labelKey: 'nav.monatsbericht',
+    icon: 'BarChartOutlined',
+    sidebarHidden: true,
+  },
+  jahresbericht: {
+    id: 'jahresbericht',
+    menuKey: '/reporting/jahresbericht',
+    href: '/reporting/jahresbericht',
+    labelKey: 'nav.jahresbericht',
+    icon: 'AreaChartOutlined',
+    sidebarHidden: true,
+  },
+  steuerberichte: {
+    id: 'steuerberichte',
+    menuKey: '/reporting/steuerberichte',
+    href: '/reporting/steuerberichte',
+    labelKey: 'nav.steuerberichte',
+    icon: 'PieChartOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
+  auditLogs: {
+    id: 'auditLogs',
+    menuKey: '/audit-logs',
+    href: '/audit-logs',
+    labelKey: 'nav.auditLogs',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  fiscalExportAuditLogs: {
+    id: 'fiscalExportAuditLogs',
+    menuKey: '/admin/audit/fiscal-exports',
+    href: '/admin/audit/fiscal-exports',
+    labelKey: 'nav.fiscalExportAuditLogs',
+    icon: 'CloudDownloadOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  /** Legacy TSE offline intents (`offline_transactions`). New full-order snapshots: RKSV hub → Diagnose → `rksvAdminMenuModel` `/rksv/offline-orders` (`payment.view`). */
+  offlineTransactionsAdmin: {
+    id: 'offlineTransactionsAdmin',
+    menuKey: '/admin/tse/offline-transactions',
+    href: '/admin/tse/offline-transactions',
+    labelKey: 'nav.offlineTransactionsAdmin',
+    icon: 'InboxOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  users: {
+    id: 'users',
+    menuKey: '/admin/users',
+    href: '/admin/users',
+    labelKey: 'nav.users',
+    icon: 'TeamOutlined',
+    ...sidebarFieldsFromMenuMap('users'),
+  },
+  adminSessions: {
+    id: 'adminSessions',
+    menuKey: '/admin/sessions',
+    href: '/admin/sessions',
+    labelKey: 'nav.sessions',
+    icon: 'LaptopOutlined',
+    permission: PERMISSIONS.USER_VIEW,
+  },
+  accessOverview: {
+    id: 'accessOverview',
+    menuKey: '/admin/access',
+    href: '/admin/access',
+    labelKey: 'nav.overview',
+    icon: 'KeyOutlined',
+    permission: PERMISSIONS.USER_VIEW,
+  },
+  accessRoles: {
+    id: 'accessRoles',
+    menuKey: '/admin/access/roles',
+    href: '/admin/access/roles',
+    labelKey: 'nav.rolesPermissions',
+    icon: 'SafetyOutlined',
+    permission: PERMISSIONS.ROLE_MANAGE,
+  },
+  accessMatrix: {
+    id: 'accessMatrix',
+    menuKey: '/admin/access/matrix',
+    href: '/admin/access/matrix',
+    labelKey: 'nav.permissionsOverview',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.ROLE_VIEW,
+  },
+  accessPermissionHistory: {
+    id: 'accessPermissionHistory',
+    menuKey: '/admin/access/permission-history',
+    href: '/admin/access/permission-history',
+    labelKey: 'nav.permissionHistory',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  accessPermissionRequests: {
+    id: 'accessPermissionRequests',
+    menuKey: '/admin/access/permission-requests',
+    href: '/admin/access/permission-requests',
+    labelKey: 'nav.permissionRequests',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  accessPermissionPackages: {
+    id: 'accessPermissionPackages',
+    menuKey: '/admin/access/permission-packages',
+    href: '/admin/access/permission-packages',
+    labelKey: 'nav.permissionPackages',
+    icon: 'AppstoreOutlined',
+    permission: PERMISSIONS.ROLE_VIEW,
+  },
+  accessPermissionBackups: {
+    id: 'accessPermissionBackups',
+    menuKey: '/admin/access/permission-backups',
+    href: '/admin/access/permission-backups',
+    labelKey: 'nav.permissionBackups',
+    icon: 'ToolOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  accessPermissionStats: {
+    id: 'accessPermissionStats',
+    menuKey: '/admin/access/permission-stats',
+    href: '/admin/access/permission-stats',
+    labelKey: 'nav.permissionStats',
+    icon: 'PieChartOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  companySettings: {
+    id: 'companySettings',
+    menuKey: '/settings/company',
+    href: '/settings/company',
+    labelKey: 'nav.companyFiscal',
+    icon: 'ShopOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+  },
+  receiptSettings: {
+    id: 'receiptSettings',
+    menuKey: '/settings/receipt',
+    href: '/settings/receipt',
+    labelKey: 'nav.receiptSettings',
+    icon: 'FileTextOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  workingHours: {
+    id: 'workingHours',
+    menuKey: '/settings/working-hours',
+    href: '/settings/working-hours',
+    labelKey: 'nav.workingHours',
+    icon: 'CalendarOutlined',
+    ...sidebarFieldsFromMenuMap('workingHours'),
+  },
+  kitchen: {
+    id: 'kitchen',
+    menuKey: '/admin/kitchen',
+    href: '/admin/kitchen',
+    labelKey: 'nav.kitchen',
+    icon: 'ControlOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+    requiredFeature: 'kitchenDisplay',
+  },
+  extensions: {
+    id: 'extensions',
+    menuKey: '/admin/extensions',
+    href: '/admin/extensions',
+    labelKey: 'nav.extensions',
+    icon: 'ApiOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  taxGroups: {
+    id: 'taxGroups',
+    menuKey: '/settings/tax-groups',
+    href: '/settings/tax-groups',
+    labelKey: 'nav.taxGroups',
+    icon: 'PercentageOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  taxHistory: {
+    id: 'taxHistory',
+    menuKey: '/settings/tax-history',
+    href: '/settings/tax-history',
+    labelKey: 'nav.taxHistory',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  websiteGenerator: {
+    id: 'websiteGenerator',
+    menuKey: '/settings/website',
+    href: '/settings/website',
+    labelKey: 'nav.websiteGenerator',
+    icon: 'GlobalOutlined',
+    permission: [
+      PERMISSIONS.DIGITAL_VIEW,
+      PERMISSIONS.DIGITAL_PREVIEW,
+      PERMISSIONS.DIGITAL_REQUEST,
+      PERMISSIONS.DIGITAL_CREATE,
+      PERMISSIONS.WEBSITE_MANAGE,
+    ],
+  },
+  digitalPortal: {
+    id: 'digitalPortal',
+    menuKey: '/settings/digital',
+    href: '/settings/digital',
+    labelKey: 'nav.digitalPortal',
+    icon: 'GlobalOutlined',
+    ...sidebarFieldsFromMenuMap('digitalServices'),
+  },
+  customerPortal: {
+    id: 'customerPortal',
+    menuKey: '/digital/customer-portal',
+    href: '/digital/customer-portal',
+    labelKey: 'nav.customerPortal',
+    icon: 'GlobalOutlined',
+    permission: [PERMISSIONS.DIGITAL_VIEW, PERMISSIONS.DIGITAL_REQUEST, PERMISSIONS.WEBSITE_MANAGE],
+  },
+  settingsHub: {
+    id: 'settingsHub',
+    menuKey: '/settings',
+    href: '/settings',
+    labelKey: 'nav.settingsHub',
+    icon: 'SettingOutlined',
+    ...sidebarFieldsFromMenuMap('settings'),
+  },
+  tseSettings: {
+    id: 'tseSettings',
+    menuKey: '/settings/tse',
+    href: '/settings/tse',
+    labelKey: 'settings.tabs.tse',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+    sidebarHidden: true,
+  },
+  finanzonlineSettings: {
+    id: 'finanzonlineSettings',
+    menuKey: '/settings/finanzonline',
+    href: '/settings/finanzonline',
+    labelKey: 'settings.tabs.finanzOnline',
+    icon: 'WalletOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+    sidebarHidden: true,
+  },
+  backupSettings: {
+    id: 'backupSettings',
+    menuKey: '/settings/backup',
+    href: '/settings/backup',
+    labelKey: 'settings.manager.advanced.backup',
+    icon: 'CloudServerOutlined',
+    permission: PERMISSIONS.BACKUP_MANAGE,
+    sidebarHidden: true,
+  },
+  settingsDataManagement: {
+    id: 'settingsDataManagement',
+    menuKey: '/settings/data-management',
+    href: '/settings/data-management',
+    labelKey: 'nav.dataManagement',
+    icon: 'DatabaseOutlined',
+    permission: PERMISSIONS.BACKUP_MANAGE,
+  },
+  settingsAccount: {
+    id: 'settingsAccount',
+    menuKey: '/settings/account',
+    href: '/settings/account',
+    labelKey: 'nav.accountManagement',
+    icon: 'UserOutlined',
+    permission: PERMISSIONS.BACKUP_MANAGE,
+  },
+  sessionSettings: {
+    id: 'sessionSettings',
+    menuKey: '/settings/session',
+    href: '/settings/session',
+    labelKey: 'nav.sessionInactivity',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  activeSessions: {
+    id: 'activeSessions',
+    menuKey: '/settings/sessions',
+    href: '/settings/sessions',
+    labelKey: 'nav.activeSessions',
+    icon: 'LaptopOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  offlineSettings: {
+    id: 'offlineSettings',
+    menuKey: '/settings/offline',
+    href: '/settings/offline',
+    labelKey: 'nav.offlineSettings',
+    icon: 'DisconnectOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+    sidebarHidden: true,
+  },
+  personalization: {
+    id: 'personalization',
+    menuKey: '/settings/personalization',
+    href: '/settings/personalization',
+    labelKey: 'nav.appearanceLanguage',
+    icon: 'BgColorsOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  preferences: {
+    id: 'preferences',
+    menuKey: '/settings/preferences',
+    href: '/settings/preferences',
+    labelKey: 'nav.dateTimePreferences',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  paymentMethods: {
+    id: 'paymentMethods',
+    menuKey: '/settings/payment-methods',
+    href: '/settings/payment-methods',
+    labelKey: 'nav.paymentMethods',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  paymentGateway: {
+    id: 'paymentGateway',
+    menuKey: '/settings/payment',
+    href: '/settings/payment',
+    labelKey: 'nav.paymentGateway',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+  },
+  backupDr: {
+    id: 'backupDr',
+    menuKey: '/backup',
+    href: '/backup',
+    labelKey: 'nav.backupOverview',
+    icon: 'DashboardOutlined',
+    ...sidebarFieldsFromMenuMap('backup'),
+  },
+  backupRuns: {
+    id: 'backupRuns',
+    menuKey: '/backup/runs',
+    href: '/backup/runs',
+    labelKey: 'nav.backupRuns',
+    icon: 'DatabaseOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  backupPitr: {
+    id: 'backupPitr',
+    menuKey: '/backup/pitr',
+    href: '/backup/pitr',
+    labelKey: 'nav.backupPitr',
+    icon: 'CalendarOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  backupRestoreVerification: {
+    id: 'backupRestoreVerification',
+    menuKey: '/backup/restore-verification',
+    href: '/admin/restore-verification',
+    labelKey: 'nav.backupRestoreVerification',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  backupSchedule: {
+    id: 'backupSchedule',
+    menuKey: '/backup/configuration/schedule',
+    href: '/backup/configuration#backup-dr-schedule-settings',
+    labelKey: 'nav.backupScheduleRetention',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.BACKUP_MANAGE,
+  },
+  backupPlatform: {
+    id: 'backupPlatform',
+    menuKey: '/backup/configuration/platform',
+    href: '/backup/configuration',
+    labelKey: 'nav.backupPlatformSettings',
+    icon: 'CloudSyncOutlined',
+    permission: PERMISSIONS.SETTINGS_MANAGE,
+  },
+  backupAuditLog: {
+    id: 'backupAuditLog',
+    menuKey: '/backup/audit',
+    href: '/backup/audit',
+    labelKey: 'nav.backupAuditLog',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  developmentMode: {
+    id: 'developmentMode',
+    menuKey: '/settings/development-mode',
+    href: '/settings/development-mode',
+    labelKey: 'nav.developmentMode',
+    icon: 'ExperimentOutlined',
+    sidebarHidden: true,
+  },
+  timeSync: {
+    id: 'timeSync',
+    menuKey: '/admin/system/time-sync',
+    href: '/admin/system/time-sync',
+    labelKey: 'nav.timeSync',
+    icon: 'ClockCircleOutlined',
+    sidebarHidden: true,
+  },
+  licenseManagement: {
+    id: 'licenseManagement',
+    menuKey: '/admin/license-management',
+    href: '/admin/license-management',
+    labelKey: 'nav.licenseManagement',
+    icon: 'KeyOutlined',
+    /** Mandant license (Manager) + deployment license (Super Admin / settings.manage). */
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
+  },
+  /** Tenant-admin status overview (Active / Grace / Locked) + renewal CTA. */
+  licenseStatusDashboard: {
+    id: 'licenseStatusDashboard',
+    menuKey: '/license/dashboard',
+    href: '/license/dashboard',
+    labelKey: 'nav.licenseStatusDashboard',
+    icon: 'DashboardOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
+  },
+  limitDashboard: {
+    id: 'limitDashboard',
+    menuKey: '/admin/limits/dashboard',
+    href: '/admin/limits/dashboard',
+    labelKey: 'nav.limitDashboard',
+    icon: 'BarChartOutlined',
+    permission: PERMISSIONS.LICENSE_MANAGE,
+  },
+  /** Super Admin: mandants currently in the license grace window. */
+  licenseGracePeriod: {
+    id: 'licenseGracePeriod',
+    menuKey: '/admin/license/grace-period',
+    href: '/admin/license/grace-period',
+    labelKey: 'nav.licenseGracePeriod',
+    icon: 'AlertOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  licenseAudit: {
+    id: 'licenseAudit',
+    menuKey: '/admin/license/audit',
+    href: '/admin/license/audit',
+    labelKey: 'nav.licenseAudit',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  /** Dev-only — hidden outside `NODE_ENV=development` via `developmentOnly` + `buildAdminSidebar`. */
+  licenseTest: {
+    id: 'licenseTest',
+    menuKey: '/admin/license/test',
+    href: '/admin/license/test',
+    labelKey: 'nav.licenseTest',
+    icon: 'ExperimentOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+    developmentOnly: true,
+  },
+  /** Dev-only Super Admin QA for tenant operational caps. */
+  limitTest: {
+    id: 'limitTest',
+    menuKey: '/admin/development/limits',
+    href: '/admin/development/limits',
+    labelKey: 'nav.limitTest',
+    icon: 'BugOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+    developmentOnly: true,
+  },
+  licenseDebug: {
+    id: 'licenseDebug',
+    menuKey: '/admin/license/debug',
+    href: '/admin/license/debug',
+    labelKey: 'nav.licenseDebug',
+    icon: 'BugOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminTenants: {
+    id: 'superAdminTenants',
+    menuKey: '/admin/tenants',
+    href: '/admin/tenants',
+    labelKey: 'nav.tenants',
+    icon: 'ApartmentOutlined',
+    ...sidebarFieldsFromMenuMap('tenants'),
+  },
+  superAdminVerticalProfiles: {
+    id: 'superAdminVerticalProfiles',
+    menuKey: '/admin/vertical-profiles',
+    href: '/admin/vertical-profiles',
+    labelKey: 'nav.verticalProfiles',
+    icon: 'AppstoreOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  /** Super Admin create-tenant wizard — sibling of Mandanten list under Verwaltung. */
+  superAdminCreateTenant: {
+    id: 'superAdminCreateTenant',
+    menuKey: '/admin/tenants/create',
+    href: '/admin/tenants/create',
+    labelKey: 'nav.createTenant',
+    icon: 'PlusOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminTrials: {
+    id: 'superAdminTrials',
+    menuKey: '/admin/trials',
+    href: '/admin/trials',
+    labelKey: 'nav.trials',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDemoRequests: {
+    id: 'superAdminDemoRequests',
+    menuKey: '/admin/demo-requests',
+    href: '/admin/demo-requests',
+    labelKey: 'nav.demoRequests',
+    icon: 'MailOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminApprovals: {
+    id: 'superAdminApprovals',
+    menuKey: '/admin/approvals',
+    href: '/admin/approvals',
+    labelKey: 'nav.approvals',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminMaintenance: {
+    id: 'superAdminMaintenance',
+    menuKey: '/admin/maintenance',
+    href: '/admin/maintenance',
+    labelKey: 'nav.maintenance',
+    icon: 'ToolOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminFeatureFlags: {
+    id: 'superAdminFeatureFlags',
+    menuKey: '/admin/feature-flags',
+    href: '/admin/feature-flags',
+    labelKey: 'nav.featureFlags',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeployments: {
+    id: 'superAdminDeployments',
+    menuKey: '/admin/deployments',
+    href: '/admin/deployments',
+    labelKey: 'nav.deployments',
+    icon: 'CloudServerOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeploymentTenants: {
+    id: 'superAdminDeploymentTenants',
+    menuKey: '/admin/deployments/tenants',
+    href: '/admin/deployments/tenants',
+    labelKey: 'nav.deploymentTenants',
+    icon: 'ClusterOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeploymentCompliance: {
+    id: 'superAdminDeploymentCompliance',
+    menuKey: '/admin/deployments/compliance',
+    href: '/admin/deployments/compliance',
+    labelKey: 'nav.deploymentCompliance',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.DEPLOYMENT_APPROVE,
+  },
+  superAdminDeploymentGoLive: {
+    id: 'superAdminDeploymentGoLive',
+    menuKey: '/admin/deployments/go-live',
+    href: '/admin/deployments/go-live',
+    labelKey: 'nav.deploymentGoLive',
+    icon: 'FlagOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDatabaseMigrations: {
+    id: 'superAdminDatabaseMigrations',
+    menuKey: '/admin/database/migrations',
+    href: '/admin/database/migrations',
+    labelKey: 'nav.databaseMigrations',
+    icon: 'DatabaseOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDataManagement: {
+    id: 'superAdminDataManagement',
+    menuKey: '/admin/data-management',
+    href: '/admin/data-management',
+    labelKey: 'nav.dataManagement',
+    icon: 'DatabaseOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+    /** Deep-link only — Datenverwaltung sidebar entry lives under Einstellungen. */
+    sidebarHidden: true,
+  },
+  elmahErrors: {
+    id: 'elmahErrors',
+    menuKey: '/admin/errors',
+    href: '/admin/errors',
+    labelKey: 'nav.errorLogs',
+    icon: 'FileSearchOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminLicenses: {
+    id: 'superAdminLicenses',
+    menuKey: '/admin/licenses',
+    href: '/admin/licenses',
+    labelKey: 'nav.platformLicenses',
+    icon: 'SafetyOutlined',
+    ...sidebarFieldsFromMenuMap('license'),
+  },
+  superAdminCashRegisters: {
+    id: 'superAdminCashRegisters',
+    menuKey: '/admin/cash-registers',
+    href: '/admin/cash-registers',
+    labelKey: 'nav.superAdminCashRegisters',
+    icon: 'ShopOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  billingOverview: {
+    id: 'billingOverview',
+    menuKey: '/admin/billing',
+    href: '/admin/billing',
+    labelKey: 'nav.licenseSales',
+    icon: 'CreditCardOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    /** Overview redirects to `/admin/license-management`; sales stay at `/admin/billing/sales`. */
+    sidebarHidden: true,
+  },
+  billingSales: {
+    id: 'billingSales',
+    menuKey: '/admin/billing/sales',
+    href: '/admin/billing/sales',
+    labelKey: 'nav.billingSales',
+    icon: 'FileTextOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    sidebarHidden: true,
+  },
+  billingSalesNew: {
+    id: 'billingSalesNew',
+    menuKey: '/admin/billing/sales/new',
+    href: '/admin/billing/sales/new',
+    labelKey: 'nav.billingSalesNew',
+    icon: 'ShoppingOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    sidebarHidden: true,
+  },
+  billingStats: {
+    id: 'billingStats',
+    menuKey: '/admin/billing/stats',
+    href: '/admin/billing/stats',
+    labelKey: 'nav.billingStats',
+    icon: 'BarChartOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    sidebarHidden: true,
+  },
+  billingDigital: {
+    id: 'billingDigital',
+    menuKey: '/billing/digital',
+    href: '/billing/digital',
+    labelKey: 'nav.billingDigital',
+    icon: 'FundOutlined',
+    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  subscriptionInvoices: {
+    id: 'subscriptionInvoices',
+    menuKey: '/admin/billing/subscription-invoices',
+    href: '/admin/billing/subscription-invoices',
+    labelKey: 'nav.subscriptionInvoices',
+    icon: 'FileDoneOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  bulkEmail: {
+    id: 'bulkEmail',
+    menuKey: '/admin/communication/bulk-email',
+    href: '/admin/communication/bulk-email',
+    labelKey: 'nav.communication.bulkEmail',
+    icon: 'MailOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantPortal: {
+    id: 'tenantPortal',
+    menuKey: '/tenant/portal',
+    href: '/tenant/portal',
+    labelKey: 'nav.portal',
+    icon: 'ShopOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantLicense: {
+    id: 'tenantLicense',
+    menuKey: '/tenant/license',
+    href: '/tenant/license',
+    labelKey: 'nav.license',
+    icon: 'KeyOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantInvoices: {
+    id: 'tenantInvoices',
+    menuKey: '/tenant/invoices',
+    href: '/tenant/invoices',
+    labelKey: 'nav.tenantInvoices',
+    icon: 'FileTextOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantProfile: {
+    id: 'tenantProfile',
+    menuKey: '/tenant/profile',
+    href: '/tenant/profile',
+    labelKey: 'nav.profile',
+    icon: 'UserOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantSupport: {
+    id: 'tenantSupport',
+    menuKey: '/tenant/support',
+    href: '/tenant/support',
+    labelKey: 'nav.tenantSupport',
+    icon: 'CustomerServiceOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  digitalServicesManage: {
+    id: 'digitalServicesManage',
+    menuKey: '/admin/digital',
+    href: '/admin/digital',
+    labelKey: 'nav.digitalServicesManage',
+    icon: 'GlobalOutlined',
+    permission: [
+      PERMISSIONS.DIGITAL_MANAGE,
+      PERMISSIONS.DIGITAL_ACTIVATE,
+      PERMISSIONS.DIGITAL_PRICING_MANAGE,
+      PERMISSIONS.SYSTEM_CRITICAL,
+    ],
+  },
+  digitalServiceRequests: {
+    id: 'digitalServiceRequests',
+    menuKey: '/admin/digital/requests',
+    href: '/admin/digital/requests',
+    labelKey: 'nav.digitalServiceRequests',
+    icon: 'FileSearchOutlined',
+    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  onlineOrderProductMappings: {
+    id: 'onlineOrderProductMappings',
+    menuKey: '/admin/online-order-integrations',
+    href: '/admin/online-order-integrations',
+    labelKey: 'nav.onlineOrderProductMappings',
+    icon: 'SwapOutlined',
+    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+    onlyForProfiles: ['gastronomy', 'gastronomy-tables'],
+    enforceProfileInAllView: true,
+  },
+  adminFeedbackInbox: {
+    id: 'adminFeedbackInbox',
+    menuKey: '/admin/feedback',
+    href: '/admin/feedback',
+    labelKey: 'nav.adminFeedback',
+    icon: 'InboxOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminSupportInbox: {
+    id: 'adminSupportInbox',
+    menuKey: '/admin/support',
+    href: '/admin/support',
+    labelKey: 'nav.adminSupport',
+    icon: 'CustomerServiceOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminMonitoring: {
+    id: 'adminMonitoring',
+    menuKey: '/admin/monitoring',
+    href: '/admin/monitoring',
+    labelKey: 'nav.adminMonitoring',
+    icon: 'DashboardOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminRiskDashboard: {
+    id: 'adminRiskDashboard',
+    menuKey: '/admin/risk-dashboard',
+    href: '/admin/risk-dashboard',
+    labelKey: 'nav.adminRiskDashboard',
+    icon: 'AuditOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseManagement: {
+    id: 'adminTseManagement',
+    menuKey: '/admin/tse-management',
+    href: '/admin/tse-management',
+    labelKey: 'nav.adminTseManagement',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminRksvRuntimeConfig: {
+    id: 'adminRksvRuntimeConfig',
+    menuKey: '/admin/rksv/config',
+    href: '/admin/rksv/config',
+    labelKey: 'nav.rksvRuntimeConfig',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminMwst: {
+    id: 'adminMwst',
+    menuKey: '/admin/mwst',
+    href: '/admin/mwst',
+    labelKey: 'nav.adminMwst',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminKassenSicherheit: {
+    id: 'adminKassenSicherheit',
+    menuKey: '/admin/kassensicherheit',
+    href: '/admin/kassensicherheit',
+    labelKey: 'nav.adminKassenSicherheit',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminPeppolSubmissions: {
+    id: 'adminPeppolSubmissions',
+    menuKey: '/admin/peppol/submissions',
+    href: '/admin/peppol/submissions',
+    labelKey: 'nav.adminPeppolSubmissions',
+    icon: 'FileTextOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminPeppolParticipants: {
+    id: 'adminPeppolParticipants',
+    menuKey: '/admin/peppol/participants',
+    href: '/admin/peppol/participants',
+    labelKey: 'nav.adminPeppolParticipants',
+    icon: 'TeamOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseFailover: {
+    id: 'adminTseFailover',
+    menuKey: '/admin/tse/failover',
+    href: '/admin/tse/failover',
+    labelKey: 'nav.adminTseFailover',
+    icon: 'SwapOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseResourcePools: {
+    id: 'adminTseResourcePools',
+    menuKey: '/admin/tse/resource-pools',
+    href: '/admin/tse/resource-pools',
+    labelKey: 'nav.adminTseResourcePools',
+    icon: 'ClusterOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseIncidents: {
+    id: 'adminTseIncidents',
+    menuKey: '/admin/tse/incidents',
+    href: '/admin/tse/incidents',
+    labelKey: 'nav.adminTseIncidents',
+    icon: 'AlertOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseSla: {
+    id: 'adminTseSla',
+    menuKey: '/admin/tse/sla',
+    href: '/admin/tse/sla',
+    labelKey: 'nav.adminTseSla',
+    icon: 'FundOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseCapacity: {
+    id: 'adminTseCapacity',
+    menuKey: '/admin/tse/capacity',
+    href: '/admin/tse/capacity',
+    labelKey: 'nav.adminTseCapacity',
+    icon: 'BarChartOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseCost: {
+    id: 'adminTseCost',
+    menuKey: '/admin/tse/cost',
+    href: '/admin/tse/cost',
+    labelKey: 'nav.adminTseCost',
+    icon: 'WalletOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseDr: {
+    id: 'adminTseDr',
+    menuKey: '/admin/tse/disaster-recovery',
+    href: '/admin/tse/disaster-recovery',
+    labelKey: 'nav.adminTseDr',
+    icon: 'CloudSyncOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseLogs: {
+    id: 'adminTseLogs',
+    menuKey: '/admin/tse/logs',
+    href: '/admin/tse/logs',
+    labelKey: 'nav.adminTseLogs',
+    icon: 'FileSearchOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseDeveloperTools: {
+    id: 'adminTseDeveloperTools',
+    menuKey: '/admin/tse/developer-tools',
+    href: '/admin/tse/developer-tools',
+    labelKey: 'nav.adminTseDeveloperTools',
+    icon: 'ToolOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseFiskaly: {
+    id: 'adminTseFiskaly',
+    menuKey: '/admin/tse/fiskaly',
+    href: '/admin/tse/fiskaly',
+    labelKey: 'nav.adminTseFiskaly',
+    icon: 'ApiOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseCompliance: {
+    id: 'adminTseCompliance',
+    menuKey: '/admin/tse/compliance',
+    href: '/admin/tse/compliance',
+    labelKey: 'nav.adminTseCompliance',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminSignaturkarteProgram: {
+    id: 'adminSignaturkarteProgram',
+    menuKey: '/admin/tse/signaturkarte-program',
+    href: '/admin/tse/signaturkarte-program',
+    labelKey: 'nav.adminSignaturkarteProgram',
+    icon: 'CalendarOutlined',
+    permission: [PERMISSIONS.SETTINGS_VIEW],
+  },
+  adminTseAusfall: {
+    id: 'adminTseAusfall',
+    menuKey: '/admin/tse/ausfall',
+    href: '/admin/tse/ausfall',
+    labelKey: 'nav.adminTseAusfall',
+    icon: 'AlertOutlined',
+    permission: [PERMISSIONS.FINANZONLINE_VIEW],
+  },
+  adminTseAutoScaling: {
+    id: 'adminTseAutoScaling',
+    menuKey: '/admin/tse/auto-scaling',
+    href: '/admin/tse/auto-scaling',
+    labelKey: 'nav.adminTseAutoScaling',
+    icon: 'ClusterOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseAutoHealing: {
+    id: 'adminTseAutoHealing',
+    menuKey: '/admin/tse/auto-healing',
+    href: '/admin/tse/auto-healing',
+    labelKey: 'nav.adminTseAutoHealing',
+    icon: 'DisconnectOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseKnowledge: {
+    id: 'adminTseKnowledge',
+    menuKey: '/admin/tse/knowledge',
+    href: '/admin/tse/knowledge',
+    labelKey: 'nav.adminTseKnowledge',
+    icon: 'FileSearchOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseApiGateway: {
+    id: 'adminTseApiGateway',
+    menuKey: '/admin/tse/api-gateway',
+    href: '/admin/tse/api-gateway',
+    labelKey: 'nav.adminTseApiGateway',
+    icon: 'SwapOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseAnomalies: {
+    id: 'adminTseAnomalies',
+    menuKey: '/admin/tse/anomalies',
+    href: '/admin/tse/anomalies',
+    labelKey: 'nav.adminTseAnomalies',
+    icon: 'AlertOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseAnalytics: {
+    id: 'adminTseAnalytics',
+    menuKey: '/admin/tse/analytics',
+    href: '/admin/tse/analytics',
+    labelKey: 'nav.adminTseAnalytics',
+    icon: 'BarChartOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseUserAnalytics: {
+    id: 'adminTseUserAnalytics',
+    menuKey: '/admin/tse/user-analytics',
+    href: '/admin/tse/user-analytics',
+    labelKey: 'nav.adminTseUserAnalytics',
+    icon: 'TeamOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseRecommendations: {
+    id: 'adminTseRecommendations',
+    menuKey: '/admin/tse/recommendations',
+    href: '/admin/tse/recommendations',
+    labelKey: 'nav.adminTseRecommendations',
+    icon: 'ThunderboltOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseUpdates: {
+    id: 'adminTseUpdates',
+    menuKey: '/admin/tse/updates',
+    href: '/admin/tse/updates',
+    labelKey: 'nav.adminTseUpdates',
+    icon: 'CloudSyncOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseSustainability: {
+    id: 'adminTseSustainability',
+    menuKey: '/admin/tse/sustainability',
+    href: '/admin/tse/sustainability',
+    labelKey: 'nav.adminTseSustainability',
+    icon: 'ExperimentOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseWebhooks: {
+    id: 'adminTseWebhooks',
+    menuKey: '/admin/tse/webhooks',
+    href: '/admin/tse/webhooks',
+    labelKey: 'nav.adminTseWebhooks',
+    icon: 'ApiOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseBlockchain: {
+    id: 'adminTseBlockchain',
+    menuKey: '/admin/tse/blockchain',
+    href: '/admin/tse/blockchain',
+    labelKey: 'nav.adminTseBlockchain',
+    icon: 'ClusterOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseTraining: {
+    id: 'adminTseTraining',
+    menuKey: '/admin/tse/training',
+    href: '/admin/tse/training',
+    labelKey: 'nav.adminTseTraining',
+    icon: 'ExperimentOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  rksvTestsDepExport: {
+    id: 'rksvTestsDepExport',
+    menuKey: '/admin/rksv/dep-export',
+    href: '/admin/rksv/dep-export',
+    labelKey: 'nav.depExport',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW],
+  },
+  rksvTestsSignatureVerify: {
+    id: 'rksvTestsSignatureVerify',
+    menuKey: '/admin/rksv/signature-verify',
+    href: '/admin/rksv/signature-verify',
+    labelKey: 'nav.signatureVerification',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  rksvStatusOverview: {
+    id: 'rksvStatusOverview',
+    menuKey: '/rksv/operations',
+    href: '/rksv',
+    labelKey: 'nav.rksvStatus',
+    icon: 'SafetyOutlined',
+    ...sidebarFieldsFromMenuMap('rksv'),
+  },
+  rksvSystemStatus: {
+    id: 'rksvSystemStatus',
+    menuKey: '/rksv/status',
+    href: '/rksv/status',
+    labelKey: 'nav.systemStatus',
+    icon: 'ControlOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  rksvFinanzOnline: {
+    id: 'rksvFinanzOnline',
+    menuKey: '/rksv/finanz-online-outbox',
+    href: '/rksv/finanz-online-outbox',
+    labelKey: 'nav.finanzOnline',
+    icon: 'CloudSyncOutlined',
+    permission: PERMISSIONS.FINANZONLINE_VIEW,
+  },
+  rksvOfflineOrders: {
+    id: 'rksvOfflineOrders',
+    menuKey: '/rksv/offline-orders',
+    href: '/rksv/offline-orders',
+    labelKey: 'nav.offlineOrders',
+    icon: 'InboxOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
+  },
+  specialReceiptStart: {
+    id: 'specialReceiptStart',
+    menuKey: '/rksv/sb/startbeleg',
+    href: '/rksv/sonderbelege?focus=startbeleg',
+    labelKey: 'nav.startReceipt',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
+  },
+  specialReceiptMonthly: {
+    id: 'specialReceiptMonthly',
+    menuKey: '/rksv/sb/monatsbeleg',
+    href: '/rksv/monatsbelege',
+    labelKey: 'nav.monthlyReceipt',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
+  },
+  specialReceiptYearly: {
+    id: 'specialReceiptYearly',
+    menuKey: '/rksv/sb/jahresbeleg',
+    href: '/rksv/sonderbelege?focus=jahresbeleg',
+    labelKey: 'nav.yearlyReceipt',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
+  },
+  specialReceiptNull: {
+    id: 'specialReceiptNull',
+    menuKey: '/rksv/sb/nullbeleg',
+    href: '/rksv/sonderbelege?focus=nullbeleg',
+    labelKey: 'nav.nullReceipt',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
+  },
+  specialReceiptClosing: {
+    id: 'specialReceiptClosing',
+    menuKey: '/rksv/sb/schlussbeleg',
+    href: '/rksv/sonderbelege?focus=schlussbeleg',
+    labelKey: 'nav.closingReceipt',
+    icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
+  },
+  adminFiskalyHistory: {
+    id: 'adminFiskalyHistory',
+    menuKey: '/admin/fiskaly/history',
+    href: '/admin/fiskaly/history',
+    labelKey: 'nav.adminFiskalyHistory',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.FISKALY_HISTORY_VIEW,
+  },
+  adminFiskalyStatistics: {
+    id: 'adminFiskalyStatistics',
+    menuKey: '/admin/fiskaly/statistics',
+    href: '/admin/fiskaly/statistics',
+    labelKey: 'nav.adminFiskalyStatistics',
+    icon: 'BarChartOutlined',
+    permission: PERMISSIONS.FISKALY_HISTORY_VIEW,
+  },
+  adminFiskalyErrors: {
+    id: 'adminFiskalyErrors',
+    menuKey: '/admin/fiskaly/errors',
+    href: '/admin/fiskaly/errors',
+    labelKey: 'nav.adminFiskalyErrors',
+    icon: 'BugOutlined',
+    permission: PERMISSIONS.FISKALY_HISTORY_VIEW,
+  },
+  specialReceiptTestHelper: {
+    id: 'specialReceiptTestHelper',
+    menuKey: '/rksv/sb/test-helper',
+    href: '/rksv/sonderbelege?focus=test-helper',
+    labelKey: 'nav.rksvTestHelper',
+    icon: 'ExperimentOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
 };
 
-export const SIDEBAR_DOMAIN_GROUP_META: Record<
-    SidebarDomainId,
-    { menuKey: string; labelKey: string; icon: SidebarIconToken }
+export const SIDEBAR_GROUP_META: Record<
+  SidebarGroupId,
+  { menuKey: string; labelKey: string; icon: SidebarIconToken }
 > = {
-    operations: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.operations,
-        labelKey: 'adminShell.group.operations',
-        icon: 'ThunderboltOutlined',
-    },
-    sales: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
-        labelKey: 'adminShell.group.salesTransactions',
-        icon: 'ShoppingCartOutlined',
-    },
-    catalog: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing,
-        labelKey: 'adminShell.group.catalogPricing',
-        icon: 'AppstoreOutlined',
-    },
-    customers: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits,
-        labelKey: 'adminShell.group.customersBenefits',
-        icon: 'UsergroupAddOutlined',
-    },
-    reporting: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics,
-        labelKey: 'adminShell.group.reportingAnalytics',
-        icon: 'LineChartOutlined',
-    },
-    fiscalCompliance: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
-        labelKey: 'adminShell.group.fiscalCompliance',
-        icon: 'AuditOutlined',
-    },
-    administration: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
-        labelKey: 'adminShell.group.verwaltung',
-        icon: 'ToolOutlined',
-    },
+  dashboard: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.dashboard,
+    labelKey: 'nav.dashboard',
+    icon: 'DashboardOutlined',
+  },
+  license: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.license,
+    labelKey: 'nav.licenseManagement',
+    icon: 'CreditCardOutlined',
+  },
+  operations: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.operations,
+    labelKey: 'nav.verkauf',
+    icon: 'ShoppingCartOutlined',
+  },
+  finance: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.finance,
+    labelKey: 'nav.finance',
+    icon: 'WalletOutlined',
+  },
+  rksv: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksv,
+    labelKey: 'nav.rksv.title',
+    icon: 'SafetyOutlined',
+  },
+  catalog: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.catalog,
+    labelKey: 'nav.catalog',
+    icon: 'AppstoreOutlined',
+  },
+  customers: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.customers,
+    labelKey: 'nav.customers',
+    icon: 'UsergroupAddOutlined',
+  },
+  reports: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reports,
+    labelKey: 'nav.reports',
+    icon: 'LineChartOutlined',
+  },
+  backup: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backup,
+    labelKey: 'nav.backupDisasterRecovery',
+    icon: 'CloudServerOutlined',
+  },
+  settings: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settings,
+    labelKey: 'nav.settings.title',
+    icon: 'SettingOutlined',
+  },
+  administration: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.admin,
+    labelKey: 'nav.administration',
+    icon: 'ToolOutlined',
+  },
+  securityTse: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.securityTse,
+    labelKey: 'nav.securityTse',
+    icon: 'SafetyCertificateOutlined',
+  },
+  deploymentSystem: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem,
+    labelKey: 'nav.deploymentSystem',
+    icon: 'CloudServerOutlined',
+  },
+  monitoringLogs: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs,
+    labelKey: 'nav.monitoringLogs',
+    icon: 'DashboardOutlined',
+  },
+  development: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.development,
+    labelKey: 'nav.development',
+    icon: 'ExperimentOutlined',
+  },
+  system: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.system,
+    labelKey: 'nav.system',
+    icon: 'ClusterOutlined',
+  },
 };
+
+/** @deprecated Use `SIDEBAR_GROUP_META` */
+export const SIDEBAR_DOMAIN_GROUP_META = SIDEBAR_GROUP_META;
 
 export type SidebarCatalogId = keyof typeof SIDEBAR_NAV_ITEM_CATALOG;
 
 export type SidebarLayoutBlock =
-    | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
-    | {
-          kind: 'nested';
-          menuKey: string;
-          labelKey: string;
-          icon: SidebarIconToken;
-          catalogIds: SidebarCatalogId[];
-      }
-    | { kind: 'fiscalRksvClosing'; menuKey: string; labelKey: string; icon: SidebarIconToken }
-    | { kind: 'rksvHub'; menuKey: '/rksv'; labelKey: string; icon: SidebarIconToken };
+  | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
+  | {
+      kind: 'nested';
+      menuKey: string;
+      labelKey: string;
+      icon: SidebarIconToken;
+      catalogIds: SidebarCatalogId[];
+      /** Optional nested subgroups (rendered before leaf catalog items). */
+      childGroups?: Array<{
+        menuKey: string;
+        labelKey: string;
+        icon: SidebarIconToken;
+        catalogIds: SidebarCatalogId[];
+      }>;
+    }
+  | { kind: 'fiscalRksvClosing'; menuKey: string; labelKey: string; icon: SidebarIconToken }
+  | { kind: 'rksvHub'; menuKey: string; labelKey: string; icon: SidebarIconToken };
 
 export type SidebarLayoutRow =
-    | { kind: 'divider'; key: string }
-    | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
-    | { kind: 'domain'; domain: SidebarDomainId; blocks: SidebarLayoutBlock[] };
+  | { kind: 'divider'; key: string }
+  | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
+  | {
+      kind: 'nested';
+      menuKey: string;
+      labelKey: string;
+      icon: SidebarIconToken;
+      catalogIds: SidebarCatalogId[];
+    }
+  | { kind: 'group'; group: SidebarGroupId; blocks: SidebarLayoutBlock[] };
 
 /**
  * Top-to-bottom shell layout (order = render order).
+ * Daily workflow first: Dashboard → Verkauf → Sortiment → Kunden → Finanzen → RKSV → Backup →
+ * Einstellungen → Verwaltung → System (Super Admin: TSE platform, deployment, monitoring, development).
+ * Group keys (`grp-*`) stay stable for open-state / lockdown merges.
  */
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
-    {
+  {
+    kind: 'group',
+    group: 'dashboard',
+    blocks: [{ kind: 'leaves', catalogIds: ['reportingDashboard'] }],
+  },
+  {
+    kind: 'group',
+    group: 'operations',
+    blocks: [
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
+        labelKey: 'nav.receiptsOrders',
+        icon: 'ShoppingCartOutlined',
+        catalogIds: ['receipts', 'onlineOrders', 'preorders', 'tagesabschluss'],
+      },
+      {
+        kind: 'leaves',
+        catalogIds: ['tables', 'kassenverwaltung', 'operationsCenter', 'appointments', 'taxiTrips'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.personnel,
+        labelKey: 'nav.personnel',
+        icon: 'TeamOutlined',
+        catalogIds: ['staffHub', 'shiftsOverview'],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'catalog',
+    blocks: [
+      {
         kind: 'leaves',
         catalogIds: [
-            'reportingDashboard',
-            'superAdminTenants',
-            'superAdminLicenses',
-            'superAdminCashRegisters',
+          'products',
+          'imeis',
+          'ticketRedemptions',
+          'ticketEvents',
+          'rooms',
+          'folios',
+          'categories',
+          'modifierGroups',
+          'pricingRules',
+          'inventory',
         ],
-    },
-    { kind: 'divider', key: 'nav-divider-platform-hub' },
-    {
-        kind: 'domain',
-        domain: 'operations',
-        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'shiftsOverview'] }],
-    },
-    {
-        kind: 'domain',
-        domain: 'sales',
-        blocks: [
-            {
-                kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'paymentTrends', 'cardTransactions', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
-            },
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'customers',
+    blocks: [{ kind: 'leaves', catalogIds: ['customers', 'patients', 'customerAddresses', 'vouchers'] }],
+  },
+  {
+    kind: 'group',
+    group: 'finance',
+    blocks: [
+      {
+        kind: 'leaves',
+        catalogIds: [
+          'payments',
+          'paymentTrends',
+          'cardTransactions',
+          'onlinePayments',
+          'stornoRefundAudit',
+          'invoices',
         ],
-    },
-    {
-        kind: 'domain',
-        domain: 'catalog',
-        blocks: [
-            {
-                kind: 'leaves',
-                catalogIds: ['products', 'categories', 'modifierGroups', 'pricingRules', 'inventory'],
-            },
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reports,
+        labelKey: 'nav.reports',
+        icon: 'LineChartOutlined',
+        catalogIds: [
+          'reportingOverview',
+          'reportCenter',
+          'cashRegisterReports',
+          'steuerberichte',
+          'activityLog',
+          'userActivityReport',
+          'staffPerformance',
         ],
-    },
-    {
-        kind: 'domain',
-        domain: 'customers',
-        blocks: [
-            {
-                kind: 'leaves',
-                catalogIds: ['customers', 'benefitDefinitions', 'benefitAssignments'],
-            },
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'rksv',
+    blocks: [
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvCurrentStatus,
+        labelKey: 'nav.rksv.currentStatus',
+        icon: 'SafetyOutlined',
+        catalogIds: ['rksvStatusOverview', 'rksvSystemStatus'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport,
+        labelKey: 'nav.rksv.belegeExport',
+        icon: 'FileDoneOutlined',
+        childGroups: [
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts,
+            labelKey: 'nav.specialReceipts',
+            icon: 'SafetyCertificateOutlined',
+            catalogIds: [
+              'specialReceiptStart',
+              'specialReceiptMonthly',
+              'specialReceiptYearly',
+              'specialReceiptNull',
+              'specialReceiptClosing',
+              'adminFiskalyHistory',
+              'adminFiskalyStatistics',
+              'adminFiskalyErrors',
+              'specialReceiptTestHelper',
+            ],
+          },
         ],
-    },
-    { kind: 'divider', key: 'nav-divider-reporting' },
-    {
-        kind: 'domain',
-        domain: 'reporting',
-        blocks: [
-            {
-                kind: 'leaves',
-                catalogIds: [
-                    'reportingOverview',
-                    'reportCenter',
-                    'complianceReports',
-                    'userActivityReport',
-                    'staffPerformance',
-                    'dailyClosingSummary',
-                ],
-            },
+        catalogIds: ['rksvTestsDepExport', 'rksvTestsSignatureVerify'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline,
+        labelKey: 'nav.rksv.finanzOnline',
+        icon: 'CloudSyncOutlined',
+        catalogIds: ['rksvFinanzOnline', 'rksvOfflineOrders'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung,
+        labelKey: 'nav.rksv.auditPruefung',
+        icon: 'AuditOutlined',
+        catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'],
+      },
+      {
+        kind: 'rksvHub',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvTools,
+        labelKey: 'nav.rksv.werkzeuge',
+        icon: 'SafetyOutlined',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'backup',
+    blocks: [
+      {
+        kind: 'leaves',
+        catalogIds: ['backupDr', 'backupRuns', 'backupPitr', 'backupRestoreVerification'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,
+        labelKey: 'nav.backupConfiguration',
+        icon: 'SettingOutlined',
+        catalogIds: ['backupSchedule', 'backupPlatform'],
+      },
+      { kind: 'leaves', catalogIds: ['backupAuditLog'] },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'settings',
+    blocks: [
+      { kind: 'leaves', catalogIds: ['extensions'] },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.myAccount,
+        labelKey: 'nav.meinKonto',
+        icon: 'UserOutlined',
+        catalogIds: [
+          'tenantPortal',
+          'tenantLicense',
+          'tenantInvoices',
+          'tenantProfile',
+          'tenantSupport',
         ],
-    },
-    { kind: 'divider', key: 'nav-divider-fiscal' },
-    {
-        kind: 'domain',
-        domain: 'fiscalCompliance',
-        blocks: [
-            {
-                kind: 'fiscalRksvClosing',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing,
-                labelKey: 'nav.fiscalRksvClosingHub',
-                icon: 'SafetyOutlined',
-            },
-            { kind: 'leaves', catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'] },
-            {
-                kind: 'nested',
-                menuKey: '/admin/rksv',
-                labelKey: 'nav.rksvTestsHub',
-                icon: 'SafetyCertificateOutlined',
-                catalogIds: ['rksvTestsDepExport', 'rksvTestsSignatureVerify'],
-            },
-            {
-                kind: 'rksvHub',
-                menuKey: '/rksv',
-                labelKey: 'adminShell.group.rksv',
-                icon: 'SafetyOutlined',
-            },
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral,
+        labelKey: 'nav.settings.general',
+        icon: 'SettingOutlined',
+        catalogIds: [
+          'settingsHub',
+          'companySettings',
+          'receiptSettings',
+          'personalization',
+          'preferences',
         ],
-    },
-    { kind: 'divider', key: 'nav-divider-admin' },
-    {
-        kind: 'domain',
-        domain: 'administration',
-        blocks: [
-            {
-                kind: 'nested',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.accessArea,
-                labelKey: 'nav.accessHub',
-                icon: 'KeyOutlined',
-                catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
-            },
-            {
-                kind: 'nested',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
-                labelKey: 'nav.settingsHub',
-                icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'sessionSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
-            },
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes,
+        labelKey: 'nav.settings.financesTaxes',
+        icon: 'WalletOutlined',
+        catalogIds: ['taxGroups', 'taxHistory', 'paymentMethods', 'paymentGateway'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations,
+        labelKey: 'nav.settings.operations',
+        icon: 'ControlOutlined',
+        catalogIds: [
+          'workingHours',
+          'kitchen',
+          'sessionSettings',
+          'activeSessions',
+          'tseSettings',
+          'finanzonlineSettings',
         ],
-    },
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.digitalServices,
+        labelKey: 'nav.settings.digitalServices',
+        icon: 'GlobalOutlined',
+        catalogIds: [
+          'websiteGenerator',
+          'digitalPortal',
+          'customerPortal',
+          'digitalServicesManage',
+          'digitalServiceRequests',
+          'onlineOrderProductMappings',
+          'adminFeedbackInbox',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance,
+        labelKey: 'nav.settings.compliance',
+        icon: 'SafetyCertificateOutlined',
+        catalogIds: ['settingsDataManagement', 'settingsAccount', 'adminSignaturkarteProgram'],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'administration',
+    blocks: [
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.accessArea,
+        labelKey: 'nav.accessRoles',
+        icon: 'KeyOutlined',
+        catalogIds: [
+          'accessOverview',
+          'users',
+          'adminSessions',
+          'accessRoles',
+          'accessMatrix',
+          'accessPermissionHistory',
+          'accessPermissionRequests',
+          'accessPermissionPackages',
+          'accessPermissionBackups',
+          'accessPermissionStats',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.license,
+        labelKey: 'nav.licenseManagement',
+        icon: 'CreditCardOutlined',
+        catalogIds: [
+          'licenseStatusDashboard',
+          'limitDashboard',
+          'licenseGracePeriod',
+          'licenseAudit',
+          'licenseManagement',
+          'licenseTest',
+          'superAdminLicenses',
+          'subscriptionInvoices',
+          'billingDigital',
+        ],
+        childGroups: [
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.communication,
+            labelKey: 'nav.communication.title',
+            icon: 'MailOutlined',
+            catalogIds: ['bulkEmail'],
+          },
+        ],
+      },
+      {
+        kind: 'leaves',
+        catalogIds: [
+          'superAdminTenants',
+          'superAdminVerticalProfiles',
+          'superAdminCreateTenant',
+          'superAdminTrials',
+          'superAdminDemoRequests',
+          'superAdminCashRegisters',
+          'adminSupportInbox',
+        ],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'system',
+    blocks: [
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.securityTse,
+        labelKey: 'nav.securityTse',
+        icon: 'SafetyCertificateOutlined',
+        catalogIds: ['superAdminApprovals', 'adminRksvRuntimeConfig', 'adminKassenSicherheit'],
+        childGroups: [
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.peppol,
+            labelKey: 'nav.peppolGroup',
+            icon: 'FileTextOutlined',
+            catalogIds: ['adminPeppolSubmissions', 'adminPeppolParticipants'],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.ch,
+            labelKey: 'nav.chGroup',
+            icon: 'SafetyCertificateOutlined',
+            catalogIds: ['adminMwst'],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
+            labelKey: 'nav.tseGroupManagement',
+            icon: 'SafetyCertificateOutlined',
+            catalogIds: ['adminTseManagement'],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover,
+            labelKey: 'nav.tseGroupOpsFailover',
+            icon: 'SwapOutlined',
+            catalogIds: [
+              'adminTseFailover',
+              'adminTseAutoHealing',
+              'adminTseAutoScaling',
+              'adminTseDr',
+            ],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring,
+            labelKey: 'nav.tseGroupAnalyticsMonitoring',
+            icon: 'DashboardOutlined',
+            catalogIds: [
+              'adminTseResourcePools',
+              'adminTseIncidents',
+              'adminTseLogs',
+              'adminTseSla',
+              'adminTseCapacity',
+            ],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseReportsFinance,
+            labelKey: 'nav.tseGroupReportsFinance',
+            icon: 'FundOutlined',
+            catalogIds: ['adminTseCost', 'adminTseSustainability', 'adminTseCompliance'],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced,
+            labelKey: 'nav.tseGroupAdvanced',
+            icon: 'ExperimentOutlined',
+            catalogIds: [
+              'adminTseDeveloperTools',
+              'adminTseFiskaly',
+              'adminTseApiGateway',
+              'adminTseWebhooks',
+              'adminTseBlockchain',
+              'adminTseKnowledge',
+              'adminTseTraining',
+              'adminTseUpdates',
+              'adminTseRecommendations',
+            ],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseDiagnostics,
+            labelKey: 'nav.tseGroupDiagnostics',
+            icon: 'BugOutlined',
+            catalogIds: [
+              'adminTseAnomalies',
+              'adminTseAnalytics',
+              'adminTseUserAnalytics',
+              'adminTseAusfall',
+            ],
+          },
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem,
+        labelKey: 'nav.deploymentSystem',
+        icon: 'CloudServerOutlined',
+        catalogIds: [
+          'superAdminDeployments',
+          'superAdminDeploymentGoLive',
+          'superAdminDeploymentTenants',
+          'superAdminDeploymentCompliance',
+          'superAdminDatabaseMigrations',
+          'superAdminFeatureFlags',
+          'superAdminMaintenance',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs,
+        labelKey: 'nav.monitoringLogs',
+        icon: 'DashboardOutlined',
+        catalogIds: ['adminMonitoring', 'adminRiskDashboard', 'elmahErrors'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.development,
+        labelKey: 'nav.development',
+        icon: 'ExperimentOutlined',
+        catalogIds: ['limitTest'],
+      },
+    ],
+  },
 ];
 
 export type AdminSidebarComposedData = RksvSidebarRegistryAttachment;
@@ -650,20 +2219,50 @@ export type AdminSidebarComposedData = RksvSidebarRegistryAttachment;
  * Composes RKSV groups via plugin; used by `buildAdminSidebarMenuItems`.
  */
 export function composeAdminSidebarData(
-    t: (key: string) => string,
-    verificationNavLabel: string,
+  t: (key: string) => string,
+  verificationNavLabel: string
 ): AdminSidebarComposedData {
-    const data: AdminSidebarComposedData = { rksvMenuGroups: [] };
-    registerRksvSidebar(data, t, verificationNavLabel);
-    return data;
+  const data: AdminSidebarComposedData = { rksvMenuGroups: [] };
+  registerRksvSidebar(data, t, verificationNavLabel);
+  return data;
 }
 
-/** All catalog leaf `menuKey` values (for permission / route drift tests). */
+/** Catalog leaf menuKeys visible in the sidebar (excludes `sidebarHidden`). */
 export function getSidebarCatalogLeafMenuKeys(): string[] {
-    return Object.values(SIDEBAR_NAV_ITEM_CATALOG).map((item) => item.menuKey);
+  return Object.values(SIDEBAR_NAV_ITEM_CATALOG)
+    .filter((item) => !item.sidebarHidden)
+    .map((item) => item.menuKey);
+}
+
+/** IA menu-area keys wired onto catalog leaves via `menuArea`. */
+export function getWiredSidebarMenuAreas(): MenuPermissionMapKey[] {
+  const areas = new Set<MenuPermissionMapKey>();
+  for (const item of Object.values(SIDEBAR_NAV_ITEM_CATALOG)) {
+    if (item.menuArea) areas.add(item.menuArea);
+  }
+  return [...areas];
+}
+
+/**
+ * Validates that every catalog `menuArea` exists in `MENU_PERMISSION_MAP`.
+ * Also logs unwired map keys via {@link logSidebarMenuPermissionMapWarnings}.
+ */
+export function validateSidebarMenuPermissionMappings(): string[] {
+  const wired = getWiredSidebarMenuAreas();
+  return validateMenuPermissions(wired);
+}
+
+/** Dev-only: warn when catalog menuAreas lack map entries or map keys are unwired. */
+export function logSidebarMenuPermissionMapWarnings(): void {
+  if (process.env.NODE_ENV !== 'development') return;
+  logMenuPermissionMapWarnings(getWiredSidebarMenuAreas());
 }
 
 /** Catalog + RKSV leaves for guard coverage tests. */
 export function getAllSidebarLeafMenuKeysForCoverage(rksvGroups: RksvMenuGroup[]): string[] {
-    return [...getSidebarCatalogLeafMenuKeys(), ...FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS, ...collectRksvMenuLeafKeys(rksvGroups)];
+  return [
+    ...getSidebarCatalogLeafMenuKeys(),
+    ...FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS,
+    ...collectRksvMenuLeafKeys(rksvGroups),
+  ];
 }

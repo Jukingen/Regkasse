@@ -10,8 +10,9 @@ Super Admin kann sich als ein Mandant (Tenant) ausgeben, um Support zu leisten. 
 
 1. Super Admin öffnet **Mandantenverwaltung**: `/admin/tenants`
 2. Klickt bei einem aktiven Mandanten auf **„Als Mandant anmelden“** (Tabellenmenü oder Mandantendetail)
-3. Das System stellt ein mandantenspezifisches JWT aus und leitet weiter:
-   - **Produktion:** zum Mandanten-Subdomain, z. B. `https://{slug}.regkasse.at/impersonate-callback` (Token im URL-Fragment, nicht in Server-Logs)
+3. Das System stellt ein mandantenspezifisches JWT aus (`tenant_id` + `tenant_impersonation=true`) und übergibt die Session:
+   - **Zielarchitektur (Single Admin UI):** Session bleibt auf `https://admin.regkasse.at` mit Mandanten-JWT (siehe [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md)).
+   - **Legacy FA-Code:** kann noch nach `https://{slug}.regkasse.at/impersonate-callback#…` umleiten (Token im URL-Fragment) — technischer Debt; POS bleibt immer `https://pos.regkasse.at`.
    - **Entwicklung:** Token auf demselben Host, Mandant per `dev_tenant_id` / Reload
 4. Nach erfolgreicher Übergabe landet man im Dashboard des Mandanten und kann operativ arbeiten (Stammdaten, Kassen, Benutzer usw., je nach Berechtigung des Super-Admin-Kontos)
 
@@ -29,7 +30,7 @@ Während der Session zeigt ein **blauer Banner** oben den aktiven Mandanten und 
 
 ## Impersonation beenden
 
-Klicken Sie im oberen Banner auf **„Impersonation beenden“**. Die Session auf dem Mandanten-Host wird beendet; in der Produktion erfolgt die Weiterleitung zurück zu `https://admin.regkasse.at/admin/tenants`.
+Klicken Sie im oberen Banner auf **„Impersonation beenden“**. Die Impersonation-Session wird beendet; in der Produktion erfolgt die Weiterleitung zurück zu `https://admin.regkasse.at/admin/tenants`.
 
 ## Technische Details
 

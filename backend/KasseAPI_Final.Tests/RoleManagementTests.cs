@@ -31,7 +31,7 @@ public class RoleManagementTests
         var catalog = roleMgmt.Object.GetPermissionsCatalog();
         Assert.NotEmpty(catalog);
         Assert.Contains(catalog, c => c.Key == AppPermissions.UserView && c.Resource == "user" && c.Action == "view");
-        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Product");
+        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Sortiment & Preise");
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsSystemRole_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -311,7 +311,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsDemo_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -360,6 +360,7 @@ public class RoleManagementTests
     public void ClientAppPolicy_CanLoginToPos_Cashier_ReturnsTrue()
     {
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Cashier));
+        Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Kitchen));
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.SuperAdmin));
         Assert.False(ClientAppPolicy.CanLoginToPos(Roles.Manager));
     }
@@ -375,16 +376,36 @@ public class RoleManagementTests
     [Fact]
     public void PermissionCatalogMetadata_GetGroupKey_ReturnsSlug()
     {
-        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKey("Cash & Shift"));
-        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKey("User & Role"));
+        Assert.Equal("kassenverwaltung", PermissionCatalogMetadata.GetGroupKey("Kassenverwaltung"));
+        Assert.Equal("mitarbeiter", PermissionCatalogMetadata.GetGroupKey("Mitarbeiter"));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKey("RKSV & FinanzOnline"));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKey("Tagesabschluss"));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKey("Backup & Disaster Recovery"));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKey("Digitale Dienste"));
         Assert.Equal("other", PermissionCatalogMetadata.GetGroupKey(""));
     }
 
     [Fact]
     public void PermissionCatalogMetadata_GetGroupKeyForPermission_ReturnsConsistentGroupKey()
     {
-        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.CashRegisterView));
-        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.UserView));
+        Assert.Equal("kassenverwaltung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.CashRegisterView));
+        Assert.Equal("mitarbeiter", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.UserView));
+        Assert.Equal("bestellung_verkauf", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.InvoiceView));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.TseSign));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FinanzOnlineView));
+        Assert.Equal("bestellung_verkauf", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.KitchenView));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DailyClosingView));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DailyClosingExecute));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.BackupManage));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsBackup));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalView));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalOrdersManage));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.OnlinePaymentsManage));
+        Assert.Equal("zahlung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.VoucherRead));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsView));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsConfig));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyHistoryView));
+        Assert.Equal("einstellungen", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsView));
     }
 
     [Fact]
@@ -495,7 +516,7 @@ public class RoleManagementTests
     private static async Task<(AppDbContext, UserManager<ApplicationUser>, RoleManager<IdentityRole>)> CreateInMemorySetupAsync()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()).Options;
-        var context = new AppDbContext(options);
+        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var store = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.UserStore<ApplicationUser, IdentityRole, AppDbContext>(context, null);
         var userManager = new UserManager<ApplicationUser>(store, null!, null!, null!, null!, null!, null!, null!, null!);
         var roleStore = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.RoleStore<IdentityRole>(context);

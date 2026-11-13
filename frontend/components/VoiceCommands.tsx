@@ -27,72 +27,88 @@ const VOICE_COMMANDS = {
   // Ürün komutları
   'add product': {
     description: t('voice.addProduct', 'Add product to cart'),
-    examples: [t('voice.addCoffee', 'add coffee'), t('voice.addBread', 'add bread'), t('voice.addMilk', 'add milk')],
-    action: 'add_product'
+    examples: [
+      t('voice.addCoffee', 'add coffee'),
+      t('voice.addBread', 'add bread'),
+      t('voice.addMilk', 'add milk'),
+    ],
+    action: 'add_product',
   },
   'remove product': {
     description: t('voice.removeProduct', 'Remove product from cart'),
     examples: [t('voice.removeCoffee', 'remove coffee'), t('voice.removeBread', 'remove bread')],
-    action: 'remove_product'
+    action: 'remove_product',
   },
   'clear cart': {
     description: t('voice.clearCart', 'Clear shopping cart'),
     examples: [t('voice.clearCart1', 'clear cart'), t('voice.clearCart2', 'empty cart')],
-    action: 'clear_cart'
+    action: 'clear_cart',
   },
-  
+
   // Ödeme komutları
   'process payment': {
     description: t('voice.processPayment', 'Process payment'),
-    examples: [t('voice.processPayment1', 'process payment'), t('voice.processPayment2', 'pay'), t('voice.processPayment3', 'checkout')],
-    action: 'process_payment'
+    examples: [
+      t('voice.processPayment1', 'process payment'),
+      t('voice.processPayment2', 'pay'),
+      t('voice.processPayment3', 'checkout'),
+    ],
+    action: 'process_payment',
   },
   'cash payment': {
     description: t('voice.cashPayment', 'Process cash payment'),
     examples: [t('voice.cashPayment1', 'cash payment'), t('voice.cashPayment2', 'pay cash')],
-    action: 'cash_payment'
+    action: 'cash_payment',
   },
   'card payment': {
     description: t('voice.cardPayment', 'Process card payment'),
     examples: [t('voice.cardPayment1', 'card payment'), t('voice.cardPayment2', 'pay card')],
-    action: 'card_payment'
+    action: 'card_payment',
   },
-  
+
   // Masa komutları
   'table number': {
     description: t('voice.tableNumber', 'Select table number'),
     examples: [t('voice.table5', 'table 5'), t('voice.tableNumber3', 'table number 3')],
-    action: 'select_table'
+    action: 'select_table',
   },
   'clear table': {
     description: t('voice.clearTable', 'Clear table'),
     examples: [t('voice.clearTable1', 'clear table'), t('voice.clearTable2', 'table clear')],
-    action: 'clear_table'
+    action: 'clear_table',
   },
-  
+
   // Genel komutlar
-  'help': {
+  help: {
     description: t('voice.help', 'Show available commands'),
-    examples: [t('voice.help1', 'help'), t('voice.help2', 'commands'), t('voice.help3', 'what can I say')],
-    action: 'show_help'
+    examples: [
+      t('voice.help1', 'help'),
+      t('voice.help2', 'commands'),
+      t('voice.help3', 'what can I say'),
+    ],
+    action: 'show_help',
   },
-  'cancel': {
+  cancel: {
     description: t('voice.cancel', 'Cancel current operation'),
-    examples: [t('voice.cancel1', 'cancel'), t('voice.cancel2', 'stop'), t('voice.cancel3', 'abort')],
-    action: 'cancel'
+    examples: [
+      t('voice.cancel1', 'cancel'),
+      t('voice.cancel2', 'stop'),
+      t('voice.cancel3', 'abort'),
+    ],
+    action: 'cancel',
   },
   'print receipt': {
     description: t('voice.printReceipt', 'Print receipt'),
-    examples: [t('voice.printReceipt1', 'print receipt'), t('voice.printReceipt2', 'print'), t('voice.printReceipt3', 'receipt')],
-    action: 'print_receipt'
-  }
+    examples: [
+      t('voice.printReceipt1', 'print receipt'),
+      t('voice.printReceipt2', 'print'),
+      t('voice.printReceipt3', 'receipt'),
+    ],
+    action: 'print_receipt',
+  },
 };
 
-const VoiceCommands: React.FC<VoiceCommandsProps> = ({
-  visible,
-  onClose,
-  onCommand,
-}) => {
+const VoiceCommands: React.FC<VoiceCommandsProps> = ({ visible, onClose, onCommand }) => {
   const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -107,15 +123,15 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
     const commands = Object.keys(VOICE_COMMANDS);
     const randomCommand = commands[Math.floor(Math.random() * commands.length)];
     const mockTranscript = `"${randomCommand}"`;
-    
+
     setTimeout(() => {
       setTranscript(mockTranscript);
       setRecognizedCommand(randomCommand);
       setConfidence(0.85 + Math.random() * 0.15);
-      
+
       // Komutu işle
       processCommand(randomCommand);
-      
+
       // Dinlemeyi durdur
       setIsListening(false);
     }, 2000);
@@ -142,13 +158,13 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
 
   const processCommand = (command: string) => {
     const commandConfig = VOICE_COMMANDS[command as keyof typeof VOICE_COMMANDS];
-    
+
     if (commandConfig) {
       onCommand(commandConfig.action, { command, confidence });
-      
+
       // Başarılı komut geri bildirimi
       Vibration.vibrate([100, 50, 100]);
-      
+
       setTimeout(() => {
         setTranscript('');
         setRecognizedCommand('');
@@ -162,11 +178,7 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -174,10 +186,11 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('voice.header', 'Voice Commands')}</Text>
-          <TouchableOpacity 
-            style={styles.helpButton} 
-            onPress={() => setShowHelp(!showHelp)}
-          >
+          <TouchableOpacity
+            style={styles.helpButton}
+            onPress={() => {
+              setShowHelp(!showHelp);
+            }}>
             <Ionicons name="help-circle" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -186,19 +199,13 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
         <View style={styles.content}>
           {/* Microphone Button */}
           <TouchableOpacity
-            style={[
-              styles.microphoneButton,
-              isListening && styles.microphoneButtonListening
-            ]}
-            onPress={isListening ? stopListening : startListening}
-          >
-            <Ionicons 
-              name={isListening ? "mic" : "mic-outline"} 
-              size={48} 
-              color="white" 
-            />
+            style={[styles.microphoneButton, isListening && styles.microphoneButtonListening]}
+            onPress={isListening ? stopListening : startListening}>
+            <Ionicons name={isListening ? 'mic' : 'mic-outline'} size={48} color="white" />
             <Text style={styles.microphoneText}>
-              {isListening ? t('voice.listening', 'Listening...') : t('voice.tapToSpeak', 'Tap to Speak')}
+              {isListening
+                ? t('voice.listening', 'Listening...')
+                : t('voice.tapToSpeak', 'Tap to Speak')}
             </Text>
           </TouchableOpacity>
 
@@ -227,17 +234,22 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
 
           {/* Quick Commands */}
           <View style={styles.quickCommands}>
-            <Text style={styles.quickCommandsTitle}>{t('voice.quickCommands', 'Quick Commands')}</Text>
+            <Text style={styles.quickCommandsTitle}>
+              {t('voice.quickCommands', 'Quick Commands')}
+            </Text>
             <View style={styles.quickCommandsGrid}>
-              {Object.entries(VOICE_COMMANDS).slice(0, 6).map(([command, config]) => (
-                <TouchableOpacity
-                  key={command}
-                  style={styles.quickCommandButton}
-                  onPress={() => handleManualCommand(command)}
-                >
-                  <Text style={styles.quickCommandText}>{config.description}</Text>
-                </TouchableOpacity>
-              ))}
+              {Object.entries(VOICE_COMMANDS)
+                .slice(0, 6)
+                .map(([command, config]) => (
+                  <TouchableOpacity
+                    key={command}
+                    style={styles.quickCommandButton}
+                    onPress={() => {
+                      handleManualCommand(command);
+                    }}>
+                    <Text style={styles.quickCommandText}>{config.description}</Text>
+                  </TouchableOpacity>
+                ))}
             </View>
           </View>
         </View>
@@ -247,12 +259,17 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
           <View style={styles.helpOverlay}>
             <View style={styles.helpModal}>
               <View style={styles.helpHeader}>
-                <Text style={styles.helpTitle}>{t('voice.availableCommands', 'Available Commands')}</Text>
-                <TouchableOpacity onPress={() => setShowHelp(false)}>
+                <Text style={styles.helpTitle}>
+                  {t('voice.availableCommands', 'Available Commands')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowHelp(false);
+                  }}>
                   <Ionicons name="close" size={24} color={Colors.light.text} />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.helpContent}>
                 {Object.entries(VOICE_COMMANDS).map(([command, config]) => (
                   <View key={command} style={styles.helpItem}>
@@ -442,4 +459,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoiceCommands; 
+export default VoiceCommands;

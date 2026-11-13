@@ -8,6 +8,8 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -20,12 +22,11 @@ namespace KasseAPI_Final.Services;
 /// RKSV Sonderbelege (Nullbeleg first). Does not use <see cref="PaymentService"/> / POS <see cref="DTOs.CreatePaymentRequest"/>.
 /// </summary>
 /// <remarks>
-/// TODO (legal): Whether Nullbeleg must be submitted to FinanzOnline / RKSV web service and exact BMF Belegcheck payload rules.
-/// TODO (legal): Confirm Monats-Nullbeleg timestamp (last second of month vs issuance time) with fiscal advisor.
-/// TODO (legal): Startbeleg — BMF Belegcheck / FinanzOnline submission deadlines and payload fields vs normal Beleg.
-/// TODO (legal): BMF Belegcheck / FinanzOnline submission deadlines and payload rules for Jahresbeleg (not implemented in-app).
-/// TODO (legal): Early Jahresbeleg and continued sales — operator process only; this codebase does not enforce post-Jahresbeleg sales stops.
-/// TODO (security): Schlussbeleg / Endbeleg — add operator password or second-factor confirmation when a register credential model exists (not invented here).
+/// Fiscal advisor notes (not in-app enforcement; do not invent BMF rules here):
+/// Nullbeleg / Startbeleg / Jahresbeleg FinanzOnline submission and Belegcheck payloads;
+/// Monats-Nullbeleg timestamp (last second of month vs issuance); post-Jahresbeleg sales stop is an operator process.
+/// Schlussbeleg second-factor: add only when a register credential model exists.
+/// See docs/RKSV_COMPLIANCE.md.
 /// </remarks>
 public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 {
@@ -39,6 +40,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly ILogger<RksvSpecialReceiptService> _logger;
     private readonly IRksvSpecialReceiptFinanzOnlineSubmissionTracker _fonSubmissionTracker;
     private readonly IFinanzOnlineOutboxService _finanzOnlineOutbox;
+    private readonly IReportPdfCaptureService _reportPdfCapture;
+    private readonly IOptionsMonitor<FinanzOnlineModeOptions> _finanzOnlineModeOptions;
+    private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _finanzOnlineCutoverOptions;
+    private readonly ICountryStrategyContext _countryStrategyContext;
+    private readonly IInvoiceStrategyResolver _invoiceStrategyResolver;
 
     public RksvSpecialReceiptService(
         AppDbContext db,
@@ -50,7 +56,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         IOptions<TseOptions> tseOptions,
         ILogger<RksvSpecialReceiptService> logger,
         IRksvSpecialReceiptFinanzOnlineSubmissionTracker fonSubmissionTracker,
-        IFinanzOnlineOutboxService finanzOnlineOutbox)
+        IFinanzOnlineOutboxService finanzOnlineOutbox,
+        IReportPdfCaptureService reportPdfCapture,
+        IOptionsMonitor<FinanzOnlineModeOptions> finanzOnlineModeOptions,
+        IOptionsMonitor<FinanzOnlineCutoverGuardOptions> finanzOnlineCutoverOptions,
+        ICountryStrategyContext? countryStrategyContext = null,
+        IInvoiceStrategyResolver? invoiceStrategyResolver = null,
+        ICountryProfileRegistry? countryProfileRegistry = null)
     {
         _db = db;
         _tseService = tseService;
@@ -62,12 +74,38 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _logger = logger;
         _fonSubmissionTracker = fonSubmissionTracker;
         _finanzOnlineOutbox = finanzOnlineOutbox;
+        _reportPdfCapture = reportPdfCapture;
+        _finanzOnlineModeOptions = finanzOnlineModeOptions;
+        _finanzOnlineCutoverOptions = finanzOnlineCutoverOptions;
+        var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+        _countryStrategyContext = countryStrategyContext
+            ?? new CountryStrategyContext(_db, registry, _tenantResolver);
+        _invoiceStrategyResolver = invoiceStrategyResolver
+            ?? CountryStrategyWiring.CreateInvoiceResolver(receipts: _receiptService);
     }
 
     private static readonly JsonSerializerOptions RksvFonOutboxJsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    /// <summary>
+    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). DE/CH/EU
+    /// throw — RKSV special receipts are Austria-only.
+    /// </summary>
+    private async Task<CountryStrategyBinding> EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
+    {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (!CountryPaymentTaxLineMapper.IsAustria(binding.Profile))
+        {
+            throw new NotSupportedException(
+                $"RKSV special receipts are Austria-only. Country {binding.Profile.Code} uses a different fiscal system.");
+        }
+
+        var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = strategy.GetMandatoryDisclosures(binding.Settings, customer: null);
+        return binding;
+    }
 
     /// <inheritdoc />
     public async Task<CreateNullbelegResponse> CreateNullbelegAsync(
@@ -79,7 +117,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        var (_, viennaCurrentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+
+        var (viennaCurrentYear, viennaCurrentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var resolvedYear = request.Year ?? viennaCurrentYear;
         var resolvedMonth = request.Month ?? viennaCurrentMonth;
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
@@ -100,14 +141,14 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 p => p.CashRegisterId == request.CashRegisterId &&
                      p.IsActive &&
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg &&
-                     p.RksvSpecialReceiptYear == request.Year &&
+                     p.RksvSpecialReceiptYear == resolvedYear &&
                      p.RksvSpecialReceiptMonth == resolvedMonth,
                 cancellationToken)
             .ConfigureAwait(false);
         if (duplicate)
         {
             throw new InvalidOperationException(
-                $"A Nullbeleg already exists for register {register.RegisterNumber} in {request.Year}-{resolvedMonth:00}.");
+                $"A Nullbeleg already exists for register {register.RegisterNumber} in {resolvedYear}-{resolvedMonth:00}.");
         }
 
         var guest = await _db.Customers.AsNoTracking()
@@ -115,9 +156,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             .ConfigureAwait(false)
             ?? throw new InvalidOperationException("Guest customer is not available; cannot create Nullbeleg.");
 
-        var lastDayOfMonth = new DateTime(request.Year, resolvedMonth, DateTime.DaysInMonth(request.Year, resolvedMonth), 23, 59, 59, DateTimeKind.Unspecified);
+        var lastDayOfMonth = new DateTime(resolvedYear, resolvedMonth, DateTime.DaysInMonth(resolvedYear, resolvedMonth), 23, 59, 59, DateTimeKind.Unspecified);
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(lastDayOfMonth, PostgreSqlUtcDateTime.AustriaTimeZone);
-        var sequenceAnchor = new DateTime(request.Year, resolvedMonth, DateTime.DaysInMonth(request.Year, resolvedMonth), 0, 0, 0, DateTimeKind.Unspecified);
+        var sequenceAnchor = new DateTime(resolvedYear, resolvedMonth, DateTime.DaysInMonth(resolvedYear, resolvedMonth), 0, 0, 0, DateTimeKind.Unspecified);
         var actsAsJahres = request.ActsAsJahresbeleg ?? (resolvedMonth == 12);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -167,7 +208,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptNumber = receiptNumber,
                 IsPrinted = false,
                 RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Nullbeleg,
-                RksvSpecialReceiptYear = request.Year,
+                RksvSpecialReceiptYear = resolvedYear,
                 RksvSpecialReceiptMonth = resolvedMonth,
                 RksvNullbelegActsAsJahresbeleg = actsAsJahres,
                 CreatedAt = issuedAtUtc,
@@ -208,6 +249,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -222,7 +265,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             _logger.LogInformation(
                 "Nullbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
-                paymentId, receiptNumber, register.RegisterNumber, request.Year, resolvedMonth);
+                paymentId, receiptNumber, register.RegisterNumber, resolvedYear, resolvedMonth);
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Nullbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateNullbelegResponse
             {
@@ -263,25 +312,24 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         return r ?? TruncateNotes($"Early: {e}");
     }
 
-    private static void ValidateMonatsbelegTargetMonth(int requestYear, int requestMonth, bool isCurrentMonth, bool forcePastMonth)
+    private static void ValidateMonatsbelegTargetMonth(int requestYear, int requestMonth, bool forcePastMonth)
     {
         var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        if (isCurrentMonth)
-            return;
-
         var targetAnchor = new DateTime(requestYear, requestMonth, 1);
         var currentAnchor = new DateTime(viennaYear, viennaMonth, 1);
-        if (targetAnchor > currentAnchor)
+
+        // Only completed (past) Vienna months are allowed — current unfinished month is blocked.
+        if (targetAnchor >= currentAnchor)
         {
             throw new InvalidOperationException(
-                $"Monatsbeleg cannot be created for a future Vienna calendar month ({requestYear}-{requestMonth:00}).");
+                $"Monatsbeleg can only be created for completed (past) Vienna calendar months, not {requestYear}-{requestMonth:00}.");
         }
 
         if (!forcePastMonth)
         {
             throw new RksvOperationGuardException(
                 RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce,
-                $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {requestYear}-{requestMonth:00}.");
+                $"Monatsbeleg for past month {requestYear}-{requestMonth:00} requires confirmation (force=true).");
         }
     }
 
@@ -356,6 +404,26 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var innerJson = JsonSerializer.Serialize(inner, RksvFonOutboxJsonOpts);
         var payloadHashHex = ComputeSha256HexForOutbox(innerJson);
         var businessKey = $"rksv|{receiptId:N}|{kind}";
+
+        FinanzOnlineIntegrationMode outboxMode;
+        try
+        {
+            outboxMode = FinanzOnlineModeResolver.ResolveOutboxMode(
+                _finanzOnlineModeOptions.CurrentValue.Mode,
+                _finanzOnlineCutoverOptions.CurrentValue,
+                out _);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Fail closed to TEST when Production cutover is not approved (still enqueue; PROD blocked at submit).
+            _logger.LogWarning(
+                ex,
+                "RKSV FinanzOnline outbox mode resolve fell back to TEST. kind={Kind} receiptId={ReceiptId}",
+                kind,
+                receiptId);
+            outboxMode = FinanzOnlineIntegrationMode.TEST;
+        }
+
         await _finanzOnlineOutbox.EnqueueSubmissionAsync(
             aggregateType: "RksvSpecialReceipt",
             aggregateId: receiptId,
@@ -363,7 +431,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             businessKey: businessKey,
             payload: new FinanzOnlineOutboxPayload
             {
-                Mode = FinanzOnlineIntegrationMode.TEST,
+                Mode = outboxMode,
                 Scope = new FinanzOnlineScope
                 {
                     TenantId = tenantId.ToString("N"),
@@ -391,6 +459,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
@@ -519,6 +589,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -526,7 +598,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             var receiptIdForTracking = ResolveReceiptIdFromChangeTracker(paymentId);
             _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
-                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                _fonSubmissionTracker.CreateInitialPendingRow(
                     paymentId,
                     receiptIdForTracking,
                     request.CashRegisterId,
@@ -562,6 +634,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 "Startbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
                 paymentId, receiptNumber, register.RegisterNumber);
 
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Startbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
+
             return new CreateStartbelegResponse
             {
                 PaymentId = paymentId,
@@ -589,9 +667,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        var isCurrentMonth = request.Year == viennaYear && request.Month == viennaMonth;
-        ValidateMonatsbelegTargetMonth(request.Year, request.Month, isCurrentMonth, forcePastMonth);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+
+        ValidateMonatsbelegTargetMonth(request.Year, request.Month, forcePastMonth);
 
         var tenantIdForDecember = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
 
@@ -616,6 +694,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = jResp.ReceiptId,
                 ReceiptNumber = jResp.ReceiptNumber,
                 QrData = jResp.QrData,
+                IsLateCreated = jResp.IsLateCreated,
+                DaysLate = jResp.DaysLate,
+                IntendedPeriodDate = jResp.IntendedPeriodDate,
+                Year = request.Year,
+                Month = request.Month,
+                CreatedAtUtc = jResp.CreatedAtUtc,
             };
         }
 
@@ -632,21 +716,24 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
         EnsureRegisterNotDecommissioned(register);
 
-        var duplicate = await _db.PaymentDetails.AsNoTracking()
-            .AnyAsync(
+        var existingActive = await _db.PaymentDetails
+            .Where(
                 p => p.CashRegisterId == request.CashRegisterId &&
                      p.IsActive &&
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
                      p.RksvSpecialReceiptYear == request.Year &&
-                     p.RksvSpecialReceiptMonth == request.Month,
-                cancellationToken)
+                     p.RksvSpecialReceiptMonth == request.Month)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (duplicate)
+        if (existingActive.Count > 0 && !forcePastMonth)
         {
             throw new RksvOperationGuardException(
                 RksvGuardErrorCodes.DuplicateMonatsbeleg,
                 $"A Monatsbeleg already exists for register {register.RegisterNumber} in {request.Year}-{request.Month:00}.");
         }
+
+        var supersededPaymentId = existingActive.Count > 0 ? existingActive[0].Id : (Guid?)null;
 
         var guest = await _db.Customers.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
@@ -657,6 +744,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
         var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        // Honest late (nachträglich) marking: the receipt is signed and timestamped NOW (issuedAtUtc);
+        // only the covered period (Year/Month) points at the past. We flag lateness for transparent
+        // audit/Prüftool visibility rather than backdating any fiscal timestamp.
+        var daysLate = MonatsbelegPastMonthPolicy.ComputeDaysLate(request.Year, request.Month);
+        var isLateCreated = RksvSpecialReceiptLateCreation.IsMonatsbelegLateCreated(request.Year, request.Month);
+        var intendedPeriodDate = RksvSpecialReceiptLateCreation.MonatsbelegIntendedPeriodEndDate(request.Year, request.Month);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -681,6 +775,17 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                         TaxDetailsJson: taxDetailsJson,
                         DbTransaction: tx))
                 .ConfigureAwait(false);
+
+            // Sign while the previous receipt is still active so the chain keeps it as the predecessor.
+            // Persist IsActive=false before the new insert: the partial unique index allows one active
+            // Monatsbeleg per register and month. Signature, BelegNr, amounts, and CreatedAt stay unchanged.
+            if (existingActive.Count > 0)
+            {
+                foreach (var prior in existingActive)
+                    prior.IsActive = false;
+
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             var paymentId = Guid.NewGuid();
             var payment = new PaymentDetails
@@ -708,6 +813,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RksvSpecialReceiptYear = request.Year,
                 RksvSpecialReceiptMonth = request.Month,
                 RksvNullbelegActsAsJahresbeleg = false,
+                IsLateCreated = isLateCreated,
+                LateCreationReason = isLateCreated ? TruncateNotes(request.Reason) : null,
+                IntendedPeriodDate = intendedPeriodDate,
                 CreatedAt = issuedAtUtc,
                 CreatedBy = actorUserId,
                 IsActive = true,
@@ -746,6 +854,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -766,11 +876,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
             var qr = dto?.Signature?.QrData ?? string.Empty;
 
-            if (forcePastMonth && !isCurrentMonth)
+            if (forcePastMonth)
             {
                 _logger.LogWarning(
-                    "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M}",
-                    paymentId, register.RegisterNumber, request.Year, request.Month);
+                    "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M} IsLate={IsLate} DaysLate={DaysLate}",
+                    paymentId, register.RegisterNumber, request.Year, request.Month, isLateCreated, daysLate);
             }
             else
             {
@@ -779,6 +889,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                     paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
             }
 
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Monatsbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
+
             return new CreateMonatsbelegResponse
             {
                 PaymentId = paymentId,
@@ -786,6 +902,14 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = receiptEntity.ReceiptId,
                 ReceiptNumber = receiptNumber,
                 QrData = qr,
+                IsLateCreated = isLateCreated,
+                DaysLate = daysLate,
+                IntendedPeriodDate = intendedPeriodDate,
+                Year = request.Year,
+                Month = request.Month,
+                CreatedAtUtc = issuedAtUtc,
+                Reissued = supersededPaymentId.HasValue,
+                SupersededPaymentId = supersededPaymentId,
             };
         }
         catch
@@ -804,6 +928,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         var (viennaYear, _) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
         if (request.Year < viennaYear - 1 || request.Year > viennaYear)
@@ -872,6 +998,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
         var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
 
+        var jahresDaysLate = RksvSpecialReceiptLateCreation.ComputeJahresbelegDaysLate(request.Year);
+        var jahresIsLateCreated = RksvSpecialReceiptLateCreation.IsJahresbelegLateCreated(request.Year);
+        var jahresIntendedPeriodDate = RksvSpecialReceiptLateCreation.JahresbelegIntendedPeriodEndDate(request.Year);
+
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -922,6 +1052,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RksvSpecialReceiptYear = request.Year,
                 RksvSpecialReceiptMonth = null,
                 RksvNullbelegActsAsJahresbeleg = true,
+                IsLateCreated = jahresIsLateCreated,
+                LateCreationReason = jahresIsLateCreated ? TruncateNotes(request.Reason) : null,
+                IntendedPeriodDate = jahresIntendedPeriodDate,
                 CreatedAt = issuedAtUtc,
                 CreatedBy = actorUserId,
                 IsActive = true,
@@ -960,6 +1093,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -967,7 +1102,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             var receiptIdForTrackingJb = ResolveReceiptIdFromChangeTracker(paymentId);
             _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
-                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                _fonSubmissionTracker.CreateInitialPendingRow(
                     paymentId,
                     receiptIdForTrackingJb,
                     request.CashRegisterId,
@@ -1002,9 +1137,24 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
             var qr = dto?.Signature?.QrData ?? string.Empty;
 
-            _logger.LogInformation(
-                "Jahresbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Year={Year}",
-                paymentId, receiptNumber, register.RegisterNumber, request.Year);
+            if (jahresIsLateCreated)
+            {
+                _logger.LogWarning(
+                    "Jahresbeleg created late PaymentId={PaymentId} Register={Register} Year={Year} DaysLate={DaysLate}",
+                    paymentId, register.RegisterNumber, request.Year, jahresDaysLate);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Jahresbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Year={Year}",
+                    paymentId, receiptNumber, register.RegisterNumber, request.Year);
+            }
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Jahresbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateJahresbelegResponse
             {
@@ -1013,6 +1163,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = receiptEntity.ReceiptId,
                 ReceiptNumber = receiptNumber,
                 QrData = qr,
+                IsLateCreated = jahresIsLateCreated,
+                DaysLate = jahresDaysLate,
+                IntendedPeriodDate = jahresIntendedPeriodDate,
+                Year = request.Year,
+                CreatedAtUtc = issuedAtUtc,
             };
         }
         catch
@@ -1034,6 +1189,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
@@ -1181,6 +1338,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             var decommissionedAtUtc = DateTime.UtcNow;
             register.Status = RegisterStatus.Decommissioned;
@@ -1207,6 +1366,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _logger.LogInformation(
                 "Schlussbeleg created and register decommissioned PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
                 paymentId, receiptNumber, register.RegisterNumber);
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Schlussbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateSchlussbelegResponse
             {

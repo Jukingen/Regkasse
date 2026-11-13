@@ -2,12 +2,12 @@
  * RKSV hub: localized health card copy (mirrors normalizers logic; uses i18n keys under rksvHub.health.*).
  * Türkçe: Sağlık kartı metinleri; normalizer mantığı ile aynı, çeviri anahtarları kullanılır.
  */
-
 import type {
   AdminOperationsSummaryResponse,
   FinanzOnlineMetricsResponse,
   OfflinePayloadHashAnalyzeResult,
 } from '@/api/generated/model';
+
 import type { OfflineIntentCoverageSummaryInput } from './normalizers';
 import type { OpsHealthLevel } from './types';
 
@@ -28,9 +28,12 @@ export function getPayloadHealthCopy(
     t('rksvHub.health.payload.detail.scanned', { count: data.scanned ?? 0 }),
     t('rksvHub.health.payload.detail.runtimeMismatch', { count: data.runtimeMismatchCount ?? 0 }),
     t('rksvHub.health.payload.detail.conflictGroups', { count: data.conflictGroups?.length ?? 0 }),
-    t('rksvHub.health.payload.detail.mismatchRatio', { pct: (data.mismatchRatioPercent ?? 0).toFixed(2) }),
+    t('rksvHub.health.payload.detail.mismatchRatio', {
+      pct: (data.mismatchRatioPercent ?? 0).toFixed(2),
+    }),
   ];
-  if (data.warningMessage) lines.push(t('rksvHub.health.payload.detail.warning', { message: data.warningMessage }));
+  if (data.warningMessage)
+    lines.push(t('rksvHub.health.payload.detail.warning', { message: data.warningMessage }));
 
   let summaryLine = t('rksvHub.health.payload.summary.ok');
   if (level === 'critical') summaryLine = t('rksvHub.health.payload.summary.critical');
@@ -53,10 +56,15 @@ export function getCoverageHealthCopy(
   }
   const lines: string[] = [
     t('rksvHub.health.coverage.detail.total', { count: data.total ?? 0 }),
-    t('rksvHub.health.coverage.detail.device', { pct: (data.deviceIdCoveragePercent ?? 0).toFixed(1) }),
-    t('rksvHub.health.coverage.detail.sequence', { pct: (data.sequenceCoveragePercent ?? 0).toFixed(1) }),
+    t('rksvHub.health.coverage.detail.device', {
+      pct: (data.deviceIdCoveragePercent ?? 0).toFixed(1),
+    }),
+    t('rksvHub.health.coverage.detail.sequence', {
+      pct: (data.sequenceCoveragePercent ?? 0).toFixed(1),
+    }),
   ];
-  if (data.alertReason) lines.push(t('rksvHub.health.coverage.detail.alertReason', { reason: data.alertReason }));
+  if (data.alertReason)
+    lines.push(t('rksvHub.health.coverage.detail.alertReason', { reason: data.alertReason }));
 
   const total = data.total ?? 0;
   let summaryLine = t('rksvHub.health.coverage.summary.ok');
@@ -108,7 +116,9 @@ export function getReplayHealthCopy(
       pending: data.replayPendingCount ?? 0,
       failed: data.replayFailedCount ?? 0,
     }),
-    t('rksvHub.health.replay.detail.finalFailure', { count: data.replayFinalFailureAuditCount ?? 0 }),
+    t('rksvHub.health.replay.detail.finalFailure', {
+      count: data.replayFinalFailureAuditCount ?? 0,
+    }),
     t('rksvHub.health.replay.detail.synced', { count: data.replaySyncedAuditCount ?? 0 }),
     t('rksvHub.health.replay.detail.incidents', { count: data.incidentCorrelationCount ?? 0 }),
   ];
@@ -137,7 +147,9 @@ export function getExportRiskHealthCopy(
       nonMono: risk?.sequenceNonMonotonicCount ?? 0,
     }),
     t('rksvHub.health.export.detail.orphanRefund', { count: risk?.orphanRefundCount ?? 0 }),
-    t('rksvHub.health.export.detail.paymentWithoutInvoice', { count: risk?.paymentWithoutInvoiceCount ?? 0 }),
+    t('rksvHub.health.export.detail.paymentWithoutInvoice', {
+      count: risk?.paymentWithoutInvoiceCount ?? 0,
+    }),
   ];
   const summaryLine =
     level === 'critical'

@@ -3,20 +3,19 @@
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { CompanySettingsForm } from '@/features/settings/components/CompanySettingsForm';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildAdminBreadcrumbs } from '@/shared/adminShellLabels';
 
 export default function CompanySettingsPage() {
-    const { t } = useI18n();
-    const breadcrumbs = [
-        adminOverviewCrumb(t),
-        { title: t('nav.settingsHub'), href: '/settings/company' },
-        { title: t('settings.companyPage.pageTitle') },
-    ];
+  const { t } = useI18n();
+  const breadcrumbs = buildAdminBreadcrumbs(t, [
+    { title: t('nav.settingsHub'), href: '/settings' },
+    { title: t('settings.companyPage.pageTitle') },
+  ]);
 
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <AdminPageHeader title={t('settings.companyPage.pageTitle')} breadcrumbs={breadcrumbs} />
-            <CompanySettingsForm />
-        </div>
-    );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <AdminPageHeader title={t('settings.companyPage.pageTitle')} breadcrumbs={breadcrumbs} />
+      <CompanySettingsForm />
+    </div>
+  );
 }

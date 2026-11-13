@@ -8,7 +8,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 export function subscribeForegroundPolling(
   callback: () => void,
   intervalMs: number,
-  enabled = true,
+  enabled = true
 ): () => void {
   if (!enabled) {
     return () => {};
@@ -55,16 +55,18 @@ export function subscribeForegroundPolling(
 export function useConditionalPolling(
   callback: () => void,
   intervalMs: number,
-  enabled = true,
+  enabled = true
 ): void {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
 
   useEffect(() => {
     return subscribeForegroundPolling(
-      () => callbackRef.current(),
+      () => {
+        callbackRef.current();
+      },
       intervalMs,
-      enabled,
+      enabled
     );
   }, [intervalMs, enabled]);
 }

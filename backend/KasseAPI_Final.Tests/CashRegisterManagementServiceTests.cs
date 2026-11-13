@@ -4,6 +4,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -15,7 +16,9 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CashRegisterManagementServiceTests
 {
-    private static readonly Guid PrimaryTenantId = LegacyDefaultTenantIds.Primary;
+    // Business mandants, not the platform sentinel: the Super Admin list hides
+    // SystemTenantIds.Platform, so a sentinel id here would silently drop rows.
+    private static readonly Guid PrimaryTenantId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid OtherTenantId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
     private static AppDbContext CreateContext()
@@ -24,7 +27,7 @@ public sealed class CashRegisterManagementServiceTests
             .UseInMemoryDatabase($"CashRegMgmt_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options);
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(PrimaryTenantId));
         ctx.Tenants.AddRange(
             new Tenant { Id = PrimaryTenantId, Name = "Primary", Slug = "primary" },
             new Tenant { Id = OtherTenantId, Name = "Other", Slug = "other" });
@@ -66,6 +69,9 @@ public sealed class CashRegisterManagementServiceTests
             audit.Object,
             enrichment.Object,
             new PaymentMethodDefinitionBootstrapService(ctx),
+            TseProvisioningTestDoubles.Successful(),
+            Mock.Of<ITrialLimitGuard>(),
+            CashRegisterTestDoubles.PermissiveTenantLimits(),
             NullLogger<CashRegisterManagementService>.Instance);
     }
 

@@ -153,6 +153,14 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 return result;
             }
 
+            await TaxGroupSeedData.SeedSystemTaxGroupsAsync(_context, tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            var taxGroups = await _context.TaxGroups
+                .AsNoTracking()
+                .Where(g => g.TenantId == tenantId && g.IsActive)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
             var categoriesToImport = DemoProductImportFilter.SelectCategories(demoData, request);
             result.SelectedCategoryCount = categoriesToImport.Count;
 
@@ -305,6 +313,7 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 product.Price = importPrice;
                 product.TaxType = taxType;
                 product.TaxRate = importTaxRate;
+                product.TaxGroupId = ResolveTaxGroupId(taxGroups, importTaxRate);
                 product.IsTaxable = importTaxRate > 0;
                 product.RksvProductType = MapRksvProductType(taxType);
                 product.CategoryId = category.Id;
@@ -442,7 +451,8 @@ public sealed class DemoProductImportService : IDemoProductImportService
                     Name = demoCat.Name,
                     OriginalDemoName = demoCat.Name,
                     Description = demoCat.Description,
-                    Icon = demoCat.Icon,
+                    Icon = CategoryAppearance.NormalizeIcon(demoCat.Icon),
+                    Color = demoCat.Color,
                     SortOrder = demoCat.SortOrder,
                     VatRate = demoCat.VatRate,
                     FiscalCategory = demoCat.FiscalCategory == RksvProductCategory.Unspecified
@@ -469,7 +479,10 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 category.IsSystemCategory = true;
 
                 if (string.IsNullOrWhiteSpace(category.Icon) && !string.IsNullOrWhiteSpace(demoCat.Icon))
-                    category.Icon = demoCat.Icon;
+                    category.Icon = CategoryAppearance.NormalizeIcon(demoCat.Icon);
+
+                if (string.IsNullOrWhiteSpace(category.Color) && !string.IsNullOrWhiteSpace(demoCat.Color))
+                    category.Color = demoCat.Color;
 
                 if (category.SortOrder != demoCat.SortOrder
                     || category.Description != demoCat.Description
@@ -529,15 +542,25 @@ public sealed class DemoProductImportService : IDemoProductImportService
         taxRate switch
         {
             0m => TaxTypes.ZeroRate,
+            4.9m => TaxTypes.ReducedNew,
             10m => TaxTypes.Reduced,
             13m => TaxTypes.Special,
             _ => TaxTypes.Standard,
         };
 
+    private static Guid ResolveTaxGroupId(IReadOnlyList<TaxGroup> taxGroups, decimal taxRate)
+    {
+        return taxGroups.FirstOrDefault(g => g.Rate == taxRate)?.Id
+            ?? taxGroups.FirstOrDefault(g => g.IsDefault)?.Id
+            ?? taxGroups.FirstOrDefault()?.Id
+            ?? throw new InvalidOperationException("No tax group available for demo product import.");
+    }
+
     private static string MapRksvProductType(int taxType) =>
         taxType switch
         {
             TaxTypes.Reduced => RksvProductTypes.Reduced,
+            TaxTypes.ReducedNew => RksvProductTypes.Reduced,
             TaxTypes.Special => RksvProductTypes.Special,
             TaxTypes.ZeroRate => RksvProductTypes.Exempt,
             _ => RksvProductTypes.Standard,

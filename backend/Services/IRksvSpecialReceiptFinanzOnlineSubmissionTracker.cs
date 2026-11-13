@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services;
@@ -14,7 +11,7 @@ public interface IRksvSpecialReceiptFinanzOnlineSubmissionTracker
     /// Builds a new row with status <see cref="RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Pending"/> (awaiting FinanzOnline outbox processing); caller adds to context and saves.
     /// </summary>
     /// <exception cref="ArgumentException">When <paramref name="kind"/> is not Startbeleg or Jahresbeleg.</exception>
-    RksvSpecialReceiptFinanzOnlineSubmission CreateInitialNotRequiredRow(
+    RksvSpecialReceiptFinanzOnlineSubmission CreateInitialPendingRow(
         Guid paymentId,
         Guid receiptId,
         Guid cashRegisterId,

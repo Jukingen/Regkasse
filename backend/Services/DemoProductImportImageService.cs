@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Options;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminProducts;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 

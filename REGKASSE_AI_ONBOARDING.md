@@ -6,6 +6,8 @@
 
 > **Legal safety:** Nothing here is a legal compliance guarantee. Fiscal export output is diagnostic / internal analysis only, not an official RKSV proof.
 
+> **Last reviewed:** 2026-07-21 — stack versions, monorepo/CI DX, digital Sites runtime, backup FA extras; see **Recent Improvements** below.
+
 ---
 
 ## 1. Project Identity
@@ -28,6 +30,7 @@ Regkasse is a full-stack Austrian POS / cash register system focused on:
 - Gutschein / voucher management
 - RKSV special receipts
 - Offline replay and operational resilience
+- Tenant digital services (website / app generator) and non-fiscal online orders
 
 ### Target users
 
@@ -63,62 +66,57 @@ The project aims to provide a production-grade POS system that can:
 7. Provide an admin panel for reporting, RKSV status, receipts, payments, vouchers, and special receipt operations.
 8. Support fiscal export packages for diagnostics and internal analysis (explicitly not legal RKSV proof; see Fiscal Export section).
 9. Keep all critical fiscal operations auditable.
+10. Provide Backup & Disaster Recovery with Tenant vs System strategies, role-aware Admin UI, and validation-only restore (no production restore via API).
 
 ---
 
 ## 3. Technical Stack
 
+Pinned / package evidence (FA `package.json`, POS `package.json`, `backend/KasseAPI_Final.csproj`). Prefer local files if versions drift.
+
+| Layer | Stack | Version |
+|-------|--------|---------|
+| Backend | ASP.NET Core / C# / EF Core / Npgsql | **.NET 10** (`net10.0`), EF **10.0.10** |
+| POS | Expo / React Native / TypeScript / Zustand / i18next | Expo **~56.0.18** (SDK 56), RN **0.85.3**, React **19.2.3**, TypeScript **~6.0.3** |
+| Admin (FA) | Next.js App Router / Ant Design / TanStack Query / Orval | Next **16.2.10**, React **19.2.7**, Ant Design **6.4.3** |
+| Sites | Next.js (tenant storefronts) | Next **~16.2.6**, React **~19.2.6** |
+| Database | PostgreSQL | **16+** typical |
+
 ### Backend
 
-- Language: **C#**
-- Runtime / target framework: **.NET 10**
-- Web framework: **ASP.NET Core Web API**
-- ORM: **Entity Framework Core**
-- Database provider: **Npgsql / PostgreSQL**
-- Architecture: **monolithic layered API**
-- Key backend areas:
-  - Controllers
-  - Services
-  - EF `AppDbContext`
-  - Models / DTOs
-  - Hosted services
-  - Fiscal / TSE signing services
-  - FinanzOnline / outbox services
+- Architecture: **monolithic layered API** (`ApplicationHost.cs`)
+- Key areas: Controllers, Services, `AppDbContext`, Models/DTOs, hosted services, TSE/RKSV, FinanzOnline outbox
 
 ### Frontend POS
 
-- Framework: **Expo / React Native**
-- Router: **expo-router**
-- Language: **TypeScript**
-- State management: **Zustand**
-- i18n: **i18next / react-i18next**
-- Purpose:
-  - Cashier-facing POS
-  - Cart and payment flow
-  - Receipt printing / display
-  - Register readiness and guardrail messaging
+- Router: **expo-router**; cashier cart/payment/receipts; German UI (`de-DE`)
 
 ### Frontend Admin
 
-- Framework: **Next.js 16**
-- Routing: **Next.js App Router**
-- UI library: **Ant Design**
-- Data fetching: **TanStack Query**
-- API client generation: **Orval** from `backend/swagger.json`
-- HTTP client: axios mutator pattern
-- Purpose:
-  - Backoffice/admin operations
-  - Reports
-  - Voucher management
-  - Receipt/payment inspection
-  - RKSV Sonderbelege UI
-  - FinanzOnline/outbox/reconciliation views
+- Auth boundary: `frontend-admin/src/proxy.ts` (not `middleware.ts`)
+- API client: **Orval** from `backend/swagger.json` → `frontend-admin/src/api/generated/**`
+- After OpenAPI changes: regenerate swagger + `npm run generate:api`; verify with `node scripts/verify-api-client.mjs` (Husky pre-commit + CI)
+
+### Frontend Sites
+
+- Package `frontend-sites/` — shared multi-tenant customer websites (`/[slug]`), public catalog + online-order UI
+- Not fiscal; working hours gate intake only
+- Dev: `npm run dev:sites` (port **3001**)
 
 ### Database
 
-- PostgreSQL
-- EF Core migrations
-- Important: migrations must be treated carefully because fiscal records and receipt sequences are legally sensitive.
+- PostgreSQL + EF Core migrations — treat carefully (fiscal sequences / RKSV retention)
+
+## Recent Improvements (2026-07)
+
+- **Monorepo DX:** Root `README.md`, `CONTRIBUTING.md`, npm **workspaces**, `npm run dev` / `build` / `test` / `lint` from root; package READMEs.
+- **CI:** Backend unit + PostgreSQL integration, FA (incl. Playwright E2E), POS, Sites; caches; optional Slack `SLACK_WEBHOOK_URL`. Inventory: `.github/workflows/README.md`.
+- **API client:** `verify-api-client.mjs`; Husky pre-commit; `api-client-auto-generate.yml` commits Orval output when `backend/swagger.json` lands on `main`/`master`.
+- **i18n:** Hard gate in `localization-validation.yml` + FA/POS CI (`--strictMissing true`; admin `--orphanPolicy error`). Sites i18n **deferred** in `namespace-manifest.json`.
+- **Digital:** Shared Sites runtime (`frontend-sites`) for tenant storefronts + public APIs.
+- **Backup FA:** Role-aware hub plus `/backup/costs`, `/backup/compliance`; smart retention / tiers / auto-cleanup remain optional config flags.
+
+---
 
 ## Database Schema
 
@@ -133,7 +131,7 @@ All **tenant-scoped** tables (entities implementing `ITenantEntity`) include a n
 
 **Not tenant-scoped (examples):** `tenants` (root), ASP.NET Identity user tables, `auth_sessions` / `refresh_tokens` (see `AppDbContext` mappings).
 
-**External tenant key (string):** `tenants.slug` (e.g. `cafe`) — used for subdomain/header resolution only; stored on the tenant row, not duplicated as `VARCHAR` on every child table.
+**External tenant key (string):** `tenants.slug` (e.g. `dev`, `prod`) — used for subdomain/header resolution only; stored on the tenant row, not duplicated as `VARCHAR` on every child table.
 
 ### Global Query Filters
 
@@ -191,7 +189,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Tenant Identification
 
 - Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
 - Super Admin accesses `admin.regkasse.at` (host slug `admin`; requires `SuperAdmin` role for cross-tenant APIs)
 
 ### Request pipeline (backend)
@@ -199,6 +197,16 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 1. **`TenantResolutionMiddleware`** — resolves tenant from host via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`, loads `Tenants` row, sets `ICurrentTenantAccessor.TenantId` (`backend/Tenancy/CurrentTenantService.cs`).
 2. **`TenantContextMiddleware`** (after auth) — may override accessor from JWT `tenant_id` claim.
 3. **`AppDbContext`** — global query filters on all `ITenantEntity` types: `e.TenantId == ambient TenantId` when set.
+
+### Tenant resolution order
+
+| Environment | Order (first match wins) |
+|-------------|--------------------------|
+| **Development** | `X-Tenant-Id` header → `?tenant=` query → Host slug → DX default (`dev` when Host is loopback / `admin`) |
+| **Production** (shared `api`/`pos`/`admin`/`www`) | JWT `tenant_id` after auth (pre-auth ambient unset; header/query ignored) |
+| **Production** (mandant subdomain / custom domain) | Host slug (pre-auth) → JWT `tenant_id` rebind after auth |
+
+Prefer **header** over query in Development (REST-friendly, less cacheable). FA sends `X-Tenant-Id` only; `?tenant=` remains a backend fallback. Production `?tenant=` presence is logged as **Warning** for ops alerting and never applied.
 
 ### Data Isolation
 
@@ -209,9 +217,9 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 ### Development Mode
 
-- **Localhost:** `X-Tenant-Id` header (tenant **slug**) or `?tenant=` query parameter — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
-- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`.
-- **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `cafe.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
+- **Localhost:** Prefer `X-Tenant-Id` header (tenant **slug**); `?tenant=` query remains a fallback — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
+- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`. FA axios sets `X-Tenant-Id` only (does not auto-inject `?tenant=`).
+- **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `dev.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
 
 ### Development Setup for Multi-Tenant Testing
 
@@ -219,7 +227,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 - Backend running with `ASPNETCORE_ENVIRONMENT=Development` (default for local `dotnet run` with `appsettings.Development.json`).
 - API base URL typically `http://localhost:5184` (see `backend/appsettings.Development.json` / `.example`).
-- A `tenants` row whose `slug` matches the value you send (e.g. `test_cafe`, `test_bar`, `dev` for POS presets; `cafe`, `bar`, `dev` for admin presets — see preset files below).
+- A `tenants` row whose `slug` matches the value you send (e.g. `dev`, `prod` — see preset files below).
 
 #### Option 1: Header-based (simplest)
 
@@ -227,21 +235,21 @@ Backend reads `X-Tenant-Id` in Development only (`SubdomainTenantProvider.DevTen
 
 ```bash
 # Liveness (no auth); header still parsed in Development
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
 # Tenant-scoped payments (requires JWT); canonical routes:
-curl -H "X-Tenant-Id: test_cafe" -H "Authorization: Bearer <token>" \
+curl -H "X-Tenant-Id: dev" -H "Authorization: Bearer <token>" \
   "http://localhost:5184/api/admin/payments?page=1&pageSize=5"
-# POS: /api/pos/payment*  (legacy alias families may still answer on /api/Payment*)
+# POS: /api/pos/payment*  (do not call removed /api/Payment*)
 ```
 
 #### Option 2: Query string
 
 ```bash
-curl "http://localhost:5184/api/health?tenant=test_cafe"
+curl "http://localhost:5184/api/health?tenant=dev"
 
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:5184/api/admin/payments?tenant=test_cafe&page=1&pageSize=5"
+  "http://localhost:5184/api/admin/payments?tenant=dev&page=1&pageSize=5"
 ```
 
 The POS axios client also appends `?tenant=<slug>` to the dev API base URL (`hydrateDevTenantApiBaseUrl` in `frontend/services/api/config.ts`).
@@ -251,38 +259,71 @@ The POS axios client also appends `?tenant=<slug>` to the dev API base URL (`hyd
 Add to `C:\Windows\System32\drivers\etc\hosts` (or `/etc/hosts`):
 
 ```text
-127.0.0.1 test-cafe.localhost
-127.0.0.1 test-bar.localhost
+127.0.0.1 dev.localhost
+127.0.0.1 prod.localhost
 ```
 
-Then call: `http://test-cafe.localhost:5184/api/health`
+Then call: `http://dev.localhost:5184/api/health`
 
-**Slug from host:** `TenantHostNames.GetTenantSlugFromHost` uses the **first label** of the hostname (`test-cafe` from `test-cafe.localhost`). That must match `tenants.slug` in the database (use slug `test-cafe` in DB, or prefer header/query with `test_cafe` to match POS presets).
+**Slug from host:** `TenantHostNames.GetTenantSlugFromHost` uses the **first label** of the hostname (`dev` from `dev.localhost`). That must match `tenants.slug` in the database (use slug `dev` in DB, or prefer header/query with `dev` to match POS presets).
 
-**CORS note:** `*.localhost` is not listed in `IsLocalDevelopmentDomain` (only `*.local` / `*.regkasse.local`). Browser clients on `localhost:3000` calling `test-cafe.localhost:5184` may need extra CORS configuration; header/query on `localhost:5184` is simpler for API smoke tests.
+**CORS note:** `*.localhost` is not listed in `IsLocalDevelopmentDomain` (only `*.local` / `*.regkasse.local`). Browser clients on `localhost:3000` calling `dev.localhost:5184` may need extra CORS configuration; header/query on `localhost:5184` is simpler for API smoke tests.
 
-**Production-like alternative:** `127.0.0.1 cafe.regkasse.local` → slug `cafe` (matches admin presets).
+**Production-like alternative:** `127.0.0.1 dev.regkasse.local` → slug `dev` (matches admin presets).
+
+#### Local role test accounts (operator-defined passwords)
+
+Typical local smoke-test matrix (tenant **`dev`** unless noted). Passwords are **not** seeded globally — set them in your DB or copy `credentials.json.example` → gitignored `credentials.json`.
+
+| Role | App | URL | Login identifier | Tenant context |
+|------|-----|-----|------------------|----------------|
+| SuperAdmin | FA | `http://localhost:3000` | `admin@admin.com` | Header switcher → **`dev`** (JWT may still show `default`) |
+| Mandanten-Admin (`Manager`) | FA | `http://localhost:3000` | `manager1` | Header switcher → **`dev`** |
+| Cashier | POS | `http://localhost:8081` | `cashier1` | `EXPO_PUBLIC_DEV_TENANT_ID=dev` |
+
+**POS cashier password reset:** requires **`users.manage`** (`UserManage`). **Mandanten-Admin does not have this** — use **SuperAdmin** in FA: `/admin/tenants/{dev}/users` → reset password, or `POST /api/admin/users/{id}/force-password-reset`.
+
+**RBAC spot-check (expected):** Mandanten-Admin (`Manager`) → RKSV/cash-registers/backup read OK; `/api/admin/users` → 403; `/api/admin/tenants` → 403. Cashier → `/api/pos/status/overview` + `/api/rksv/status` OK; `/api/admin/*` → 403.
 
 #### Option 4: FA tenant switcher
 
 In **development** mode (`NODE_ENV=development`), the admin shell shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch` in `frontend-admin/src/app/(protected)/layout.tsx`).
 
-- Presets: `dev`, `cafe`, `bar` (`frontend-admin/src/features/auth/constants/devTenantPresets.ts`)
+- Presets: `dev`, `prod` (`frontend-admin/src/features/tenancy/devTenantCatalog.ts`)
 - Persists `dev_tenant_id` in `localStorage`, sets `X-Tenant-Id` via axios (`frontend-admin/src/lib/axios.ts`), reloads the page on change
-- Tooltip documents hosts-file alternative (`dev` / `cafe` / `bar.regkasse.local`)
+- Tooltip documents hosts-file alternative (`dev` / `prod.regkasse.local`)
 
 #### Option 5: POS dev tenant switcher
 
 In **`__DEV__`**, POS shows `DevTenantSwitcher` in the tab layout (`frontend/src/components/dev/DevTenantSwitcher.tsx`).
 
-- Presets: `dev`, `test_cafe`, `test_bar` (`frontend/constants/devTenantPresets.ts`)
+- Presets: `dev`, `prod` (`frontend/constants/devTenantCatalog.ts`)
 - Persists slug and refreshes API base URL + headers
 
 **Verify isolation:** `dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "FullyQualifiedName~TenantIsolation"`
 
+## User Roles
+
+| Backend role | UI (de) | Scope |
+|--------------|---------|-------|
+| **SuperAdmin** | Super-Administrator | System-wide administrator |
+| **Manager** | **Mandanten-Admin** | Tenant-level administrator |
+| **Cashier** | Kassierer | POS operations |
+| **Waiter** | Kellner | Order taking |
+| **Kitchen** | Küche | Kitchen display |
+| **Accountant** | Buchhaltung | Financial reporting |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
+
+- **SuperAdmin**: System-wide administrator; tenant CRUD, impersonation, billing, platform backup; **digital services** create/publish/edit/delete; **online orders** full FA management (including optional POS cart bridge).
+- **Mandanten-Admin (`Manager`)**: Tenant-level administrator — users, settings, reports, backup for **their** tenant; **digital services** view / preview / request only (no create/publish/delete); **online orders** view + status updates only (`digital.orders.view` / `manage` — not POS/TSE). Backend/API role string remains `"Manager"`.
+- **Cashier / Waiter / Kitchen**: POS-facing roles — **no** digital services / `digital.orders.*` by default.
+- **Accountant / ReportViewer**: Reporting-focused roles.
+
+Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`. UI labels: `frontend-admin/src/i18n/locales/*/users.json` → `roles.displayNames`. Online orders API: `PATCH /api/admin/online-orders/{id}/status` (not fiscal).
+
 ### Super Admin
 
-Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use legacy default tenant until impersonation).
+Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use platform sentinel / Development `dev` until impersonation).
 
 #### Super Admin capabilities
 
@@ -292,15 +333,17 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Create tenant | `POST /api/admin/tenants` | Unique `slug`; seeds `status=active` |
 | Edit tenant | `PUT /api/admin/tenants/{id}` | Name, contact, license fields on tenant row |
 | Suspend / reactivate | `PUT` with `status` | `suspended` sets `isActive=false`; `active` re-enables |
-| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
+| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; platform sentinel cannot be deleted |
 | Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
+| Record billing license sales | `POST /api/admin/billing/license-sales` | Creates `license_sales` + billing key; see **`docs/BILLING_TENANT_LICENSE.md`** |
+| Billing audit / reminders | `GET /api/admin/billing/audit`, `POST …/reminders/check` | Super Admin; `billing_audit_log`, `license_reminders` |
 | Impersonate | `POST /api/admin/tenants/{tenantId}/impersonate` | JWT + `tenant_impersonation` claim |
 | Create tenant users | `POST /api/admin/tenants/{tenantId}/users` | One-time `generatedPassword`; no invitation email |
 | Create platform users | `POST /api/admin/users` (no `tenantId`) | Super Admin staff; same password handoff |
 | Assign existing user | `POST /api/admin/tenants/{tenantId}/users/assign` | Membership only — no new Identity row |
 | System-wide metrics | — | Per-tenant dashboard/reports only; no dedicated cross-tenant SaaS metrics API yet |
 
-**Roles:** `SuperAdmin` on `AdminTenantsController`; tenant user endpoints also accept `[HasPermission(user.manage)]` (Managers on their tenant where policy allows).
+**Roles:** `SuperAdmin` on `AdminTenantsController`; tenant user endpoints also accept `[HasPermission(user.manage)]` (Mandanten-Admins on their tenant where policy allows).
 
 #### User management (direct creation)
 
@@ -309,7 +352,7 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 - Backend: `TenantUserService.CreateAsync`, `TenantUserService.CreateQuickAsync`, `AdminUsersController.Create` → `PasswordGenerator.GenerateSecurePassword`, `UserCreationService` / `UniqueUsernameGenerator` for login names.
 - **Add existing user:** `AddExistingUserModal` — assign membership only.
 - Audit: `USER_CREATED` with `createdByUserId`, `tenantId`, `role`; password **not** in audit metadata.
-- Optional `Email:Smtp` is for **onboarding welcome** only — see `docs/CUSTOMER_ONBOARDING.md`, `backend/CONFIGURATION.md`.
+- Optional `Email:Smtp` — see **`docs/EMAIL_CONFIGURATION.md`** (onboarding welcome, forgot-username/password, activity alerts, license reports, etc.).
 
 ##### Creating users with username
 
@@ -317,13 +360,15 @@ When creating a user via Admin API or FA:
 
 - If **`userName`** is provided, it must be unique across all users **case-insensitively** (`IUserUniquenessValidationService.IsUserNameTakenByOtherUserAsync` → `IdentityLoginLookup` / `NormalizedUserName`).
 - If **`userName`** is omitted, the system generates one automatically (`{rolePrefix}{n}`, e.g. `manager1`, `cashier2`).
-- **`email`** remains the contact/login email field and may differ from `userName` (especially Quick Create: auto email like `cashier_a3f9k2@cafe.regkasse.at`).
+- **`email`** remains the contact/login email field and may differ from `userName` (especially Quick Create: auto email like `cashier_a3f9k2@dev.regkasse.at`).
 - API responses include **`userName`** and **`email`** for operator handoff (`CreateTenantUserResultDto`, `AdminCreateUserResponseDto`).
 - FA success modals show username, email, and one-time password with copy actions (`QuickUserSuccessModal`, Schnell anlegen tab).
 
 Request DTOs: `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminCreateUserRequest` (`userName` optional).
 
 Full guide: **`docs/USER_MANAGEMENT.md`**.
+
+**Backup (Mandanten-Admin):** default `backup.manage` + `settings.view`; not `settings.manage`. Tenant strategy only (no Identity / no System dumps). See **`docs/BACKUP_AND_DISASTER_RECOVERY.md`**, **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
 
 **Role:** `SuperAdmin` only on `AdminTenantsController` for tenant CRUD (`[Authorize(Roles = SuperAdmin)]`).
 
@@ -337,23 +382,26 @@ Full guide: **`docs/USER_MANAGEMENT.md`**.
 
 Cannot impersonate deleted, suspended, or inactive tenants.
 
+**Backup strategy (detail):** see **[Backup Strategy](#backup-strategy)** below · hub [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md).
+
 ### Multi-Tenant Security
 
 #### Tenant isolation guarantees
 
 - **Database-level filtering:** EF Core global query filters on all `ITenantEntity` types (`AppDbContext.CreateTenantQueryFilter`). API clients cannot pass a filter to bypass this.
 - **Cross-tenant IDOR:** Returns **HTTP 404** (not 403) so resource existence does not leak. Verified in `TenantIsolationTests`.
-- **Production tenant resolution:** Subdomain from `Host` via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`.
+- **Production tenant resolution (POS target):** JWT `tenant_id` on shared hosts `pos.regkasse.at` / `api.regkasse.at` — [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
+- **Production tenant resolution (legacy slug host):** Subdomain from `Host` via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`.
 - **Offline queue:** `offline_transactions.tenant_id` is NOT NULL; stamped on insert from cash register / ambient tenant; preserved on replay.
 
 #### Tenant spoofing prevention
 
-- **Production:** Only subdomain-based resolution; `X-Tenant-Id` and `?tenant=` are ignored unless `IsDevelopment()`.
+- **Production:** No `X-Tenant-Id` / `?tenant=` unless `IsDevelopment()`. POS/API reserved hosts are not tenant slugs.
 - **Super Admin endpoints:** Additional `SuperAdmin` role requirement on `/api/admin/tenants/*`.
 
 #### Known gap (document accurately)
 
-- **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet. See `docs/MULTI_TENANT.md`.
+- **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet (less critical when POS uses reserved non-slug hosts). See `docs/MULTI_TENANT.md` and reserved-host checklist in `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 ### Tenant resolution in background / startup (no HTTP request)
 
@@ -390,7 +438,7 @@ For existing single-tenant PostgreSQL databases, apply the **existing migration 
 | Fiscal / audit / offline | `20260516101549_AddTenantIdToFiscalAndAuditTables` |
 | Super Admin tenant columns | `20260516104349_ExtendTenantsForSuperAdmin` |
 
-**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: LegacyDefaultTenantIds.Primary` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
+**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: SystemTenantIds.Platform` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
 
 ```bash
 dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
@@ -407,10 +455,9 @@ Full guide: **`docs/MULTI_TENANT.md`**.
 
 #### Production
 
-- POS receives `tenantId`, `tenantSlug`, and `apiBaseUrl` from **license activation** (`POST /api/license/activate` → `tenantStorage.persistBootstrap` in `frontend/api/license.ts`).
-- Values are stored in secure/async storage (`tenant_id`, `tenant_slug`, `api_base_url` keys in `frontend/services/tenant/tenantStorage.ts`).
-- Production API traffic should use the bootstrap URL, typically `https://{tenant}.regkasse.at/api` (or the exact `apiBaseUrl` returned by activation).
-- Axios sends requests to that base URL; tenant slug from bootstrap is used when resolving headers.
+- **Target architecture:** single POS at `https://pos.regkasse.at` calling `https://api.regkasse.at` — tenant from **JWT `tenant_id`** after login. See **`docs/POS_PRODUCTION_ARCHITECTURE.md`**.
+- Optional: license activation may still persist device/bootstrap metadata in `tenantStorage`; do **not** require a per-tenant POS Host or per-tenant API hostname for normal cashier login.
+- Production API base: `https://api.regkasse.at/api` (shared). Axios sends Bearer JWT; EF filters use claim Guid.
 
 #### Development
 
@@ -418,9 +465,10 @@ Full guide: **`docs/MULTI_TENANT.md`**.
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api
-EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```
 
+- Dev UI: `http://localhost:8081`. FA: `http://admin.regkasse.local:3000`. API: `http://localhost:5184`.
 - In `__DEV__`, effective slug order: **DevTenantSwitcher / `dev_tenant_id` storage override** → **`EXPO_PUBLIC_DEV_TENANT_ID`** (defaults to `dev` if unset) → login/license persisted slug.
 - POS axios (`frontend/services/api/config.ts`) automatically:
   - adds **`X-Tenant-Id: <slug>`** on every request when a slug resolves, and
@@ -430,38 +478,133 @@ Restart Metro after changing `.env`.
 
 ---
 
+## Digital Services
+
+### Overview
+
+Regkasse offers **website** and **mobile app** digital services for tenants, managed in **Frontend-Admin (FA)** — not POS. Permissions: `RolePermissionMatrix` / `AppPermissions` (`digital.*`, `digital.orders.*`) — matrix: [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md). Operator guide: [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md). Always-applied summary: [`AGENTS.md`](AGENTS.md) § Roles (Digital services & online orders). FA quick ref: [`frontend-admin/README.md`](frontend-admin/README.md) § Digital Services.
+
+### Tenant website
+
+- Generated from tenant / catalog data (products, categories, company settings, customizations).
+- **Shipped templates:** Modern, Classic, Minimal (`WebsiteGeneratorService.GetTemplates()`).
+- i18n also labels Bistro / Gourmet / Street Food for UI catalog expansion — do not assume those generators exist until listed by `/api/admin/website/templates`.
+- **Manager:** preview templates, request creation or template change (`digital.view` / `preview` / `request`). FA: `/settings/digital`, `/tenant/{id}/website-preview`.
+- **Super Admin:** create / publish / edit / delete; approve requests. FA: `/admin/digital`, `/admin/digital/requests`.
+- **Runtime host:** shared Next app `frontend-sites/` serves `/[slug]` storefronts (public catalog + order UI). Custom hosts via verified `TenantDomain` (`ITenantDomainService`). Public APIs: `/api/public/tenants/*`, `/api/sites/{slug}/status`, `/api/public/online-orders`.
+
+### Mobile app
+
+- **PWA** and **Native** (Expo package) generation — Super Admin (`digital.create` / generators under `/api/admin/website/mobile/*`).
+- **Manager:** preview / request only (no generate).
+
+### Online orders
+
+Operator guide: [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md). Wave notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+
+- Customer orders from website / PWA / native → table `online_orders` (tenant-scoped).
+- **Completely separate from POS:** no TSE signature, no fiscal receipt, no `payment_details` RKSV chain for these rows.
+- **Manager:** view + status lifecycle (`digital.orders.view` / `manage`). FA: `/orders/online`, `/tenant/{id}/orders`.
+- **Status workflow:** `pending` → `accepted` → `preparing` → `ready` → `completed` (or `cancelled` from non-terminal). API: `PATCH /api/admin/online-orders/{id}/status`.
+- Optional POS cart bridge (`POST …/accept`) requires `digital.orders.approve` (Super Admin) — not part of Manager status-only fulfillment.
+
+### Working hours (website/app only)
+
+Hub: [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md). Always-applied: [`AGENTS.md`](AGENTS.md) § Working hours (website/app only).
+
+- Restricts **customer online-order intake** on tenant websites / apps (`WebsiteStatusController`, `OnlineOrderIntakeService`).
+- **Never** gates POS FE (cart/payment), FA access, or authenticated POS/admin APIs.
+- POS may show schedule / Tagesabschluss reminders; `posOperationsAllowed` is always `true`.
+
+---
+
+## Backup Strategy
+
+**Hub:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](docs/BACKUP_SYSTEM.md) · Always-applied: [`AGENTS.md`](AGENTS.md) § Backup & Disaster Recovery.  
+**Detail:** [`docs/BACKUP_CONTENT_POLICY.md`](docs/BACKUP_CONTENT_POLICY.md), [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md), [`docs/restore-boundary-notes.md`](docs/restore-boundary-notes.md).
+
+### Tenant Backup
+
+- **Trigger:** Mandanten-Admin (`Manager`) via `IBackupService.CreateTenantBackupAsync` / manual FA trigger (`backup.manage` + JWT tenant context). Not the daily cron product path.
+- **Scope:** Tenant-specific business/fiscal data only (payments, receipts, products, customers, vouchers, cash registers, tenant audit, invoice metadata).
+- **Artifact:** `*.tenant.zip` (JSON tables). **No** AspNet Identity / credentials.
+- **Retention:** **30** days default (API/FA configurable **7–90**).
+- **Compression:** ZIP archive (deflate). Not a separate `.gz` sidecar.
+- **Access:** Own tenant list/download only; Managers never see System dumps.
+
+### System Backup
+
+- **Schedule:** Daily automatic at **02:00 UTC** by default (`scheduleCron: "0 2 * * *"`, `BackupScheduledEnqueueService`) — **System** strategy (`tenant_id` null).
+- **Also:** Super Admin manual `CreateSystemBackupAsync`.
+- **Scope:** All active tenants + system data (platform settings, deployment licenses, full audit).
+- **Artifact:** `pg_dump -Fc` (custom format, zlib **`-Z6`**) **+** `*.system.zip` (includes Identity).
+- **Retention:** **90** days default.
+- **Recovery:** Validation restore / drills use System `pg_dump` artifacts (isolated `restore_validation_*` DB). Full live production recovery remains operator/DBA-led outside the API. Tenant ZIP is **not** `pg_restore`-compatible.
+
+### RKSV Compliance
+
+- Restore only to the **same tenant** when ambient tenant and `backup_runs.tenant_id` are both set (`IRestoreService`).
+- Cross-tenant restore via API is prohibited (**404**).
+- Restore workflow timestamps recorded (`RequestedAt` / `ApprovedAt` / audit UTC); original fiscal timestamps (**`IssuedAt`**, receipt times) are **preserved** (no backdating).
+- Audit trail: who, when, what (`AuditEventType.Restore*`, correlation id, source backup tenant / scope).
+- No production restore via API; dual Super Admin approval for validation restore. Mandanten-Admin cannot restore.
+
+### Cost Optimization
+
+- Compressed backups: System `pg_dump -Fc -Z6`; Tenant/System ZIP via `CompressionService` (text/JSON Optimal; already-compressed entries NoCompression).
+- Configurable retention (7–90 days clamp on admin settings; strategy defaults 30 / 90).
+- Storage usage alerts at **80%** staging disk (`Backup:StagingDiskUsageAlertPercent`); FA dashboard warning + periodic `StorageAlertService` (default every 6h).
+- Automatic cleanup of expired succeeded backups (`BackupSucceededRunRetentionCleaner`).
+- Optional smart GFS retention (`Backup:SmartRetentionEnabled` → `SmartRetentionService`: 7 daily / 4 weekly / 12 monthly / 7 yearly).
+- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤30d / Warm ≤90d / Cold &gt;90d; Super Admin FA `/backup/retention`; Cold upload via `ICloudStorageService`). System backups keep a 7-year Legal Hold (BAO §132).
+- Enqueue storage budget guard (~**10 GB** summed succeeded dumps via `BackupService.MaxStorageBytes`); `StorageAlertService` also alerts at **80%** of that budget.
+
+### FA (role-aware)
+
+- `/backup` hub: `TenantBackupView` (Mandanten-Admin) vs `SystemBackupView` (Super Admin).
+- Detail: `/backup/dashboard`, runs, configuration, audit, **`/backup/costs`**, **`/backup/compliance`**.
+
+---
+
 ## 4. Repository Structure
 
-Typical high-level structure:
-
 ```text
-backend/                  ASP.NET Core API, EF Core, fiscal services, Tenancy/
-frontend/                 Expo / React Native POS app
-frontend-admin/           Next.js admin panel
-docs/                     RKSV, operations, receipt, audit, workflow docs
-localization/             Translation tooling and validation scripts
-scripts/                  API client validation and helper scripts
-.github/workflows/        CI workflows
-ai/                       AI/project context files, if present
+backend/                  ASP.NET Core API, EF Core, fiscal services, Tenancy/ (+ npm workspace wrapper)
+frontend/                 Expo / React Native POS (cash-register)
+frontend-admin/           Next.js admin panel (registrierkasse-admin)
+frontend-sites/           Shared tenant websites / online-order UI (regkasse-sites)
+localization/             i18n validate/export/usage (POS + FA; Sites deferred)
+scripts/                  OpenAPI verify, seeds, Husky install, helpers
+tools/                    License generator utilities
+docs/                     Human docs (backup, digital, RKSV, …)
+ai/                       AI contracts / do-not-touch
+.github/workflows/        CI inventory in workflows/README.md
+README.md / CONTRIBUTING.md / AGENTS.md
 ```
 
-The backend OpenAPI contract is generated into:
+OpenAPI → Orval:
 
 ```text
 backend/swagger.json
-```
-
-The frontend-admin API client is generated into:
-
-```text
 frontend-admin/src/api/generated/**
 ```
 
-Whenever backend API changes affect frontend-admin, update both `backend/swagger.json` and the generated Orval client.
+Whenever backend API changes affect FA: refresh `backend/swagger.json`, run `npm run generate:api`, commit generated output, confirm with `node scripts/verify-api-client.mjs`. CI may auto-commit generated client when swagger is pushed to `main`/`master`.
 
 ---
 
 ## 5. Core Domain Model
+
+### Country & Fiscal Regime
+
+Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany, Switzerland, and a generic EU e-invoicing default are **shape-only** (not production-ready).
+
+- **Binding (shipped):** `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`), alongside `VatRegime`, `BillingCountry`, and `TaxExempt`. There is **no** `CountryCode` column and none will be added — a regression test enforces this. In-code `CountryProfile` registry: AT, DE, CH, registry-only `EU_DEFAULT`.
+- **Strategies (shipped, wired):** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime` in `PaymentService` / `InvoiceService`. Do not fork `PaymentService` or `TseService` internals. TSE tax-sets and RKSV special receipts stay Austria-only.
+- **Flags:** `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are live; AT RKSV is **locked on**.
+- **FA:** create-tenant wizard country step; tenant-detail Country & Fiscal Regime card. Historical invoices keep `CountryCodeAtIssue` on country change.
+- **Remaining (NOT STARTED):** Paket 20 DE TSE provider, 21 CH QR bank, 22 EU Peppol — [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16. Paket 30-d (OSS destination rates) is done.
+- **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](docs/COUNTRY_LAYER_CUTOVER.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
 
 ### Payment / `PaymentDetails`
 
@@ -777,6 +920,8 @@ Voucher codes are explicitly excluded from offline storage.
 
 Replay is triggered via POST /api/offline-transactions/replay after connectivity recovery.
 
+**Additional model (2026-06):** Full POS order snapshots in `offline_orders` via `/api/pos/offline-orders/*` and FA `/rksv/offline-orders`. Legacy TSE intents remain in `offline_transactions` at `/admin/tse/offline-transactions`. Monitoring: `/api/admin/offline-monitoring/*`, dashboard widget `offline-system-status`. **Docs hub:** [`docs/OFFLINE_SYSTEM_INDEX.md`](docs/OFFLINE_SYSTEM_INDEX.md), [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](docs/release/OFFLINE_SYSTEMS_SEPARATION.md).
+
 Risk: duplicate payments if operator retries before queue reconciliation.
 
 ---
@@ -844,7 +989,7 @@ Rules:
 
 Users can sign in with either:
 
-- **Email address** (e.g. `manager@cafe.regkasse.at`)
+- **Email address** (e.g. `manager@dev.regkasse.at`)
 - **Username** (e.g. `manager1`, `cashier2`, `user3`)
 
 **Username generation (Quick Create / admin user create):**
@@ -898,7 +1043,16 @@ Usernames are **case-insensitive** for login and uniqueness:
 - Can log in as: `mustafa`, `MUSTAFA`, `MuStAfA`
 - Cannot create another user with username `mustafa` (or `MUSTAFA`)
 
-Contract supplements: `docs/API_CONTRACTS.md` (Authentication).
+Contract supplements: `docs/API_CONTRACTS.md` (Authentication). SuperAdmin TOTP 2FA (Production) and Development bypass: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
+
+### SuperAdmin two-factor authentication (2FA)
+
+| Environment | Behavior |
+|-------------|----------|
+| **Development** | Default: no 2FA challenge (`TwoFactorAuth:BypassInDevelopment=true` / `Enabled=false` in Dev templates). |
+| **Production** | SuperAdmin must complete TOTP after password (`requires2FA` → `POST /api/Auth/verify-2fa`). |
+
+Config: `TwoFactorAuth` (`Enabled`, `BypassInDevelopment`, `TestToken`). FA UI: `frontend-admin/src/features/auth/components/TwoFactorAuth.tsx` (Dev Alert + Continue; Production authenticator form). Details: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
 
 ---
 
@@ -910,13 +1064,14 @@ The authoritative API contract is `backend/swagger.json`.
 
 #### Tenant Identification
 
-- **Production:** Tenant derived from request `Host` subdomain automatically (`{slug}.regkasse.at` → `tenants.slug`).
-- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `cafe`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
-- **Development:** `?tenant={slug}` query parameter (same slug semantics as the header).
+- **Production (shared hosts):** JWT `tenant_id` after auth; do not send `X-Tenant-Id` / `?tenant=`.
+- **Production (mandant Host / custom domain):** Host slug for pre-auth public APIs; JWT rebinds after auth.
+- **Development (preferred):** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
+- **Development (fallback):** `?tenant={slug}` query parameter (same slug semantics; prefer header). Production presence → Warning log, ignored.
 
 After resolution, the backend sets `ICurrentTenantAccessor.TenantId` (Guid). Authenticated requests may also carry JWT claim `tenant_id` (Guid), applied by `TenantContextMiddleware`.
 
-Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` dev presets).
+Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` header switcher).
 
 #### Super Admin Endpoints
 
@@ -932,7 +1087,7 @@ Key endpoint groups:
 - `/api/pos/payment/methods`
 - `/api/pos/payment/{id}`
 
-Legacy `/api/Payment` may exist, but prefer `/api/pos/*` for POS behavior.
+Use `/api/pos/*` for POS behavior. Removed aliases `/api/Payment|/api/Cart|/api/Product` return 404.
 
 ### Receipts
 
@@ -1170,11 +1325,11 @@ For large changes:
 ### DNS Configuration
 
 - **Wildcard A record:** `*.regkasse.at` → backend (and admin/POS frontends if served on tenant subdomains) server IP address.
-- Required so each tenant host (`cafe.regkasse.at`, `bar.regkasse.at`, …) and `admin.regkasse.at` resolve to the application stack.
+- Required so each tenant host (`dev.regkasse.at`, `prod.regkasse.at`, …) and `admin.regkasse.at` resolve to the application stack.
 - Reverse proxy / load balancer must **preserve the original `Host` header** for tenant slug extraction (`TenantHostNames.GetTenantSlugFromHost`).
 - **SSL/TLS:** Certificate must cover the wildcard (`*.regkasse.at`) and typically the apex (`regkasse.at`) if used.
 
-Local development alternative: hosts-file entries such as `cafe.regkasse.local` (see `TenantHostNames.IsLocalDevelopmentDomain`).
+Local development alternative: hosts-file entries such as `dev.regkasse.local` (see `TenantHostNames.IsLocalDevelopmentDomain`).
 
 ### Environment Variables
 
@@ -1184,8 +1339,8 @@ Local development alternative: hosts-file entries such as `cafe.regkasse.local` 
 
 **Tenant resolution mode (backend):**
 
-- **`Development`:** `X-Tenant-Id` header and `?tenant=` query overrides are allowed (`SubdomainTenantProvider`).
-- **`Production`** (and other non-Development values such as `Staging`): **only** subdomain / `Host`-based resolution; header and query overrides are ignored.
+- **`Development`:** `X-Tenant-Id` header (preferred) then `?tenant=` query overrides are allowed (`SubdomainTenantProvider`); then Host → DX default `dev`.
+- **`Production`** (and other non-Development values such as `Staging`): shared hosts use JWT `tenant_id`; mandant Host may bind pre-auth; header and query overrides are ignored (`?tenant=` → Warning log).
 
 Ensure production deployments set `ASPNETCORE_ENVIRONMENT=Production` (not `Development`) so tenant cannot be spoofed via headers.
 
@@ -1245,8 +1400,9 @@ Known or suspected risks:
 - Fiscal export is NOT a legal RKSV proof. Payloads include explicit disclaimer text; when enabled, API calls may also require **`X-Disclaimer-Acknowledged: true`**. Exports are for diagnostics and internal analysis only.
 - The codebase references Epson-style TSE devices and generic providers (e.g., Epson-TSE, fiskaly) through model comments and simulation logic. Runtime signing is provider-based (Fake vs Real) and not tied to a single OEM SDK. Supported vendors are configuration-driven, not defined as a fixed compatibility list.
 - This repository does not define a production deployment architecture. CI uses GitHub Actions with PostgreSQL containers for testing, but production hosting (cloud, on-prem, containers, etc.) is deployment-specific.
-- Canonical roles are defined in backend/Authorization/Roles.cs: SuperAdmin → full access; Manager → admin + RKSV + voucher + reporting; Cashier → POS + payment + TSE signing; Waiter → limited POS usage; Accountant → reporting + FinanzOnline + RKSV (no Schlussbeleg); Kitchen / ReportViewer → specialized roles. Always treat RolePermissionMatrix as the source of truth.
+- Canonical roles are defined in `backend/Authorization/Roles.cs`: **SuperAdmin** → full access including digital create/publish and online-order approve; **Manager** (UI: **Mandanten-Admin**) → admin + RKSV + voucher + reporting + digital view/preview/request + online-order status manage; **Cashier** → POS + payment + TSE signing (no digital services / online-order inbox by default); **Waiter** → limited POS usage; **Accountant** → reporting + FinanzOnline + RKSV (no Schlussbeleg); **Kitchen** / **ReportViewer** → specialized roles. Always treat `RolePermissionMatrix` as the source of truth. Do not conflate website/app **online orders** with POS carts or fiscal receipts.
 - The system does NOT enforce sales blocking after early Jahresbeleg. This is explicitly treated as a legal/process responsibility, not a hard backend restriction. Duplicate Jahresbeleg creation is prevented, but continued operation is not blocked in code.
+- Backup restore via API is **validation-only** (isolated DB); production recovery is operator/DBA-led. Tenant ZIP packages are not `pg_restore` inputs. Mandanten-Admin must not see System dumps (Identity / all tenants).
 
 ---
 
@@ -1273,9 +1429,10 @@ Use this at the top of a new AI/Cursor chat:
 You are working on Regkasse, a full-stack Austrian RKSV-compliant POS cash register system.
 
 Stack:
-- Backend: ASP.NET Core / C# / EF Core / PostgreSQL
-- POS frontend: Expo React Native / TypeScript / Zustand / i18n
-- Admin frontend: Next.js 16 / Ant Design 6 / TanStack Query / Orval generated API client
+- Backend: ASP.NET Core 10 / C# / EF Core 10.0.10 / PostgreSQL
+- POS: Expo ~56.0.18 (SDK 56) / React Native 0.85 / TypeScript ~6.0.3 / Zustand / i18n (de-DE UI)
+- Admin: Next.js 16.2 / Ant Design 6 / TanStack Query / Orval client
+- Sites: Next.js frontend-sites (tenant storefronts; non-fiscal)
 
 Critical domain rules:
 - Fiscal payments require TSE/RKSV signing and signature chaining.
@@ -1286,13 +1443,16 @@ Critical domain rules:
 - Offline voucher payments are forbidden.
 - Backend is final authority; frontend guardrails are UX only.
 - Do not claim legal compliance guarantees.
+- Backup: Tenant (Manager) vs System (Super Admin); Identity only in System; no production restore via API; cross-tenant restore forbidden.
+- Digital Sites / online orders are not POS/RKSV; working hours gate websites only.
 
 Development rules:
 - Keep changes minimal and scoped.
 - Do not refactor unrelated code.
 - Do analysis before implementation for fiscal changes.
-- Update swagger + Orval client if backend API changes.
-- Run targeted tests.
+- Update swagger + Orval client if backend API changes (`verify-api-client` / Husky).
+- Prefer root npm workspace scripts (`npm run dev`, `test`, …) and AGENTS.md.
+- Run targeted tests and i18n hard gates when touching locales.
 ```
 
 ---

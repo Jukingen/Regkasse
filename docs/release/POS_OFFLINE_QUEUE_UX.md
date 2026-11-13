@@ -1,5 +1,8 @@
 # POS: Offline Queue Management Screen
 
+> **System:** Legacy **`offline_transactions`** (TSE payment-intent replay).  
+> **Not the same as:** `offline_orders` / `/rksv/offline-orders`. See [`OFFLINE_SYSTEMS_SEPARATION.md`](OFFLINE_SYSTEMS_SEPARATION.md).
+
 ## Overview
 
 Operator-facing offline payment queue visibility and recovery UX on the mobile/POS frontend. The queue model and backend replay are unchanged; only UI and recovery flows were added.

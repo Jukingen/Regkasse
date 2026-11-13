@@ -1,53 +1,71 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Controllers.Base;
-using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services;
-using ProductLocalizationService = KasseAPI_Final.Services.ProductLocalization;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ProductLocalizationService = KasseAPI_Final.Services.ProductLocalization;
 
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri.
-    /// Legacy: api/Product/* deprecated; use api/pos/* for POS. Admin: use api/admin/products.
-    /// TODO: api/Product route kaldırılamıyor — FE-Admin (admin/products.ts mutations) ve POS (apiPaths) hâlâ kullanıyor. Tüm client'lar api/pos veya api/admin/products'a geçince kaldır.
+    /// POS product read/catalog handlers. Canonical route: <c>api/pos/*</c> (product actions on this controller).
+    /// Legacy alias <c>/api/Product/*</c> was removed (2026-08-13); POS clients must call <c>/api/pos/*</c>.
+    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>).
     /// </summary>
-    [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
-    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.ProductView)]
     public class ProductController : EntityController<Product>
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
+        private readonly IProductService? _productService;
 
         public ProductController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
             ILogger<ProductController> logger,
-            ISettingsTenantResolver settingsTenantResolver) : base(productRepository, logger)
+            ISettingsTenantResolver settingsTenantResolver,
+            ITenantLimitGuard? tenantLimitGuard = null,
+            IProductService? productService = null) : base(productRepository, logger)
         {
             _context = context;
             _productRepository = productRepository;
             _settingsTenantResolver = settingsTenantResolver;
+            _tenantLimitGuard = tenantLimitGuard;
+            _productService = productService;
         }
 
         private Task<Guid> EffectiveTenantIdAsync(CancellationToken cancellationToken = default) =>
             _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
+        private async Task StampHasVariantsAsync(List<Product> products)
+        {
+            if (products.Count == 0)
+                return;
+
+            var ids = products.Select(product => product.Id).ToList();
+            var withVariants = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(variant => ids.Contains(variant.ProductId))
+                .Select(variant => variant.ProductId)
+                .Distinct()
+                .ToListAsync();
+            var variantProducts = withVariants.ToHashSet();
+            foreach (var product in products)
+                product.HasVariants = variantProducts.Contains(product.Id);
+        }
+
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/Product — base route tek action olmalı (Swagger çakışmasını önler).
+        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
         /// </summary>
         [HttpGet]
         public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
@@ -56,7 +74,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/Product/list
+        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/pos/list
         /// </summary>
         [HttpGet("list")]
         public async Task<IActionResult> GetAllPaginated(
@@ -69,7 +87,9 @@ namespace KasseAPI_Final.Controllers
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
                 var tenantId = await EffectiveTenantIdAsync();
 
-                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var query = _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.IsActive && p.TenantId == tenantId);
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
                 var totalCount = await query.CountAsync();
@@ -80,6 +100,7 @@ namespace KasseAPI_Final.Controllers
                     .Skip((validPageNumber - 1) * validPageSize)
                     .Take(validPageSize)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 var response = new
                 {
@@ -103,6 +124,31 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Retail barcode lookup. Same product shape as the POS list, including <c>hasVariants</c>.
+        /// Unknown or foreign barcodes return 404 <c>BARCODE_NOT_FOUND</c>.
+        /// </summary>
+        [HttpGet("products/by-barcode/{barcode}")]
+        public async Task<IActionResult> GetByBarcode(string barcode, CancellationToken cancellationToken)
+        {
+            var tenantId = await EffectiveTenantIdAsync(cancellationToken);
+            var product = _productService is null
+                ? null
+                : await _productService.GetByBarcodeAsync(tenantId, barcode, cancellationToken);
+            if (product is null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    code = ProductBarcodeWriteResult.NotFoundCode,
+                    message = "No product with this barcode was found.",
+                    timestamp = DateTime.UtcNow,
+                });
+            }
+
+            return SuccessResponse(product, "Product found");
+        }
+
+        /// <summary>
         /// Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
         /// </summary>
         [HttpGet("all")]
@@ -112,10 +158,12 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.IsActive && p.TenantId == tenantId)
                     .OrderBy(p => p.Category)  // kategori adı (string); CategoryId = FK
                     .ThenBy(p => p.Name)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 _logger.LogInformation($"Retrieved {products.Count} active products without pagination");
                 return SuccessResponse(products, $"Retrieved {products.Count} active products");
@@ -161,13 +209,13 @@ namespace KasseAPI_Final.Controllers
                 var allGroupIds = productToGroupIds.Values.SelectMany(x => x).Distinct().ToList();
                 List<ModifierGroupDto> emptyGroups = new();
 
-                var categoryList = activeProducts
-                    .Where(p => p.CategoryNavigation != null)
-                    .Select(p => p.CategoryNavigation!)
-                    .DistinctBy(c => c.Id)
+                var categoryList = (await _context.Categories
+                    .AsNoTracking()
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
                     .OrderBy(c => c.SortOrder)
                     .ThenBy(c => c.Name)
-                    .Select(c => new CatalogCategoryDto { Id = c.Id, Name = c.Name, VatRate = c.VatRate })
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
                     .ToList();
 
                 if (allGroupIds.Count == 0)
@@ -193,7 +241,8 @@ namespace KasseAPI_Final.Controllers
                     pid => pid,
                     pid =>
                     {
-                        if (!productToGroupIds.TryGetValue(pid, out var gids)) return emptyGroups;
+                        if (!productToGroupIds.TryGetValue(pid, out var gids))
+                            return emptyGroups;
                         return gids
                             .Select(gid => groupDict.TryGetValue(gid, out var grp) ? grp : null)
                             .Where(g => g != null)
@@ -214,6 +263,17 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        private static CatalogCategoryDto MapToCatalogCategoryDto(Category c) =>
+            new()
+            {
+                Id = c.Id,
+                Name = c.Name,
+                VatRate = c.VatRate,
+                Icon = CategoryAppearance.NormalizeIcon(c.Icon),
+                Color = c.Color,
+                SortOrder = c.SortOrder
+            };
+
         private static CatalogProductDto MapToCatalogProductDto(Product p, List<ModifierGroupDto> modifierGroups)
         {
             return new CatalogProductDto
@@ -232,8 +292,14 @@ namespace KasseAPI_Final.Controllers
                 StockQuantity = p.StockQuantity,
                 MinStockLevel = p.MinStockLevel,
                 Unit = p.Unit,
+                DurationMinutes = p.DurationMinutes,
+                StaffId = p.StaffId,
+                ImeiTracked = p.ImeiTracked,
+                IsTicket = p.IsTicket,
                 ProductCategory = p.Category,
                 CategoryId = p.CategoryId,
+                CategoryIcon = CategoryAppearance.NormalizeIcon(p.CategoryNavigation?.Icon),
+                CategoryColor = p.CategoryNavigation?.Color,
                 TaxType = p.TaxType,
                 TaxRate = p.TaxRate,
                 IsActive = p.IsActive,
@@ -289,9 +355,27 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.IsActive && p.TenantId == tenantId)
                     .OrderBy(p => p.Category)
                     .ThenBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Name,
+                        p.Description,
+                        p.Price,
+                        p.ImageUrl,
+                        p.StockQuantity,
+                        p.DurationMinutes,
+                        p.StaffId,
+                        p.ImeiTracked,
+                        p.IsTicket,
+                        p.TaxType,
+                        p.TaxRate,
+                        p.IsActive,
+                        p.Category
+                    })
                     .ToListAsync();
 
                 // Kategori bazlı gruplandırma
@@ -308,6 +392,10 @@ namespace KasseAPI_Final.Controllers
                             p.Price,
                             p.ImageUrl,
                             p.StockQuantity,
+                            p.DurationMinutes,
+                            p.StaffId,
+                            p.ImeiTracked,
+                            p.IsTicket,
                             p.TaxType,
                             p.TaxRate,
                             p.IsActive
@@ -318,7 +406,7 @@ namespace KasseAPI_Final.Controllers
 
                 // İngilizce teknik log
                 _logger.LogInformation($"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
-                
+
                 return SuccessResponse(groupedProducts, $"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
             }
             catch (Exception ex)
@@ -336,13 +424,16 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var allProducts = await _context.Products.Where(p => p.TenantId == tenantId).ToListAsync();
+                var allProducts = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.TenantId == tenantId)
+                    .ToListAsync();
                 var activeProducts = allProducts.Where(p => p.IsActive).ToList();
                 var inactiveProducts = allProducts.Where(p => !p.IsActive).ToList();
-                
+
                 var categories = allProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
                 var activeCategories = activeProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
-                
+
                 var categoryProductCounts = categories.Select(cat => new
                 {
                     Category = cat,
@@ -381,7 +472,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm kategorileri getir
+        /// Active POS categories with icon/color (same appearance as admin).
         /// </summary>
         [HttpGet("categories")]
         public async Task<IActionResult> GetAllCategories()
@@ -389,16 +480,17 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var categories = await _context.Products
-                    .Where(p => p.IsActive && p.TenantId == tenantId)
-                    .Select(p => p.Category)
-                    .Distinct()
-                    .OrderBy(c => c)
-                    .ToListAsync();
+                var categories = (await _context.Categories
+                    .AsNoTracking()
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
+                    .OrderBy(c => c.SortOrder)
+                    .ThenBy(c => c.Name)
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
+                    .ToList();
 
-                // İngilizce teknik log
-                _logger.LogInformation($"Retrieved {categories.Count} unique categories");
-                
+                _logger.LogInformation("Retrieved {Count} POS categories", categories.Count);
+
                 return SuccessResponse(categories, $"Retrieved {categories.Count} categories");
             }
             catch (Exception ex)
@@ -422,6 +514,7 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.TenantId == tenantId && p.Category == categoryName && p.IsActive)
                     .OrderBy(p => p.Name)
                     .Select(p => new
@@ -460,20 +553,23 @@ namespace KasseAPI_Final.Controllers
                 var products = status switch
                 {
                     "in-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity > p.MinStockLevel && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     "out-of-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity == 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     "low-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity <= p.MinStockLevel && p.StockQuantity > 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     _ => throw new ArgumentException("Invalid stock status. Use: in-stock, out-of-stock, or low-stock")
                 };
 
@@ -497,7 +593,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var query = _context.Products.AsNoTracking().Where(p => p.IsActive && p.TenantId == tenantId);
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {
@@ -530,11 +626,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var product = await _context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
                 if (product == null)
                     return ErrorResponse("Product not found.", 404);
 
                 var assignmentGroupIds = await _context.ProductModifierGroupAssignments
+                    .AsNoTracking()
                     .Where(a => a.ProductId == id && a.TenantId == tenantId)
                     .OrderBy(a => a.SortOrder)
                     .Select(a => a.ModifierGroupId)
@@ -545,6 +643,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Phase D PR-C: Do not load Modifiers for POS; response uses MapToModifierGroupDtoForPos (Modifiers empty).
                 var groups = await _context.ProductModifierGroups
+                    .AsNoTracking()
                     .Where(g => g.IsActive && g.TenantId == tenantId && assignmentGroupIds.Contains(g.Id))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
@@ -599,7 +698,8 @@ namespace KasseAPI_Final.Controllers
                     int sortOrder = 0;
                     foreach (var gid in groupIds)
                     {
-                        if (!existingGroups.Contains(gid)) continue;
+                        if (!existingGroups.Contains(gid))
+                            continue;
                         _context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
                         {
                             ProductId = id,
@@ -621,7 +721,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Yeni ürün oluştur
+        /// Create product (compatibility). Prefer <c>POST /api/admin/products</c> (<see cref="AdminProductsController"/>) for new Admin features.
         /// </summary>
         [HasPermission(AppPermissions.ProductManage)]
         [HttpPost]
@@ -643,6 +743,19 @@ namespace KasseAPI_Final.Controllers
 
                 // CategoryId'den kategori adını senkronize et
                 var tenantId = await EffectiveTenantIdAsync();
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
+
                 var category = await _context.Categories
                     .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
                 if (category == null || !category.IsActive)

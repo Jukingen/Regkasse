@@ -94,11 +94,7 @@ function mapInvalidCredentialsMessage(backendMessage?: string): string {
   }
 
   const lower = backendMessage.toLowerCase();
-  if (
-    lower.includes('şifre') ||
-    lower.includes('password') ||
-    lower.includes('passwort')
-  ) {
+  if (lower.includes('şifre') || lower.includes('password') || lower.includes('passwort')) {
     return i18n.t('auth:errors.wrongPassword');
   }
   if (

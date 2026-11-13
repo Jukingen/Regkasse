@@ -1,47 +1,76 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs, Redirect, router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
-
-import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
-import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
-import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
-import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
+import { OfflineQueueIndicator } from '../../components/OfflineQueueIndicator';
+import { OfflineLimitReachedModal } from '../../components/OfflineLimitReachedModal';
+import { retryOfflineQueuesNow } from '../../services/offline/retryOfflineQueues';
+import { GracePeriodWarning } from '../../components/GracePeriodWarning';
+import { Header as WorkingHoursStatus } from '../../components/Header';
+import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
+import { LicenseStatus } from '../../components/LicenseStatus';
+import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
+import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
+import { MaintenanceNotice } from '../../components/MaintenanceNotice';
+import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
+import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import { takeFolioCheckout } from '../../components/lodging/folioCheckoutHandoff';
 import PaymentModal from '../../components/PaymentModal';
-import { TimeSyncBanner } from '../../components/TimeSyncBanner';
-import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
-import { TseStatusBanner } from '../../components/TseStatusBanner';
-import { ToastContainer } from '../../components/ToastNotification';
-import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
+import { updateFolio } from '../../services/api/lodgingService';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
-import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
-import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
-import { useConditionalPolling } from '../../hooks/useConditionalPolling';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { TagesabschlussReminder } from '../../components/TagesabschlussReminder';
+import { TimeSyncBanner } from '../../components/TimeSyncBanner';
+import { ToastContainer } from '../../components/ToastNotification';
+import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
+import { UserMenu } from '../../components/UserMenu';
+import { KitchenHubBridge } from '../../hooks/useKitchenHub';
+import { useKitchenPendingCount } from '../../services/kitchenPendingStore';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
-import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
-import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
-import { TseHealthProvider } from '../../contexts/TseHealthContext';
+import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
+import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useTaxiTrip } from '../../contexts/TaxiTripContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAdminPermissions } from '../../utils/adminPermissions';
-import { isPosAllowedRole } from '../../utils/posRoleGuard';
+import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
+import {
+  useVerticalFeatures,
+  useVerticalProfileContext,
+} from '../../contexts/VerticalProfileContext';
+import {
+  PosRegisterReadinessProvider,
+  usePosRegisterReadiness,
+} from '../../contexts/PosRegisterReadinessContext';
+import { TseHealthProvider } from '../../contexts/TseHealthContext';
+import { useConditionalPolling } from '../../hooks/useConditionalPolling';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
+import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
+import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
+import { DevLoopbackApiBanner } from '../../src/components/dev/DevLoopbackApiBanner';
+import { eventEmitter } from '../../utils/eventEmitter';
+import { formatPrice } from '../../utils/formatPrice';
+import {
+  needsPosCashRegisterSelection,
+  POS_CASH_REGISTER_SELECT_HREF,
+} from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 type PosTabsInnerProps = {
   t: (key: string, options?: Record<string, string | number>) => string;
   insets: ReturnType<typeof useSafeAreaInsets>;
-  canAccessAdmin: boolean;
   cartCount: number;
   isPaymentModalVisible: boolean;
   setIsPaymentModalVisible: (visible: boolean) => void;
@@ -56,7 +85,6 @@ type PosTabsInnerProps = {
 function PosTabsInner({
   t,
   insets,
-  canAccessAdmin,
   cartCount,
   isPaymentModalVisible,
   setIsPaymentModalVisible,
@@ -67,17 +95,48 @@ function PosTabsInner({
   saleCustomer,
   developmentModeSettings,
 }: PosTabsInnerProps) {
+  const { t: tSettings } = useTranslation(['settings', 'common', 'offline']);
   const posReadiness = usePosRegisterReadiness();
+  const { canMakePayment } = usePosPermissions();
+  const { posFeatures, profileId, posLayout } = useVerticalFeatures();
+  const kitchenPendingCount = useKitchenPendingCount();
+  const [atCap, setAtCap] = useState(false);
+  const handleOfflineAtCapChange = useCallback((next: boolean) => {
+    setAtCap(next);
+  }, []);
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
 
   const [tabBarToasts, setTabBarToasts] = useState<
-    { id: string; type: 'success' | 'error' | 'info' | 'warning'; message: string; duration?: number }[]
+    {
+      id: string;
+      type: 'success' | 'error' | 'info' | 'warning';
+      message: string;
+      duration?: number;
+    }[]
   >([]);
 
   const removeTabBarToast = useCallback((id: string) => {
     setTabBarToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
+  useEffect(() => {
+    if (atCap) {
+      setLimitModalVisible(true);
+    }
+  }, [atCap]);
+
   const tryOpenPaymentModal = () => {
+    if (atCap) {
+      setLimitModalVisible(true);
+      return;
+    }
+    if (!canMakePayment) {
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+      );
+      return;
+    }
     if (cartCount === 0) {
       const id = `${Date.now()}-empty-cart`;
       const message = t('checkout:posFlow.toast.emptyCart');
@@ -91,7 +150,11 @@ function PosTabsInner({
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
       return;
     }
-    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+    if (
+      isReadinessStartbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
       Alert.alert(
         'Startbeleg erforderlich',
         'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
@@ -102,7 +165,11 @@ function PosTabsInner({
   };
 
   const pushTabBarToast = useCallback(
-    (payload: { type?: 'success' | 'warning' | 'info' | 'error'; message: string; duration?: number }) => {
+    (payload: {
+      type?: 'success' | 'warning' | 'info' | 'error';
+      message: string;
+      duration?: number;
+    }) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       setTabBarToasts((prev) => [
         ...prev,
@@ -113,281 +180,564 @@ function PosTabsInner({
           duration: payload.duration ?? 4500,
         },
       ]);
-      setTimeout(() => removeTabBarToast(id), (payload.duration ?? 4500) + 400);
+      setTimeout(
+        () => {
+          removeTabBarToast(id);
+        },
+        (payload.duration ?? 4500) + 400
+      );
     },
     [removeTabBarToast]
   );
+
+  useEffect(() => {
+    const onOrderSaved = (payload: {
+      offlineOrderId: string;
+      pendingCount: number;
+      maxLimit: number;
+      remaining: number;
+    }) => {
+      const remaining = payload.remaining;
+      let type: 'success' | 'warning' | 'error' = 'success';
+      let message =
+        remaining === 1
+          ? `Bestellung offline gespeichert — noch 1 Bestellung möglich (${payload.pendingCount}/${payload.maxLimit})`
+          : `Bestellung offline gespeichert — noch ${remaining} Bestellungen möglich (${payload.pendingCount}/${payload.maxLimit})`;
+      let duration = 3000;
+
+      if (payload.pendingCount >= OFFLINE_CONFIG.CRITICAL_PENDING_COUNT) {
+        type = 'error';
+        duration = 5000;
+        message = `Kritisch: Offline-Warteschlange fast voll (${payload.pendingCount}/${payload.maxLimit}) — nur noch ${remaining} möglich`;
+      } else if (payload.pendingCount >= OFFLINE_CONFIG.WARNING_PENDING_COUNT) {
+        type = 'warning';
+        duration = 4500;
+        message = `Warnung: ${payload.pendingCount}/${payload.maxLimit} Offline-Bestellungen — bitte bald synchronisieren`;
+      }
+
+      pushTabBarToast({ type, message, duration });
+    };
+
+    const onLimitExceeded = (payload: { pendingCount: number; maxLimit: number }) => {
+      pushTabBarToast({
+        type: 'error',
+        message: `Offline-Limit erreicht (${payload.pendingCount}/${payload.maxLimit}). Bitte Internetverbindung prüfen und synchronisieren.`,
+        duration: 5000,
+      });
+    };
+
+    const onOfflineWarning = (payload: { hoursRemaining: number }) => {
+      pushTabBarToast({
+        type: 'warning',
+        message: `Offline-Frist: noch ca. ${Math.ceil(payload.hoursRemaining)} Stunden — bitte verbinden und synchronisieren`,
+        duration: 6000,
+      });
+    };
+
+    const onOfflineCritical = (payload: { hoursRemaining: number }) => {
+      pushTabBarToast({
+        type: 'error',
+        message: `Kritisch: Offline-Frist endet in ca. ${Math.ceil(payload.hoursRemaining)} Stunden — Bestellungen drohen zu verfallen`,
+        duration: 8000,
+      });
+    };
+
+    eventEmitter.on('offline:order-saved', onOrderSaved);
+    eventEmitter.on('offline:limit-exceeded', onLimitExceeded);
+    eventEmitter.on('offline:warning', onOfflineWarning);
+    eventEmitter.on('offline:critical', onOfflineCritical);
+
+    return () => {
+      eventEmitter.off('offline:order-saved', onOrderSaved);
+      eventEmitter.off('offline:limit-exceeded', onLimitExceeded);
+      eventEmitter.off('offline:warning', onOfflineWarning);
+      eventEmitter.off('offline:critical', onOfflineCritical);
+    };
+  }, [pushTabBarToast]);
 
   return (
     <TseHealthProvider>
       <View style={{ flex: 1 }}>
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+        <GracePeriodWarning />
         <LicenseWarningBanner />
         <LicenseExpiryBanner />
-        <View style={styles.licenseStatusBar}>
-          <LicenseStatusIndicator />
-          <DevTenantSwitcher />
-          <EnvironmentBadge settings={developmentModeSettings} />
+        <MaintenanceNotice />
+        {/* Top chrome sits above Tabs — apply notch/status-bar inset here once. */}
+        <View style={[styles.licenseStatusBar, { paddingTop: insets.top + 6 }]}>
+          <View style={styles.headerStatusLeft}>
+            <TseStatusBanner />
+            <WorkingHoursStatus />
+            <OfflineQueueIndicator onAtCapChange={handleOfflineAtCapChange} />
+            <MonatsbelegHeaderBadge />
+          </View>
+          <View style={styles.headerRight}>
+            <LicenseStatus />
+            <LicenseStatusIndicator />
+            <DevTenantSwitcher />
+            <EnvironmentBadge settings={developmentModeSettings} />
+            <UserMenu />
+          </View>
         </View>
         <TimeSyncBanner />
-        <TseStatusBanner />
-      <MonatsbelegSessionBlockModal />
-      <StartbelegRequiredBanner />
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: SoftColors.accent,
-          tabBarInactiveTintColor: SoftColors.textMuted,
-          tabBarStyle: {
-            height: TAB_BAR_HEIGHT + insets.bottom,
-            paddingBottom: insets.bottom,
-            paddingTop: 8,
-            overflow: 'visible',
-          },
-          headerShown: true,
-        }}
-      >
-        <Tabs.Screen
-          name="cash-register"
-          options={{
-            title: t('navigation:cashRegister') || 'Kasa',
-            tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
-          }}
-        />
-
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: t('navigation:cart'),
-            tabBarButton: (props) => {
-              const { style } = props;
-              return (
-                <Pressable
-                  onPress={tryOpenPaymentModal}
-                  style={[style, styles.cartTabButton]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel={
-                    cartCount > 0
-                      ? t('navigation:cartAccessibility.withCount', { count: cartCount })
-                      : t('navigation:cartAccessibility.default')
-                  }
-                  accessibilityRole="button"
-                >
-                  <View style={styles.cartIconContainer}>
-                    <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
-                    {cartCount > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{cartCount}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.cartLabel}>{t('navigation:cart')}</Text>
-                </Pressable>
-              );
+        <DevLoopbackApiBanner />
+        <TseOfflineRestrictionBanner />
+        <StartbelegRequiredBanner />
+        <TagesabschlussReminder />
+        {posFeatures.kitchenDisplay ? <KitchenHubBridge enabled /> : null}
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: SoftColors.accent,
+            tabBarInactiveTintColor: SoftColors.textMuted,
+            tabBarStyle: {
+              height: TAB_BAR_HEIGHT + insets.bottom,
+              paddingBottom: insets.bottom,
+              paddingTop: 8,
+              overflow: 'visible',
             },
-          }}
-        />
+            // Custom licenseStatusBar already consumed the top inset — avoid double padding.
+            headerStatusBarHeight: 0,
+            headerShown: true,
+          }}>
+          <Tabs.Screen
+            name="cash-register"
+            options={{
+              title: t('navigation:cashRegister') || 'Kasa',
+              tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+            }}
+          />
 
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: t('navigation:settings') || 'Ayarlar',
-            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
-          }}
-        />
+          {/* Legacy route. Tables live on the cash register; the file only redirects. */}
+          <Tabs.Screen
+            name="orders"
+            options={{
+              href: null,
+              title: t('navigation:cashRegister'),
+            }}
+          />
 
-        <Tabs.Screen
-          name="admin-menu"
-          options={{
-            href: canAccessAdmin ? undefined : null,
-            title: 'Admin',
-            tabBarIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={24} color={color} />,
-          }}
-        />
-      </Tabs>
+          <Tabs.Screen
+            name="rooms"
+            options={{
+              href: profileId === 'beherbergung' || posLayout === 'rooms' ? undefined : null,
+              title: t('verticalProfiles:tabs.rooms'),
+              tabBarIcon: ({ color }) => <Ionicons name="bed-outline" size={24} color={color} />,
+            }}
+          />
 
-      <PaymentModal
-        visible={isPaymentModalVisible}
-        onClose={() => setIsPaymentModalVisible(false)}
-        onSuccess={handlePaymentSuccess}
-        onPosToast={(p) => pushTabBarToast({ type: p.type ?? 'info', message: p.message })}
-        cartItems={(currentCart?.items || []).map((item) => ({
-          id: item.itemId ?? item.clientId ?? item.productId,
-          productId: item.productId,
-          productName: item.productName || 'Unknown Product',
-          quantity: item.qty,
-          unitPrice: item.unitPrice || item.price || 0,
-          totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
-          taxType: item.taxType,
-          modifiers: item.modifiers?.map((m) => ({ modifierId: m.id, name: m.name, priceDelta: m.price })),
-        }))}
-        grandTotalGross={totals.grandTotalGross}
-        customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
-        tableNumber={activeTableId}
-      />
+          <Tabs.Screen
+            name="kitchen-display"
+            options={{
+              href: posFeatures.kitchenDisplay ? undefined : null,
+              title: t('verticalProfiles:tabs.kitchen'),
+              tabBarBadge:
+                posFeatures.kitchenDisplay && kitchenPendingCount > 0
+                  ? kitchenPendingCount
+                  : undefined,
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="fast-food-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="patient-record"
+            options={{
+              href: posFeatures.patientRecord ? undefined : null,
+              title:
+                profileId === 'vet'
+                  ? t('verticalProfiles:tabs.animalRecord')
+                  : t('verticalProfiles:tabs.patientRecord'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons
+                  name={profileId === 'doctor' ? 'person-outline' : 'paw-outline'}
+                  size={24}
+                  color={color}
+                />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="appointments"
+            options={{
+              href: posFeatures.appointment ? undefined : null,
+              title: t('verticalProfiles:tabs.appointments'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="cart"
+            options={{
+              title: t('navigation:cart'),
+              tabBarButton: (props) => {
+                const { style } = props;
+                return (
+                  <Pressable
+                    onPress={tryOpenPaymentModal}
+                    style={[style, styles.cartTabButton]}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel={
+                      cartCount > 0
+                        ? t('navigation:cartAccessibility.withCount', {
+                            count: cartCount,
+                            total: formatPrice(totals.grandTotalGross),
+                          })
+                        : t('navigation:cartAccessibility.default', {
+                            total: formatPrice(totals.grandTotalGross),
+                          })
+                    }
+                    accessibilityRole="button">
+                    <View style={styles.cartIconContainer}>
+                      <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
+                      {cartCount > 0 && (
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>{cartCount}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.cartLabel} numberOfLines={1}>
+                      {formatPrice(totals.grandTotalGross)}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            }}
+          />
+
+          {/* Belegliste, Settings & Admin remain routable via UserMenu; hidden from footer */}
+          <Tabs.Screen
+            name="receipt-list"
+            options={{
+              href: null,
+              title: t('navigation:receiptList') || 'Belegliste',
+            }}
+          />
+
+          <Tabs.Screen
+            name="ticket-validate"
+            options={{
+              href: null,
+              title: t('verticalProfiles:screens.tickets.menu') || 'Ticket prüfen',
+            }}
+          />
+
+          <Tabs.Screen
+            name="settings"
+            options={{
+              href: null,
+              title: t('navigation:settings') || 'Einstellungen',
+            }}
+          />
+
+          <Tabs.Screen
+            name="admin-menu"
+            options={{
+              href: null,
+              title: 'Admin',
+            }}
+          />
+
+          <Tabs.Screen
+            name="fiskaly-operations"
+            options={{
+              href: null,
+              title: 'Fiskaly',
+            }}
+          />
+
+          <Tabs.Screen
+            name="payment"
+            options={{
+              href: null,
+              title: 'Zahlung',
+            }}
+          />
+        </Tabs>
+
+        <PaymentModal
+          visible={isPaymentModalVisible}
+          onClose={() => {
+            setIsPaymentModalVisible(false);
+          }}
+          onSuccess={handlePaymentSuccess}
+          onPosToast={(p) => {
+            pushTabBarToast({ type: p.type ?? 'info', message: p.message });
+          }}
+          cartItems={(currentCart?.items || []).map((item) => ({
+            id: item.itemId ?? item.clientId ?? item.productId,
+            productId: item.productId,
+            productName: item.productName || 'Unknown Product',
+            quantity: item.qty,
+            unitPrice: item.unitPrice || item.price || 0,
+            totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
+            taxType: item.taxType,
+            variantId: item.variantId,
+            modifiers: item.modifiers?.map((m) => ({
+              modifierId: m.id,
+              name: m.name,
+              priceDelta: m.price,
+            })),
+          }))}
+          grandTotalGross={totals.grandTotalGross}
+          customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
+          tableNumber={activeTableId}
+        />
+        <OfflineLimitReachedModal
+          visible={limitModalVisible}
+          title={tSettings('offline:limit.title')}
+          body={tSettings('offline:limit.body')}
+          retryLabel={tSettings('offline:limit.retryNow')}
+          cancelLabel={tSettings('offline:limit.cancel')}
+          onRetryNow={() => {
+            void retryOfflineQueuesNow().finally(() => {
+              setLimitModalVisible(false);
+            });
+          }}
+          onCancel={() => setLimitModalVisible(false)}
+        />
+        <OfflineBanner />
       </View>
     </TseHealthProvider>
   );
 }
 
 export default function TabLayout() {
-    const { t } = useTranslation(['navigation', 'checkout']);
-    const insets = useSafeAreaInsets();
-    const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
-    const adminPermissions = useAdminPermissions();
-    const { settings: developmentModeSettings } = useDevelopmentModeContext();
-    const checkAuthStatusRef = useRef(checkAuthStatus);
-    checkAuthStatusRef.current = checkAuthStatus;
+  const { t } = useTranslation(['navigation', 'checkout', 'verticalProfiles']);
+  const insets = useSafeAreaInsets();
+  const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
+  const { settings: developmentModeSettings } = useDevelopmentModeContext();
+  const { posLayout, isLoading: verticalProfileLoading } = useVerticalProfileContext();
+  const checkAuthStatusRef = useRef(checkAuthStatus);
+  const appliedLayoutScopeRef = useRef<string | null>(null);
+  checkAuthStatusRef.current = checkAuthStatus;
 
-    // Context usage
-    const {
-        activeTableId,
-        currentCart,
-        isPaymentModalVisible,
-        setIsPaymentModalVisible,
-        clearCart,
-        saleCustomer,
-        setSaleCustomer,
-    } = useCart();
+  // Context usage
+  const {
+    activeTableId,
+    currentCart,
+    isPaymentModalVisible,
+    setIsPaymentModalVisible,
+    clearCart,
+    saleCustomer,
+    setSaleCustomer,
+  } = useCart();
+  const { resetTrip } = useTaxiTrip();
+  const { reset: resetImeis } = useImeiSelections();
 
-    const totals = getCartDisplayTotals(currentCart);
-    const cartCount = totals.itemCount;
+  const totals = getCartDisplayTotals(currentCart);
+  const cartCount = totals.itemCount;
 
-    const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
-        setSaleCustomer(null);
-        await clearCart(paidTableNumber ?? activeTableId);
-    };
-
-    // When background offline queue sync completes after reconnect, show short summary to user
-    useEffect(() => {
-        const unsub = subscribeOfflineSyncComplete((processed, failed) => {
-            if (processed > 0 && failed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
-                );
-            } else if (processed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummarySuccess', { processed })
-                );
-            } else if (failed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummaryAllFailed', { failed })
-                );
-            }
-        });
-        return unsub;
-    }, [t]);
-
-    useConditionalPolling(
-        () => {
-            void checkAuthStatusRef.current();
-        },
-        POS_HEALTH_POLL_MS,
-        Boolean(isAuthenticated && user?.id),
-    );
-
-    if (!isAuthReady || isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <WaveLoader size={32} color="#007AFF" />
-            </View>
+  const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+    const pendingFolio = takeFolioCheckout();
+    if (pendingFolio) {
+      try {
+        await updateFolio(pendingFolio.folioId, { status: 'Closed' });
+      } catch {
+        Alert.alert(
+          t('pos.checkout.closeFailedTitle', { ns: 'verticalProfiles' }),
+          t('pos.checkout.closeFailed', { ns: 'verticalProfiles' })
         );
+      }
+    }
+    setSaleCustomer(null);
+    resetTrip();
+    resetImeis();
+    await clearCart(paidTableNumber ?? activeTableId);
+  };
+
+  // When background offline queue sync completes after reconnect, show short summary to user
+  useEffect(() => {
+    const unsub = subscribeOfflineSyncComplete((processed, failed) => {
+      if (processed > 0 && failed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
+        );
+      } else if (processed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummarySuccess', { processed })
+        );
+      } else if (failed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummaryAllFailed', { failed })
+        );
+      }
+    });
+    return unsub;
+  }, [t]);
+
+  useConditionalPolling(
+    () => {
+      void checkAuthStatusRef.current();
+    },
+    POS_HEALTH_POLL_MS,
+    Boolean(isAuthenticated && user?.id)
+  );
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !user?.id ||
+      verticalProfileLoading ||
+      needsPosCashRegisterSelection(user.currentCashRegisterId)
+    ) {
+      return;
     }
 
-    if (!isAuthenticated || !user) {
-        return <Redirect href="/(auth)/login" />;
-    }
+    const scope = `${user.tenantId ?? user.tenantSlug ?? user.id}:${posLayout}`;
+    if (appliedLayoutScopeRef.current === scope) return;
 
-    // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
-    if (!isPosAllowedRole(user.role, user.roles)) {
-        console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
-        logout();
-        return <Redirect href="/(auth)/login" />;
-    }
+    const target =
+      posLayout === 'appointment'
+        ? '/(tabs)/appointments'
+        : posLayout === 'rooms'
+          ? '/(tabs)/rooms'
+          : null;
+    appliedLayoutScopeRef.current = scope;
+    if (!target) return;
 
-    const canAccessAdmin =
-        adminPermissions.canViewLicense ||
-        adminPermissions.canManageCashRegisters ||
-        adminPermissions.canManageUsers ||
-        adminPermissions.canViewReports ||
-        adminPermissions.canManageRksv ||
-        adminPermissions.canManageTenants;
+    // AuthContext and onboarding land on cash-register. Appointment and room
+    // profiles open their floor afterwards. Gastronomy tables stay on the register.
+    const timer = setTimeout(() => {
+      // Expo typed routes are generated by Metro; the new static route is not in the
+      // checked-in type cache until the next Expo start.
+      router.replace(target as never);
+    }, 700);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    isAuthenticated,
+    posLayout,
+    user?.currentCashRegisterId,
+    user?.id,
+    user?.tenantId,
+    user?.tenantSlug,
+    verticalProfileLoading,
+  ]);
 
+  if (!isAuthReady || isLoading) {
     return (
-        <PosRegisterReadinessProvider>
-            <TimeSyncStatusProvider enabled>
-                <PosTabsInner
-                    t={t}
-                    insets={insets}
-                    canAccessAdmin={canAccessAdmin}
-                    cartCount={cartCount}
-                    isPaymentModalVisible={isPaymentModalVisible}
-                    setIsPaymentModalVisible={setIsPaymentModalVisible}
-                    handlePaymentSuccess={handlePaymentSuccess}
-                    currentCart={currentCart}
-                    totals={totals}
-                    activeTableId={activeTableId}
-                    saleCustomer={saleCustomer}
-                    developmentModeSettings={developmentModeSettings}
-                />
-            </TimeSyncStatusProvider>
-        </PosRegisterReadinessProvider>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <WaveLoader size={32} color="#007AFF" />
+      </View>
     );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (user.mustChangePasswordOnNextLogin) {
+    return <Redirect href="/(auth)/change-password" />;
+  }
+
+  // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
+  if (!isPosAllowedRole(user.role, user.roles)) {
+    console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
+    logout();
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (needsPosCashRegisterSelection(user.currentCashRegisterId)) {
+    return <Redirect href={POS_CASH_REGISTER_SELECT_HREF} />;
+  }
+
+  return (
+    <PosRegisterReadinessProvider>
+      <TimeSyncStatusProvider enabled>
+        <PosTabsInner
+          t={t}
+          insets={insets}
+          cartCount={cartCount}
+          isPaymentModalVisible={isPaymentModalVisible}
+          setIsPaymentModalVisible={setIsPaymentModalVisible}
+          handlePaymentSuccess={handlePaymentSuccess}
+          currentCart={currentCart}
+          totals={totals}
+          activeTableId={activeTableId}
+          saleCustomer={saleCustomer}
+          developmentModeSettings={developmentModeSettings}
+        />
+      </TimeSyncStatusProvider>
+    </PosRegisterReadinessProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-    licenseStatusBar: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        gap: 8,
-        flexWrap: 'wrap',
-        paddingHorizontal: SoftSpacing.sm,
-        paddingVertical: 6,
-        backgroundColor: SoftColors.bgPrimary,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: SoftColors.border,
-    },
-    cartTabButton: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: -15,
-    },
-    cartIconContainer: {
-        width: 54,
-        minHeight: 54,
-        borderRadius: 27,
-        backgroundColor: SoftColors.accent,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...SoftShadows.md,
-    },
-    cartLabel: {
-        fontSize: 10,
-        color: SoftColors.accentDark,
-        marginTop: 4,
-        fontWeight: '600',
-    },
-    badge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: SoftColors.error,
-        borderRadius: 10,
-        minWidth: 20,
-        height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        borderWidth: 2,
-        borderColor: SoftColors.bgCard,
-    },
-    badgeText: {
-        color: SoftColors.textInverse,
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
+  licenseStatusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'nowrap',
+    paddingHorizontal: SoftSpacing.sm,
+    paddingBottom: 6,
+    backgroundColor: SoftColors.bgPrimary,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SoftColors.border,
+    minHeight: 40,
+  },
+  headerStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    flexShrink: 0,
+  },
+  cartTabButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -15,
+  },
+  cartIconContainer: {
+    width: 54,
+    minHeight: 54,
+    borderRadius: 27,
+    backgroundColor: SoftColors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SoftShadows.md,
+  },
+  cartLabel: {
+    fontSize: 10,
+    color: SoftColors.accentDark,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: SoftColors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: SoftColors.bgCard,
+  },
+  badgeText: {
+    color: SoftColors.textInverse,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 });

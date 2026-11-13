@@ -7,16 +7,17 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
-import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
 import { useConditionalPolling } from './useConditionalPolling';
+import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
+import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
 import { apiClient } from '../services/api/config';
 import {
   deriveTimeSyncUiFlags,
   normalizeSystemTimeStatusDto,
   type SystemTimeStatusDto,
 } from '../types/timeSyncStatus';
-import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
 
 export type TimeSyncStatusContextValue = {
   status: SystemTimeStatusDto | null;
@@ -50,9 +51,9 @@ export function TimeSyncStatusProvider({
       const raw = await apiClient.get<unknown>('/system/time/status');
       if (__DEV__) {
         try {
-          console.log('[TimeSync] GET /system/time/status response:', JSON.stringify(raw));
+          safeLog('[TimeSync] GET /system/time/status response:', JSON.stringify(raw));
         } catch {
-          console.log('[TimeSync] GET /system/time/status response (non-JSON-serializable):', raw);
+          safeLog('[TimeSync] GET /system/time/status response (non-JSON-serializable):', raw);
         }
       }
       let next = normalizeSystemTimeStatusDto(raw);
@@ -69,9 +70,9 @@ export function TimeSyncStatusProvider({
       }
       if (__DEV__) {
         try {
-          console.log('[TimeSync] normalized flags:', deriveTimeSyncUiFlags(next));
+          safeLog('[TimeSync] normalized flags:', deriveTimeSyncUiFlags(next));
         } catch {
-          console.log('[TimeSync] normalized flags (skipped)');
+          safeLog('[TimeSync] normalized flags (skipped)');
         }
       }
       setStatus(next);
@@ -90,9 +91,13 @@ export function TimeSyncStatusProvider({
     }
   }, [enabled]);
 
-  useConditionalPolling(() => {
-    void fetchStatus();
-  }, POS_HEALTH_POLL_MS, enabled);
+  useConditionalPolling(
+    () => {
+      void fetchStatus();
+    },
+    POS_HEALTH_POLL_MS,
+    enabled
+  );
 
   const flags = useMemo(() => deriveTimeSyncUiFlags(status), [status]);
 

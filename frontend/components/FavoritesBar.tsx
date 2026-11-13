@@ -1,15 +1,16 @@
 import React, { useCallback } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  Alert,
-  StyleSheet,
-} from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import type { SharedValue } from 'react-native-reanimated';
 
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { useCart } from '../contexts/CartContext';
 import type { FavoriteItem } from '../hooks/useFavorites';
 import { formatPrice } from '../utils/formatPrice';
@@ -19,39 +20,60 @@ export type FavoritesBarProps = {
   removeFavorite: (favoriteId: string) => Promise<void>;
   /** Optional toast/feedback after a favorite line was added to the cart. */
   onProductAdded?: (productName: string) => void;
+  /** When false, taps do not add to the cart (Waiter/Cashier order gate). */
+  canAddToCart?: boolean;
+  onAddDenied?: () => void;
 };
 
-export function FavoritesBar({ favorites, removeFavorite, onProductAdded }: FavoritesBarProps) {
+export function FavoritesBar({
+  favorites,
+  removeFavorite,
+  onProductAdded,
+  canAddToCart = true,
+  onAddDenied,
+}: FavoritesBarProps) {
   const { addItem } = useCart();
 
   const addToCart = useCallback(
     async (fav: FavoriteItem) => {
+      if (!canAddToCart) {
+        onAddDenied?.();
+        return;
+      }
       await addItem(fav.productId, 1, {
         productName: fav.productName,
         unitPrice: fav.productPrice,
       });
       onProductAdded?.(fav.productName);
     },
-    [addItem, onProductAdded]
+    [addItem, canAddToCart, onAddDenied, onProductAdded]
   );
 
-  const renderRightActions = (id: string) => (
-    <Pressable
-      style={styles.deleteButton}
-      onPress={() => void removeFavorite(id)}
-      accessibilityRole="button"
-      accessibilityLabel="Favorit entfernen"
-    >
-      <Text style={styles.deleteText}>🗑️</Text>
-    </Pressable>
+  const renderRightActions = useCallback(
+    (
+      favoriteId: string,
+      _progress: SharedValue<number>,
+      _translation: SharedValue<number>,
+      swipeableMethods: SwipeableMethods
+    ) => (
+      <Pressable
+        style={styles.deleteButton}
+        onPress={() => {
+          swipeableMethods.close();
+          void removeFavorite(favoriteId);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Favorit entfernen">
+        <Text style={styles.deleteText}>🗑️</Text>
+      </Pressable>
+    ),
+    [removeFavorite]
   );
 
   if (favorites.length === 0) {
     return (
       <View style={styles.emptyFavorites}>
-        <Text style={styles.emptyText}>
-          ⭐ Favorit hinzufügen: Produkt lange gedrückt halten
-        </Text>
+        <Text style={styles.emptyText}>⭐ Favorit hinzufügen: Produkt lange gedrückt halten</Text>
       </View>
     );
   }
@@ -62,21 +84,29 @@ export function FavoritesBar({ favorites, removeFavorite, onProductAdded }: Favo
       showsHorizontalScrollIndicator={false}
       style={styles.favoritesBar}
       contentContainerStyle={styles.favoritesBarContent}
-    >
+      // Prefer intentional left-swipe delete over accidental scroll steal
+      nestedScrollEnabled>
       {favorites.map((fav) => (
-        <Swipeable key={fav.id} renderRightActions={() => renderRightActions(fav.id)}>
+        <Swipeable
+          key={fav.id}
+          friction={2}
+          overshootRight={false}
+          rightThreshold={40}
+          dragOffsetFromRightEdge={20}
+          renderRightActions={(progress, translation, methods) =>
+            renderRightActions(fav.id, progress, translation, methods)
+          }>
           <Pressable
             style={styles.favoriteItem}
             onPress={() => void addToCart(fav)}
-            onLongPress={() =>
+            onLongPress={() => {
               Alert.alert('Aus Favoriten entfernen?', fav.productName, [
                 { text: 'Abbrechen', style: 'cancel' },
                 { text: 'Entfernen', onPress: () => void removeFavorite(fav.id) },
-              ])
-            }
+              ]);
+            }}
             accessibilityRole="button"
-            accessibilityLabel={`${fav.productName}, ${formatPrice(fav.productPrice)}`}
-          >
+            accessibilityLabel={`${fav.productName}, ${formatPrice(fav.productPrice)}`}>
             <Text style={styles.favoriteIcon}>⭐</Text>
             <Text style={styles.favoriteName} numberOfLines={1}>
               {fav.productName}

@@ -14,7 +14,25 @@
 | **Firma wechseln** (Dev) | tenant switch | `X-Tenant-Id` + `localStorage.dev_tenant_id` reload |
 | **Plattform-Admin** | platform admin host | `admin.regkasse.at` — no mandant context until impersonation |
 
-Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md).
+Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`COUNTRIES.md`](COUNTRIES.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
+
+---
+
+## Tenant Roles
+
+| UI (de) | Backend (`Roles.cs`) | Responsibilities |
+|---------|----------------------|------------------|
+| **Mandanten-Admin** | `Manager` | Tenant administrator for a specific Mandant |
+
+**Mandanten-Admin (`Manager`)** is responsible for managing a specific tenant:
+
+- User management (within tenant)
+- Cash register management
+- Settings (tenant-scoped)
+- Reports and exports
+- Backup trigger and schedule (`backup.manage`) — **own Tenant** packages only; **no** restore (see [Backup Management](#backup-management))
+
+Cannot access other tenants or platform-wide Super Admin surfaces (`/admin/tenants`, platform user CRUD).
 
 ---
 
@@ -23,8 +41,8 @@ Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYS
 A **Mandant** is one SaaS customer company in Regkasse:
 
 - **Row:** `tenants` (UUID `id`, unique `slug`, contact fields, status, Mandantenlizenz columns)
-- **URL:** `https://{slug}.regkasse.at` (POS + tenant admin)
-- **Data:** All business tables with `tenant_id` (products, registers, receipts, …) are isolated via EF global filters
+- **Production hosts:** POS `https://pos.regkasse.at` (JWT `tenant_id` after login); FA `https://admin.regkasse.at`; API `https://api.regkasse.at`. Customer websites via `frontend-sites` (`/[slug]` or verified `TenantDomain`). **Not** `{slug}.regkasse.at` as POS/FA entry — see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
+- **Data:** All business tables with `tenant_id` (products, registers, receipts, customers, …) are isolated via EF global filters
 
 **Super Admin** works on `admin.regkasse.at` without mandant business context until **impersonation** or (dev only) header switcher selects a slug.
 
@@ -47,7 +65,7 @@ A **Mandant** is one SaaS customer company in Regkasse:
 ### Access
 
 - **Route:** `/admin/tenants` — `frontend-admin/src/app/(protected)/admin/tenants/page.tsx`
-- **Detail:** `/admin/tenants/[tenantId]` — tabs: overview, users, cash registers, license, settings
+- **Detail:** `/admin/tenants/[tenantId]` — tabs: overview, users, cash registers, license, settings; also **digital** (`/tenant/{id}/digital`) and **data-management** (`/tenant/{id}/data-management`) for GDPR / expired-license flows
 - **Role:** `SuperAdmin` or permission `system.critical`
 - **API module:** `frontend-admin/src/features/super-admin/api/adminTenants.ts` → `GET|POST|PUT|DELETE /api/admin/tenants`
 
@@ -57,11 +75,13 @@ A **Mandant** is one SaaS customer company in Regkasse:
 
 | Tab (DE) | Content |
 |----------|---------|
-| **Übersicht** | Name, slug, status, contact, impersonate |
+| **Übersicht** | Name, slug, status, contact, impersonate, **Country & Fiscal Regime** card (`TenantCountryFiscalRegimeCard`) |
 | **Benutzer** | Invite, roles, owner, reset password — see [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) |
 | **Kassen** | Registers, decommission — see [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) |
 | **Lizenz** | Mandantenlizenz (`LicenseManager`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) |
 | **Einstellungen** | Address, status, danger zone (archive / permanent delete) |
+| **Digitale Dienste** (related routes) | `/tenant/{id}/digital`, website preview — see [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) |
+| **Datenverwaltung** (related routes) | `/tenant/{id}/data-management` — expired-license GDPR export/delete — see [`AGENTS.md`](../AGENTS.md) § Expired license |
 
 Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|settings`.
 
@@ -69,25 +89,21 @@ Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|setti
 
 ### Create tenant (onboarding wizard)
 
-**UI:** `CreateTenantWizard` (exported alias `CreateTenantModal`) — foolproof flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)
+**UI:** `CreateTenantWizard` — Super Admin flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md). Country layer: [`COUNTRIES.md`](COUNTRIES.md) §5.
 
-- Live slug normalization (`normalizeTenantSlugInput`) and availability check (`CheckSlugAvailabilityAsync` on backend).
-- Optional **trial license** checkbox maps to `grantTrialLicense` (default **true** in API DTO).
-- On success, `OnboardingSuccessModal` shows one-time **provisioning** payload (admin password, register id, demo product ids).
+- **Entry:** `/admin/tenants` → **Mandant anlegen** → `/admin/tenants/create` (modal wizard)
+- **Demo:** **Demo-Mandant anlegen** on the same page opens this wizard with Austria, a 14-day trial, and the vertical demo catalog. See [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md).
+- Steps: **Country** (`CreateTenantCountryStep`) → **tenant form** (`TenantFormFields`) → processing → success
+- Country list: `GET /api/admin/countries` (AT / DE / CH; `EU_DEFAULT` omitted). Payload includes `country` and `vatRegime`.
+- Live slug availability: `GET /api/admin/tenants/slug-availability`
+- License / trial / demo menu via form toggles (`grantTrialLicense`, `importDemoProducts`)
+- On success, `OnboardingSuccessModal` shows one-time **provisioning** credentials (admin password, register, login URL)
 
-**Backend:** `AdminTenantService.CreateAsync` runs provisioning inside a DB transaction:
+Country after create is edited on the overview **Country & Fiscal Regime** card (`PATCH /api/admin/tenants/{id}/country`, Super Admin). Mandanten-Admin is view-only. Historical invoices keep `CountryCodeAtIssue` ([`COUNTRIES.md`](COUNTRIES.md) §15).
 
-```247:254:backend/Services/AdminTenants/AdminTenantService.cs
-            var (provisioning, provisionError) = await _provisioningService
-                .ProvisionAsync(
-                    tenant,
-                    request.AdminEmail,
-                    request.AdminPassword,
-                    request.GrantTrialLicense,
-                    cancellationToken)
-```
+**Backend:** `AdminTenantService.CreateAsync` → `TenantOnboardingService` + `TenantProvisioningService` (transactional).
 
-See [Auto-provisioning](#auto-provisioning-tenantprovisioningservice).
+See [Customer onboarding](CUSTOMER_ONBOARDING.md) for Mandanten-Admin first login, POS setup (`pos.regkasse.at`), and troubleshooting.
 
 ### Edit tenant
 
@@ -164,7 +180,7 @@ Payment receipts, daily closings, audit logs, and related fiscal data are subjec
 ### Impersonate (“Login as”)
 
 - List, detail header, `SuperAdminTenantSelector`, and dev switcher no-admin flow.
-- **Production:** redirect to `https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…`
+- **Production:** issue JWT with target `tenant_id` + `tenant_impersonation=true`; prefer staying on FA / documented handoff. POS remains `https://pos.regkasse.at` with JWT tenant (not `{slug}` POS hosts). Legacy slug callback URLs may still exist in FA code — treat as technical debt vs [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) / [`AGENTS.md`](../AGENTS.md).
 - **Development:** same-origin token + `dev_tenant_id` reload.
 
 `ImpersonationRedirectOverlay` — `frontend-admin/src/features/super-admin/components/ImpersonationRedirectOverlay.tsx`
@@ -175,7 +191,7 @@ Payment receipts, daily closings, audit logs, and related fiscal data are subjec
 
 1. Open tenant → tab **Benutzer** (or `/admin/tenants/{id}/users`).
 2. Click **Benutzer anlegen**.
-3. Enter **E-Mail**, optional name, **Rolle** (`Manager` / `Cashier` / `Accountant`, …), optionally **Mandanten-Administrator (Owner)**.
+3. Enter **E-Mail**, optional name, **Rolle** (**Mandanten-Admin** / `Manager`, `Cashier`, `Accountant`, …), optionally **Mandanten-Administrator (Owner)**.
 4. Confirm — backend creates Identity user + membership; returns a **one-time password** in the UI (no invitation email).
 
 **Bestehenden Benutzer hinzufügen** — attach an existing account (`AddExistingUserModal` → assign membership only; no new login).
@@ -218,9 +234,11 @@ FA shows **two separate license concepts**. Mixing them caused operator confusio
 
 ### 2. Tenant / Mandantenlizenz (SaaS row)
 
-- **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`.
+- **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`, `tenants.current_license_sale_id` (billing link).
 - **Super Admin management:** tenant detail → **License** tab — `LicenseManager` + `/api/admin/tenants/{id}/license/*` (`adminTenantLicense.ts`).
-- **Manager header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Manager + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
+- **Super Admin billing sales:** `POST /api/admin/billing/license-sales` → `license_sales` row + billing key — see [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md).
+- **Mandanten-Admin extend (billing):** `POST /api/admin/license/extend` (`settings.manage`); FA client still on `/api/admin/license/mandant/extend` until migrated (`tenantLicense.ts`).
+- **Mandanten-Admin header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Mandanten-Admin / `Manager` + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
 - **Dev switcher rows:** `getTenantSwitcherLicenseBadge` — explicit hint *„Mandantenlizenz (Unternehmen)“*.
 
 Resolution logic (shared):
@@ -246,7 +264,7 @@ Badge mapping for header pill (`headerLicenseStatus.ts`):
 
 Dev switcher / tenant list still use `mandantLicenseBadge.ts` → `mapTenantLicenseLabelToBadge`.
 
-**Expiry banner (Manager only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
+**Expiry banner (Mandanten-Admin only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
 
 ---
 
@@ -254,7 +272,7 @@ Dev switcher / tenant list still use `mandantLicenseBadge.ts` → `mapTenantLice
 
 | Environment | Mechanism |
 |-------------|-----------|
-| **Production** | **Als Mandant anmelden** (impersonate) → redirect `https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…` |
+| **Production** | **Als Mandant anmelden** (impersonate) → FA/JWT handoff; POS stays on `pos.regkasse.at`. Legacy `{slug}.regkasse.at/impersonate-callback#…` may still appear in older FA flows — see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md). |
 | **Development** | Header **Firma wechseln** (`HeaderDevTenantSwitch`) → `GET /api/tenants/switcher` → `localStorage.dev_tenant_id` + reload |
 | **Platform home** | `/admin` — `SuperAdminTenantSelector` search + impersonate |
 
@@ -308,7 +326,7 @@ On `admin.*` without impersonation / dev override:
 
 Order in `AdminShellHeader` (`frontend-admin/src/components/layout/Header.tsx`):
 
-`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Manager **Mandantenlizenz** via `useHeaderTenantLicense`) → language → user menu.
+`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Mandanten-Admin **Mandantenlizenz** via `useHeaderTenantLicense`) → language → user menu.
 
 ---
 
@@ -340,6 +358,36 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 
 ---
 
+## Backup Management
+
+Full guide: [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md) · Hub: [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · Always-applied: [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery.
+
+### Tenant Backup
+
+- Each Mandant has its own **Tenant** strategy backups (`BackupStrategyKind.Tenant`, `backup_runs.tenant_id` set).
+- Artifact: `*.tenant.zip` — tenant-scoped business/fiscal data (payments, receipts, products, customers, …). **No** AspNet Identity.
+- Mandanten-Admin (`Manager`) can **view**, **trigger**, and **download** own tenant backups (`settings.view` + `backup.manage`).
+- Mandanten-Admin **cannot restore** via API (restore is Super Admin, validation-only). Tenant ZIP is not `pg_restore`-compatible.
+- Backup data and list/download access are tenant-scoped (`BackupRunAccessEvaluator`); cross-tenant → HTTP **404**.
+- FA: `/backup` → `TenantBackupView`.
+
+### System Backup (platform)
+
+- Daily scheduled dump at **02:00 UTC** by default (`BackupStrategyKind.System`) — all tenants + Identity + platform settings.
+- Used for validation restore / drills and operator-led instance recovery evidence.
+- Mandanten-Admin **never** lists or downloads System dumps.
+
+### Access Control
+
+| Actor | Access |
+|-------|--------|
+| **Mandanten-Admin (`Manager`)** | Own tenant backups only (Tenant strategy). Trigger / list / download / import. **No** restore. **No** System backup. |
+| **Super Admin** | All tenant backups **+** system backup. Validation restore + restore drills (dual approval where required). Execution mode / platform config (`settings.manage`). |
+
+Permissions detail: [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
+
+---
+
 ## Key file index
 
 | Area | Path |
@@ -359,6 +407,8 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 | Backend provisioning | `backend/Services/AdminTenants/TenantProvisioningService.cs` |
 | Backend tenant service | `backend/Services/AdminTenants/AdminTenantService.cs` |
 | Switcher endpoint | `backend/Controllers/TenantsController.cs` |
+| Backup hub (FA) | `frontend-admin/src/app/(protected)/backup/page.tsx` |
+| Backup access filter | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | i18n (DE) | `frontend-admin/src/i18n/locales/de/admin-shell.json`, `license.json` |
 
 ---

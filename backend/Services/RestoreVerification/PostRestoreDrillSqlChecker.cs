@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.Linq;
 using KasseAPI_Final.Models.RestoreVerification;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
@@ -33,7 +31,8 @@ public sealed class PostRestoreDrillSqlChecker : IPostRestoreDrillSqlChecker
         new("tagesbericht_reports", "continuity_resilience", "Tagesbericht reports", null),
         new("monatsbericht_reports", "continuity_resilience", "Monatsbericht reports", null),
         new("jahresbericht_reports", "continuity_resilience", "Jahresbericht reports", null),
-        new("periodenbericht_runs", "continuity_resilience", "Periodenbericht runs", null),
+        // periodenbericht_runs is optional operational reporting — not present on all
+        // restored dumps / older hosts. Do not fail L4 when the relation is missing.
         new("backup_runs", "continuity_resilience", "Backup runs (telemetry)", null),
         new("backup_artifacts", "continuity_resilience", "Backup artifacts (telemetry)", null),
         new("backup_verifications", "continuity_resilience", "Backup verifications (telemetry)", null),

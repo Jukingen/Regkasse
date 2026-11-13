@@ -76,13 +76,13 @@ namespace KasseAPI_Final.Models
         // Navigation properties
         [ForeignKey("CustomerId")]
         public virtual Customer? Customer { get; set; }
-        
+
         [ForeignKey("UserId")]
         public virtual ApplicationUser User { get; set; } = null!;
-        
+
         [ForeignKey("CartId")]
         public virtual Cart? Cart { get; set; }
-        
+
         public virtual ICollection<TableOrderItem> Items { get; set; } = new List<TableOrderItem>();
     }
 

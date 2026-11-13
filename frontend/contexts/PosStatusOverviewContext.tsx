@@ -1,32 +1,29 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { licenseApi } from '../api/license';
-import { applyPersistedLicenseOverride } from '../utils/posLicenseLocalOverride';
-import {
-  deriveMandantWarningFlags,
-  mapOverviewLicenseToStatus,
-  mapOverviewToMandantWarning,
-} from '../utils/mapPosStatusOverview';
+import { useAuth } from './AuthContext';
+import { licenseApi, type LicenseActivationResultDto } from '../api/license';
 import { fetchPosStatusOverview } from '../services/api/posStatusOverviewService';
 import type { PosStatusOverviewDto } from '../services/api/posStatusOverviewTypes';
-import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
 import {
   getCachedLicenseStatus,
+  invalidateLicenseStatusCache,
   setCachedLicenseStatus,
   type LicenseStatus,
 } from '../services/license/licenseStatusCache';
 import { registerPosStatusOverviewRefresh } from '../services/pos/posStatusOverviewRefreshBridge';
 import { subscribePosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
 import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
-
-import { useAuth } from './AuthContext';
+import { licenseStatusFromActivationResult } from '../utils/licenseActivationSnapshot';
+import {
+  deriveMandantWarningFlags,
+  mapOverviewLicenseToStatus,
+  mapOverviewToMandantWarning,
+} from '../utils/mapPosStatusOverview';
+import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
+import {
+  applyPersistedLicenseOverride,
+  persistPosLicenseLocalOverride,
+} from '../utils/posLicenseLocalOverride';
 
 type PosStatusOverviewContextValue = {
   overview: PosStatusOverviewDto | null;
@@ -38,12 +35,28 @@ type PosStatusOverviewContextValue = {
   settingsCashRegisterId: string | null;
   settingsVersion: number;
   loading: boolean;
+  /** True while POST /license/activate is in flight (header hides stale badge). */
+  isActivating: boolean;
+  setIsActivating: (value: boolean) => void;
+  /**
+   * Apply activation response immediately, persist local override, invalidate caches,
+   * then force overview refetch in the background.
+   */
+  applyLicenseActivation: (
+    result: LicenseActivationResultDto,
+    activatedKey?: string
+  ) => Promise<void>;
   refreshOverview: (force?: boolean) => Promise<void>;
 };
 
 const PosStatusOverviewContext = createContext<PosStatusOverviewContextValue | null>(null);
 
 let cachedOverview: PosStatusOverviewDto | null = null;
+
+/** Clears module overview cache (login, tenant switch, license QA update). */
+export function clearCachedPosStatusOverview(): void {
+  cachedOverview = null;
+}
 
 export function getCachedPosSettingsSnapshot(): {
   cashRegisterId: string | null;
@@ -67,7 +80,7 @@ async function licenseFromAnonymousStatus(): Promise<LicenseStatus | null> {
       expiryDate: pub.validUntil,
       machineHash: '',
     });
-    return applyPersistedLicenseOverride(merged);
+      return await applyPersistedLicenseOverride(merged);
   } catch {
     return getCachedLicenseStatus();
   }
@@ -80,14 +93,17 @@ async function licenseFromAnonymousStatus(): Promise<LicenseStatus | null> {
 export function PosStatusOverviewProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   const [overview, setOverview] = useState<PosStatusOverviewDto | null>(cachedOverview);
-  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(() => getCachedLicenseStatus());
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(() =>
+    getCachedLicenseStatus()
+  );
   const [mandantWarning, setMandantWarning] = useState<MandantLicenseWarningState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
 
   const applyOverview = useCallback(async (next: PosStatusOverviewDto) => {
     cachedOverview = next;
     const license = await applyPersistedLicenseOverride(
-      mapOverviewLicenseToStatus(next.license, next.healthLicense),
+      mapOverviewLicenseToStatus(next.license, next.healthLicense)
     );
     setCachedLicenseStatus(license);
     setOverview(next);
@@ -97,7 +113,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
 
   const refreshOverview = useCallback(
     async (force = false) => {
-      if (!isAuthenticated || !user?.id) {
+      if (!isAuthenticated || !user?.id || user.mustChangePasswordOnNextLogin) {
         if (!force) return;
         const anon = await licenseFromAnonymousStatus();
         if (anon) {
@@ -119,25 +135,58 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
         setLoading(false);
       }
     },
-    [applyOverview, isAuthenticated, user?.id],
+    [applyOverview, isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin]
+  );
+
+  const applyLicenseActivation = useCallback(
+    async (result: LicenseActivationResultDto, activatedKey?: string) => {
+      const snapshot = licenseStatusFromActivationResult(result, licenseStatus);
+
+      const expiry = snapshot.expiryDate;
+      const key = activatedKey?.trim();
+      if (key && expiry) {
+        try {
+          await persistPosLicenseLocalOverride(key, expiry);
+        } catch {
+          // Non-fatal: UI already has the activation snapshot.
+        }
+      }
+
+      invalidateLicenseStatusCache();
+      clearCachedPosStatusOverview();
+      setCachedLicenseStatus(snapshot);
+      setLicenseStatus(snapshot);
+
+      void refreshOverview(true);
+    },
+    [licenseStatus, refreshOverview]
   );
 
   useEffect(() => {
-    void refreshOverview(false);
-  }, [isAuthenticated, user?.id, refreshOverview]);
+    if (!isAuthenticated) return;
+    invalidateLicenseStatusCache();
+    clearCachedPosStatusOverview();
+    void refreshOverview(true);
+  }, [
+    isAuthenticated,
+    user?.id,
+    user?.tenantId,
+    user?.mustChangePasswordOnNextLogin,
+    refreshOverview,
+  ]);
 
   useEffect(() => registerPosStatusOverviewRefresh(refreshOverview), [refreshOverview]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || user?.mustChangePasswordOnNextLogin) return;
     return subscribePosStatusReconnectRefresh(() => {
       void refreshOverview(true);
     });
-  }, [isAuthenticated, refreshOverview]);
+  }, [isAuthenticated, user?.mustChangePasswordOnNextLogin, refreshOverview]);
 
   const { shouldShowGrace, shouldShowPreExpiry } = useMemo(
     () => deriveMandantWarningFlags(mandantWarning),
-    [mandantWarning],
+    [mandantWarning]
   );
 
   const value = useMemo<PosStatusOverviewContextValue>(
@@ -151,6 +200,9 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       settingsCashRegisterId: overview?.settings.cashRegisterId ?? null,
       settingsVersion: overview?.settings.settingsVersion ?? 0,
       loading,
+      isActivating,
+      setIsActivating,
+      applyLicenseActivation,
       refreshOverview,
     }),
     [
@@ -160,8 +212,10 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       shouldShowGrace,
       shouldShowPreExpiry,
       loading,
+      isActivating,
+      applyLicenseActivation,
       refreshOverview,
-    ],
+    ]
   );
 
   return (

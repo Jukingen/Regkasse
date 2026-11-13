@@ -12,6 +12,16 @@
  *
  * @module formalReportContentResolver
  */
+export {
+  type FiscalExportProfileBackendRow,
+  type FiscalReportResolvedText,
+  fiscalReportFieldTooltip as formalReportBackendFieldTooltip,
+  joinFiscalReportRemediationHints as joinFormalReportRemediationHints,
+  type LegalExportCompletenessIssueText,
+  resolveFiscalReportBackendText as resolveFormalReportContentFromDualFields,
+  resolveFiscalExportProfileRow as resolveFormalReportExportProfileRow,
+  resolveLegalExportCompletenessIssueMessage as resolveFormalReportLegalExportIssueMessage,
+} from '../backendLocale/fiscalReportTextPolicy';
 export type { ReportContentLanguage } from './reportContentLanguagePolicy';
 export {
   FORMAL_REPORT_ALLOWED_CONTENT_LANGUAGES,
@@ -19,14 +29,3 @@ export {
   isReportContentLanguage,
   preferredReportContentLanguage,
 } from './reportContentLanguagePolicy';
-
-export {
-  resolveFiscalReportBackendText as resolveFormalReportContentFromDualFields,
-  joinFiscalReportRemediationHints as joinFormalReportRemediationHints,
-  resolveFiscalExportProfileRow as resolveFormalReportExportProfileRow,
-  resolveLegalExportCompletenessIssueMessage as resolveFormalReportLegalExportIssueMessage,
-  fiscalReportFieldTooltip as formalReportBackendFieldTooltip,
-  type FiscalReportResolvedText,
-  type FiscalExportProfileBackendRow,
-  type LegalExportCompletenessIssueText,
-} from '../backendLocale/fiscalReportTextPolicy';

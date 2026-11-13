@@ -28,6 +28,15 @@ public class EndpointAuthorizationRepresentativeTests
         return new ClaimsPrincipal(identity);
     }
 
+    private static ClaimsPrincipal UserWithPermissions(params string[] permissions)
+    {
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-1"));
+        foreach (var permission in permissions)
+            identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, permission));
+        return new ClaimsPrincipal(identity);
+    }
+
     private static string Policy(string permission) => PermissionCatalog.PolicyPrefix + permission;
 
     // --- Users ---
@@ -146,6 +155,17 @@ public class EndpointAuthorizationRepresentativeTests
     }
 
     [Fact]
+    public async Task CashRegister_CashRegisterView_ManagerManageClaim_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(
+            UserWithPermissions(AppPermissions.CashRegisterManage),
+            null,
+            Policy(AppPermissions.CashRegisterView));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public async Task CashRegister_CashRegisterManage_Manager_Allowed()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
@@ -195,11 +215,11 @@ public class EndpointAuthorizationRepresentativeTests
     }
 
     [Fact]
-    public async Task Reports_ReportView_Cashier_Denied()
+    public async Task Reports_ReportView_Cashier_Allowed()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
         var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.ReportView));
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
     }
 
     // --- Settings ---
@@ -217,6 +237,54 @@ public class EndpointAuthorizationRepresentativeTests
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
         var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.SettingsManage));
         Assert.False(result.Succeeded);
+    }
+
+    // --- Backup (tenant-scoped backup.manage; narrower than settings.manage) ---
+    [Fact]
+    public async Task Backup_BackupManage_Manager_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.BackupManage));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Backup_BackupManage_SuperAdmin_Allowed_ViaSettingsManageImplication()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.SuperAdmin), null, Policy(AppPermissions.BackupManage));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Backup_BackupManage_Cashier_Denied()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.BackupManage));
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Backup_BackupManageClaimHolder_DoesNotSatisfy_SettingsManage()
+    {
+        // Escalation guard: holding only backup.manage must NOT satisfy the broad settings.manage policy.
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(
+            UserWithPermissions(AppPermissions.BackupManage),
+            null,
+            Policy(AppPermissions.SettingsManage));
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Backup_SettingsManageClaimHolder_Satisfies_BackupManage()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(
+            UserWithPermissions(AppPermissions.SettingsManage),
+            null,
+            Policy(AppPermissions.BackupManage));
+        Assert.True(result.Succeeded);
     }
 
     // --- POS: Payment oversight vs floor take ---

@@ -1,12 +1,8 @@
-using System.Collections.Generic;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.RestoreVerification;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.OperationalRuns;
@@ -59,7 +55,7 @@ public sealed class DrOperationalObservabilityHostedService : BackgroundService
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 var sp = scope.ServiceProvider;
                 var summary = await sp.GetRequiredService<IBackupRecoverabilitySummaryService>()
-                    .GetAsync(stoppingToken);
+                    .GetAsync(accessScope: null, stoppingToken);
 
                 _metrics.SetRecoverabilityProofAgeSeconds("backup", summary.BackupProofAgeSeconds);
                 _metrics.SetRecoverabilityProofAgeSeconds("restore", summary.RestoreProofAgeSeconds);

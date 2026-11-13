@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -52,7 +52,8 @@ public sealed class ReportHistoryService : IReportHistoryService
                 LastOutboxMessageId = x.LastFinanzOnlineOutboxMessageId,
             })
             .FirstOrDefaultAsync(cancellationToken);
-        if (target == null) return null;
+        if (target == null)
+            return null;
 
         var rootId = target.OriginalReportId ?? target.ReportId;
 
@@ -98,7 +99,8 @@ public sealed class ReportHistoryService : IReportHistoryService
                 LastOutboxMessageId = x.LastFinanzOnlineOutboxMessageId,
             })
             .FirstOrDefaultAsync(cancellationToken);
-        if (target == null) return null;
+        if (target == null)
+            return null;
 
         var rootId = target.OriginalReportId ?? target.ReportId;
 
@@ -144,7 +146,8 @@ public sealed class ReportHistoryService : IReportHistoryService
                 LastOutboxMessageId = x.LastFinanzOnlineOutboxMessageId,
             })
             .FirstOrDefaultAsync(cancellationToken);
-        if (target == null) return null;
+        if (target == null)
+            return null;
 
         var rootId = target.OriginalReportId ?? target.ReportId;
 
@@ -269,14 +272,22 @@ public sealed class ReportHistoryService : IReportHistoryService
     {
         var keys = new List<string>(8);
 
-        if (row.ReportId == rootId) keys.Add("original");
-        if (row.CorrectionOfReportId.HasValue || row.SupersedesReportId.HasValue) keys.Add("correction");
-        if (row.SupersededByReportId.HasValue || string.Equals(row.ReportStatus, "Superseded", StringComparison.OrdinalIgnoreCase)) keys.Add("superseded");
-        if (isCurrent) keys.Add("current");
-        if (submission.IsSubmitted) keys.Add("submitted");
-        if (submission.IsAccepted) keys.Add("accepted");
-        if (submission.IsRejected) keys.Add("rejected");
-        if (submission.IsRetrying) keys.Add("retrying");
+        if (row.ReportId == rootId)
+            keys.Add("original");
+        if (row.CorrectionOfReportId.HasValue || row.SupersedesReportId.HasValue)
+            keys.Add("correction");
+        if (row.SupersededByReportId.HasValue || string.Equals(row.ReportStatus, "Superseded", StringComparison.OrdinalIgnoreCase))
+            keys.Add("superseded");
+        if (isCurrent)
+            keys.Add("current");
+        if (submission.IsSubmitted)
+            keys.Add("submitted");
+        if (submission.IsAccepted)
+            keys.Add("accepted");
+        if (submission.IsRejected)
+            keys.Add("rejected");
+        if (submission.IsRetrying)
+            keys.Add("retrying");
 
         return keys;
     }

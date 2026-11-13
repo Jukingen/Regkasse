@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using KasseAPI_Final.Data.Repositories;
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers.Base
 {
@@ -59,7 +57,7 @@ namespace KasseAPI_Final.Controllers.Base
                     .ToList();
 
                 _logger.LogWarning("Model validation failed: {Errors}", string.Join("; ", errors));
-                
+
                 return BadRequest(new
                 {
                     message = "Validation failed",
@@ -135,9 +133,9 @@ namespace KasseAPI_Final.Controllers.Base
             _logger.LogError(ex, "Error in {Operation}: {Message}", operation, ex.Message);
 
             var message = userMessage ?? "An error occurred while processing your request";
-            
+
             // Production'da detaylı hata bilgisi verme
-            var details = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" 
+            var details = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
                 ? new { error = ex.Message, stackTrace = ex.StackTrace }
                 : null;
 
@@ -151,7 +149,7 @@ namespace KasseAPI_Final.Controllers.Base
         {
             pageNumber = Math.Max(1, pageNumber);
             pageSize = Math.Max(1, Math.Min(pageSize, maxPageSize));
-            
+
             return (pageNumber, pageSize);
         }
 

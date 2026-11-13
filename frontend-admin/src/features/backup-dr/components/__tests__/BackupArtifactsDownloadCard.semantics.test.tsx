@@ -2,19 +2,50 @@
  * Operatör görünür anlamlar: Fake/stub başlıkları üretim “indirilebilir pg_dump” dili kullanmaz;
  * API başarılı çalıştırma başlığı Fake modunda seçilmez; şüpheli gerçek satırlar stub sanılmaz.
  */
-import React from 'react';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+import type { BackupArtifactResponseDto } from '@/api/generated/model';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
 
 vi.mock('@/lib/axios', () => ({
-  AXIOS_INSTANCE: { get: vi.fn(), interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } } },
+  AXIOS_INSTANCE: {
+    get: vi.fn(),
+    interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+  },
   customInstance: vi.fn(),
 }));
 
-import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
-import type { BackupArtifactResponseDto } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (k: string) => k,
+    formatLocale: 'en-US',
+    textLocale: 'en',
+  }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: { success: vi.fn(), error: vi.fn() },
+  }),
+}));
+
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { role: 'SuperAdmin', permissions: ['settings.manage'] } }),
+}));
+
+vi.mock('@/hooks/useSensitiveExportGate', () => ({
+  useSensitiveExportGate: () => ({
+    requireGate: async (fn: () => void) => fn(),
+    gated: false,
+  }),
+}));
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -32,13 +63,15 @@ beforeAll(() => {
   });
 });
 
-/** Identity translator — asserts exact i18n keys wired to visible surfaces. */
-const t = (k: string, o?: Record<string, string | number>) =>
-  o ? `${k} ${JSON.stringify(o)}` : k;
+function renderCard(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
+const t = (k: string, o?: Record<string, string | number>) => (o ? `${k} ${JSON.stringify(o)}` : k);
 
 const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactResponseDto => ({
   id: 'art-1',
-  artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+  artifactType: BackupArtifactType.LogicalDump,
   isFilePresentForDownload: true,
   byteSize: 48,
   ...over,
@@ -46,7 +79,7 @@ const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactR
 
 describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   it('uses Fake titles and scope keys — not API-success / recoverability-summary download titles', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -57,7 +90,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
         realPostgreSqlLogicalDumpConfigured={false}
         simulatedOperationalMode
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.download.titleLatestSuccessFake')).toBeInTheDocument();
@@ -67,7 +100,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   });
 
   it('shows stub byte column + stub payload note, not non-Fake suspicion bulk alert', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -77,7 +110,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
         runAdapterKind="Fake"
         simulatedOperationalMode
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.download.byteSizeColumnSimulated')).toBeInTheDocument();
@@ -86,7 +119,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   });
 
   it('does not regress to “downloadable logical dump” wording: Fake mode avoids production API-success title', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="last_known_good"
         runId="run-fake"
@@ -96,14 +129,14 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
         runAdapterKind="Fake"
         simulatedOperationalMode
         t={t}
-      />,
+      />
     );
     expect(screen.getByText('backupDr.download.titleLastKnownGoodFake')).toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.titleLastKnownGood')).not.toBeInTheDocument();
   });
 
   it('Fake artifact row shows stub/simulated reality tag, stub content summary, and expected-tiny byte footnote — not operational dump labeling', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -114,20 +147,26 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
         realPostgreSqlLogicalDumpConfigured={false}
         simulatedOperationalMode
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.download.reality.stub')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.download.byteSizeFootnote.stubExpectedTiny')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.download.types.logicalDumpOperational')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.download.byteSizeFootnote.stubExpectedTiny')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.download.types.logicalDumpOperational')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.reality.realPipeline')).not.toBeInTheDocument();
   });
 });
 
 describe('BackupArtifactsDownloadCard — non-Fake suspicion vs stub', () => {
   it('flags very small logical dump with suspicion tag — not stub recoverability line', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-real"
@@ -138,19 +177,25 @@ describe('BackupArtifactsDownloadCard — non-Fake suspicion vs stub', () => {
         realPostgreSqlLogicalDumpConfigured
         simulatedOperationalMode={false}
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.download.suspicionBulkIntro')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.download.suspicion.tiny_reported_logical_dump.short')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.download.suspicion.tiny_reported_logical_dump.short')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.stubPayloadNote')).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.reality.stub')).not.toBeInTheDocument();
-    expect(screen.queryByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')
+    ).not.toBeInTheDocument();
   });
 
   it('uses Request download (not stub button) for non-simulated eligible row', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-real"
@@ -161,7 +206,7 @@ describe('BackupArtifactsDownloadCard — non-Fake suspicion vs stub', () => {
         realPostgreSqlLogicalDumpConfigured
         simulatedOperationalMode={false}
         t={t}
-      />,
+      />
     );
 
     const table = screen.getByRole('table');

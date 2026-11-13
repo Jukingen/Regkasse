@@ -46,6 +46,26 @@ describe('posRegisterGateCopy blocked-state differentiation', () => {
     expect(registerGateAlertMessage(ctx)).toMatch(/geschlossen|Schicht/i);
   });
 
+  it('empty selectable + none_assigned: points at the admin assignment, not at opening a shift', () => {
+    const ctx = buildPosRegisterGateContext({
+      settingsLoadFailed: false,
+      registerListFailureKind: null,
+      registerListLoading: false,
+      registerPicklistCount: 0,
+      registerListEmptyReason: 'none_assigned',
+      readiness: {
+        loading: false,
+        error: false,
+        nextAction: 'select_register',
+        messageCode: POS_READINESS_MESSAGE_CODES.REQUIRED,
+      },
+    });
+    expect(registerGateBannerTitle(ctx)).toMatch(/zugewiesen/i);
+    expect(registerGateBannerDetail(ctx)).toMatch(/zugewiesen/i);
+    expect(registerGateFooterHint(ctx)).toMatch(/zugewiesen/i);
+    expect(registerGateAlertMessage(ctx)).toMatch(/zugewiesen/i);
+  });
+
   it('empty selectable + none_selectable_for_user: conflict with other shifts / visibility', () => {
     const ctx = buildPosRegisterGateContext({
       settingsLoadFailed: false,
@@ -98,6 +118,8 @@ describe('posRegisterGateCopy blocked-state differentiation', () => {
     expect(registerGateBannerTitle(ctx)).toMatch(/nicht erlaubt/i);
     expect(registerGateBannerDetail(ctx)).toMatch(/Rolle|Administrator/i);
     expect(registerGateBannerDetail(ctx)).not.toMatch(/anderen Benutzern zugeordnet/i);
+    expect(registerGateFooterHint(ctx)).toMatch(/nicht erlaubt|Berechtigung/i);
+    expect(registerGateFooterHint(ctx)).not.toMatch(/Schicht starten/i);
   });
 
   it('RKSV Monatsbeleg missing: dedicated title/detail/footer/alert', () => {

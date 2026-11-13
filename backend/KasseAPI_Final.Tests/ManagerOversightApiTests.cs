@@ -10,6 +10,7 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration tests: Manager admin JWT can read oversight APIs but cannot take POS payments.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class ManagerOversightApiTests : IClassFixture<ManagerOversightWebApplicationFactory>
 {
     private readonly ManagerOversightWebApplicationFactory _factory;
@@ -69,9 +70,15 @@ public sealed class ManagerOversightApiTests : IClassFixture<ManagerOversightWeb
 
         foreach (var oversight in AdminAppPermissionProfile.ManagerOversightViewPermissions)
         {
+            var present = permissions.Contains(oversight)
+                || (string.Equals(oversight, AppPermissions.UserResetPassword, StringComparison.OrdinalIgnoreCase)
+                    && permissions.Contains(AppPermissions.UserManage))
+                || (string.Equals(oversight, AppPermissions.CashRegisterView, StringComparison.OrdinalIgnoreCase)
+                    && (permissions.Contains(AppPermissions.CashRegisterManage)
+                        || permissions.Contains(AppPermissions.CashRegisterDecommission)));
             Assert.True(
-                permissions.Contains(oversight),
-                $"Manager admin login should include oversight permission '{oversight}'.");
+                present,
+                $"Manager admin login should include oversight permission '{oversight}' (or an implying manage permission).");
         }
     }
 
@@ -142,6 +149,45 @@ public sealed class ManagerOversightApiTests : IClassFixture<ManagerOversightWeb
         var client = await CreateAuthenticatedManagerClientAsync();
 
         var response = await client.GetAsync("/api/Receipts/list?page=1&pageSize=10");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"Expected 200 but got {(int)response.StatusCode} {response.StatusCode}. Body: {body}");
+    }
+
+    [Fact]
+    public async Task Manager_GetLegacyCashRegisterList_Returns200()
+    {
+        var client = await CreateAuthenticatedManagerClientAsync();
+
+        var response = await client.GetAsync("/api/CashRegister");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"Expected 200 but got {(int)response.StatusCode} {response.StatusCode}. Body: {body}");
+    }
+
+    [Fact]
+    public async Task Manager_GetAdminCashRegistersList_Returns200()
+    {
+        var client = await CreateAuthenticatedManagerClientAsync();
+
+        var response = await client.GetAsync("/api/admin/cash-registers?page=1&pageSize=20");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"Expected 200 but got {(int)response.StatusCode} {response.StatusCode}. Body: {body}");
+    }
+
+    [Fact]
+    public async Task Manager_GetAdminCashRegistersByTenant_Returns200()
+    {
+        var client = await CreateAuthenticatedManagerClientAsync();
+
+        var response = await client.GetAsync("/api/admin/cash-registers/by-tenant");
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(

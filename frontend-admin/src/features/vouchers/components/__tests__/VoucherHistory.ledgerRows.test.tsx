@@ -1,14 +1,15 @@
 /**
  * Voucher detail journal: all ledger lines from the API must render as table rows.
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { I18nProvider } from '@/i18n';
-import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { AdminVoucherLedgerLineDto } from '@/api/admin/vouchers';
+import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
+import { I18nProvider } from '@/i18n';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -93,7 +94,7 @@ function renderWithProviders(ui: React.ReactElement) {
   return render(
     <QueryClientProvider client={client}>
       <I18nProvider>{ui}</I18nProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 

@@ -1,10 +1,9 @@
 /**
  * GET /api/admin/backup/dashboard/stats — manual client until Orval regeneration.
  */
-
-import { customInstance } from '@/lib/axios';
-import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
 import type { BackupArtifactPipelinePolicyResponseDto } from '@/api/generated/model/backupArtifactPipelinePolicyResponseDto';
+import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
+import { customInstance } from '@/lib/axios';
 
 export const BACKUP_DASHBOARD_STATS_PATH = '/api/admin/backup/dashboard/stats' as const;
 
@@ -33,11 +32,27 @@ export interface BackupDashboardStatsResponseDto {
   successRateTrendVsPrior30DaysPercent?: number | null;
   terminalRuns30Days?: number;
   succeededRuns30Days?: number;
+  failedRuns30Days?: number;
+  pendingRunsCount?: number;
+  totalRuns30Days?: number;
+  nextScheduledBackupAtUtc?: string | null;
+  stagingDiskUsedPercent?: number | null;
+  stagingDiskAlert?: boolean;
   rpoHours?: number | null;
   rtoMinutes?: number | null;
   lastSuccessfulRestoreDrillAtUtc?: string | null;
   latestRestoreDrillStatus?: number;
   lastVerifiedBackupAtUtc?: string | null;
+  lastVerificationStatus?: number | null;
+  lastVerificationRunId?: string | null;
+  rpoStatus?: string | null;
+  healthScore?: number;
+  healthLevel?: string | null;
+  contentValidationSummary?: {
+    status?: string | null;
+    summary?: string | null;
+    lastSucceededRunId?: string | null;
+  } | null;
   averageSucceededBackupDurationSeconds?: number | null;
   averageSucceededBackupDurationSampleCount?: number;
   configurationHealth?: BackupConfigurationHealthResponseDto;

@@ -10,18 +10,20 @@ interface NetworkStatusIndicatorProps {
 
 export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
   showDetails = false,
-  onStatusChange
+  onStatusChange,
 }) => {
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkNetworkStatus();
-    
+
     // OPTIMIZATION: Periyodik kontrolü daha az sıklıkta yap
     const interval = setInterval(checkNetworkStatus, 2 * 60 * 1000); // 2 dakika
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const checkNetworkStatus = async () => {
@@ -40,7 +42,7 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
         status: 'DISCONNECTED',
         canProcessInvoices: false,
         canSubmitToFinanzOnline: false,
-        recommendations: ['Bağlantı kontrolü başarısız']
+        recommendations: ['Bağlantı kontrolü başarısız'],
       };
       setNetworkStatus(fallbackStatus);
       onStatusChange?.(fallbackStatus);
@@ -51,7 +53,7 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
 
   const getStatusColor = () => {
     if (!networkStatus) return '#999';
-    
+
     switch (networkStatus.status) {
       case 'FULLY_CONNECTED':
         return '#4CAF50'; // Yeşil
@@ -66,7 +68,7 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
 
   const getStatusIcon = () => {
     if (!networkStatus) return '❓';
-    
+
     switch (networkStatus.status) {
       case 'FULLY_CONNECTED':
         return '✅';
@@ -81,14 +83,10 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
 
   const handleStatusPress = () => {
     if (networkStatus) {
-      Alert.alert(
-        'Network Durumu',
-        networkService.getStatusMessage(networkStatus),
-        [
-          { text: 'Tamam', style: 'default' },
-          { text: 'Yenile', onPress: checkNetworkStatus }
-        ]
-      );
+      Alert.alert('Network Durumu', networkService.getStatusMessage(networkStatus), [
+        { text: 'Tamam', style: 'default' },
+        { text: 'Yenile', onPress: checkNetworkStatus },
+      ]);
     }
   };
 
@@ -108,10 +106,7 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
     <View style={styles.container}>
       <View style={styles.statusRow}>
         <Text style={styles.statusIcon}>{getStatusIcon()}</Text>
-        <Text 
-          style={[styles.statusText, { color: getStatusColor() }]}
-          onPress={handleStatusPress}
-        >
+        <Text style={[styles.statusText, { color: getStatusColor() }]} onPress={handleStatusPress}>
           {networkService.getStatusMessage(networkStatus)}
         </Text>
       </View>
@@ -127,7 +122,7 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
           <Text style={styles.detailText}>
             Fiş Kesme: {networkStatus.canProcessInvoices ? '✅' : '❌'}
           </Text>
-          
+
           {networkStatus.recommendations.length > 0 && (
             <View style={styles.recommendationsContainer}>
               <Text style={styles.recommendationsTitle}>Öneriler:</Text>
@@ -194,4 +189,4 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     paddingLeft: 8,
   },
-}); 
+});

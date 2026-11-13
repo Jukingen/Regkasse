@@ -7,9 +7,28 @@ export const DEV_TENANT_LOCAL_STORAGE_KEY = 'dev_tenant_id';
 /** Same-tab dev tenant switch (HeaderDevTenantSwitch, impersonation dev path). */
 export const DEV_TENANT_CHANGED_EVENT = 'regkasse:dev-tenant-changed';
 
+/**
+ * Login / session bootstrap updated the dev slug without a user-initiated switch.
+ * Listeners should sync their refs only — never clear JWT or reload.
+ */
+export const DEV_TENANT_BOOTSTRAP_EVENT = 'regkasse:dev-tenant-bootstrap';
+
 export type DevTenantChangedDetail = {
-    slug: string;
-    previousSlug: string | null;
+  slug: string;
+  previousSlug: string | null;
+};
+
+export type DevTenantBootstrapDetail = {
+  slug: string;
+};
+
+export type WriteDevTenantSlugOptions = {
+  /**
+   * Persist only (login bootstrap). Skips {@link DEV_TENANT_CHANGED_EVENT} so
+   * {@link useTenantChangeListener} does not wipe a freshly issued JWT.
+   * Emits {@link DEV_TENANT_BOOTSTRAP_EVENT} so listeners can sync refs.
+   */
+  silent?: boolean;
 };
 
 export const DEV_TENANT_ENV_KEY = 'NEXT_PUBLIC_DEV_TENANT_ID';
@@ -26,7 +45,7 @@ function normalizeSlug(value: string | null | undefined): string | null {
   return canonicalDevTenantSlug(trimmed);
 }
 
-/** Hosts-file dev domains (e.g. cafe.regkasse.local). */
+/** Hosts-file dev domains (e.g. dev.regkasse.local). */
 export function isLocalDevHostname(host: string): boolean {
   const h = host.trim().toLowerCase();
   return h.endsWith('.regkasse.local') || h.endsWith('.local');
@@ -40,11 +59,7 @@ export function isPlatformAdminHost(hostname?: string): boolean {
 /** Production: first subdomain label when not admin/www/localhost. */
 export function getTenantSlugFromSubdomain(hostname?: string): string {
   const host = (hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '')).trim();
-  if (
-    !host ||
-    host === 'localhost' ||
-    host.startsWith('127.0.0.1')
-  ) {
+  if (!host || host === 'localhost' || host.startsWith('127.0.0.1')) {
     return 'admin';
   }
 
@@ -90,7 +105,11 @@ export function getDevTenant(): string {
  * Persists dev tenant slug and notifies listeners (same-tab CustomEvent + cross-tab storage).
  * @returns true when the slug actually changed.
  */
-export function writeDevTenantSlug(slug: string): boolean {
+export function writeDevTenantSlug(
+  slug: string,
+  tenantId?: string | null,
+  options?: WriteDevTenantSlugOptions
+): boolean {
   if (!isDevelopment() || typeof window === 'undefined') {
     return false;
   }
@@ -99,15 +118,30 @@ export function writeDevTenantSlug(slug: string): boolean {
     return false;
   }
   const previousSlug = normalizeSlug(window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
-  if (previousSlug === normalized) {
+  const slugChanged = previousSlug !== normalized;
+  if (!slugChanged && !tenantId?.trim()) {
     return false;
   }
   window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
-  tenantStorage.persistBootstrap({ tenantSlug: normalized });
+  tenantStorage.persistBootstrap({
+    tenantSlug: normalized,
+    tenantId: tenantId?.trim() || undefined,
+  });
+  if (!slugChanged) {
+    return false;
+  }
+  if (options?.silent) {
+    window.dispatchEvent(
+      new CustomEvent<DevTenantBootstrapDetail>(DEV_TENANT_BOOTSTRAP_EVENT, {
+        detail: { slug: normalized },
+      })
+    );
+    return true;
+  }
   window.dispatchEvent(
     new CustomEvent<DevTenantChangedDetail>(DEV_TENANT_CHANGED_EVENT, {
       detail: { slug: normalized, previousSlug },
-    }),
+    })
   );
   return true;
 }
@@ -129,18 +163,39 @@ export function clearDevTenantOverride(): void {
 }
 
 /**
+ * Platform host label — not a mandant. Must not be sent as <c>X-Tenant-Id</c>
+ * (backend maps <c>admin</c> → legacy <c>default</c> and can override JWT).
+ */
+export function isPlatformAdminTenantSlug(slug: string | null | undefined): boolean {
+  return normalizeSlug(slug) === 'admin';
+}
+
+/**
  * Resolves tenant slug for each outgoing API request (never cached on the axios instance).
  * Development: {@link DEV_TENANT_LOCAL_STORAGE_KEY} wins when set (header switcher).
  * Otherwise falls back to {@link getEffectiveTenantSlug} (hosts file, env, production subdomain).
+ * On platform admin host without a mandant override: prefer login bootstrap slug, else omit header
+ * so JWT <c>tenant_id</c> wins (avoids FA → legacy <c>default</c> while POS uses <c>dev</c>).
  */
 export function resolveTenantSlugForApiRequest(): string {
   if (isDevelopment() && typeof window !== 'undefined') {
     const stored = normalizeSlug(window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
-    if (stored) {
+    if (stored && !isPlatformAdminTenantSlug(stored)) {
       return stored;
     }
   }
-  return getEffectiveTenantSlug();
+
+  const effective = getEffectiveTenantSlug();
+  if (!isPlatformAdminTenantSlug(effective)) {
+    return effective;
+  }
+
+  const bootstrap = normalizeSlug(tenantStorage.getTenantSlug());
+  if (bootstrap && !isPlatformAdminTenantSlug(bootstrap)) {
+    return bootstrap;
+  }
+
+  return '';
 }
 
 /**
@@ -160,9 +215,7 @@ export function getEffectiveTenantSlug(): string {
 
   // Super Admin platform host: do not send stale bootstrap slug as X-Tenant-Id.
   const stored = normalizeSlug(
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)
-      : null,
+    typeof window !== 'undefined' ? window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY) : null
   );
   if (stored) {
     return stored;

@@ -1,6 +1,6 @@
-# i18n (Internationalization) Yapısı
+# i18n structure
 
-Bu proje, çok dilli destek için kategorize edilmiş ve düzenli bir i18n yapısı kullanır.
+This project uses a categorized, consistent i18n layout.
 
 ## Stabilization notes (POS)
 
@@ -9,28 +9,29 @@ Bu proje, çok dilli destek için kategorize edilmiş ve düzenli bir i18n yapı
 - **`products` vs `catalog_ui`**: Both namespaces point to the same `products.json` bundle (alias for future rename); prefer `products:*` keys in code.
 - **Domain data**: Category names and modifier group labels are not passed through `t()`. **Product names/descriptions** use API fields `nameDe` / `nameEn` / `nameTr` (and descriptions) resolved via `utils/productLocalization.ts` and the language chosen in Settings (`LanguageSelector`).
 
-## 📁 Dosya Yapısı
+## File layout
 
 ```
 frontend/i18n/
-├── index.ts          # Ana i18n yapılandırması
-├── helpers.ts        # Yardımcı fonksiyonlar ve sabitler
-├── locales/          # Dil dosyaları
-│   ├── de.json      # Almanca (varsayılan)
-│   ├── en.json      # İngilizce
-│   └── tr.json      # Türkçe
-└── README.md         # Bu dosya
+├── index.ts          # Main i18n configuration
+├── helpers.ts        # Helper functions and constants
+├── locales/          # Locale files
+│   ├── de.json      # German (default)
+│   ├── en.json      # English
+│   └── tr.json      # Turkish
+└── README.md         # This file
 ```
 
-## 🌍 Desteklenen Diller
+## Supported languages
 
-- **de** (Deutsch) - Varsayılan dil
-- **en** (English) - İngilizce
-- **tr** (Türkçe) - Türkçe
+- **de** (Deutsch) — default
+- **en** (English)
+- **tr** (Türkçe)
 
-## 🏗️ Kategori Yapısı
+## Category structure
 
-### 1. Common (Genel)
+### 1. Common
+
 ```json
 {
   "common": {
@@ -54,7 +55,8 @@ frontend/i18n/
 }
 ```
 
-### 2. Auth (Kimlik Doğrulama)
+### 2. Auth
+
 ```json
 {
   "auth": {
@@ -71,7 +73,8 @@ frontend/i18n/
 }
 ```
 
-### 3. Cash Register (Kasa)
+### 3. Cash register
+
 ```json
 {
   "cashRegister": {
@@ -94,7 +97,8 @@ frontend/i18n/
 }
 ```
 
-### 4. Payment (Ödeme)
+### 4. Payment
+
 ```json
 {
   "payment": {
@@ -105,7 +109,7 @@ frontend/i18n/
     "tseVerification": "TSE-Verifizierung",
     "confirmation": "Bestätigung",
     "receipt": "Beleg",
-    
+
     "stepTitles": { ... },
     "customer": { ... },
     "methods": { ... },
@@ -120,7 +124,8 @@ frontend/i18n/
 }
 ```
 
-### 5. Settings (Ayarlar)
+### 5. Settings
+
 ```json
 {
   "settings": {
@@ -138,84 +143,80 @@ frontend/i18n/
 }
 ```
 
-## 🚀 Kullanım
+## Usage
 
-### Temel Kullanım
+### Basic usage
 
 ```tsx
 import { useTranslation } from 'react-i18next';
 
 const MyComponent = () => {
   const { t } = useTranslation();
-  
-  return (
-    <Text>{t('common.loading')}</Text>
-  );
+
+  return <Text>{t('common.loading')}</Text>;
 };
 ```
 
-### Yardımcı Hook Kullanımı
+### Helper hook
 
 ```tsx
 import { useI18n } from '../i18n/helpers';
 
 const MyComponent = () => {
   const { t, getCurrentLanguage, changeLanguage } = useI18n();
-  
+
   const handleLanguageChange = async (lang: string) => {
     await changeLanguage(lang);
   };
-  
+
   return (
     <View>
-      <Text>Mevcut Dil: {getCurrentLanguage()}</Text>
+      <Text>Current language: {getCurrentLanguage()}</Text>
       <Text>{t('common.appName')}</Text>
-      <Button onPress={() => handleLanguageChange('en')}>
-        İngilizce'ye Geç
-      </Button>
+      <Button onPress={() => handleLanguageChange('en')}>Switch to English</Button>
     </View>
   );
 };
 ```
 
-### Sabit Kullanımı
+### Using constants
 
 ```tsx
 import { I18N_KEYS } from '../i18n/helpers';
 
 const MyComponent = () => {
   const { t } = useTranslation();
-  
-  return (
-    <Text>{t(I18N_KEYS.COMMON.APP_NAME)}</Text>
-  );
+
+  return <Text>{t(I18N_KEYS.COMMON.APP_NAME)}</Text>;
 };
 ```
 
-## 🔧 Yapılandırma
+## Configuration
 
-### Varsayılan Dil
+### Default language
+
 ```typescript
 // frontend/i18n/index.ts
 i18n.init({
   resources,
-  lng: 'de', // Varsayılan dil Almanca
+  lng: 'de', // Default language: German
   fallbackLng: 'de',
   // ...
 });
 ```
 
-### Dil Değiştirme
+### Changing language
+
 ```typescript
 import { setLanguage } from '../i18n';
 
-// Dil değiştir
 await setLanguage('en');
 ```
 
-## 📝 Yeni Çeviri Ekleme
+## Adding a new translation
 
-### 1. Dil Dosyalarına Ekle
+### 1. Add to locale files
+
 ```json
 // frontend/i18n/locales/de.json
 {
@@ -239,18 +240,20 @@ await setLanguage('en');
 }
 ```
 
-### 2. Sabitlere Ekle
+### 2. Add constants
+
 ```typescript
 // frontend/i18n/helpers.ts
 export const I18N_KEYS = {
-  // ... mevcut kategoriler
+  // ... existing categories
   NEW_CATEGORY: {
-    NEW_KEY: 'newCategory.newKey'
-  }
+    NEW_KEY: 'newCategory.newKey',
+  },
 };
 ```
 
-### 3. Kullan
+### 3. Use it
+
 ```tsx
 const { t } = useTranslation();
 <Text>{t('newCategory.newKey')}</Text>
@@ -258,45 +261,46 @@ const { t } = useTranslation();
 <Text>{t(I18N_KEYS.NEW_CATEGORY.NEW_KEY)}</Text>
 ```
 
-## 🧪 Test
+## Tests
 
-### Çeviri Kontrolü
+### Translation check
+
 ```typescript
 import { useI18n } from '../i18n/helpers';
 
 const { hasTranslation, getTranslation } = useI18n();
 
-// Çeviri var mı kontrol et
 if (hasTranslation('payment.title')) {
-  console.log('Çeviri mevcut');
+  console.log('Translation exists');
 }
 
-// Fallback ile çeviri al
-const text = getTranslation('unknown.key', 'Varsayılan Metin');
+const text = getTranslation('unknown.key', 'Default text');
 ```
 
-## 📚 Best Practices
+## Best practices
 
-1. **Kategori Kullan**: Çevirileri mantıklı kategorilere ayırın
-2. **Tutarlı İsimlendirme**: camelCase kullanın ve açıklayıcı isimler verin
-3. **Sabitler**: Uzun çeviri anahtarları için I18N_KEYS sabitlerini kullanın
-4. **Fallback**: Bilinmeyen anahtarlar için fallback değerler sağlayın
-5. **Dil Kontrolü**: Çeviri mevcut olup olmadığını kontrol edin
+1. **Use categories:** Split translations into logical groups.
+2. **Consistent naming:** camelCase and descriptive keys.
+3. **Constants:** Use `I18N_KEYS` for long translation keys.
+4. **Fallback:** Provide fallback values for unknown keys.
+5. **Existence check:** Verify a translation exists before relying on it.
 
-## 🔍 Sorun Giderme
+## Troubleshooting
 
-### Çeviri Görünmüyor
-1. Dil dosyasında anahtarın mevcut olduğunu kontrol edin
-2. JSON syntax'ını kontrol edin
-3. Dosya import'larını kontrol edin
+### Translation not shown
 
-### Dil Değişmiyor
-1. AsyncStorage izinlerini kontrol edin
-2. i18n.changeLanguage çağrısını kontrol edin
-3. Console hatalarını kontrol edin
+1. Confirm the key exists in the locale file.
+2. Validate JSON syntax.
+3. Check file imports.
 
-## 📖 Ek Kaynaklar
+### Language does not change
 
-- [react-i18next Dokümantasyonu](https://react.i18next.com/)
-- [i18next Dokümantasyonu](https://www.i18next.com/)
+1. Check AsyncStorage permissions.
+2. Confirm `i18n.changeLanguage` is called.
+3. Check console errors.
+
+## Further reading
+
+- [react-i18next documentation](https://react.i18next.com/)
+- [i18next documentation](https://www.i18next.com/)
 - [Expo Localization](https://docs.expo.dev/versions/latest/sdk/localization/)

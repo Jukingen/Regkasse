@@ -1,15 +1,22 @@
 'use client';
 
-import React, { ReactNode, useEffect, useMemo } from 'react';
+import { Spin } from 'antd';
 import { usePathname } from 'next/navigation';
-import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
-import { getRequiredPermissionForPath } from './routePermissions';
-import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
+import React, { ReactNode, useEffect, useMemo } from 'react';
+
 import { isChangePasswordPath } from '@/features/auth/constants/changePasswordRoute';
-import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { AuthStatus, useAuth } from '@/features/auth/hooks/useAuth';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { ForbiddenAccessView } from '@/shared/auth/ForbiddenAccessView';
 import { rememberAllowedAdminPath } from '@/shared/auth/useSafeNavigateBack';
-import { Spin } from 'antd';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
+import {
+  resolveVerticalProfileRouteAccess,
+  toVerticalProfileMenuScope,
+} from '@/shared/sidebarVerticalProfile';
+
+import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
+import { getRequiredPermissionForPath, permissionsSatisfyRoute } from './routePermissions';
 
 interface PermissionRouteGuardProps {
   children: ReactNode;
@@ -20,10 +27,7 @@ type GuardState = 'loading' | 'unauthenticated' | 'no_permissions' | 'insufficie
 function checkRoutePermission(pathname: string, permissions: string[]): boolean {
   const required = getRequiredPermissionForPath(pathname);
   if (required === undefined) return false;
-  const arr = Array.isArray(required) ? required : [required];
-  if (arr.length === 0) return permissions.length > 0;
-  if (!permissions.length) return false;
-  return arr.some((p) => permissions.includes(p));
+  return permissionsSatisfyRoute(pathname, permissions, required);
 }
 
 /**
@@ -35,6 +39,7 @@ function checkRoutePermission(pathname: string, permissions: string[]): boolean 
 export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const pathname = usePathname();
   const { user, authStatus, isAuthInitializing } = useAuth();
+  const verticalProfile = useAdminVerticalProfile();
   const permissions = (user as { permissions?: string[] } | undefined)?.permissions ?? [];
 
   const isProduction = process.env.NODE_ENV === 'production';
@@ -56,13 +61,27 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
       return 'no_permissions';
     }
     if (!checkRoutePermission(pathname, permissions)) return 'insufficient';
+    const profileAccess = resolveVerticalProfileRouteAccess(
+      pathname,
+      toVerticalProfileMenuScope(verticalProfile)
+    );
+    if (profileAccess === 'pending') return 'loading';
+    if (profileAccess === 'deny') return 'insufficient';
     return 'allowed';
-  }, [isAuthInitializing, authStatus, permissions, pathname, allowEmptyPermissionsForRouteAccess, user?.mustChangePasswordOnNextLogin]);
+  }, [
+    isAuthInitializing,
+    authStatus,
+    permissions,
+    pathname,
+    allowEmptyPermissionsForRouteAccess,
+    user?.mustChangePasswordOnNextLogin,
+    verticalProfile,
+  ]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
       technicalConsole.devLog(
-        `[PermissionRouteGuard] path=${pathname} state=${state} permissionCount=${permissions.length} authStatus=${authStatus} initializing=${isAuthInitializing}`,
+        `[PermissionRouteGuard] path=${pathname} state=${state} permissionCount=${permissions.length} authStatus=${authStatus} initializing=${isAuthInitializing}`
       );
     }
   }, [pathname, state, permissions.length, authStatus, isAuthInitializing]);

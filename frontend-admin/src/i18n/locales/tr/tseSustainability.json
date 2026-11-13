@@ -1,0 +1,23 @@
+{
+  "title": "TSE sürdürülebilirlik",
+  "subtitle": "TSE enerji kullanımı ve CO₂e için gösterge niteliğinde yeşil BT tahminleri. Sertifikalı LCA / ESG denetimi değildir.",
+  "tenantLabel": "Kiracı",
+  "cardTitle": "TSE Sürdürülebilirlik Raporu",
+  "diagnosticNote": "Rakamlar cihaz envanteri ve imzalı işlemlerden yapılandırılabilir emisyon faktörlerini kullanır.",
+  "totalCo2": "Toplam CO₂ emisyonu",
+  "energySaved": "Tasarruf edilen enerji",
+  "costSaved": "Tasarruf edilen maliyet",
+  "carbonTrend": "Karbon ayak izi trendi",
+  "percentileMessage": "Sisteminiz sektör ortalamasından %{percentile} daha sürdürülebilir (gösterge).",
+  "optimizationsTitle": "Yeşil optimizasyon önerileri",
+  "colTitle": "Öneri",
+  "colCarbon": "CO₂e tasarruf / ay",
+  "colEnergy": "kWh tasarruf / ay",
+  "colCost": "EUR tasarruf / ay",
+  "emptySelect": "TSE sürdürülebilirliğini görmek için bir kiracı seçin.",
+  "forbidden": "Bu sayfayı görüntüleme yetkiniz yok.",
+  "loadError": "TSE sürdürülebilirlik raporu yüklenemedi.",
+  "noOptimizations": "Optimizasyon önerisi yok.",
+  "kgCo2": "kg CO₂",
+  "kwh": "kWh"
+}

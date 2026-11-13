@@ -2,12 +2,16 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Services.AdminCashRegisters;
-using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Models.Enums;
+using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,6 +35,10 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminTenantService> _logger;
+    private readonly ICountryProfileRegistry _countries;
+    private readonly IAuditLogService? _auditLog;
+    private readonly IActivityEventPublisher? _activity;
+    private readonly IVerticalProfileRegistry? _verticalProfiles;
 
     public AdminTenantService(
         AppDbContext db,
@@ -45,7 +53,11 @@ public sealed partial class AdminTenantService : IAdminTenantService
         ICashRegisterDecommissionService cashRegisterDecommissionService,
         IHttpContextAccessor httpContextAccessor,
         ICurrentTenantAccessor tenantAccessor,
-        ILogger<AdminTenantService> logger)
+        ILogger<AdminTenantService> logger,
+        ICountryProfileRegistry? countries = null,
+        IAuditLogService? auditLog = null,
+        IActivityEventPublisher? activity = null,
+        IVerticalProfileRegistry? verticalProfiles = null)
     {
         _db = db;
         _userManager = userManager;
@@ -60,15 +72,125 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _httpContextAccessor = httpContextAccessor;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
+        _countries = countries ?? new CountryProfileRegistry();
+        _auditLog = auditLog;
+        _activity = activity;
+        _verticalProfiles = verticalProfiles;
     }
 
     public async Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(
         bool includeDeleted,
         CancellationToken cancellationToken = default)
     {
+        return await BuildEnrichedListAsync(
+                includeDeleted,
+                status: null,
+                search: null,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<PagedResult<AdminTenantListItemDto>> ListPagedAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize <= 0 ? 20 : query.PageSize, 1, 100);
+
+        IReadOnlyList<AdminTenantListItemDto> items = await BuildEnrichedListAsync(
+                query.IncludeDeleted,
+                query.Status,
+                query.Search,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (query.LicenseType.HasValue)
+        {
+            var licenseType = query.LicenseType.Value;
+            items = items
+                .Where(t => t.LicenseType == licenseType)
+                .ToList();
+        }
+
+        items = ApplyListSort(items, query.SortBy, query.SortOrder);
+
+        var totalCount = items.Count;
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+        var pageItems = items
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<AdminTenantListItemDto>
+        {
+            Items = pageItems,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages,
+        };
+    }
+
+    public async Task<IReadOnlyList<AdminTenantListItemDto>> ListForExportAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        IReadOnlyList<AdminTenantListItemDto> items = await BuildEnrichedListAsync(
+                query.IncludeDeleted,
+                query.Status,
+                query.Search,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (query.LicenseType.HasValue)
+        {
+            var licenseType = query.LicenseType.Value;
+            items = items
+                .Where(t => t.LicenseType == licenseType)
+                .ToList();
+        }
+
+        return ApplyListSort(items, query.SortBy, query.SortOrder);
+    }
+
+    private async Task<IReadOnlyList<AdminTenantListItemDto>> BuildEnrichedListAsync(
+        bool includeDeleted,
+        string? status,
+        string? search,
+        CancellationToken cancellationToken)
+    {
         var query = _db.Tenants.AsNoTracking();
         if (!includeDeleted)
-            query = query.Where(t => t.Status != TenantStatuses.Deleted);
+            query = query.Where(t => !TenantStatuses.RemovedStatuses.Contains(t.Status));
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusFilter = TenantStatuses.Normalize(status);
+            if (statusFilter.Length > 0)
+            {
+                // Legacy "deleted" normalizes to archived; also match leftover deleted rows.
+                if (statusFilter == TenantStatuses.Archived)
+                {
+                    query = query.Where(t =>
+                        t.Status == TenantStatuses.Archived || t.Status == TenantStatuses.Deleted);
+                }
+                else
+                {
+                    query = query.Where(t => t.Status == statusFilter);
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            query = query.Where(t =>
+                t.Name.ToLower().Contains(term) || t.Slug.ToLower().Contains(term));
+        }
 
         var tenants = await query
             .OrderBy(t => t.Name)
@@ -79,6 +201,51 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return Array.Empty<AdminTenantListItemDto>();
 
         var tenantIds = tenants.Select(t => t.Id).ToList();
+
+        var verticalProfileAssignments = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(settings => tenantIds.Contains(settings.TenantId))
+            .Select(settings => new { settings.TenantId, settings.VerticalProfileId })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        Dictionary<string, string> activeVerticalProfiles;
+        if (_verticalProfiles is not null)
+        {
+            var merged = await _verticalProfiles
+                .ListActiveAsync(includeTenantCounts: false, cancellationToken)
+                .ConfigureAwait(false);
+            activeVerticalProfiles = merged.ToDictionary(profile => profile.Id, profile => profile.Name);
+        }
+        else
+        {
+            activeVerticalProfiles = await _db.VerticalProfiles
+                .AsNoTracking()
+                .Where(profile => profile.IsActive)
+                .Select(profile => new { profile.Id, profile.Name })
+                .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var verticalProfileByTenant = new Dictionary<Guid, (string Id, string Name)>();
+        foreach (var assignment in verticalProfileAssignments)
+        {
+            var requestedId = string.IsNullOrWhiteSpace(assignment.VerticalProfileId)
+                ? VerticalProfileIds.Gastronomy
+                : assignment.VerticalProfileId;
+            if (!activeVerticalProfiles.TryGetValue(requestedId, out var profileName)
+                && !activeVerticalProfiles.TryGetValue(VerticalProfileIds.Gastronomy, out profileName))
+            {
+                continue;
+            }
+
+            var effectiveId = activeVerticalProfiles.ContainsKey(requestedId)
+                ? requestedId
+                : VerticalProfileIds.Gastronomy;
+            verticalProfileByTenant[assignment.TenantId] = (effectiveId, profileName);
+        }
+
         var ownerRows = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -91,15 +258,140 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var userCountRows = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => tenantIds.Contains(m.TenantId) && m.IsActive)
+            .GroupBy(m => m.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerCountRows = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(cr => tenantIds.Contains(cr.TenantId))
+            .GroupBy(cr => cr.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var activeSales = await _db.LicenseSales
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => tenantIds.Contains(s.TenantId) && s.Status == LicenseSaleStatuses.Active)
+            .Select(s => new
+            {
+                s.TenantId,
+                s.LicenseType,
+                s.ValidUntilUtc,
+                s.SoldAtUtc,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var paymentActivityRows = await _db.PaymentDetails
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Join(
+                _db.CashRegisters.IgnoreQueryFilters().AsNoTracking(),
+                p => p.CashRegisterId,
+                cr => cr.Id,
+                (p, cr) => new { cr.TenantId, p.CreatedAt })
+            .Where(x => tenantIds.Contains(x.TenantId))
+            .GroupBy(x => x.TenantId)
+            .Select(g => new { TenantId = g.Key, MaxAt = g.Max(x => (DateTime?)x.CreatedAt) })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var auditActivityRows = await _db.AuditLogs
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(a => tenantIds.Contains(a.TenantId))
+            .GroupBy(a => a.TenantId)
+            .Select(g => new { TenantId = g.Key, MaxAt = g.Max(a => (DateTime?)a.Timestamp) })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         var ownerByTenant = ownerRows
             .GroupBy(x => x.TenantId)
             .ToDictionary(g => g.Key, g => g.First().Email);
 
+        var userCountByTenant = userCountRows.ToDictionary(x => x.TenantId, x => x.Count);
+        var registerCountByTenant = registerCountRows.ToDictionary(x => x.TenantId, x => x.Count);
+
+        var latestSaleByTenant = activeSales
+            .GroupBy(s => s.TenantId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(s => s.SoldAtUtc)
+                    .ThenByDescending(s => s.ValidUntilUtc)
+                    .First());
+
+        var lastActivityByTenant = new Dictionary<Guid, DateTime?>();
+        foreach (var row in paymentActivityRows)
+            lastActivityByTenant[row.TenantId] = row.MaxAt;
+        foreach (var row in auditActivityRows)
+        {
+            lastActivityByTenant.TryGetValue(row.TenantId, out var existing);
+            lastActivityByTenant[row.TenantId] = MaxUtc(existing, row.MaxAt);
+        }
+
         return tenants
-            .Select(t => ToListItem(
-                t,
-                ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null))
+            .Select(t =>
+            {
+                latestSaleByTenant.TryGetValue(t.Id, out var sale);
+                verticalProfileByTenant.TryGetValue(t.Id, out var verticalProfile);
+                return ToListItem(
+                    t,
+                    ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null,
+                    hasActiveSale: sale != null,
+                    sale?.LicenseType,
+                    sale?.ValidUntilUtc,
+                    registerCountByTenant.GetValueOrDefault(t.Id),
+                    userCountByTenant.GetValueOrDefault(t.Id),
+                    lastActivityByTenant.TryGetValue(t.Id, out var lastActivity) ? lastActivity : null,
+                    verticalProfile.Id,
+                    verticalProfile.Name);
+            })
             .ToList();
+    }
+
+    private static IReadOnlyList<AdminTenantListItemDto> ApplyListSort(
+        IReadOnlyList<AdminTenantListItemDto> items,
+        string? sortBy,
+        string? sortOrder)
+    {
+        var descending = !string.Equals(sortOrder?.Trim(), "asc", StringComparison.OrdinalIgnoreCase);
+        var key = (sortBy ?? "CreatedAt").Trim();
+
+        IOrderedEnumerable<AdminTenantListItemDto> ordered = key.ToLowerInvariant() switch
+        {
+            "name" => descending
+                ? items.OrderByDescending(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                : items.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase),
+            "registercount" => descending
+                ? items.OrderByDescending(t => t.RegisterCount)
+                : items.OrderBy(t => t.RegisterCount),
+            "usercount" => descending
+                ? items.OrderByDescending(t => t.UserCount)
+                : items.OrderBy(t => t.UserCount),
+            "licensedaysleft" or "licensedaysremaining" => descending
+                ? items.OrderByDescending(t => t.LicenseDaysRemaining.HasValue)
+                    .ThenByDescending(t => t.LicenseDaysRemaining)
+                : items.OrderBy(t => t.LicenseDaysRemaining.HasValue)
+                    .ThenBy(t => t.LicenseDaysRemaining),
+            "lastactivity" or "lastactivityatutc" => descending
+                ? items.OrderByDescending(t => t.LastActivityAtUtc.HasValue)
+                    .ThenByDescending(t => t.LastActivityAtUtc)
+                : items.OrderBy(t => t.LastActivityAtUtc.HasValue)
+                    .ThenBy(t => t.LastActivityAtUtc),
+            _ => descending
+                ? items.OrderByDescending(t => t.CreatedAt)
+                : items.OrderBy(t => t.CreatedAt),
+        };
+
+        return ordered.ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<IReadOnlyList<AdminTenantListItemDto>> ListForSwitcherAsync(
@@ -115,12 +407,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (actorIsSuperAdmin || string.IsNullOrWhiteSpace(actorUserId))
         {
             var all = await ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
-            return DeduplicateSwitcherItems(all);
+            return ExcludeUnusedDefaultTenant(DeduplicateSwitcherItems(all));
         }
 
         var items = await ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
 
         var memberTenantIds = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.UserId == actorUserId && m.IsActive)
             .Join(
@@ -130,7 +423,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 (m, t) => new { m.TenantId, t.Status, t.IsActive })
             .Where(x =>
                 x.IsActive
-                && x.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.RemovedStatuses.Contains(x.Status))
             .Select(x => x.TenantId)
             .Distinct()
             .ToListAsync(cancellationToken)
@@ -142,13 +435,25 @@ public sealed partial class AdminTenantService : IAdminTenantService
         }
 
         var allowed = memberTenantIds.ToHashSet();
-        return DeduplicateSwitcherItems(items.Where(t => allowed.Contains(t.Id)));
+        return ExcludeUnusedDefaultTenant(DeduplicateSwitcherItems(items.Where(t => allowed.Contains(t.Id))));
     }
 
     /// <summary>Guards switcher API against duplicate tenant ids (defensive; ListAsync is already one row per tenant).</summary>
     private static List<AdminTenantListItemDto> DeduplicateSwitcherItems(
         IEnumerable<AdminTenantListItemDto> items) =>
         items.DistinctBy(t => t.Id).ToList();
+
+    /// <summary>
+    /// Platform sentinel and leftover cafe/bar demo rows are excluded from switcher
+    /// (not operational mandants). Platform must stay in DB for FK continuity.
+    /// </summary>
+    private static IReadOnlyList<AdminTenantListItemDto> ExcludeUnusedDefaultTenant(
+        IEnumerable<AdminTenantListItemDto> items) =>
+        items
+            .Where(t =>
+                !SystemTenantIds.IsPlatformSlug(t.Slug)
+                && !LeftoverDemoTenantSlugs.Matches(t.Slug))
+            .ToList();
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -160,11 +465,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return null;
 
         var activeUserCount = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .CountAsync(m => m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
 
         var registerStats = await _db.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(cr => cr.TenantId == tenantId)
             .GroupBy(_ => 1)
@@ -176,7 +483,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var lastReceiptAt = await _db.Receipts.AsNoTracking()
+        var lastReceiptAt = await _db.Receipts.IgnoreQueryFilters().AsNoTracking()
             .Where(r => r.TenantId == tenantId)
             .MaxAsync(r => (DateTime?)r.IssuedAt, cancellationToken)
             .ConfigureAwait(false);
@@ -198,13 +505,14 @@ public sealed partial class AdminTenantService : IAdminTenantService
             registerStats?.LastUsed,
             lastReceiptAt);
 
-        return ToDetail(
+        return await ToDetailAsync(
             tenant,
             provisioning: null,
             ownerAdminEmail: ownerEmail,
             activeUserCount: activeUserCount,
             cashRegisterCount: registerStats?.Count ?? 0,
-            lastActivityAtUtc: lastActivity);
+            lastActivityAtUtc: lastActivity,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<AdminTenantCashRegisterDto>?> ListCashRegistersAsync(
@@ -215,6 +523,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return null;
 
         return await _db.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(cr => cr.TenantId == tenantId)
             .OrderBy(cr => cr.RegisterNumber)
@@ -341,19 +650,34 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (tenant == null)
             return (null, "Tenant not found.");
 
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            var status = request.Status.Trim().ToLowerInvariant();
+            var status = TenantStatuses.Normalize(request.Status);
             if (!TenantStatuses.IsKnown(status))
-                return (null, "Invalid status. Use active, suspended, or deleted.");
+            {
+                return (null,
+                    "Invalid status. Use lead, in_onboarding, active, suspended, cancelled, or archived.");
+            }
+
             tenant.Status = status;
-            if (status == TenantStatuses.Suspended)
+            if (TenantStatuses.IsRemoved(status) || status == TenantStatuses.Suspended)
+            {
                 tenant.IsActive = false;
-            else if (status == TenantStatuses.Active)
+                if (TenantStatuses.IsRemoved(status))
+                {
+                    tenant.DeletedAtUtc ??= DateTime.UtcNow;
+                    tenant.DeletedByUserId ??= actorUserId;
+                }
+            }
+            else if (status is TenantStatuses.Active or TenantStatuses.InOnboarding or TenantStatuses.Lead)
+            {
                 tenant.IsActive = true;
+                tenant.DeletedAtUtc = null;
+                tenant.DeletedByUserId = null;
+            }
         }
 
         if (request.IsActive.HasValue)
@@ -377,7 +701,324 @@ public sealed partial class AdminTenantService : IAdminTenantService
         tenant.UpdatedBy = actorUserId;
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Super-admin updated tenant {TenantId}", tenantId);
-        return (ToDetail(tenant), null);
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null);
+    }
+
+    public async Task<(AdminTenantDetailDto? Result, string? Error)> UpdateOperationModeAsync(
+        Guid tenantId,
+        UpdateTenantOperationModeRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return (null, "Tenant not found.");
+
+        if (TenantStatuses.IsRemoved(tenant.Status))
+            return (null, "Deleted tenants cannot change operation mode.");
+
+        var mode = TenantOperationModes.Normalize(request.OperationMode);
+        if (!TenantOperationModes.IsKnown(request.OperationMode))
+            return (null, "Invalid operation mode. Use active, readonly, or maintenance.");
+
+        var now = DateTime.UtcNow;
+        DateTime? started = request.MaintenanceStartedAt.HasValue
+            ? DateTime.SpecifyKind(request.MaintenanceStartedAt.Value, DateTimeKind.Utc)
+            : null;
+        DateTime? ends = request.MaintenanceEndsAt.HasValue
+            ? DateTime.SpecifyKind(request.MaintenanceEndsAt.Value, DateTimeKind.Utc)
+            : null;
+
+        if (mode == TenantOperationModes.Maintenance)
+        {
+            var effectiveStarted = started ?? tenant.MaintenanceStartedAt ?? now;
+            if (ends is DateTime endUtc && endUtc <= effectiveStarted)
+                return (null, "maintenanceEndsAt must be after maintenanceStartedAt.");
+
+            tenant.OperationMode = mode;
+            tenant.MaintenanceMessage = string.IsNullOrWhiteSpace(request.MaintenanceMessage)
+                ? null
+                : request.MaintenanceMessage.Trim();
+            tenant.MaintenanceStartedAt = effectiveStarted;
+            tenant.MaintenanceEndsAt = ends;
+        }
+        else
+        {
+            tenant.OperationMode = mode;
+            tenant.MaintenanceMessage = null;
+            tenant.MaintenanceStartedAt = null;
+            tenant.MaintenanceEndsAt = null;
+        }
+
+        tenant.UpdatedAt = now;
+        tenant.UpdatedBy = actorUserId;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation(
+            "Super-admin set tenant {TenantId} operation mode to {Mode}",
+            tenantId,
+            mode);
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null);
+    }
+
+    public async Task<(AdminTenantDetailDto? Result, string? Error, string? ErrorCode)> UpdateCountryAsync(
+        Guid tenantId,
+        UpdateAdminTenantCountryRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var tenant = await _db.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return (null, "Tenant not found.", AdminTenantCountryErrorCodes.TenantNotFound);
+
+        if (TenantStatuses.IsRemoved(tenant.Status))
+            return (null, "Deleted tenants cannot change country.", AdminTenantCountryErrorCodes.TenantNotFound);
+
+        var country = (request.Country ?? string.Empty).Trim().ToUpperInvariant();
+        CountryProfile profile;
+        try
+        {
+            profile = _countries.Get(country);
+        }
+        catch (UnknownCountryCodeException)
+        {
+            return (null, $"Unknown country code '{country}'.", AdminTenantCountryErrorCodes.UnknownCountry);
+        }
+
+        if (!profile.IsTenantSelectable)
+        {
+            return (
+                null,
+                "Country is not tenant-selectable.",
+                AdminTenantCountryErrorCodes.CountryNotSelectable);
+        }
+
+        if (!profile.Supports(request.VatRegime))
+        {
+            return (
+                null,
+                $"VAT regime {request.VatRegime} is not allowed for country {profile.Code}.",
+                AdminTenantCountryErrorCodes.VatRegimeNotAllowed);
+        }
+
+        if (profile.Code == "AT" && request.VatRegime == VatRegime.EU_OSS)
+        {
+            return (
+                null,
+                "AT tenant + EU_OSS is not supported.",
+                AdminTenantCountryErrorCodes.AtEuOssNotSupported);
+        }
+
+        var settings = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (settings is null)
+        {
+            return (
+                null,
+                "Company settings not found for tenant.",
+                AdminTenantCountryErrorCodes.CompanySettingsMissing);
+        }
+
+        var oldCountry = (settings.Country ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(oldCountry))
+            oldCountry = "AT";
+        var oldRegime = settings.VatRegime;
+        var countryChanged = !string.Equals(oldCountry, profile.Code, StringComparison.Ordinal);
+        var regimeChanged = oldRegime != request.VatRegime;
+
+        if (!countryChanged && !regimeChanged)
+        {
+            return (
+                await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false),
+                null,
+                null);
+        }
+
+        var historicalCount = 0;
+        var incompatibleCount = 0;
+        if (countryChanged)
+        {
+            historicalCount = await FiscalDocumentCountryStamp
+                .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            incompatibleCount = await FiscalDocumentCountryStamp
+                .CountIncompatibleSignedDocumentsAsync(_db, _countries, tenantId, profile, cancellationToken)
+                .ConfigureAwait(false);
+            if (incompatibleCount > 0)
+            {
+                return (
+                    null,
+                    $"{incompatibleCount} signed fiscal document(s) were issued under a different fiscal system and cannot move to {profile.Code}.",
+                    AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid);
+            }
+        }
+
+        settings.Country = profile.Code;
+        settings.VatRegime = request.VatRegime;
+        if (profile.FiscalSystem != FiscalSystem.RKSV_AT)
+        {
+            const string rksvKey = "FeatureFlags:Fiscal.RksvAt";
+            var rksvFlag = await _db.TenantSettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Key == rksvKey, cancellationToken)
+                .ConfigureAwait(false);
+            if (rksvFlag is null)
+            {
+                _db.TenantSettings.Add(new TenantSetting
+                {
+                    TenantId = tenantId,
+                    Key = rksvKey,
+                    Value = "false",
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedByUserId = actorUserId,
+                });
+            }
+            else
+            {
+                rksvFlag.Value = "false";
+                rksvFlag.UpdatedAtUtc = DateTime.UtcNow;
+                rksvFlag.UpdatedByUserId = actorUserId;
+            }
+        }
+
+        settings.UpdatedAt = DateTime.UtcNow;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        tenant.UpdatedBy = actorUserId;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_auditLog is not null)
+        {
+            var correlationId = Guid.NewGuid().ToString("N");
+            try
+            {
+                await _auditLog.LogSystemOperationAsync(
+                    "TENANT_COUNTRY_CHANGED",
+                    "Tenant",
+                    actorUserId ?? "system",
+                    Roles.SuperAdmin,
+                    description: $"Tenant country/vatRegime changed from {oldCountry}/{oldRegime} to {profile.Code}/{request.VatRegime}",
+                    status: AuditLogStatus.Success,
+                    correlationIdOverride: correlationId,
+                    actionType: AuditEventType.TenantCountryChanged,
+                    entityId: tenantId,
+                    tenantId: tenantId,
+                    oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
+                    newValues: new
+                    {
+                        country = profile.Code,
+                        vatRegime = request.VatRegime.ToString(),
+                        correlationId,
+                    })
+                    .ConfigureAwait(false);
+
+                if (countryChanged)
+                {
+                    await _auditLog.LogSystemOperationAsync(
+                        "TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED",
+                        "Tenant",
+                        actorUserId ?? "system",
+                        Roles.SuperAdmin,
+                        description:
+                            $"Preserved {historicalCount} historical fiscal document(s) under the original country regime",
+                        status: AuditLogStatus.Success,
+                        actionType: AuditEventType.TenantCountryChangedHistoricalPreserved,
+                        entityId: tenantId,
+                        tenantId: tenantId,
+                        oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
+                        newValues: new
+                        {
+                            country = profile.Code,
+                            vatRegime = request.VatRegime.ToString(),
+                            affectedRowCount = historicalCount,
+                        })
+                        .ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Tenant country change audit failed for {TenantId}", tenantId);
+            }
+        }
+
+        if (_activity is not null)
+        {
+            await _activity.TryPublishAsync(
+                tenantId,
+                ActivityEventType.TenantCountryChanged,
+                metadata: new
+                {
+                    oldCountry,
+                    newCountry = profile.Code,
+                    oldVatRegime = oldRegime.ToString(),
+                    newVatRegime = request.VatRegime.ToString(),
+                    ActorId = actorUserId,
+                },
+                actorUserId: actorUserId,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (countryChanged)
+            {
+                await _activity.TryPublishAsync(
+                    tenantId,
+                    ActivityEventType.TenantCountryChangedHistoricalPreserved,
+                    metadata: new
+                    {
+                        oldCountry,
+                        newCountry = profile.Code,
+                        affectedRowCount = historicalCount,
+                        ActorId = actorUserId,
+                    },
+                    actorUserId: actorUserId,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        _logger.LogInformation(
+            "Super-admin changed tenant {TenantId} country from {OldCountry}/{OldRegime} to {NewCountry}/{NewRegime}",
+            tenantId,
+            oldCountry,
+            oldRegime,
+            profile.Code,
+            request.VatRegime);
+
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null, null);
+    }
+
+    public async Task<CountryChangeImpactDto?> GetCountryChangeImpactAsync(
+        Guid tenantId,
+        string country,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null || TenantStatuses.IsRemoved(tenant.Status))
+            return null;
+
+        CountryProfile target;
+        try
+        {
+            target = _countries.Get((country ?? string.Empty).Trim().ToUpperInvariant());
+        }
+        catch (UnknownCountryCodeException)
+        {
+            return null;
+        }
+
+        return new CountryChangeImpactDto
+        {
+            AffectedRowCount = await FiscalDocumentCountryStamp
+                .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
+                .ConfigureAwait(false),
+            IncompatibleRowCount = await FiscalDocumentCountryStamp
+                .CountIncompatibleSignedDocumentsAsync(_db, _countries, tenantId, target, cancellationToken)
+                .ConfigureAwait(false),
+        };
     }
 
     public async Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
@@ -431,7 +1072,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (tenant == null)
             return (false, "Tenant not found.", null);
 
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (false, "Tenant is already deleted.", null);
 
         var checks = await GetDecommissionChecksAsync(tenantId, cancellationToken).ConfigureAwait(false);
@@ -483,7 +1124,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Cannot impersonate a deleted tenant.");
         if (!tenant.IsActive || tenant.Status == TenantStatuses.Suspended)
             return (null, "Tenant is not active.");
@@ -583,38 +1224,35 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return clone;
     }
 
-    private static string NormalizeSlug(string raw) =>
-        raw.Trim().ToLowerInvariant().Replace(' ', '_');
-
-    private static bool TryValidateSlug(string slug, out string? error)
-    {
-        if (string.IsNullOrWhiteSpace(slug))
-        {
-            error = "Slug is required.";
-            return false;
-        }
-
-        if (!SlugRegex.IsMatch(slug))
-        {
-            error = "Slug must be lowercase alphanumeric with optional hyphens/underscores.";
-            return false;
-        }
-
-        error = null;
-        return true;
-    }
-
     private static string? TrimOrNull(string? value)
     {
         var t = value?.Trim();
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantListItemDto ToListItem(Tenant t, string? ownerAdminEmail = null)
+    private static AdminTenantListItemDto ToListItem(
+        Tenant t,
+        string? ownerAdminEmail = null,
+        bool hasActiveSale = false,
+        LicenseType? activeSaleLicenseType = null,
+        DateTime? activeSaleValidUntilUtc = null,
+        int registerCount = 0,
+        int userCount = 0,
+        DateTime? lastActivityAtUtc = null,
+        string? verticalProfileId = null,
+        string? verticalProfileName = null)
     {
+        var licenseUntil = activeSaleValidUntilUtc ?? t.LicenseValidUntilUtc;
         var (licenseDaysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
-            t.LicenseValidUntilUtc,
+            licenseUntil,
             t.LicenseKey);
+        int? trialDaysRemaining = null;
+        if (t.TrialEndsAtUtc.HasValue)
+        {
+            trialDaysRemaining = (int)Math.Ceiling(
+                (DateTime.SpecifyKind(t.TrialEndsAtUtc.Value, DateTimeKind.Utc) - DateTime.UtcNow).TotalDays);
+        }
+
         return new(
             t.Id,
             t.Name,
@@ -629,17 +1267,44 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.UpdatedAt,
             licenseDaysRemaining,
             ownerAdminEmail,
-            DemoTenantIds.IsDemoPresetSlug(t.Slug));
+            DemoTenantIds.IsDemoPresetSlug(t.Slug),
+            ResolveListLicenseType(hasActiveSale, activeSaleLicenseType),
+            registerCount,
+            userCount,
+            lastActivityAtUtc,
+            t.TrialStatus,
+            t.TrialEndsAtUtc,
+            trialDaysRemaining,
+            verticalProfileId,
+            verticalProfileName);
     }
 
-    private static AdminTenantDetailDto ToDetail(
+    /// <summary>
+    /// Active sale → stored tier (Starter fallback); otherwise Trial.
+    /// </summary>
+    private static LicenseType ResolveListLicenseType(
+        bool hasActiveSale,
+        LicenseType? saleLicenseType)
+    {
+        if (hasActiveSale)
+            return saleLicenseType ?? LicenseType.Starter;
+
+        return LicenseType.Trial;
+    }
+
+    private async Task<AdminTenantDetailDto> ToDetailAsync(
         Tenant t,
         TenantProvisioningDto? provisioning = null,
         string? ownerAdminEmail = null,
         int activeUserCount = 0,
         int cashRegisterCount = 0,
-        DateTime? lastActivityAtUtc = null) =>
-        new(
+        DateTime? lastActivityAtUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        var (country, vatRegime, vatId, billingCountry, taxExempt) =
+            await LoadCountryFieldsAsync(t.Id, cancellationToken).ConfigureAwait(false);
+
+        return new(
             t.Id,
             t.Name,
             t.Slug,
@@ -657,7 +1322,60 @@ public sealed partial class AdminTenantService : IAdminTenantService
             activeUserCount,
             cashRegisterCount,
             lastActivityAtUtc,
-            provisioning);
+            provisioning,
+            t.OperationMode,
+            t.MaintenanceMessage,
+            t.MaintenanceStartedAt,
+            t.MaintenanceEndsAt,
+            t.TrialStatus,
+            t.TrialStartedAtUtc,
+            t.TrialEndsAtUtc,
+            t.TrialGracePeriodEndsAtUtc,
+            t.TrialConvertedAtUtc,
+            t.TrialReminder7dSent,
+            t.TrialReminder3dSent,
+            t.TrialReminder1dSent,
+            country,
+            vatRegime,
+            vatId,
+            billingCountry,
+            taxExempt);
+    }
+
+    private async Task<(string Country, VatRegime VatRegime, string? VatId, string? BillingCountry, bool TaxExempt)>
+        LoadCountryFieldsAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var settings = await _db.CompanySettings
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var country = string.IsNullOrWhiteSpace(settings?.Country)
+            ? "AT"
+            : settings.Country.Trim().ToUpperInvariant();
+        return (
+            country,
+            settings?.VatRegime ?? VatRegime.AT_RKSV_STANDARD,
+            string.IsNullOrWhiteSpace(settings?.VatId) ? null : settings.VatId,
+            string.IsNullOrWhiteSpace(settings?.BillingCountry) ? null : settings.BillingCountry,
+            settings?.TaxExempt ?? false);
+    }
+
+    /// <summary>True when the tenant has at least one TSE-signed payment (RKSV fiscal footprint).</summary>
+    private async Task<bool> HasSignedFiscalPaymentsAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await (
+                from p in _db.PaymentDetails.AsNoTracking().IgnoreQueryFilters()
+                join cr in _db.CashRegisters.AsNoTracking().IgnoreQueryFilters()
+                    on p.CashRegisterId equals cr.Id
+                where cr.TenantId == tenantId
+                      && p.TseSignature != null
+                      && p.TseSignature != ""
+                select p.Id)
+            .AnyAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     private static DateTime? MaxUtc(params DateTime?[] values)
     {

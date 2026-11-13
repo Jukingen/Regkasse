@@ -1,11 +1,11 @@
 /**
  * Terminal başarı bandı: simüle / üretim ayrımı — success (yeşil) tipi kullanılmaz.
  */
-
-import React from 'react';
 import '@testing-library/jest-dom';
-import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { describe, expect, it } from 'vitest';
+
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 
@@ -27,7 +27,7 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
         formatDt={(iso) => String(iso)}
         formatLocale="en-US"
         t={(k) => k}
-      />,
+      />
     );
     const alert = container.querySelector('.ant-alert-info');
     expect(alert).toBeTruthy();
@@ -45,11 +45,13 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
         formatDt={(iso) => String(iso)}
         formatLocale="en-US"
         t={(k) => k}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(screen.getByText('backupDr.progress.finishedOkLatestDrillFailed')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.progress.finishedOkLatestDrillFailedDetail')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.progress.finishedOkLatestDrillFailedDetail')
+    ).toBeInTheDocument();
   });
 
   it('non-simulated success with unproven recoverability uses warning tone', () => {
@@ -63,7 +65,7 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
         formatDt={(iso) => String(iso)}
         formatLocale="en-US"
         t={(k) => k}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(container.querySelector('.ant-alert-success')).toBeNull();
@@ -81,7 +83,7 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
         formatDt={(iso) => String(iso)}
         formatLocale="en-US"
         t={(k) => k}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(container.querySelector('.ant-alert-success')).toBeNull();
@@ -100,7 +102,7 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
         formatDt={(iso) => String(iso)}
         formatLocale="en-US"
         t={(k) => k}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(screen.queryByText('backupDr.progress.finishedSimulatedOkDetail')).toBeNull();

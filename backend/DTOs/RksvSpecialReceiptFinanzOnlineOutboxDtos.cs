@@ -1,5 +1,3 @@
-using System;
-
 namespace KasseAPI_Final.DTOs;
 
 /// <summary>Serialized into <see cref="FinanzOnlineIntegration.FinanzOnlineOutboxPayload.PayloadJson"/> for RKSV Startbeleg/Jahresbeleg FO outbox jobs.</summary>

@@ -15,13 +15,12 @@ export interface PendingInvoicesResponse {
 }
 
 class PendingInvoicesService {
-  private baseUrl = '/api/pending-invoices';
+  private readonly baseUrl = '/api/pending-invoices';
 
   // Bekleyen faturaları getir
   async getPendingInvoices(): Promise<PendingInvoicesResponse> {
     try {
-      const response = await apiClient.get<PendingInvoicesResponse>(this.baseUrl);
-      return response.data;
+      return await apiClient.get<PendingInvoicesResponse>(this.baseUrl);
     } catch (error) {
       console.error('Pending invoices fetch failed:', error);
       throw error;
@@ -31,8 +30,7 @@ class PendingInvoicesService {
   // Bekleyen faturaları gönder
   async submitPendingInvoices(): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/submit`);
-      return response.data;
+      return await apiClient.post<{ message: string }>(`${this.baseUrl}/submit`);
     } catch (error) {
       console.error('Submit pending invoices failed:', error);
       throw error;
@@ -42,8 +40,7 @@ class PendingInvoicesService {
   // Tek faturayı yeniden gönder
   async retryInvoice(invoiceId: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/${invoiceId}/retry`);
-      return response.data;
+      return await apiClient.post<{ message: string }>(`${this.baseUrl}/${invoiceId}/retry`);
     } catch (error) {
       console.error('Retry invoice failed:', error);
       throw error;
@@ -53,8 +50,7 @@ class PendingInvoicesService {
   // Bekleyen fatura sayısını getir
   async getPendingCount(): Promise<{ pendingCount: number }> {
     try {
-      const response = await apiClient.get<{ pendingCount: number }>(`${this.baseUrl}/count`);
-      return response.data;
+      return await apiClient.get<{ pendingCount: number }>(`${this.baseUrl}/count`);
     } catch (error) {
       console.error('Pending count fetch failed:', error);
       throw error;
@@ -64,8 +60,9 @@ class PendingInvoicesService {
   // Eski bekleyen faturaları temizle
   async clearOldPendingInvoices(daysOld: number = 30): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/clear-old?daysOld=${daysOld}`);
-      return response.data;
+      return await apiClient.post<{ message: string }>(
+        `${this.baseUrl}/clear-old?daysOld=${daysOld}`
+      );
     } catch (error) {
       console.error('Clear old pending invoices failed:', error);
       throw error;
@@ -73,4 +70,4 @@ class PendingInvoicesService {
   }
 }
 
-export const pendingInvoicesService = new PendingInvoicesService(); 
+export const pendingInvoicesService = new PendingInvoicesService();

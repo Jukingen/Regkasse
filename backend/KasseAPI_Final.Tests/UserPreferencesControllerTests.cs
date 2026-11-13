@@ -3,6 +3,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -27,7 +28,8 @@ public sealed class UserPreferencesControllerTests
 
     private static UserPreferencesController CreateController(AppDbContext db, string userId = "user-a")
     {
-        var controller = new UserPreferencesController(db, Mock.Of<ILogger<UserPreferencesController>>());
+        var service = new UserPreferencesService(db, Mock.Of<ILogger<UserPreferencesService>>());
+        var controller = new UserPreferencesController(service);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId),
@@ -53,6 +55,10 @@ public sealed class UserPreferencesControllerTests
         Assert.Equal("system", body.ThemeMode);
         Assert.Equal("standard", body.DensityMode);
         Assert.Equal("/dashboard", body.DefaultPage);
+        Assert.Equal("DD.MM.YYYY", body.DateFormat);
+        Assert.Equal("24h", body.TimeFormat);
+        Assert.Equal("Europe/Vienna", body.TimeZone);
+        Assert.Equal("de", body.Language);
         Assert.Null(body.UpdatedAtUtc);
     }
 
@@ -68,8 +74,10 @@ public sealed class UserPreferencesControllerTests
             ThemeMode = "dark",
             DensityMode = "compact",
             DefaultPage = "/admin/users",
-            DateFormat = "DD.MM.YYYY",
-            TimeFormat = "24h",
+            DateFormat = "YYYY-MM-DD",
+            TimeFormat = "12h",
+            TimeZone = "Europe/Berlin",
+            Language = "en",
             ReducedAnimations = true,
         }, CancellationToken.None);
         Assert.IsType<OkObjectResult>(saveA.Result);
@@ -87,6 +95,10 @@ public sealed class UserPreferencesControllerTests
         Assert.Equal("dark", prefsA.ThemeMode);
         Assert.Equal("compact", prefsA.DensityMode);
         Assert.Equal("/admin/users", prefsA.DefaultPage);
+        Assert.Equal("YYYY-MM-DD", prefsA.DateFormat);
+        Assert.Equal("12h", prefsA.TimeFormat);
+        Assert.Equal("Europe/Berlin", prefsA.TimeZone);
+        Assert.Equal("en", prefsA.Language);
         Assert.True(prefsA.ReducedAnimations);
 
         var getB = Assert.IsType<OkObjectResult>((await controllerB.GetPreferences(CancellationToken.None)).Result);
@@ -109,6 +121,9 @@ public sealed class UserPreferencesControllerTests
             DensityMode = "huge",
             DefaultPage = "/unknown",
             TimeFormat = "48h",
+            TimeZone = "Mars/Phobos",
+            Language = "xx",
+            DateFormat = "invalid",
         }, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(save.Result);
@@ -116,6 +131,9 @@ public sealed class UserPreferencesControllerTests
         Assert.Equal("system", body.ThemeMode);
         Assert.Equal("standard", body.DensityMode);
         Assert.Equal("/dashboard", body.DefaultPage);
-        Assert.Null(body.TimeFormat);
+        Assert.Equal("24h", body.TimeFormat);
+        Assert.Equal("Europe/Vienna", body.TimeZone);
+        Assert.Equal("de", body.Language);
+        Assert.Equal("DD.MM.YYYY", body.DateFormat);
     }
 }

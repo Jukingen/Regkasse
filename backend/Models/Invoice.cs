@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
@@ -9,11 +7,16 @@ namespace KasseAPI_Final.Models
     [Table("invoices")]
     public class Invoice : BaseTenantEntity
     {
+        /// <summary>
+        /// Room for <c>AT-{register}-{tenantId:N}-{yyyyMMdd}-{sequence}</c> (worst case 76).
+        /// </summary>
+        public const int InvoiceNumberMaxLength = 80;
+
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }
 
         [Required]
-        [StringLength(50)]
+        [StringLength(InvoiceNumberMaxLength)]
         public string InvoiceNumber { get; set; } = string.Empty;
 
         [Required]
@@ -74,6 +77,26 @@ namespace KasseAPI_Final.Models
 
         [StringLength(100)]
         public string? CompanyEmail { get; set; }
+
+        /// <summary>ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.</summary>
+        [StringLength(2)]
+        [Column("country_code_at_issue")]
+        public string? CountryCodeAtIssue { get; set; }
+
+        /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
+        [Column("vat_regime_at_issue")]
+        public VatRegime? VatRegimeAtIssue { get; set; }
+
+        /// <summary>
+        /// EN 16931 Schematron outcome. Null until a flagged validation runs. Historical rows stay null.
+        /// </summary>
+        [Column("einvoice_validation_passed")]
+        public bool? EinvoiceValidationPassed { get; set; }
+
+        /// <summary>Comma-separated Schematron rule ids when validation failed. Never the UBL document.</summary>
+        [StringLength(500)]
+        [Column("einvoice_validation_rule_ids")]
+        public string? EinvoiceValidationRuleIds { get; set; }
 
         // RKSV Zorunlu Alanlar
         [Required]

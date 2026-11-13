@@ -1,16 +1,16 @@
 import type { BackupVerificationReport } from '@/features/backup/logic/backupVerificationReportApi';
-import { formatDateTime } from '@/i18n/formatting';
 import {
   escapeHtml,
   getBackupVerificationRowDiff,
 } from '@/features/backup/logic/backupVerificationReportPresentation';
+import { formatDateTime } from '@/i18n/formatting';
 
 type TranslateFn = (key: string, options?: Record<string, string | number>) => string;
 
 export function exportBackupVerificationReportPdf(
   report: BackupVerificationReport,
   t: TranslateFn,
-  formatLocale: string,
+  formatLocale: string
 ): boolean {
   const popup = globalThis.window.open('', '_blank', 'noopener,noreferrer');
   if (!popup) return false;

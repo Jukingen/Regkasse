@@ -4,6 +4,9 @@ public interface IAdminTenantLicenseService
 {
     Task<TenantLicenseOverviewDto?> GetOverviewAsync(Guid tenantId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<TenantLicenseOverviewListItemDto>> ListOverviewAsync(
+        CancellationToken cancellationToken = default);
+
     Task<(TenantLicenseOverviewDto? Result, string? Error)> ActivateTrialAsync(
         Guid tenantId,
         string? actorUserId,
@@ -13,6 +16,7 @@ public interface IAdminTenantLicenseService
         Guid tenantId,
         ExtendTenantLicenseRequest request,
         string? actorUserId,
+        string? actorRole = null,
         CancellationToken cancellationToken = default);
 
     Task<(TenantLicenseOverviewDto? Result, string? Error)> SetTierAsync(

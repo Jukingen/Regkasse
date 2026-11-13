@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tse
 {
@@ -66,6 +65,13 @@ namespace KasseAPI_Final.Tse
 
             return machineCode.StartsWith("_R1-", StringComparison.Ordinal);
         }
+
+        /// <summary>
+        /// True when the compact JWS payload is F5-compliant RKSV §9 machine code (<c>_R1-…</c>).
+        /// Pre-F5 / legacy signatures embed JSON <see cref="BelegdatenPayload"/> instead and fail BMF Prüftool beleg verification.
+        /// </summary>
+        public static bool IsF5CompliantJws(string? compactJws) =>
+            TryGetMachineCodeFromCompactJws(compactJws, out _);
 
         /// <summary>
         /// Returns the RKSV §9 machine code for a receipt. Prefer the value stored inside the signed compact JWS;
@@ -170,25 +176,40 @@ namespace KasseAPI_Final.Tse
                 return steps;
             }
 
-            var parts = compactJws.Split('.');
+            var parsed = JwsParser.Parse(compactJws);
+            var useNormalizedJws = parsed.Success
+                && parsed.Format is JwsWireFormat.FiskalyMachineCode or JwsWireFormat.RksvQrWithCompactJws;
+            var jwsForCrypto = useNormalizedJws ? parsed.CompactJws : compactJws.Trim();
+            var parts = useNormalizedJws
+                ? parsed.CompactJws.Split('.')
+                : compactJws.Trim().Split('.');
 
             // Step 2: JWS format (3 parts)
-            var (step2Status, step2Evidence) = CheckJwsFormat(parts);
+            var (step2Status, step2Evidence) = parsed.Success
+                ? CheckJwsFormat(parts)
+                : ("FAIL", parsed.Error ?? $"Expected 3 parts, got {parts.Length}");
+            if (step2Status == "PASS" && parsed.Format == JwsWireFormat.FiskalyMachineCode)
+                step2Evidence = "header.payload.signature reconstructed from Fiskaly RKSV QR";
+            else if (step2Status == "PASS" && parsed.Format == JwsWireFormat.RksvQrWithCompactJws)
+                step2Evidence = "header.payload.signature extracted from RKSV QR wire";
             steps.Add(new SignatureDiagnosticStep(2, "JWS format", step2Status, step2Evidence));
 
             // Step 5: Base64URL padding (check before decode)
             var (step5Status, step5Evidence) = CheckBase64UrlPadding(parts);
+            if (step5Status == "PASS" && parsed.Format == JwsWireFormat.FiskalyMachineCode)
+                step5Evidence = "Normalized Fiskaly Base64 Sig-Wert to Base64URL (no padding)";
             steps.Add(new SignatureDiagnosticStep(5, "Base64URL padding", step5Status, step5Evidence));
 
             byte[]? signatureBytes = null;
-            var signingInput = parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : string.Empty;
+            var cryptoParts = jwsForCrypto.Split('.');
+            var signingInput = cryptoParts.Length >= 2 ? $"{cryptoParts[0]}.{cryptoParts[1]}" : string.Empty;
 
             // Step 3: Hash
-            if (parts.Length == 3 && step5Status == "PASS")
+            if (cryptoParts.Length == 3 && step5Status == "PASS" && parsed.Success)
             {
                 try
                 {
-                    signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(parts[2]);
+                    signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(cryptoParts[2]);
                     _ = TseCryptoHelper.Sha256Hash(signingInput);
                     steps.Add(new SignatureDiagnosticStep(3, "Hash", "PASS", $"SHA-256({signingInput.Length} chars)"));
                 }
@@ -262,8 +283,10 @@ namespace KasseAPI_Final.Tse
             {
                 foreach (var p in parts)
                 {
-                    if (string.IsNullOrEmpty(p)) return ("FAIL", "Empty part");
-                    if (p.Contains('=')) return ("FAIL", "Part contains padding (see Base64URL step)");
+                    if (string.IsNullOrEmpty(p))
+                        return ("FAIL", "Empty part");
+                    if (p.Contains('='))
+                        return ("FAIL", "Part contains padding (see Base64URL step)");
                     _ = TseCryptoHelper.FromBase64UrlNoPadding(p);
                 }
                 return ("PASS", "header.payload.signature valid");
@@ -309,7 +332,13 @@ namespace KasseAPI_Final.Tse
             correlationId ??= Guid.NewGuid().ToString("N")[..12];
             _logger.LogInformation("SignaturePipeline.Verify started, correlationId={CorrelationId}, step=init", correlationId);
 
-            var parts = compactJws.Split('.');
+            var parsed = JwsParser.Parse(compactJws);
+            var toVerify = parsed.Success
+                && parsed.Format is JwsWireFormat.FiskalyMachineCode or JwsWireFormat.RksvQrWithCompactJws
+                    ? parsed.CompactJws
+                    : compactJws;
+
+            var parts = toVerify.Split('.');
             if (parts.Length != 3)
             {
                 _logger.LogWarning("SignaturePipeline.Verify correlationId={CorrelationId}, step=fail, reason=invalid_parts_count", correlationId);
@@ -377,12 +406,15 @@ namespace KasseAPI_Final.Tse
                 throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "DER signature too short");
 
             int offset = 0;
-            if (der[offset++] != 0x30) throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: expected SEQUENCE");
+            if (der[offset++] != 0x30)
+                throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: expected SEQUENCE");
             int seqLen = ReadDerLength(der, ref offset);
-            if (offset + seqLen > der.Length) throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: truncated");
+            if (offset + seqLen > der.Length)
+                throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: truncated");
 
-            int rLen = ReadDerInteger(der, ref offset, out byte[] r);
-            int sLen = ReadDerInteger(der, ref offset, out byte[] s);
+            _ = ReadDerInteger(der, ref offset, out byte[] r);
+
+            _ = ReadDerInteger(der, ref offset, out byte[] s);
 
             const int coordinateSize = 32;
             var result = new byte[64];
@@ -393,9 +425,11 @@ namespace KasseAPI_Final.Tse
 
         private static int ReadDerLength(byte[] data, ref int offset)
         {
-            if (offset >= data.Length) return 0;
+            if (offset >= data.Length)
+                return 0;
             byte b = data[offset++];
-            if (b < 0x80) return b;
+            if (b < 0x80)
+                return b;
             int lenLen = b & 0x7F;
             int len = 0;
             for (int i = 0; i < lenLen && offset < data.Length; i++)

@@ -1,18 +1,20 @@
 /**
  * Role management API – updateRolePermissions and deleteRole URL/body and error propagation.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
+  deleteRole,
   getPermissionsCatalog,
   getRolesWithPermissions,
   updateRolePermissions,
-  deleteRole,
 } from '../roleManagementApi';
 
 const mockCustomInstance = vi.fn();
 
 vi.mock('@/lib/axios', () => ({
-  customInstance: (config: { url: string; method: string; data?: unknown }) => mockCustomInstance(config),
+  customInstance: (config: { url: string; method: string; data?: unknown }) =>
+    mockCustomInstance(config),
 }));
 
 describe('roleManagementApi', () => {

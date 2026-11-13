@@ -55,7 +55,7 @@ public sealed class OperationalRunConfigSnapshotBuilderTests
         Assert.Contains("\"allowNonPgDumpBackupSource\":false", json, StringComparison.Ordinal);
         Assert.Contains("\"postRestoreSqlChecksEnabled\":true", json, StringComparison.Ordinal);
         Assert.Contains("\"restoredDatabaseApplicationSmokeEnabled\":false", json, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":3", json, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":4", json, StringComparison.Ordinal);
         Assert.Contains("\"applicationSmokeProbeEnabled\":false", json, StringComparison.Ordinal);
     }
 
@@ -101,7 +101,7 @@ public sealed class OperationalRunConfigSnapshotBuilderTests
             new DateTime(2026, 3, 29, 12, 0, 0, DateTimeKind.Utc));
         using var doc = JsonDocument.Parse(json);
         Assert.Equal(JsonValueKind.Number, doc.RootElement.GetProperty("schemaVersion").ValueKind);
-        Assert.Equal(3, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(4, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("backup_run", doc.RootElement.GetProperty("scope").GetString());
         Assert.Equal("Fake", doc.RootElement.GetProperty("configurationExecutionAdapterKind").GetString());
         Assert.Equal("InheritFromConfiguration", doc.RootElement.GetProperty("adminRuntimeExecutionMode").GetString());

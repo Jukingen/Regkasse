@@ -11,17 +11,17 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) 
   // Şifre gücünü hesapla
   const calculateStrength = (pass: string): { score: number; label: string; color: string } => {
     let score = 0;
-    
+
     // Uzunluk kontrolü
     if (pass.length >= 8) score += 1;
     if (pass.length >= 12) score += 1;
-    
+
     // Karakter çeşitliliği
     if (/[a-z]/.test(pass)) score += 1;
     if (/[A-Z]/.test(pass)) score += 1;
     if (/[0-9]/.test(pass)) score += 1;
     if (/[^A-Za-z0-9]/.test(pass)) score += 1;
-    
+
     // Güç seviyesi belirleme
     if (score <= 2) {
       return { score: 1, label: 'Zayıf', color: '#FF3B30' };
@@ -43,16 +43,11 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) 
         {strengthBars.map((bar) => (
           <View
             key={bar}
-            style={[
-              styles.bar,
-              bar <= strength.score && { backgroundColor: strength.color }
-            ]}
+            style={[styles.bar, bar <= strength.score && { backgroundColor: strength.color }]}
           />
         ))}
       </View>
-      <Text style={[styles.label, { color: strength.color }]}>
-        {strength.label}
-      </Text>
+      <Text style={[styles.label, { color: strength.color }]}>{strength.label}</Text>
     </View>
   );
 };

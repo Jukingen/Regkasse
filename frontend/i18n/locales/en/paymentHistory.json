@@ -53,6 +53,10 @@
     "detailsNote": "Additional details (optional)"
   },
   "loadError": "Could not load payment history",
+  "preparingRegister": "Preparing register…",
+  "noRegisterTitle": "No register selected",
+  "noRegister": "Please start a shift or select a register first.",
+  "selectRegister": "Select register",
   "print": {
     "stornoFailed": "Could not print cancellation receipt",
     "refundFailed": "Could not print refund receipt"

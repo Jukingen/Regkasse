@@ -1,2 +1,6 @@
 /** @deprecated Prefer `@/hooks/useSessionTimeout` */
-export { useIdleTimeout, type IdleTimeoutConfig, type UseIdleTimeoutResult } from '@/hooks/useIdleTimeout';
+export {
+  type IdleTimeoutConfig,
+  useIdleTimeout,
+  type UseIdleTimeoutResult,
+} from '@/hooks/useIdleTimeout';

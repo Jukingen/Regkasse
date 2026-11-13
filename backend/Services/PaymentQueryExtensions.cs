@@ -1,6 +1,5 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 
@@ -261,28 +260,5 @@ public static class PaymentQueryExtensions
             AvailablePaymentMethods = availablePaymentMethods.ToList(),
             AvailableStatuses = KnownStatuses.ToList(),
         };
-    }
-
-    /// <summary>Counts user-supplied filters (excludes default date window).</summary>
-    public static int GetActiveFilterCount(PaymentFilterDto filter, bool usedDefaultDateWindow = false)
-    {
-        var count = 0;
-        if (!usedDefaultDateWindow)
-        {
-            if (filter.StartDate.HasValue) count++;
-            if (filter.EndDate.HasValue) count++;
-        }
-        if (filter.MinAmount.HasValue) count++;
-        if (filter.MaxAmount.HasValue) count++;
-        if (filter.PaymentMethods.Count > 0) count++;
-        if (filter.Statuses.Count > 0) count++;
-        if (filter.CashRegisterId.HasValue) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerName)) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerEmail)) count++;
-        if (!string.IsNullOrEmpty(filter.CashierId)) count++;
-        if (!string.IsNullOrEmpty(filter.ReceiptNumber)) count++;
-        if (filter.IsStorno.HasValue) count++;
-        if (filter.IsRefund.HasValue) count++;
-        return count;
     }
 }

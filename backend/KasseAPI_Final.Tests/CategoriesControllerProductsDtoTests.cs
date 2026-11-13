@@ -24,7 +24,7 @@ public class CategoriesControllerProductsDtoTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"CategoryProducts_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -34,10 +34,10 @@ public class CategoriesControllerProductsDtoTests
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = categoryId,
             Name = "Getranke",
             Description = "Desc",
@@ -47,7 +47,7 @@ public class CategoriesControllerProductsDtoTests
 
         context.Products.Add(new Product
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = productId,
             Name = "Cola",
             Description = "Soft drink",
@@ -72,7 +72,8 @@ public class CategoriesControllerProductsDtoTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var result = await controller.GetCategoryProducts(categoryId);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<AdminCategoryProductDto>>(ok.Value);

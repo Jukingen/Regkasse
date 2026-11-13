@@ -9,6 +9,7 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration tests: AdminUsers mutation endpoints reject cross-tenant targets with 404.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminUsersCrossTenantWebApplicationFactory>
 {
     private readonly AdminUsersCrossTenantWebApplicationFactory _factory;
@@ -24,12 +25,20 @@ public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminU
         return client;
     }
 
-    private static async Task<string> LoginAsTenantAdminAsync(HttpClient client)
+    private async Task<HttpClient> CreateAuthenticatedManagerTenantAClientAsync()
+    {
+        var client = _factory.CreateTenantClient(AdminUsersCrossTenantWebApplicationFactory.TenantASlug);
+        var token = await LoginAsync(client, AdminUsersCrossTenantWebApplicationFactory.ManagerAEmail, AdminUsersCrossTenantWebApplicationFactory.ManagerAPassword);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
+
+    private static async Task<string> LoginAsync(HttpClient client, string loginIdentifier, string password)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
         {
-            loginIdentifier = AdminUsersCrossTenantWebApplicationFactory.AdminAEmail,
-            password = AdminUsersCrossTenantWebApplicationFactory.AdminAPassword,
+            loginIdentifier,
+            password,
             clientApp = "admin",
         });
 
@@ -38,6 +47,9 @@ public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminU
         return json.RootElement.GetProperty("token").GetString()
             ?? throw new InvalidOperationException("Login response missing token.");
     }
+
+    private static async Task<string> LoginAsTenantAdminAsync(HttpClient client) =>
+        await LoginAsync(client, AdminUsersCrossTenantWebApplicationFactory.AdminAEmail, AdminUsersCrossTenantWebApplicationFactory.AdminAPassword);
 
     private static async Task AssertNotFoundNotForbidden(HttpResponseMessage response)
     {
@@ -134,6 +146,58 @@ public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminU
             null);
 
         await AssertNotFoundNotForbidden(response);
+    }
+
+    [Fact]
+    public async Task ListTenantUsers_AsManager_ReturnsOnlyOwnTenantUsers()
+    {
+        var client = await CreateAuthenticatedManagerTenantAClientAsync();
+
+        var response = await client.GetAsync(
+            $"/api/admin/users?type=tenant&tenantId={AdminUsersCrossTenantWebApplicationFactory.TenantBId}");
+
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var rows = json.RootElement.EnumerateArray().ToList();
+        Assert.All(rows, row => Assert.Equal(AdminUsersCrossTenantWebApplicationFactory.TenantAId.ToString(), row.GetProperty("tenantId").GetString()));
+        Assert.Contains(rows, row => row.GetProperty("userId").GetString() == AdminUsersCrossTenantWebApplicationFactory.UserAId);
+        Assert.DoesNotContain(rows, row => row.GetProperty("userId").GetString() == AdminUsersCrossTenantWebApplicationFactory.UserBId);
+    }
+
+    [Fact]
+    public async Task ListUserManagement_AsManager_ReturnsOnlyOwnTenantUsers()
+    {
+        var client = await CreateAuthenticatedManagerTenantAClientAsync();
+
+        var response = await client.GetAsync("/api/UserManagement?page=1&pageSize=100");
+
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var items = json.RootElement.GetProperty("items").EnumerateArray().ToList();
+        Assert.Contains(items, item => item.GetProperty("id").GetString() == AdminUsersCrossTenantWebApplicationFactory.UserAId);
+        Assert.DoesNotContain(items, item => item.GetProperty("id").GetString() == AdminUsersCrossTenantWebApplicationFactory.UserBId);
+    }
+
+    [Fact]
+    public async Task GetUser_FromDifferentTenant_Returns404()
+    {
+        var client = await CreateAuthenticatedManagerTenantAClientAsync();
+
+        var response = await client.GetAsync(
+            $"/api/UserManagement/{AdminUsersCrossTenantWebApplicationFactory.UserBId}");
+
+        await AssertNotFoundNotForbidden(response);
+    }
+
+    [Fact]
+    public async Task ListTenantUsersRoute_AsManager_ForOtherTenant_Returns403WithoutUserManage()
+    {
+        var client = await CreateAuthenticatedManagerTenantAClientAsync();
+
+        var response = await client.GetAsync(
+            $"/api/admin/tenants/{AdminUsersCrossTenantWebApplicationFactory.TenantBId}/users");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

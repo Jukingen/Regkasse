@@ -1,21 +1,18 @@
+import { safeLog } from '../../utils/loggingUtils';
 // Order servisi - Backend Orders API'leri ile iletişim
-import { secureApiService } from './secureApiService';
-import { 
-  CreateOrderRequest, 
-  OrderResponse, 
-  Order, 
-  OrderItem 
-} from '../../types/order';
+import { SecureApiService } from './secureApiService';
+import { CreateOrderRequest, OrderResponse, Order, OrdersPage } from '../../types/order';
 
 const API_BASE_URL = '/api/orders';
+const secureApiService = SecureApiService.getInstance();
 
 export const orderService = {
   // Yeni sipariş oluştur
   async createOrder(request: CreateOrderRequest): Promise<OrderResponse> {
     try {
-      const response = await secureApiService.post<OrderResponse>(API_BASE_URL, request);
-      console.log('Order created successfully:', response.data);
-      return response.data;
+      const response = await secureApiService.securePost<OrderResponse>(API_BASE_URL, request);
+      safeLog('Order created successfully:', response);
+      return response;
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
@@ -23,10 +20,13 @@ export const orderService = {
   },
 
   // Tüm siparişleri getir
-  async getOrders(): Promise<Order[]> {
+  async getOrders(page = 1, pageSize = 50): Promise<OrdersPage> {
     try {
-      const response = await secureApiService.get<Order[]>(API_BASE_URL);
-      return response.data;
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      return await secureApiService.secureGet<OrdersPage>(`${API_BASE_URL}?${params.toString()}`);
     } catch (error) {
       console.error('Error fetching orders:', error);
       throw error;
@@ -36,8 +36,7 @@ export const orderService = {
   // Belirli siparişi getir
   async getOrder(orderId: string): Promise<Order> {
     try {
-      const response = await secureApiService.get<Order>(`${API_BASE_URL}/${orderId}`);
-      return response.data;
+      return await secureApiService.secureGet<Order>(`${API_BASE_URL}/${orderId}`);
     } catch (error) {
       console.error('Error fetching order:', error);
       throw error;
@@ -47,8 +46,9 @@ export const orderService = {
   // Sipariş durumunu güncelle
   async updateOrderStatus(orderId: string, status: string): Promise<Order> {
     try {
-      const response = await secureApiService.put<Order>(`${API_BASE_URL}/${orderId}/status`, { status });
-      return response.data;
+      return await secureApiService.securePut<Order>(`${API_BASE_URL}/${orderId}/status`, {
+        status,
+      });
     } catch (error) {
       console.error('Error updating order status:', error);
       throw error;
@@ -58,8 +58,8 @@ export const orderService = {
   // Siparişi sil
   async deleteOrder(orderId: string): Promise<void> {
     try {
-      await secureApiService.delete(`${API_BASE_URL}/${orderId}`);
-      console.log('Order deleted successfully:', orderId);
+      await secureApiService.secureDelete(`${API_BASE_URL}/${orderId}`);
+      safeLog('Order deleted successfully:', orderId);
     } catch (error) {
       console.error('Error deleting order:', error);
       throw error;
@@ -70,12 +70,13 @@ export const orderService = {
   async createOrderFromCart(
     tableNumber: string,
     waiterName: string,
-    cartItems: any[],
+    cartItems: { productId: string; quantity: number; notes?: string }[],
     customerName?: string,
     customerPhone?: string,
     notes?: string,
     cartId?: string,
-    customerId?: string
+    customerId?: string,
+    locationData?: CreateOrderRequest['locationData']
   ): Promise<OrderResponse> {
     const orderRequest: CreateOrderRequest = {
       tableNumber,
@@ -84,14 +85,15 @@ export const orderService = {
       customerName,
       customerPhone,
       notes,
+      locationData: locationData ?? undefined,
       cartId,
-      items: cartItems.map(item => ({
+      items: cartItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
-        specialNotes: item.notes || undefined
-      }))
+        specialNotes: item.notes || undefined,
+      })),
     };
 
-    return this.createOrder(orderRequest);
-  }
+    return await this.createOrder(orderRequest);
+  },
 };

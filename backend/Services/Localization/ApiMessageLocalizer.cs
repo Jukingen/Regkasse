@@ -1,6 +1,5 @@
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
-using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Services.Localization;
 

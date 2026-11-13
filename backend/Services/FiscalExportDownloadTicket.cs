@@ -11,4 +11,7 @@ public sealed class FiscalExportDownloadTicket
     public required string NormalizedExportFormat { get; init; }
 
     public required string PreparedForUserId { get; init; }
+
+    /// <summary>Canonical download file name prepared when the ticket was issued.</summary>
+    public required string FileName { get; init; }
 }

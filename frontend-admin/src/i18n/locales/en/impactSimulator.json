@@ -1,0 +1,15 @@
+{
+  "modalTitle": "Change impact simulation",
+  "cancel": "Cancel",
+  "confirm": "Confirm change",
+  "statProducts": "Affected products",
+  "statPayments": "Affected payments",
+  "statInvoices": "Affected invoices",
+  "statFinancial": "Estimated financial impact",
+  "recommendations": "Recommendations",
+  "warnings": "Warnings",
+  "historicalTitle": "Historical data will not be affected",
+  "historicalBody": "This change will only affect new transactions and records. Existing payments and invoices are not rewritten.",
+  "noFinancialEstimate": "No estimate available",
+  "loadError": "Could not load the impact simulation."
+}

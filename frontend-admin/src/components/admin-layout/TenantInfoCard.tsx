@@ -1,2 +1,5 @@
-/** @deprecated Import from `@/features/tenant/components/TenantInfoCard` — re-export for existing paths. */
-export { TenantInfoCard, type TenantInfoCardProps } from '@/features/tenant/components/TenantInfoCard';
+/** @deprecated Import {@link TenantHeader} from `@/shared/components/TenantHeader`. */
+export {
+  TenantInfoCard,
+  type TenantInfoCardProps,
+} from '@/features/tenant/components/TenantInfoCard';

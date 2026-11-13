@@ -11,6 +11,10 @@ public static class ApiMessageCatalog
                 de: "Ungültiger Benutzername oder Passwort",
                 en: "Invalid username or password",
                 tr: "Kullanıcı adı veya şifre geçersiz"),
+            [ApiMessageKeys.AccountTemporarilyLocked] = Msg(
+                de: "Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.",
+                en: "Account is temporarily locked. Please try again later.",
+                tr: "Hesap geçici olarak kilitlendi. Lütfen daha sonra tekrar deneyin."),
             [ApiMessageKeys.ForgotPasswordGeneric] = Msg(
                 de: "Wenn ein Konto existiert, wird ein Link zum Zurücksetzen des Passworts gesendet.",
                 en: "If an account exists, a password reset link will be sent.",
@@ -39,22 +43,55 @@ public static class ApiMessageCatalog
                 de: "Bei der Anmeldung ist ein Fehler aufgetreten",
                 en: "An error occurred during login",
                 tr: "Giriş işlemi sırasında hata oluştu"),
+            [ApiMessageKeys.TwoFactorRequired] = Msg(
+                de: "Zwei-Faktor-Authentifizierung erforderlich.",
+                en: "Two-factor authentication is required.",
+                tr: "İki faktörlü kimlik doğrulama gerekli."),
+            [ApiMessageKeys.TwoFactorInvalid] = Msg(
+                de: "Ungültiger oder abgelaufener Authentifizierungscode.",
+                en: "Invalid or expired authentication code.",
+                tr: "Geçersiz veya süresi dolmuş doğrulama kodu."),
+            [ApiMessageKeys.TwoFactorChallengeExpired] = Msg(
+                de: "Die Zwei-Faktor-Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+                en: "The two-factor challenge expired. Please sign in again.",
+                tr: "İki faktörlü oturum süresi doldu. Lütfen tekrar giriş yapın."),
             [ApiMessageKeys.UserCreatedSuccess] = Msg(
                 de: "Benutzer erfolgreich erstellt",
                 en: "User created successfully",
                 tr: "Kullanıcı başarıyla oluşturuldu"),
             [ApiMessageKeys.TenantMembershipRequired] = Msg(
-                de: "Kein Zugriff auf diesen Mandanten",
-                en: "No access to this tenant",
-                tr: "Bu kiracıya erişim yok"),
+                de: "Benutzer hat keine aktive Mandanten-Mitgliedschaft",
+                en: "User does not have an active tenant membership",
+                tr: "Kullanıcının aktif bir kiracı üyeliği yok"),
             [ApiMessageKeys.TenantDisabled] = Msg(
                 de: "Dieser Mandant wurde deaktiviert.",
                 en: "This tenant has been deactivated.",
                 tr: "Bu kiracı devre dışı bırakıldı."),
             [ApiMessageKeys.TenantLicenseLockdown] = Msg(
-                de: "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt.",
-                en: "This tenant is locked due to an expired license.",
-                tr: "Bu kiracı süresi dolmuş lisans nedeniyle kilitlendi."),
+                de: "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
+                en: "Tenant locked — please activate a tenant license.",
+                tr: "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin."),
+
+            [ApiMessageKeys.LicenseStatusActive] = Msg(
+                de: "Lizenz aktiv",
+                en: "License is active",
+                tr: "Lisans aktif"),
+            [ApiMessageKeys.LicenseStatusExpiringSoon] = Msg(
+                de: "Lizenz läuft bald ab. Bitte rechtzeitig verlängern.",
+                en: "License expires soon. Please renew before expiry.",
+                tr: "Lisans yakında sona eriyor. Lütfen zamanında yenileyin."),
+            [ApiMessageKeys.LicenseStatusGrace] = Msg(
+                de: "Mandantenlizenz abgelaufen — Grace-Periode aktiv. POS noch nutzbar, danach Sperre.",
+                en: "Tenant license expired — grace period active. POS still usable, then lock.",
+                tr: "Kiracı lisansı sona erdi — grace dönemi aktif. POS hâlâ kullanılabilir, ardından kilit."),
+            [ApiMessageKeys.LicenseStatusLocked] = Msg(
+                de: "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
+                en: "Tenant locked — please activate a tenant license.",
+                tr: "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin."),
+            [ApiMessageKeys.LicenseStatusSystemActiveTenantLocked] = Msg(
+                de: "System aktiv, Mandant gesperrt",
+                en: "System active, tenant locked",
+                tr: "Sistem aktif, kiracı kilitli"),
 
             [ApiMessageKeys.PasswordChangeValidationFailed] = Msg(
                 de: "Das neue Passwort erfüllt nicht alle Anforderungen.",
@@ -125,6 +162,10 @@ public static class ApiMessageCatalog
                 de: "Kasse nicht gefunden",
                 en: "Cash register not found",
                 tr: "Kasa bulunamadı"),
+            [ApiMessageKeys.RegisterOperationNotPermitted] = Msg(
+                de: "Sie haben keine Berechtigung für diese Aktion an dieser Kasse.",
+                en: "You are not allowed to perform this action on this cash register.",
+                tr: "Bu kasada bu işlemi yapma yetkiniz yok."),
             [ApiMessageKeys.RegisterFetchSuccess] = Msg(
                 de: "Kasse erfolgreich abgerufen",
                 en: "Cash register fetched successfully",
@@ -158,13 +199,17 @@ public static class ApiMessageCatalog
                 en: "Cash register is opened by another user.",
                 tr: "Kasa başka bir kullanıcı tarafından açıldı."),
             [ApiMessageKeys.MonthlyReceiptRequired] = Msg(
-                de: "Monatsbeleg muss für den aktuellen Monat erstellt werden.",
-                en: "Monthly receipt must be created for the current month.",
-                tr: "Cari ay için aylık makbuz oluşturulmalıdır."),
+                de: "Monatsbeleg muss für den abgeschlossenen Vormonat erstellt werden.",
+                en: "Monthly receipt must be created for the previous completed calendar month.",
+                tr: "Aylık makbuz, kapanmış önceki ay için oluşturulmalıdır."),
             [ApiMessageKeys.RegisterCannotOpenInState] = Msg(
                 de: "Kasse kann in diesem Zustand nicht geöffnet werden.",
                 en: "Cash register cannot be opened in this state.",
                 tr: "Kasa bu durumda açılamaz."),
+            [ApiMessageKeys.RegisterDecommissionedCannotOpen] = Msg(
+                de: "Diese Kasse wurde stillgelegt und kann nicht mehr geöffnet werden.",
+                en: "This cash register has been decommissioned and can no longer be opened.",
+                tr: "Bu kasa stillgelegt edildi ve artık açılamaz."),
             [ApiMessageKeys.RegisterOpenError] = Msg(
                 de: "Fehler beim Öffnen der Kasse",
                 en: "Error opening cash register",
@@ -177,6 +222,10 @@ public static class ApiMessageCatalog
                 de: "Kasse ist bereits geschlossen",
                 en: "Cash register is already closed",
                 tr: "Kasa zaten kapalı"),
+            [ApiMessageKeys.RegisterHeldByOtherUser] = Msg(
+                de: "Diese Kasse ist in einer anderen Schicht geöffnet. Nur der Schichtinhaber kann sie schließen.",
+                en: "This cash register is open on another shift. Only the shift holder can close it.",
+                tr: "Bu kasa başka bir vardiyada açık. Yalnızca vardiya sahibi kapatabilir."),
             [ApiMessageKeys.RegisterCloseError] = Msg(
                 de: "Fehler beim Schließen der Kasse",
                 en: "Error closing cash register",

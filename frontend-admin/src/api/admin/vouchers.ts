@@ -1,9 +1,13 @@
 /**
  * Admin vouchers API — /api/admin/vouchers (manual client; not generated).
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import { customInstance } from '@/lib/axios';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
+import { buildVoucherExportFileName } from '@/features/vouchers/utils/voucherExportFileName';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 
 const BASE = '/api/admin/vouchers';
 
@@ -87,14 +91,6 @@ export interface VerifyAdminVoucherCodeResponse {
   matches: boolean;
 }
 
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
-
-function unwrapData<T>(res: unknown): T {
-  const r = res as { data?: T };
-  if (r?.data !== undefined) return r.data;
-  return res as T;
-}
-
 export function getAdminVouchers(
   params: { page?: number; pageSize?: number; q?: string },
   options?: SecondParameter<typeof customInstance>,
@@ -120,9 +116,10 @@ export function getAdminVoucherById(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminVoucherDetailDto> {
-  return customInstance<AdminVoucherDetailDto>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<AdminVoucherDetailDto>(res)
-  );
+  return customInstance<AdminVoucherDetailDto>(
+    { url: `${BASE}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminVoucherDetailDto>(res));
 }
 
 export function getAdminVoucherLedger(
@@ -178,10 +175,34 @@ export function verifyAdminVoucherCode(
   ).then((res) => unwrapData<VerifyAdminVoucherCodeResponse>(res));
 }
 
+export type AdminVoucherExportFormat = 'json' | 'csv';
+
+/** Download voucher export; prefers Content-Disposition filename from the API. */
+export async function downloadAdminVoucherExport(
+  format: AdminVoucherExportFormat,
+  options?: { status?: string }
+): Promise<void> {
+  const res = await AXIOS_INSTANCE.get<Blob>(`${BASE}/export`, {
+    params: { format, status: options?.status },
+    responseType: 'blob',
+  });
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const fileName =
+    match?.[1] ?? buildVoucherExportFileName(getEffectiveTenantSlug(), format);
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export const adminVouchersQueryKeys = {
   all: ['admin', 'vouchers'] as const,
   lists: () => [...adminVouchersQueryKeys.all, 'list'] as const,
-  list: (page: number, pageSize: number, q: string) => [...adminVouchersQueryKeys.lists(), page, pageSize, q] as const,
+  list: (page: number, pageSize: number, q: string) =>
+    [...adminVouchersQueryKeys.lists(), page, pageSize, q] as const,
   details: () => [...adminVouchersQueryKeys.all, 'detail'] as const,
   detail: (id: string) => [...adminVouchersQueryKeys.details(), id] as const,
   ledger: (id: string) => [...adminVouchersQueryKeys.all, 'ledger', id] as const,
@@ -255,7 +276,8 @@ export function useVerifyAdminVoucherCode(
   options?: UseMutationOptions<VerifyAdminVoucherCodeResponse, Error, { id: string; code: string }>
 ) {
   return useMutation({
-    mutationFn: ({ id, code }: { id: string; code: string }) => verifyAdminVoucherCode(id, code.trim()),
+    mutationFn: ({ id, code }: { id: string; code: string }) =>
+      verifyAdminVoucherCode(id, code.trim()),
     ...options,
   });
 }

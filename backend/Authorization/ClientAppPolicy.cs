@@ -20,6 +20,7 @@ public static class ClientAppPolicy
     private static readonly IReadOnlySet<string> PosAllowedRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Cashier,
+        Roles.Kitchen,
         Roles.SuperAdmin,
     };
 
@@ -30,6 +31,7 @@ public static class ClientAppPolicy
         Roles.Cashier,
         Roles.Accountant,
         Roles.ReportViewer,
+        Roles.ComplianceOfficer,
     };
 
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> Policies =
@@ -75,7 +77,8 @@ public static class ClientAppPolicy
     /// </summary>
     public static bool CanLoginToPos(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return false;
         var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
         return PosAllowedRoles.Contains(canonical);
     }
@@ -86,7 +89,8 @@ public static class ClientAppPolicy
     /// </summary>
     public static bool CanLoginToAdmin(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return false;
         var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
         return AdminAllowedRoles.Contains(canonical);
     }

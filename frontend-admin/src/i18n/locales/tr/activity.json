@@ -1,0 +1,122 @@
+{
+  "title": "Aktivite günlüğü",
+  "pageIntro": "Denetim kayitlarindan kiraci kapsamli personel aktivitesi. Platform operator islemleri gizlenir.",
+  "shiftReportsLink": "Personel performans raporu",
+  "export": "Dışa aktar",
+  "exportSuccess": "Dışa aktarma başlatıldı",
+  "exportFailed": "Dışa aktarma başarısız",
+  "totalEntries": "{{count}} kayıt",
+  "filters": {
+    "dateRange": "Tarih aralığı",
+    "user": "Kullanıcı",
+    "userPlaceholder": "Kullanıcı",
+    "actionType": "İşlem tipi",
+    "actionTypePlaceholder": "İşlem tipi",
+    "search": "Ara (kullanici, islem…)",
+    "allActions": "Tüm işlemler"
+  },
+  "actions": {
+    "USER_LOGIN": "Giriş",
+    "USER_LOGOUT": "Çıkış",
+    "POS_PAY_OUTCOME": "Satış",
+    "POS_PAY_EX": "Ödeme hatası (POS)",
+    "POS_REG_READY": "Kasa hazırlığı",
+    "PAYMENT_CONFIRM": "Ödeme",
+    "PAYMENT_INITIATE": "Ödeme başlatıldı",
+    "PAYMENT_CANCEL": "Ödeme iptal edildi",
+    "PAYMENT_REFUND": "İade",
+    "PaymentCreated": "Ödeme oluşturuldu",
+    "PaymentReversal": "Storno",
+    "ShiftStarted": "Vardiya açıldı",
+    "ShiftEnded": "Vardiya kapandı",
+    "POS_SPL_RCPT": "Özel fiş",
+    "CUSTOMER_CREATE": "Müşteri eklendi",
+    "CUSTOMER_UPDATE": "Müşteri güncellendi",
+    "USER_UPDATE": "Kullanıcı güncellendi"
+  },
+  "table": {
+    "time": "Zaman",
+    "user": "Kullanıcı",
+    "action": "İşlem",
+    "description": "Açıklama",
+    "details": "Detaylar",
+    "noData": "Aktivite bulunamadı"
+  },
+  "summary": {
+    "title": "Son aktiviteler",
+    "viewAll": "Tümünü göster",
+    "noActivities": "Aktivite yok"
+  },
+  "tabs": {
+    "compliance": "Uyumluluk denetimi",
+    "activity": "Aktivite günlüğü",
+    "operations": "İşlem günlüğü",
+    "staff": "Personel performansı"
+  },
+  "operationLog": {
+    "title": "İşlem günlüğü",
+    "pageIntro": "Geri alınabilir admin değişiklikleri (önceki/sonraki durum). Ödemeler ve mali fişler geri alınamaz.",
+    "loadFailed": "İşlem günlüğü yüklenemedi",
+    "undoSuccess": "İşlem geri alındı",
+    "undoFailed": "Geri alma başarısız",
+    "undoConfirmTitle": "Bu işlem geri alınsın mı?",
+    "undoConfirmContent": "Kaydedilen önceki durum geri yüklenecek. Bu işlem denetlenir.",
+    "detailTitle": "İşlem ayrıntıları",
+    "beforeState": "Önce",
+    "afterState": "Sonra",
+    "unknownUser": "Bilinmiyor",
+    "table": {
+      "time": "Zaman",
+      "user": "Kullanıcı",
+      "operation": "İşlem",
+      "entity": "Varlık",
+      "status": "Durum",
+      "actions": "Eylemler"
+    },
+    "status": {
+      "active": "Aktif",
+      "undone": "Geri alındı"
+    },
+    "actions": {
+      "view": "Ayrıntıları görüntüle",
+      "undo": "Geri al"
+    }
+  },
+  "events": {
+    "unknown": {
+      "title": "Bilinmeyen olay"
+    },
+    "TenantCountryChanged": {
+      "title": "Mandant ülkesi değişti",
+      "description": "Mandantın faaliyet ülkesi veya KDV rejimi değiştirildi."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Geçmiş belgeler korundu",
+      "description": "Mevcut faturalar ve fişler düzenleme anındaki ülkeyi korur."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR fatura verisi oluşturuldu",
+      "description": "İsviçre QR fatura verisi oluşturuldu."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR fatura PDF'i oluşturuldu",
+      "description": "İsviçre QR fatura PDF'i oluşturuldu."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol katılımcısı kaydedildi",
+      "description": "Mandant için bir Peppol katılımcı kimliği kaydedildi."
+    },
+    "EinvoiceValidated": {
+      "title": "E-fatura doğrulandı",
+      "description": "E-fatura Schematron kontrolünden geçti."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-fatura gönderildi",
+      "description": "E-fatura erişim noktasına iletildi."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-fatura gönderimi başarısız",
+      "description": "E-fatura doğrulama veya gönderim sırasında reddedildi."
+    }
+  }
+}

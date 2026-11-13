@@ -77,6 +77,30 @@ Treat **all** of the following as primary evidence:
 
 ---
 
+## 5a. Operator retry and resolve
+
+These actions reset or close a row. They do not change the worker's SOAP submit, claim, or backoff.
+
+| Method | Path | Permission | Result |
+|--------|------|------------|--------|
+| POST | `/api/admin/finanzonline-outbox/{id}/retry` | `finanzonline.submit` | Status `Pending`, `attempt_count` 0, processing fields cleared, worker poll woken. HTTP 200 returns the redacted row. |
+| POST | `/api/admin/finanzonline-outbox/retry-failed` | `finanzonline.submit` | Body `{ cashRegisterId?, fromUtc?, toUtc? }`. Matching failed rows reset the same way. HTTP 200 `{ retriedCount }`. Worker woken once. |
+| POST | `/api/admin/finanzonline-outbox/{id}/mark-resolved` | `system.critical` | Body `{ reason }` required. Status `Resolved` with `resolution_reason`, `resolved_by_user_id`, `resolved_at_utc`. No FinanzOnline submit. |
+
+There is no stored status named `Sent` or `Failed`. Operator "sent" is `ProtocolSuccess` and `AwaitingProtocol` (HTTP 400 `FINANZONLINE_OUTBOX_ALREADY_SENT`). Operator "failed" is `RetryableFailure`, `PermanentFailure`, `ProtocolFailure`, `DeadLetter`, and `ManualReviewRequired`. A row in `Processing` returns HTTP 409. A missing row returns HTTP 404.
+
+**Tenant access.** `finanz_online_outbox_messages.tenant_id` is a string, so the list is not an EF `ITenantEntity` filter. Action endpoints apply an explicit check:
+
+| Caller | Ambient tenant | Row tenant | Result |
+|--------|----------------|------------|--------|
+| Super Admin | set or unset | any, including null / non-Guid | allowed |
+| Mandanten-Admin | matches row (`D` or `N` Guid) | own | allowed |
+| Mandanten-Admin | different tenant, or unset | foreign or unmatched | HTTP 404 |
+
+`/api/admin/finanzonline-outbox` is not a Super Admin ambient-tenant exemption. A Mandanten-Admin call without ambient tenant is still HTTP 404 from `TenantValidationMiddleware` before the action service runs. Audit events: `FinanzOnlineOutboxRetried` (139), `FinanzOnlineOutboxBulkRetried` (140), `FinanzOnlineOutboxMarkedResolved` (141).
+
+---
+
 ## 6. Known failure modes
 
 | Signal | Likely cause | Action |
@@ -120,7 +144,7 @@ Treat **all** of the following as primary evidence:
 | Outbox worker + statuses | `backend/Services/FinanzOnlineIntegration/FinanzOnlineOutbox.cs` (`FinanzOnlineOutboxHostedService`, `FinanzOnlineOutboxStatuses`) |
 | Real TEST rkdb gate | `backend/Services/FinanzOnlineIntegration/FinanzOnlineRegistrierkassenInfrastructure.cs` (`TestModeFinanzOnlineRegistrierkassenClient`) |
 | RKDB XML / belegpruefung | `backend/Services/FinanzOnlineIntegration/SimulatedFinanzOnlineAdapters.cs` (`FinanzOnlineSubmissionService`), `backend/Services/FinanzOnlineService.cs` (`TryResolveRkdbBelegpruefungAsync`) |
-| Admin outbox API | `backend/Controllers/FinanzOnlineOutboxAdminController.cs` — `GET /api/admin/finanzonline-outbox` |
+| Admin outbox API | `backend/Controllers/FinanzOnlineOutboxAdminController.cs` — `GET /api/admin/finanzonline-outbox`, `POST …/{id}/retry`, `POST …/retry-failed`, `POST …/{id}/mark-resolved` |
 | Payment-row reconciliation API | `backend/Controllers/FinanzOnlineReconciliationController.cs` — `GET /api/admin/finanzonline-reconciliation` |
 | Configuration entry points | `backend/Program.cs` (FinanzOnline options + hosted services), `backend/CONFIGURATION.md` |
 | Pilot step-by-step execution (S/F/R, G-steps, evidence YAML) | `docs/finanzonline-pilot-test-execution-plan.md` |

@@ -1,38 +1,41 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using KasseAPI_Final.Auth;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Models.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
+using KasseAPI_Final.Localization;
+using KasseAPI_Final.Logging;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Helpers;
-using KasseAPI_Final.Localization;
-using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Services.Token;
+using KasseAPI_Final.Services.TwoFactor;
+using KasseAPI_Final.Services.Security;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KasseAPI_Final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     /// <summary>
-    /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) must match JWT
-    /// <c>permission</c> claims: both use <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix;
-    /// custom roles → AspNetRoleClaims), same as <see cref="ITokenClaimsService.BuildClaimsAsync"/>.
-    /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else legacy default).
+    /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) use
+    /// <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix; custom roles → AspNetRoleClaims).
+    /// Canonical system-role JWTs omit the permission catalog (cookie size); SuperAdmin keeps <c>system.critical</c>.
+    /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else <c>dev</c>/platform fallback).
     /// GET /me uses <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else default).
     /// </summary>
     public class AuthController : ControllerBase
@@ -49,13 +52,20 @@ namespace KasseAPI_Final.Controllers
         private readonly ILoginTenantResolver _loginTenantResolver;
         private readonly IAuthService _authService;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
-        private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IForgotUsernameEmailService _forgotUsernameEmail;
         private readonly IForgotPasswordEmailService _forgotPasswordEmail;
         private readonly ITenantSessionPolicyService _sessionPolicyService;
         private readonly ISessionService _sessionService;
         private readonly IApiMessageLocalizer _messages;
         private readonly II18nErrorService _i18nErrorService;
+        private readonly IPosShiftService _posShiftService;
+        private readonly IAccountLockoutService _accountLockoutService;
+        private readonly IHostEnvironment _environment;
+        private readonly ITwoFactorChallengeService _twoFactorChallengeService;
+        private readonly ITwoFactorService _twoFactorService;
+        private readonly TwoFactorAuthOptions _twoFactorAuthOptions;
+        private readonly ITokenBlacklistService _tokenBlacklistService;
+        private readonly IAuditLogService _auditLogService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -74,13 +84,20 @@ namespace KasseAPI_Final.Controllers
             ILoginTenantResolver loginTenantResolver,
             IAuthService authService,
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
-            IUserUsernameHistoryService usernameHistory,
             IForgotUsernameEmailService forgotUsernameEmail,
             IForgotPasswordEmailService forgotPasswordEmail,
             ITenantSessionPolicyService sessionPolicyService,
             ISessionService sessionService,
             IApiMessageLocalizer messages,
-            II18nErrorService i18nErrorService)
+            II18nErrorService i18nErrorService,
+            IPosShiftService posShiftService,
+            IAccountLockoutService accountLockoutService,
+            IHostEnvironment environment,
+            ITwoFactorChallengeService twoFactorChallengeService,
+            ITwoFactorService twoFactorService,
+            IOptions<TwoFactorAuthOptions> twoFactorAuthOptions,
+            ITokenBlacklistService tokenBlacklistService,
+            IAuditLogService auditLogService)
         {
             _context = context;
             _userManager = userManager;
@@ -94,13 +111,20 @@ namespace KasseAPI_Final.Controllers
             _loginTenantResolver = loginTenantResolver;
             _authService = authService;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
-            _usernameHistory = usernameHistory;
             _forgotUsernameEmail = forgotUsernameEmail;
             _forgotPasswordEmail = forgotPasswordEmail;
             _sessionPolicyService = sessionPolicyService;
             _sessionService = sessionService;
             _messages = messages;
             _i18nErrorService = i18nErrorService;
+            _posShiftService = posShiftService;
+            _accountLockoutService = accountLockoutService;
+            _environment = environment;
+            _twoFactorChallengeService = twoFactorChallengeService;
+            _twoFactorService = twoFactorService;
+            _twoFactorAuthOptions = twoFactorAuthOptions.Value;
+            _tokenBlacklistService = tokenBlacklistService;
+            _auditLogService = auditLogService;
         }
 
         /// <summary>
@@ -123,7 +147,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Sends login usernames for the given email (admin app). Always returns success to avoid account enumeration.
+        /// Sends the current login username for the given email (admin app). Always returns success to avoid account enumeration.
+        /// Username change history remains in audit tables only — not included in this email.
         /// </summary>
         [AllowAnonymous]
         [HttpPost("forgot-username")]
@@ -149,14 +174,21 @@ namespace KasseAPI_Final.Controllers
                 return Ok(new { message = genericMessage });
             }
 
-            var usernames = await _usernameHistory
-                .GetKnownUsernamesForUserAsync(user.Id, user.UserName, cancellationToken)
-                .ConfigureAwait(false);
+            var usernames = string.IsNullOrWhiteSpace(user.UserName)
+                ? Array.Empty<string>()
+                : new[] { user.UserName.Trim() };
 
-            if (usernames.Count > 0)
+            if (usernames.Length > 0)
             {
+                string? devSummary = null;
+                if (HttpContext.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true)
+                {
+                    devSummary =
+                        $"Matched account: role={user.Role}, current username={user.UserName}, userId={user.Id}";
+                }
+
                 var sent = await _forgotUsernameEmail.TrySendForgotUsernameAsync(
-                    new ForgotUsernameEmailRequest(email, usernames),
+                    new ForgotUsernameEmailRequest(email, usernames, devSummary),
                     cancellationToken).ConfigureAwait(false);
 
                 if (!sent)
@@ -211,6 +243,9 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPost("login")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login(LoginModel model)
         {
             string? loginIdentifier = null;
@@ -227,6 +262,18 @@ namespace KasseAPI_Final.Controllers
                     "Login attempt for user: {LoginMasked}, clientApp: {ClientApp}",
                     MaskLoginIdentifier(loginIdentifier),
                     model.ClientApp ?? "(none)");
+
+                if (_accountLockoutService.IsLockedOut(loginIdentifier))
+                {
+                    _logger.LogWarning(
+                        "Login blocked: account temporarily locked for identifier {LoginMasked}",
+                        MaskLoginIdentifier(loginIdentifier));
+                    return Unauthorized(new ApiErrorResponse
+                    {
+                        Code = "ACCOUNT_LOCKED",
+                        Message = _messages.Get(ApiMessageKeys.AccountTemporarilyLocked),
+                    });
+                }
 
                 if (string.IsNullOrWhiteSpace(model.Password))
                 {
@@ -262,21 +309,25 @@ namespace KasseAPI_Final.Controllers
                     loginCancellation);
                 if (user == null)
                 {
-                    return InvalidLoginCredentials(
+                    _accountLockoutService.RecordFailedAttempt(loginIdentifier);
+                    return await InvalidLoginCredentialsAsync(
                         "User not found",
                         loginMasked: MaskLoginIdentifier(loginIdentifier));
                 }
 
                 if (!user.IsActive)
                 {
-                    return InvalidLoginCredentials("Inactive user", userId: user.Id);
+                    return await InvalidLoginCredentialsAsync("Inactive user", userId: user.Id);
                 }
 
                 var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
                 if (!passwordValid)
                 {
-                    return InvalidLoginCredentials("Invalid password", userId: user.Id);
+                    _accountLockoutService.RecordFailedAttempt(loginIdentifier);
+                    return await InvalidLoginCredentialsAsync("Invalid password", userId: user.Id);
                 }
+
+                _accountLockoutService.ResetAttempts(loginIdentifier);
 
                 // --- Role-level app policy check ---
                 var roles = await _userManager.GetRolesAsync(user);
@@ -294,7 +345,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
-                if (_authOptions.RequireTenantMembershipForLogin)
+                // SuperAdmin is platform-scoped and may only hold sentinel memberships; require
+                // active business-tenant membership for all other roles when the flag is on.
+                if (_authOptions.RequireTenantMembershipForLogin
+                    && !string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
                 {
                     var hasMembership = await _loginTenantResolver.HasActiveMembershipAsync(user.Id, authCt);
                     if (!hasMembership)
@@ -308,16 +362,6 @@ namespace KasseAPI_Final.Controllers
                             code = "TENANT_MEMBERSHIP_REQUIRED",
                         });
                     }
-                }
-
-                // Persist last login for audit and UI (Users list / detail).
-                user.LastLoginAt = DateTime.UtcNow;
-                user.LoginCount++;
-                var updateResult = await _userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    _logger.LogWarning("LastLoginAt/LoginCount update failed for user {UserId}, login will continue. Errors: {Errors}",
-                        user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
                 var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(
@@ -342,69 +386,24 @@ namespace KasseAPI_Final.Controllers
                     });
                 }
 
-                Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
-                    ? loginTenantGuid
-                    : null;
-
-                var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
-                    user.Id,
-                    resolvedClientApp ?? "legacy",
-                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
-                    {
-                        var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
-                            persistedSessionTenantId,
-                            user: null,
-                            authCt);
-                        var claims = await _tokenClaimsService.BuildClaimsAsync(
-                            user,
-                            roles,
-                            tenantId: issuance.TenantId,
-                            branchId: issuance.BranchId,
-                            appContext: resolvedClientApp);
-                        return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
-                    },
-                    sessionTenantId: sessionTenantKey,
-                    clientMetadata: BuildSessionClientMetadata(),
-                    authCt);
-                var permissions = await GetEffectivePermissionsListAsync(
-                    user.Id,
-                    roles,
-                    user.Role,
-                    sessionTenantKey,
-                    resolvedClientApp,
-                    authCt);
-
-                var response = new
+                // Production SuperAdmin: require TOTP before issuing tokens. Development bypasses 2FA.
+                if (IsSuperAdminTwoFactorRequired(canonicalRole))
                 {
-                    token = issuedTokens.AccessToken,
-                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
-                    refreshToken = issuedTokens.RefreshToken,
-                    refreshTokenExpiresAtUtc = issuedTokens.RefreshTokenExpiresAtUtc,
-                    user = new
-                    {
-                        id = user.Id,
-                        email = user.Email,
-                        firstName = user.FirstName,
-                        lastName = user.LastName,
-                        role = canonicalRole,
-                        roles = roles,
-                        permissions = permissions,
-                        isDemo = user.IsDemo,
-                        tenantId = loginTenantSnapshot.TenantId,
-                        tenantDisplayName = loginTenantSnapshot.TenantDisplayName,
-                        tenantSlug = loginTenantSnapshot.TenantSlug,
-                        branchId = loginTenantSnapshot.BranchId,
-                        branchDisplayName = loginTenantSnapshot.BranchDisplayName,
-                        mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
-                    },
-                    appContext = resolvedClientApp
-                };
+                    return await BuildTwoFactorChallengeResponseAsync(
+                        user,
+                        loginIdentifier,
+                        resolvedClientApp,
+                        authCt).ConfigureAwait(false);
+                }
 
-                _logger.LogInformation(
-                    "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
-                    MaskLoginIdentifier(loginIdentifier),
-                    resolvedClientApp ?? "legacy");
-                return Ok(response);
+                return await CompleteSuccessfulLoginAsync(
+                    user,
+                    roles,
+                    canonicalRole,
+                    resolvedClientApp,
+                    loginIdentifier,
+                    loginTenantSnapshot,
+                    authCt).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -413,22 +412,333 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Completes SuperAdmin login after TOTP verification (Production only; Development skips 2FA at login).
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("verify-2fa")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> VerifyTwoFactor([FromBody] VerifyTwoFactorModel? model)
+        {
+            if (model is null
+                || string.IsNullOrWhiteSpace(model.TwoFactorToken)
+                || string.IsNullOrWhiteSpace(model.Code))
+            {
+                return BadRequest(new { message = "twoFactorToken and code are required." });
+            }
+
+            if (!_twoFactorChallengeService.TryConsumeChallenge(model.TwoFactorToken.Trim(), out var challenge)
+                || challenge is null)
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_CHALLENGE_EXPIRED",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorChallengeExpired),
+                });
+            }
+
+            var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+            var user = await _userManager.FindByIdAsync(challenge.UserId).ConfigureAwait(false);
+            if (user is null || !user.IsActive)
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "INVALID_CREDENTIALS",
+                    Message = _messages.Get(ApiMessageKeys.InvalidLoginCredentials),
+                });
+            }
+
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, user.Role);
+            var primaryRole = TokenClaimsService.ResolvePrimaryRole(canonicalRoles);
+            var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
+
+            if (!string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_INVALID",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorInvalid),
+                });
+            }
+
+            var codeValid = await _twoFactorService
+                .VerifyTwoFactorTokenAsync(user, model.Code, authCt)
+                .ConfigureAwait(false);
+
+            if (!codeValid)
+            {
+                _accountLockoutService.RecordFailedAttempt(challenge.LoginIdentifier);
+                _logger.LogWarning("2FA verification failed for user {UserId}", user.Id);
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_INVALID",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorInvalid),
+                });
+            }
+
+            _accountLockoutService.ResetAttempts(challenge.LoginIdentifier);
+
+            if (challenge.SetupRequired || !await _userManager.GetTwoFactorEnabledAsync(user).ConfigureAwait(false))
+            {
+                var enableResult = await _userManager.SetTwoFactorEnabledAsync(user, true).ConfigureAwait(false);
+                if (!enableResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Failed to enable 2FA for user {UserId}: {Errors}",
+                        user.Id,
+                        string.Join("; ", enableResult.Errors.Select(e => e.Description)));
+                    return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.LoginError) });
+                }
+            }
+
+            var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(
+                user.Id,
+                isSuperAdmin: true,
+                authCt).ConfigureAwait(false);
+            if (!tenantAccess.Allowed || tenantAccess.Snapshot is not AuthTenantSnapshot loginTenantSnapshot)
+            {
+                return BadRequest(new
+                {
+                    message = tenantAccess.Message ?? _messages.Get(ApiMessageKeys.TenantMembershipRequired),
+                    code = tenantAccess.Code ?? "TENANT_MEMBERSHIP_REQUIRED",
+                });
+            }
+
+            return await CompleteSuccessfulLoginAsync(
+                user,
+                roles,
+                canonicalRole,
+                challenge.ClientApp,
+                challenge.LoginIdentifier,
+                loginTenantSnapshot,
+                authCt).ConfigureAwait(false);
+        }
+
+        private async Task<IActionResult> BuildTwoFactorChallengeResponseAsync(
+            ApplicationUser user,
+            string loginIdentifier,
+            string? resolvedClientApp,
+            CancellationToken cancellationToken)
+        {
+            _ = cancellationToken;
+            var setupRequired = !await _userManager.GetTwoFactorEnabledAsync(user).ConfigureAwait(false);
+            string? authenticatorKey = null;
+            string? authenticatorUri = null;
+
+            if (setupRequired)
+            {
+                await _userManager.ResetAuthenticatorKeyAsync(user).ConfigureAwait(false);
+                authenticatorKey = await _userManager.GetAuthenticatorKeyAsync(user).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(authenticatorKey))
+                {
+                    _logger.LogError("Failed to create authenticator key for SuperAdmin {UserId}", user.Id);
+                    return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.LoginError) });
+                }
+
+                authenticatorUri = BuildAuthenticatorUri(user, authenticatorKey);
+            }
+
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(5);
+            var token = _twoFactorChallengeService.CreateChallenge(new TwoFactorChallengePayload(
+                user.Id,
+                resolvedClientApp,
+                loginIdentifier,
+                setupRequired,
+                expiresAtUtc));
+
+            _logger.LogInformation(
+                "2FA challenge issued for SuperAdmin {UserId} (setupRequired={SetupRequired})",
+                user.Id,
+                setupRequired);
+
+            return Ok(new LoginTwoFactorChallengeDto
+            {
+                Requires2FA = true,
+                Requires2FASetup = setupRequired,
+                TwoFactorToken = token,
+                IsDevelopment = _twoFactorService.IsDevelopment,
+                AuthenticatorKey = authenticatorKey,
+                AuthenticatorUri = authenticatorUri,
+                DevelopmentBypassCode = _twoFactorService.GenerateTwoFactorToken(user),
+            });
+        }
+
+        private async Task<IActionResult> CompleteSuccessfulLoginAsync(
+            ApplicationUser user,
+            IList<string> roles,
+            string canonicalRole,
+            string? resolvedClientApp,
+            string loginIdentifier,
+            AuthTenantSnapshot loginTenantSnapshot,
+            CancellationToken authCt)
+        {
+            // Persist last login for audit and UI (Users list / detail).
+            user.LastLoginAt = DateTime.UtcNow;
+            user.LoginCount++;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                _logger.LogWarning("LastLoginAt/LoginCount update failed for user {UserId}, login will continue. Errors: {Errors}",
+                    user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
+                ? loginTenantGuid
+                : null;
+
+            var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
+                user.Id,
+                resolvedClientApp ?? "legacy",
+                async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
+                {
+                    var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
+                        persistedSessionTenantId,
+                        user: null,
+                        authCt);
+                    var claims = await _tokenClaimsService.BuildClaimsAsync(
+                        user,
+                        roles,
+                        tenantId: issuance.TenantId,
+                        branchId: issuance.BranchId,
+                        appContext: resolvedClientApp);
+                    return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
+                },
+                sessionTenantId: sessionTenantKey,
+                clientMetadata: BuildSessionClientMetadata(),
+                authCt);
+            var permissions = await GetEffectivePermissionsListAsync(
+                user.Id,
+                roles,
+                user.Role,
+                sessionTenantKey,
+                resolvedClientApp,
+                authCt);
+
+            var response = new
+            {
+                token = issuedTokens.AccessToken,
+                expiresIn = Math.Max(60, (int)(issuedTokens.AccessTokenExpiresAtUtc - DateTime.UtcNow).TotalSeconds),
+                expiresAt = issuedTokens.AccessTokenExpiresAtUtc,
+                refreshToken = issuedTokens.RefreshToken,
+                refreshTokenExpiresAtUtc = issuedTokens.RefreshTokenExpiresAtUtc,
+                requires2FA = false,
+                isDevelopment = _environment.IsDevelopment(),
+                user = new
+                {
+                    id = user.Id,
+                    userName = user.UserName,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    role = canonicalRole,
+                    roles = roles,
+                    permissions = permissions,
+                    isDemo = user.IsDemo,
+                    tenantId = loginTenantSnapshot.TenantId,
+                    tenantDisplayName = loginTenantSnapshot.TenantDisplayName,
+                    tenantSlug = loginTenantSnapshot.TenantSlug,
+                    branchId = loginTenantSnapshot.BranchId,
+                    branchDisplayName = loginTenantSnapshot.BranchDisplayName,
+                    mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
+                },
+                appContext = resolvedClientApp
+            };
+
+            _logger.LogInformation(
+                "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
+                MaskLoginIdentifier(loginIdentifier),
+                resolvedClientApp ?? "legacy");
+
+            await TryLogLoginAuditAsync(
+                AuditEventType.LoginSuccess,
+                user.Id,
+                canonicalRole,
+                sessionTenantKey,
+                description: $"Login success (clientApp={resolvedClientApp ?? "legacy"})",
+                status: AuditLogStatus.Success).ConfigureAwait(false);
+
+            WriteAuthCookies(
+                issuedTokens.AccessToken,
+                issuedTokens.RefreshToken,
+                issuedTokens.AccessTokenExpiresAtUtc,
+                issuedTokens.RefreshTokenExpiresAtUtc,
+                resolvedClientApp);
+
+            return Ok(response);
+        }
+
+        private bool IsSuperAdminTwoFactorRequired(string canonicalRole)
+        {
+            if (!string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+                return false;
+
+            if (!_twoFactorAuthOptions.Enabled)
+                return false;
+
+            // Fail-closed: BypassInDevelopment only applies in Development.
+            if (_environment.IsDevelopment() && _twoFactorAuthOptions.BypassInDevelopment)
+                return false;
+
+            // Legacy Auth:RequireSuperAdminTwoFactor override (unit tests / forced staging).
+            if (_authOptions.RequireSuperAdminTwoFactor is bool forced)
+                return forced;
+
+            // Default: require outside Development (Production / Staging).
+            return !_environment.IsDevelopment();
+        }
+
+        private string BuildAuthenticatorUri(ApplicationUser user, string unformattedKey)
+        {
+            var issuer = Uri.EscapeDataString("Regkasse");
+            var account = Uri.EscapeDataString(
+                user.Email ?? user.UserName ?? user.Id);
+            return $"otpauth://totp/{issuer}:{account}?secret={unformattedKey}&issuer={issuer}&digits=6";
+        }
+
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId()
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                _logger.LogInformation("Logout requested for user: {UserId}", userId);
+                var userEmail = User.GetActorEmail();
+                var userLogLabel = string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim();
+                var userLogId = LogIdFormatting.ShortId(userId);
+
+                _logger.LogInformation(
+                    "Logout requested for user: {UserEmail} ({UserId})",
+                    userLogLabel,
+                    userLogId);
+
+                // Immediate access-token revocation (complements session revoke below).
+                BlacklistCurrentAccessToken();
+
+                var logoutClientApp = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
+                    ?? ResolveAuthCookieClientApp(null);
+
                 var sidRaw = User.FindFirst("sid")?.Value;
                 if (Guid.TryParse(sidRaw, out var sessionId))
                 {
                     await _refreshTokenService.LogoutSessionAsync(sessionId, "logout");
                 }
+
+                // App-scoped refresh revoke: FA logout must not kill POS sessions (and vice versa).
+                await _refreshTokenService.RevokeForUserAndClientAppAsync(
+                    userId,
+                    logoutClientApp,
+                    "logout");
+
+                await RotateSecurityStampForLogoutAsync(userId);
+
+                InvalidateCsrfForLogout();
 
                 // 🧹 KULLANICI SEPETLERİNİ TEMİZLE
                 try
@@ -436,23 +746,58 @@ namespace KasseAPI_Final.Controllers
                     // CartLifecycleService'i IServiceProvider üzerinden al
                     var cartLifecycleService = HttpContext.RequestServices.GetRequiredService<CartLifecycleService>();
                     await cartLifecycleService.CleanupUserCarts(userId);
-                    _logger.LogInformation("User carts cleanup completed for user: {UserId}", userId);
+                    _logger.LogInformation(
+                        "User carts cleanup completed for user: {UserEmail} ({UserId})",
+                        userLogLabel,
+                        userLogId);
                 }
                 catch (Exception cartCleanupEx)
                 {
                     // Cart cleanup hatası logout'u engellemesin
-                    _logger.LogWarning(cartCleanupEx, "Cart cleanup failed for user: {UserId}, but logout will continue", userId);
+                    _logger.LogWarning(
+                        cartCleanupEx,
+                        "Cart cleanup failed for user: {UserEmail} ({UserId}), but logout will continue",
+                        userLogLabel,
+                        userLogId);
                 }
 
-                _logger.LogInformation("Logout successful for user: {UserId}", userId);
-                return Ok(new { message = "Logout successful" });
+                try
+                {
+                    var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                    await _posShiftService.AutoCloseShiftAsync(userId, actorRole);
+                }
+                catch (Exception shiftCloseEx)
+                {
+                    _logger.LogWarning(
+                        shiftCloseEx,
+                        "Auto-close cashier shift failed for user: {UserEmail} ({UserId}), but logout will continue",
+                        userLogLabel,
+                        userLogId);
+                }
+
+                // Audit: UserLogout (never log the raw JWT — blacklist stores a digest only).
+                await TryLogLogoutAuditAsync(userId, reason: "logout");
+
+                _logger.LogInformation(
+                    "Logout successful for user: {UserEmail} ({UserId})",
+                    userLogLabel,
+                    userLogId);
+                ClearAuthCookies(logoutClientApp);
+                return Ok(new { success = true, message = "Logout successful" });
             }
             catch (Exception ex)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-                _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
-                    userId, ex.GetType().Name, ex.Message);
-                
+                var userId = User.GetActorUserId()
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? "Unknown";
+                _logger.LogError(
+                    ex,
+                    "Logout error for user: {UserEmail} ({UserId}). Exception: {ExceptionType}, Message: {ExceptionMessage}",
+                    User.GetActorEmail() ?? "unknown",
+                    LogIdFormatting.ShortId(userId),
+                    ex.GetType().Name,
+                    ex.Message);
+
                 return StatusCode(500, new { message = "Logout failed due to a server error." });
             }
         }
@@ -460,6 +805,8 @@ namespace KasseAPI_Final.Controllers
         /// <summary>GET /me — returns current user; 401 if token missing/invalid or no user id claims.</summary>
         [Authorize]
         [HttpGet("me")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetCurrentUser()
         {
             try
@@ -486,19 +833,25 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                _logger.LogInformation("GetCurrentUser: User ID from token: {UserId}", userId);
+                _logger.LogDebug(
+                    "[Auth] GetCurrentUser - resolving UserId: {UserId}",
+                    LogIdFormatting.ShortId(userId));
 
                 // Kullanıcıyı veritabanından bul
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning("GetCurrentUser: User not found in database for ID: {UserId}", userId);
+                    _logger.LogWarning(
+                        "GetCurrentUser: User not found in database for ID: {UserId}",
+                        LogIdFormatting.ShortId(userId));
                     return NotFound(new { message = "User not found" });
                 }
 
                 if (!user.IsActive)
                 {
-                    _logger.LogWarning("GetCurrentUser: User account is not active for ID: {UserId}", userId);
+                    _logger.LogWarning(
+                        "GetCurrentUser: User account is not active for ID: {UserId}",
+                        LogIdFormatting.ShortId(userId));
                     return BadRequest(new { message = "User account is not active" });
                 }
 
@@ -545,36 +898,60 @@ namespace KasseAPI_Final.Controllers
                     sessionPolicy,
                 };
 
-                _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");
+                _logger.LogInformation(
+                    "[Auth] GetCurrentUser success - User: {User} ({UserId}) | Role: {Role} | Tenant: {Tenant} ({TenantId}) | Client: {Client}",
+                    user.Email ?? "-",
+                    LogIdFormatting.ShortId(user.Id),
+                    canonicalRole,
+                    tenantSnapshot.TenantSlug ?? "-",
+                    LogIdFormatting.ShortId(tenantSnapshot.TenantId),
+                    appContext ?? "none");
                 return Ok(userResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetCurrentUser error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "GetCurrentUser error. Exception: {ExceptionType}, Message: {ExceptionMessage}",
                     ex.GetType().Name, ex.Message);
-                
+
                 return StatusCode(500, new { message = "Error retrieving user information" });
             }
         }
 
-        // 🔄 REFRESH TOKEN - Token süresi dolduğunda yenileme
+        /// <summary>
+        /// Rotates refresh + access tokens (opaque refresh rotation, reuse detection).
+        /// Used by FA silent proactive refresh (~5 min before JWT <c>exp</c>) and 401 recovery.
+        /// Optional <see cref="RefreshRequest.TenantId"/> rebinds JWT <c>tenant_id</c>.
+        /// Browser clients may omit the body token — the HttpOnly app-specific refresh cookie is used
+        /// (<c>rk_admin_refresh_token</c> or <c>rk_pos_refresh_token</c>).
+        /// </summary>
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest? model)
         {
             try
             {
                 _logger.LogInformation("Refresh token request received");
 
-                if (string.IsNullOrWhiteSpace(model.RefreshToken))
+                var refreshClientApp = ResolveAuthCookieClientApp(model?.ClientApp);
+                var refreshToken = model?.RefreshToken;
+                if (string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    refreshToken = TryGetAuthCookieService()?.ReadRefreshToken(Request, refreshClientApp);
+                }
+
+                if (string.IsNullOrWhiteSpace(refreshToken))
                 {
                     return BadRequest(new { message = "Refresh token is required" });
                 }
 
                 var refreshCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+                var tenantOverride = model?.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+
                 var result = await _refreshTokenService.RotateAsync(
-                    model.RefreshToken,
+                    refreshToken,
                     async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
                     {
+                        if (!string.IsNullOrWhiteSpace(clientApp))
+                            refreshClientApp = clientApp;
                         var user = await _userManager.FindByIdAsync(tokenUserId);
                         if (user == null)
                             throw new InvalidOperationException("Refresh token user not found");
@@ -590,29 +967,94 @@ namespace KasseAPI_Final.Controllers
                             branchId: issuance.BranchId,
                             appContext: clientApp);
                         return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
-                    });
+                    },
+                    sessionTenantIdOverride: tenantOverride,
+                    canAssignTenant: tenantOverride.HasValue
+                        ? (userId, targetTenantId, ct) => CanAssignSessionTenantAsync(userId, targetTenantId, ct)
+                        : null,
+                    cancellationToken: refreshCt);
 
                 if (!result.Success || result.Tokens == null)
                 {
+                    if (string.Equals(result.ErrorCode, "tenant_switch_forbidden", StringComparison.Ordinal))
+                    {
+                        return Unauthorized(new { message = "Refresh failed", code = result.ErrorCode });
+                    }
+
                     var code = result.ReuseDetected ? "refresh_token_reuse_detected" : result.ErrorCode;
+                    if (result.ReuseDetected)
+                    {
+                        ClearAuthCookies(refreshClientApp);
+                    }
                     return Unauthorized(new { message = "Refresh failed", code });
                 }
 
+                var accessExpiresAt = result.Tokens.AccessTokenExpiresAtUtc;
+                WriteAuthCookies(
+                    result.Tokens.AccessToken,
+                    result.Tokens.RefreshToken,
+                    accessExpiresAt,
+                    result.Tokens.RefreshTokenExpiresAtUtc,
+                    refreshClientApp);
                 return Ok(new
                 {
                     token = result.Tokens.AccessToken,
-                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
+                    expiresIn = Math.Max(60, (int)(accessExpiresAt - DateTime.UtcNow).TotalSeconds),
+                    expiresAt = accessExpiresAt,
                     refreshToken = result.Tokens.RefreshToken,
                     refreshTokenExpiresAtUtc = result.Tokens.RefreshTokenExpiresAtUtc
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Refresh token error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "Refresh token error. Exception: {ExceptionType}, Message: {ExceptionMessage}",
                     ex.GetType().Name, ex.Message);
-                
+
                 return StatusCode(500, new { message = "Error during token refresh" });
             }
+        }
+
+        /// <summary>
+        /// SuperAdmin may bind any active non-deleted tenant; other users need an active membership.
+        /// </summary>
+        private async Task<bool> CanAssignSessionTenantAsync(
+            string userId,
+            Guid targetTenantId,
+            CancellationToken cancellationToken)
+        {
+            var tenantExists = await _context.Tenants.AsNoTracking()
+                .AnyAsync(
+                    t => t.Id == targetTenantId
+                        && t.IsActive
+                        && !TenantStatuses.RemovedStatuses.Contains(t.Status),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!tenantExists)
+            {
+                return false;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            if (roles.Contains(Roles.SuperAdmin)
+                || string.Equals(user.Role, Roles.SuperAdmin, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return await _context.UserTenantMemberships.IgnoreQueryFilters()
+                .AsNoTracking()
+                .AnyAsync(
+                    m => m.UserId == userId
+                        && m.TenantId == targetTenantId
+                        && m.IsActive,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
         [HttpPost("register")]
@@ -641,7 +1083,7 @@ namespace KasseAPI_Final.Controllers
                     EmployeeNumber = model.EmployeeNumber ?? string.Empty,
                     IsActive = true
                 };
-                
+
                 await using var tx = await _context.Database.BeginTransactionAsync(regCt);
                 try
                 {
@@ -667,14 +1109,14 @@ namespace KasseAPI_Final.Controllers
 
                     await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
                         user.Id,
-                        LegacyDefaultTenantIds.Primary,
+                        SystemTenantIds.Platform,
                         cancellationToken: regCt);
                     await tx.CommitAsync(regCt);
                 }
                 catch (Exception ex)
                 {
                     await tx.RollbackAsync(regCt);
-                    _logger.LogError(ex, "Registration failed (rolled back) for email {Email}", model.Email);
+                    _logger.LogError(ex, "Registration failed (rolled back) for email {EmailMasked}", EmailLogMask.Mask(model.Email));
                     return StatusCode(500, new { message = "Registrierung fehlgeschlagen.", code = "REGISTRATION_TRANSACTION_FAILED" });
                 }
 
@@ -695,7 +1137,26 @@ namespace KasseAPI_Final.Controllers
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized(new { message = "User not authenticated" });
 
+            BlacklistCurrentAccessToken();
+
+            try
+            {
+                var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                await _posShiftService.AutoCloseShiftAsync(userId, actorRole);
+            }
+            catch (Exception shiftCloseEx)
+            {
+                _logger.LogWarning(
+                    shiftCloseEx,
+                    "Auto-close cashier shift failed for user: {UserId} during logout-all, continuing",
+                    userId);
+            }
+
             await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
+            await RotateSecurityStampForLogoutAsync(userId);
+            await TryLogLogoutAuditAsync(userId, reason: "logout_all");
+            InvalidateCsrfForLogout();
+            ClearAuthCookies(clientApp: null);
             return Ok(new { message = "All sessions invalidated" });
         }
 
@@ -712,12 +1173,196 @@ namespace KasseAPI_Final.Controllers
             return Ok(new { message = "Refresh token revoked" });
         }
 
+        private void BlacklistCurrentAccessToken()
+        {
+            var authHeader = Request.Headers.Authorization.ToString();
+            string? token = null;
+            if (!string.IsNullOrWhiteSpace(authHeader))
+            {
+                token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                    ? authHeader[7..].Trim()
+                    : authHeader.Trim();
+            }
+
+            token ??= TryGetAuthCookieService()?.ReadAccessToken(
+                Request,
+                User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
+                ?? ResolveAuthCookieClientApp(null));
+
+            if (string.IsNullOrEmpty(token))
+                return;
+
+            var expiry = DateTime.UtcNow.AddMinutes(Math.Max(1, _authOptions.AccessTokenLifetimeMinutes));
+            var expRaw = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value
+                ?? User.FindFirst("exp")?.Value;
+            if (long.TryParse(expRaw, out var expUnix))
+            {
+                expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+            }
+
+            _tokenBlacklistService.BlacklistToken(token, expiry);
+        }
+
+        private async Task TryLogLoginAuditAsync(
+            AuditEventType actionType,
+            string actorUserId,
+            string actorRole,
+            Guid? tenantId,
+            string description,
+            AuditLogStatus status,
+            string? reason = null)
+        {
+            try
+            {
+                await _auditLogService.LogUserLifecycleAsync(
+                    actionType,
+                    actorUserId,
+                    actorRole,
+                    actorUserId,
+                    tenantId,
+                    reason: reason,
+                    description: description,
+                    status: status).ConfigureAwait(false);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(
+                    auditEx,
+                    "Failed to write login audit {ActionType} for user {UserId}",
+                    actionType,
+                    actorUserId);
+            }
+        }
+
+        private async Task TryLogLogoutAuditAsync(string userId, string reason)
+        {
+            try
+            {
+                Guid? tenantId = null;
+                var tenantRaw = User.FindFirst("tenant_id")?.Value;
+                if (Guid.TryParse(tenantRaw, out var parsedTenant))
+                    tenantId = parsedTenant;
+
+                var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                await _auditLogService.LogUserLifecycleAsync(
+                    AuditEventType.UserLogout,
+                    userId,
+                    actorRole,
+                    userId,
+                    tenantId,
+                    reason: reason,
+                    description: $"User logout ({reason})");
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(auditEx, "Failed to write logout audit for user {UserId}", userId);
+            }
+        }
+
         private SessionClientMetadata BuildSessionClientMetadata()
         {
             var deviceId = Request.Headers["X-Device-Id"].FirstOrDefault();
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = Request.Headers.UserAgent.FirstOrDefault();
             return new SessionClientMetadata(deviceId, ip, userAgent);
+        }
+
+        private void WriteAuthCookies(
+            string accessToken,
+            string refreshToken,
+            DateTime accessExpiresUtc,
+            DateTime refreshExpiresUtc,
+            string? clientApp)
+        {
+            TryGetAuthCookieService()
+                ?.AppendAuthCookies(Response, accessToken, refreshToken, accessExpiresUtc, refreshExpiresUtc, clientApp);
+        }
+
+        private void ClearAuthCookies(string? clientApp = null)
+        {
+            TryGetAuthCookieService()?.ClearAuthCookies(Response, clientApp);
+        }
+
+        /// <summary>
+        /// Rotates Identity <c>SecurityStamp</c> so outstanding JWTs fail <c>sst</c> checks.
+        /// Per-app refresh sessions stay intact until revoked above; the other app can recover via refresh.
+        /// Failures must not block logout.
+        /// </summary>
+        private async Task RotateSecurityStampForLogoutAsync(string userId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+                if (user == null)
+                    return;
+
+                var stampResult = await _userManager.UpdateSecurityStampAsync(user).ConfigureAwait(false);
+                if (!stampResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Security stamp rotation failed during logout for user {UserId}: {Errors}",
+                        userId,
+                        string.Join("; ", stampResult.Errors.Select(e => e.Description)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Security stamp rotation failed during logout for user {UserId}; logout continues",
+                    userId);
+            }
+        }
+
+        /// <summary>
+        /// Drops the current request CSRF token from the server cache and expires the cookie
+        /// so a stolen XSRF-TOKEN cannot be reused after logout.
+        /// </summary>
+        private void InvalidateCsrfForLogout()
+        {
+            try
+            {
+                var csrf = HttpContext?.RequestServices.GetService<ICsrfTokenService>();
+                var csrfOptions = HttpContext?.RequestServices.GetService<IOptionsMonitor<CsrfOptions>>()?.CurrentValue;
+                var cookieName = string.IsNullOrWhiteSpace(csrfOptions?.CookieName)
+                    ? "XSRF-TOKEN"
+                    : csrfOptions!.CookieName.Trim();
+                var headerName = string.IsNullOrWhiteSpace(csrfOptions?.HeaderName)
+                    ? "X-XSRF-TOKEN"
+                    : csrfOptions!.HeaderName.Trim();
+
+                csrf?.InvalidateToken(Request.Cookies[cookieName]);
+                csrf?.InvalidateToken(Request.Headers[headerName].FirstOrDefault());
+
+                var expired = new CookieOptions
+                {
+                    HttpOnly = false,
+                    Path = "/",
+                    MaxAge = TimeSpan.Zero,
+                    Expires = DateTimeOffset.UnixEpoch,
+                    Secure = !_environment.IsDevelopment(),
+                    SameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                    IsEssential = true,
+                };
+                Response.Cookies.Append(cookieName, string.Empty, expired);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CSRF invalidation on logout failed; continuing logout");
+            }
+        }
+
+        private string? ResolveAuthCookieClientApp(string? explicitClientApp)
+        {
+            return AuthCookieService.ResolveClientApp(Request, explicitClientApp);
+        }
+
+        private IAuthCookieService? TryGetAuthCookieService()
+        {
+            var services = HttpContext?.Features
+                .Get<Microsoft.AspNetCore.Http.Features.IServiceProvidersFeature>()
+                ?.RequestServices;
+            return services?.GetService<IAuthCookieService>();
         }
 
         private string GenerateJwtToken(IReadOnlyList<Claim> baseClaims, string jti, Guid sessionId, DateTime expiresAtUtc)
@@ -729,7 +1374,7 @@ namespace KasseAPI_Final.Controllers
             claims.Add(new Claim(JwtRegisteredClaimNames.Jti, jti));
             claims.Add(new Claim("sid", sessionId.ToString()));
 
-            var token = new JwtSecurityToken(
+            var jwt = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
@@ -737,7 +1382,9 @@ namespace KasseAPI_Final.Controllers
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var encoded = new JwtSecurityTokenHandler().WriteToken(jwt);
+            JwtCookieBudget.LogIfExceeded(_logger, encoded, _configuration);
+            return encoded;
         }
 
         private static string MaskEmail(string? email)
@@ -765,7 +1412,10 @@ namespace KasseAPI_Final.Controllers
             string.Equals(error.Code, "DuplicateEmail", StringComparison.Ordinal)
             || string.Equals(error.Code, "DuplicateUserName", StringComparison.Ordinal);
 
-        private IActionResult InvalidLoginCredentials(string logReason, string? loginMasked = null, string? userId = null)
+        private async Task<IActionResult> InvalidLoginCredentialsAsync(
+            string logReason,
+            string? loginMasked = null,
+            string? userId = null)
         {
             if (!string.IsNullOrEmpty(userId))
             {
@@ -778,6 +1428,15 @@ namespace KasseAPI_Final.Controllers
                     logReason,
                     loginMasked ?? "unknown");
             }
+
+            await TryLogLoginAuditAsync(
+                AuditEventType.LoginFailed,
+                actorUserId: string.IsNullOrEmpty(userId) ? "anonymous" : userId,
+                actorRole: Roles.FallbackUnknown,
+                tenantId: null,
+                description: $"Login failed ({logReason})",
+                status: AuditLogStatus.Failed,
+                reason: logReason).ConfigureAwait(false);
 
             return Unauthorized(new ApiErrorResponse
             {
@@ -799,7 +1458,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Effective permissions for API JSON: same set as embedded in JWT via <see cref="ITokenClaimsService"/>.
+        /// Effective permissions for API JSON (login /me). Canonical system-role JWTs omit this catalog.
         /// Sorted for stable serialization (JWT claim order is not significant for authorization).
         /// </summary>
         private async Task<List<string>> GetEffectivePermissionsListAsync(

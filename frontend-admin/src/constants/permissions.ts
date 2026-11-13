@@ -5,19 +5,22 @@
  * Full route guard map: `shared/auth/routePermissions.ts` (`ROUTE_PERMISSIONS`).
  * Runtime checks: `shared/auth/menuPermissions.ts` (`isMenuItemAllowed`).
  */
-
-export {
+import {
+  ANY_AUTHENTICATED_PERMISSION,
   AppPermissions,
   PERMISSIONS,
-  ANY_AUTHENTICATED_PERMISSION,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-  type Permission,
-  type UserWithPermissions,
 } from '@/shared/auth/permissions';
 
-import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/shared/auth/permissions';
+export {
+  ANY_AUTHENTICATED_PERMISSION,
+  AppPermissions,
+  hasAllPermissions,
+  hasAnyPermission,
+  hasPermission,
+  type Permission,
+  PERMISSIONS,
+  type UserWithPermissions,
+} from '@/shared/auth/permissions';
 
 /**
  * Primary sidebar routes → required permission(s).
@@ -26,6 +29,7 @@ import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/sha
  * - `string[]` = any one of the listed permissions.
  *
  * Paths use actual App Router hrefs (not legacy aliases).
+ * Must stay aligned with `ROUTE_PERMISSIONS` (see `constants/__tests__/permissions.test.ts`).
  */
 export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   // Dashboard — visible to all authenticated tenant users
@@ -36,13 +40,17 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
 
   // Access & roles hub
   '/admin/access': PERMISSIONS.USER_VIEW,
-  '/admin/access/roles': PERMISSIONS.ROLE_VIEW,
+  '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
+  '/admin/access/permission-history': PERMISSIONS.AUDIT_VIEW,
 
   // Tenant management (Super Admin)
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
+  '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
-  '/admin/cash-registers': AppPermissions.CashRegisterView,
+  '/admin/license-management': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
+  '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
 
   // Cash register management
   '/kassenverwaltung': AppPermissions.CashRegisterManage,
@@ -56,15 +64,64 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/reporting': PERMISSIONS.REPORT_VIEW,
   '/admin/reports': PERMISSIONS.REPORT_VIEW,
 
-  // Settings
-  '/settings/company': PERMISSIONS.SETTINGS_VIEW,
+  // Settings hub & sub-routes
+  '/settings': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/password': ANY_AUTHENTICATED_PERMISSION,
+  '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/receipt': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/website': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_PREVIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.DIGITAL_CREATE,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/settings/digital': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/digital/customer-portal': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/digital': [
+    PERMISSIONS.DIGITAL_MANAGE,
+    PERMISSIONS.DIGITAL_ACTIVATE,
+    PERMISSIONS.DIGITAL_PRICING_MANAGE,
+    PERMISSIONS.SYSTEM_CRITICAL,
+  ],
+  '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-order-integrations': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/sessions': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
+  '/backup': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
+  '/backup/configuration/platform': PERMISSIONS.SETTINGS_MANAGE,
+  '/backup/audit': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/config': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/mwst': [PERMISSIONS.SYSTEM_CRITICAL],
 
-  // Backup
+  // Backup (legacy redirect)
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
 
   // Audit log

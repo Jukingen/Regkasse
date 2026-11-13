@@ -9,11 +9,16 @@ namespace KasseAPI_Final.Services.Email;
 public sealed class InvoiceEmailService : IInvoiceEmailService
 {
     private readonly EmailSmtpOptions _options;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<InvoiceEmailService> _logger;
 
-    public InvoiceEmailService(IOptions<EmailSmtpOptions> options, ILogger<InvoiceEmailService> logger)
+    public InvoiceEmailService(
+        IOptions<EmailSmtpOptions> options,
+        IFileNamingService fileNaming,
+        ILogger<InvoiceEmailService> logger)
     {
         _options = options.Value;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -38,7 +43,12 @@ public sealed class InvoiceEmailService : IInvoiceEmailService
 
         var subject = $"Ihre Rechnung #{invoice.InvoiceNumber}";
         var body = BuildEmailBody(invoice);
-        var fileName = $"Rechnung_{invoice.InvoiceNumber}.pdf";
+        var fileName = _fileNaming.GenerateFileName(
+            InvoiceExportFileNames.PdfPrefix,
+            "pdf",
+            registerId: string.IsNullOrWhiteSpace(invoice.KassenId) ? null : invoice.KassenId,
+            additional: invoice.InvoiceNumber,
+            tenantSlug: invoice.Tenant?.Slug);
 
         using var msg = new MailMessage
         {
@@ -68,12 +78,12 @@ public sealed class InvoiceEmailService : IInvoiceEmailService
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Invoice {InvoiceNumber} emailed to {Recipient}.", invoice.InvoiceNumber, to);
+            _logger.LogInformation("Invoice {InvoiceNumber} emailed to {RecipientMasked}.", invoice.InvoiceNumber, EmailLogMask.Mask(to));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Invoice {InvoiceNumber} could not be emailed to {Recipient}.", invoice.InvoiceNumber, to);
+            _logger.LogWarning(ex, "Invoice {InvoiceNumber} could not be emailed to {RecipientMasked}.", invoice.InvoiceNumber, EmailLogMask.Mask(to));
             return false;
         }
 #pragma warning restore SYSLIB0014

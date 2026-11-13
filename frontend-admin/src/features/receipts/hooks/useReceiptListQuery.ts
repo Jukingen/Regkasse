@@ -1,19 +1,18 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import type {
-    ReceiptListParams,
-} from '@/features/receipts/types/receipts';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+
 import { getReceiptListForensics } from '@/features/receipts/api/forensics-client';
+import type { ReceiptListParams } from '@/features/receipts/types/receipts';
 
 // ---------------------------------------------------------------------------
 // Query Key Factory
 // ---------------------------------------------------------------------------
 
 export const RECEIPT_KEYS = {
-    all: ['admin', 'receipts'] as const,
-    lists: () => [...RECEIPT_KEYS.all, 'list'] as const,
-    list: (params: ReceiptListParams) => [...RECEIPT_KEYS.lists(), params] as const,
-    details: () => [...RECEIPT_KEYS.all, 'detail'] as const,
-    detail: (id: string) => [...RECEIPT_KEYS.details(), id] as const,
+  all: ['admin', 'receipts'] as const,
+  lists: () => [...RECEIPT_KEYS.all, 'list'] as const,
+  list: (params: ReceiptListParams) => [...RECEIPT_KEYS.lists(), params] as const,
+  details: () => [...RECEIPT_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...RECEIPT_KEYS.details(), id] as const,
 } as const;
 
 /**
@@ -25,10 +24,10 @@ export const RECEIPT_KEYS = {
  *   separation per filter+page combo.
  */
 export function useReceiptListQuery(params: ReceiptListParams) {
-    return useQuery({
-        queryKey: RECEIPT_KEYS.list(params),
-        queryFn: () => getReceiptListForensics(params),
-        placeholderData: keepPreviousData,
-        staleTime: 30_000, // match global default
-    });
+  return useQuery({
+    queryKey: RECEIPT_KEYS.list(params),
+    queryFn: () => getReceiptListForensics(params),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000, // match global default
+  });
 }

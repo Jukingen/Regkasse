@@ -1,5 +1,3 @@
-using System.Linq;
-using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Xunit;
@@ -46,6 +44,13 @@ public class TokenClaimsServiceTenantClaimTests
         public Task<IReadOnlySet<string>> GetEffectivePermissionsAsync(
             string userId,
             IEnumerable<string> roleNames,
+            Guid? tenantId = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlySet<string>>(_perms);
+
+        public Task<IReadOnlySet<string>> GetEffectivePermissionsWithRoleOverrideAsync(
+            string userId,
+            IReadOnlySet<string> rolePermissions,
             Guid? tenantId = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlySet<string>>(_perms);

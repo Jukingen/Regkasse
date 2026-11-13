@@ -1,0 +1,39 @@
+# -----------------------------------------------------------------------------
+# Local development overrides — auto-merged with docker-compose.yml
+#
+#   docker compose up --build
+#   → loads docker-compose.yml + this file
+#
+# Production / self-hosted must NOT use this file:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Soft TSE / FON simulation is intentional for Development only.
+# See docs/ENVIRONMENT_CONFIGURATION.md and docs/TSE_PRODUCTION_CONFIG_LOCK.md.
+# -----------------------------------------------------------------------------
+
+services:
+  backend:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Soft TSE (payment / QR policy) + fake closing signatures
+      Tse__TseMode: Demo
+      Tse__Mode: Fake
+      Tse__Provider: fake
+      Tse__Environment: Test
+      Tse__AllowSimulatedDailyClosing: 'true'
+      Tse__AllowUnsafeFiscalModesInProduction: 'false'
+      # RKSV label layer (must stay Demo/Simulation in Development)
+      RKSV__Mode: Demo
+      RKSV__TseMode: Simulation
+      RKSV__FinanzOnlineMode: Simulation
+      RKSV__ShowDemoLabel: 'true'
+      # FinanzOnline transport simulation (nested flags — not FinanzOnline__UseSimulation)
+      FinanzOnline__Mode: Simulation
+      FinanzOnline__Session__UseSimulation: 'true'
+      FinanzOnline__Registrierkassen__UseSimulation: 'true'
+      FinanzOnline__TransmissionQuery__UseSimulation: 'true'
+      # Dev-friendly auth / CSRF (also set in base compose; reinforced here)
+      TwoFactorAuth__Enabled: 'false'
+      TwoFactorAuth__BypassInDevelopment: 'true'
+      Security__Csrf__Enabled: 'false'
+      Security__Csrf__BypassInDevelopment: 'true'

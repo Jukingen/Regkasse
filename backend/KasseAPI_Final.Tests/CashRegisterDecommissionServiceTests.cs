@@ -1,10 +1,10 @@
-using Xunit;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using Xunit;
 
 namespace KasseAPI_Final.Tests;
 

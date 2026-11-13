@@ -9,54 +9,51 @@ describe('buildPaymentMethodMatrix', () => {
       { id: 'r2', registerNumber: 'K-02', location: 'Terrasse' },
     ] as const;
 
-    const { rows, summaries } = buildPaymentMethodMatrix(
-      [...registers],
-      {
-        r1: [
-          {
-            id: '1',
-            cashRegisterId: 'r1',
-            code: 'cash',
-            name: 'Bar',
-            isActive: true,
-            isDefault: true,
-            displayOrder: 10,
-            legacyPaymentMethodValue: 0,
-            requiresTerminal: false,
-            allowRefund: true,
-            createdAtUtc: '',
-          },
-          {
-            id: '2',
-            cashRegisterId: 'r1',
-            code: 'card',
-            name: 'Karte',
-            isActive: false,
-            isDefault: false,
-            displayOrder: 20,
-            legacyPaymentMethodValue: 1,
-            requiresTerminal: true,
-            allowRefund: true,
-            createdAtUtc: '',
-          },
-        ],
-        r2: [
-          {
-            id: '3',
-            cashRegisterId: 'r2',
-            code: 'cash',
-            name: 'Bar',
-            isActive: true,
-            isDefault: true,
-            displayOrder: 10,
-            legacyPaymentMethodValue: 0,
-            requiresTerminal: false,
-            allowRefund: true,
-            createdAtUtc: '',
-          },
-        ],
-      },
-    );
+    const { rows, summaries } = buildPaymentMethodMatrix([...registers], {
+      r1: [
+        {
+          id: '1',
+          cashRegisterId: 'r1',
+          code: 'cash',
+          name: 'Bar',
+          isActive: true,
+          isDefault: true,
+          displayOrder: 10,
+          legacyPaymentMethodValue: 0,
+          requiresTerminal: false,
+          allowRefund: true,
+          createdAtUtc: '',
+        },
+        {
+          id: '2',
+          cashRegisterId: 'r1',
+          code: 'card',
+          name: 'Karte',
+          isActive: false,
+          isDefault: false,
+          displayOrder: 20,
+          legacyPaymentMethodValue: 1,
+          requiresTerminal: true,
+          allowRefund: true,
+          createdAtUtc: '',
+        },
+      ],
+      r2: [
+        {
+          id: '3',
+          cashRegisterId: 'r2',
+          code: 'cash',
+          name: 'Bar',
+          isActive: true,
+          isDefault: true,
+          displayOrder: 10,
+          legacyPaymentMethodValue: 0,
+          requiresTerminal: false,
+          allowRefund: true,
+          createdAtUtc: '',
+        },
+      ],
+    });
 
     expect(rows).toHaveLength(2);
     expect(rows[0]?.code).toBe('cash');

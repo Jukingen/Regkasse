@@ -1,6 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 interface ErrorMessageProps {
   message: string;
@@ -11,7 +11,7 @@ interface ErrorMessageProps {
 export const ErrorMessage: React.FC<ErrorMessageProps> = ({
   message,
   type = 'error',
-  showIcon = true
+  showIcon = true,
 }) => {
   const getTypeStyles = () => {
     switch (type) {
@@ -21,7 +21,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           borderColor: '#ffeaa7',
           textColor: '#856404',
           iconColor: '#f39c12',
-          iconName: 'warning-outline'
+          iconName: 'warning-outline' as const,
         };
       case 'info':
         return {
@@ -29,7 +29,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           borderColor: '#bee5eb',
           textColor: '#0c5460',
           iconColor: '#17a2b8',
-          iconName: 'information-circle-outline'
+          iconName: 'information-circle-outline' as const,
         };
       default: // error
         return {
@@ -37,26 +37,28 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           borderColor: '#f5c6cb',
           textColor: '#721c24',
           iconColor: '#dc3545',
-          iconName: 'alert-circle-outline'
+          iconName: 'alert-circle-outline' as const,
         };
     }
   };
 
-  const styles = getTypeStyles();
+  const typeStyles = getTypeStyles();
 
   return (
-    <View style={[styles.container, { backgroundColor: styles.backgroundColor, borderColor: styles.borderColor }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: typeStyles.backgroundColor, borderColor: typeStyles.borderColor },
+      ]}>
       {showIcon && (
-        <Ionicons 
-          name={styles.iconName as any} 
-          size={16} 
-          color={styles.iconColor} 
+        <Ionicons
+          name={typeStyles.iconName}
+          size={16}
+          color={typeStyles.iconColor}
           style={styles.icon}
         />
       )}
-      <Text style={[styles.text, { color: styles.textColor }]}>
-        {message}
-      </Text>
+      <Text style={[styles.text, { color: typeStyles.textColor }]}>{message}</Text>
     </View>
   );
 };

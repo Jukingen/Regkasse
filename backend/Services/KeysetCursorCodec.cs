@@ -31,8 +31,12 @@ public readonly record struct KeysetCursor(DateTime SortValueUtc, Guid Id)
             var normalized = encoded.Trim().Replace('-', '+').Replace('_', '/');
             switch (normalized.Length % 4)
             {
-                case 2: normalized += "=="; break;
-                case 3: normalized += "="; break;
+                case 2:
+                    normalized += "==";
+                    break;
+                case 3:
+                    normalized += "=";
+                    break;
             }
 
             var json = Encoding.UTF8.GetString(Convert.FromBase64String(normalized));

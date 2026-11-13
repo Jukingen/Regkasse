@@ -1,13 +1,8 @@
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
+using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Middleware;
 

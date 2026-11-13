@@ -50,7 +50,7 @@ export function useFormState<T extends Record<string, any>>(
     showErrorAlert = false,
     showSuccessAlert = false,
     successMessage,
-    errorMessage
+    errorMessage,
   } = options;
 
   const [state, setState] = useState<FormState<T>>({
@@ -60,7 +60,7 @@ export function useFormState<T extends Record<string, any>>(
     isValid: true,
     isSubmitting: false,
     isSubmitted: false,
-    submitCount: 0
+    submitCount: 0,
   });
 
   const initialValuesRef = useRef(initialValues);
@@ -71,20 +71,20 @@ export function useFormState<T extends Record<string, any>>(
     const errors = validationSchema(state.values);
     const hasErrors = Object.keys(errors).length > 0;
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       errors,
-      isValid: !hasErrors
+      isValid: !hasErrors,
     }));
 
     return !hasErrors;
   }, [state.values, validationSchema]);
 
   const setValue = useCallback((field: keyof T, value: T[keyof T]) => {
-    setState(prev => {
+    setState((prev) => {
       const newValues = { ...prev.values, [field]: value };
       const newErrors = { ...prev.errors };
-      
+
       // Field error'ını temizle
       if (newErrors[field]) {
         delete newErrors[field];
@@ -94,38 +94,38 @@ export function useFormState<T extends Record<string, any>>(
         ...prev,
         values: newValues,
         errors: newErrors,
-        isValid: Object.keys(newErrors).length === 0
+        isValid: Object.keys(newErrors).length === 0,
       };
     });
   }, []);
 
   const setError = useCallback((field: keyof T, error: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       errors: { ...prev.errors, [field]: error },
-      isValid: false
+      isValid: false,
     }));
   }, []);
 
   const setTouched = useCallback((field: keyof T, touched: boolean) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      touched: { ...prev.touched, [field]: touched }
+      touched: { ...prev.touched, [field]: touched },
     }));
   }, []);
 
   const setValues = useCallback((values: Partial<T>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      values: { ...prev.values, ...values }
+      values: { ...prev.values, ...values },
     }));
   }, []);
 
   const setErrors = useCallback((errors: Partial<Record<keyof T, string>>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       errors,
-      isValid: Object.keys(errors).length === 0
+      isValid: Object.keys(errors).length === 0,
     }));
   }, []);
 
@@ -137,63 +137,72 @@ export function useFormState<T extends Record<string, any>>(
       isValid: true,
       isSubmitting: false,
       isSubmitted: false,
-      submitCount: 0
+      submitCount: 0,
     });
   }, []);
 
-  const submit = useCallback(async (onSubmit: (values: T) => Promise<void>) => {
-    // Form validation
-    if (!validate()) {
-      if (showErrorAlert) {
-        Alert.alert('Validation Error', 'Please check your input and try again.');
+  const submit = useCallback(
+    async (onSubmit: (values: T) => Promise<void>) => {
+      // Form validation
+      if (!validate()) {
+        if (showErrorAlert) {
+          Alert.alert('Validation Error', 'Please check your input and try again.');
+        }
+        return;
       }
-      return;
-    }
 
-    setState(prev => ({
-      ...prev,
-      isSubmitting: true,
-      isSubmitted: false
-    }));
-
-    try {
-      await onSubmit(state.values);
-      
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        isSubmitting: false,
-        isSubmitted: true,
-        submitCount: prev.submitCount + 1
+        isSubmitting: true,
+        isSubmitted: false,
       }));
 
-      if (showSuccessAlert && successMessage) {
-        Alert.alert('Success', successMessage);
+      try {
+        await onSubmit(state.values);
+
+        setState((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          isSubmitted: true,
+          submitCount: prev.submitCount + 1,
+        }));
+
+        if (showSuccessAlert && successMessage) {
+          Alert.alert('Success', successMessage);
+        }
+      } catch (error: any) {
+        const finalErrorMessage = errorMessage || error?.message || 'Submission failed';
+
+        setState((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          isSubmitted: false,
+        }));
+
+        if (showErrorAlert) {
+          Alert.alert('Error', finalErrorMessage);
+        }
+
+        throw error;
       }
+    },
+    [state.values, validate, showErrorAlert, showSuccessAlert, successMessage, errorMessage]
+  );
 
-    } catch (error: any) {
-      const finalErrorMessage = errorMessage || error?.message || 'Submission failed';
-      
-      setState(prev => ({
-        ...prev,
-        isSubmitting: false,
-        isSubmitted: false
-      }));
-
-      if (showErrorAlert) {
-        Alert.alert('Error', finalErrorMessage);
-      }
-
-      throw error;
-    }
-  }, [state.values, validate, showErrorAlert, showSuccessAlert, successMessage, errorMessage]);
-
-  const getFieldProps = useCallback((field: keyof T) => ({
-    value: state.values[field],
-    error: state.errors[field] || null,
-    touched: state.touched[field] || false,
-    onChange: (value: T[keyof T]) => setValue(field, value),
-    onBlur: () => setTouched(field, true)
-  }), [state.values, state.errors, state.touched, setValue, setTouched]);
+  const getFieldProps = useCallback(
+    (field: keyof T) => ({
+      value: state.values[field],
+      error: state.errors[field] || null,
+      touched: state.touched[field] || false,
+      onChange: (value: T[keyof T]) => {
+        setValue(field, value);
+      },
+      onBlur: () => {
+        setTouched(field, true);
+      },
+    }),
+    [state.values, state.errors, state.touched, setValue, setTouched]
+  );
 
   return [
     state,
@@ -206,7 +215,7 @@ export function useFormState<T extends Record<string, any>>(
       reset,
       validate,
       submit,
-      getFieldProps
-    }
+      getFieldProps,
+    },
   ];
-} 
+}

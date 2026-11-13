@@ -1,0 +1,75 @@
+/**
+ * Keyboard shortcut UI — save button, help modal kbd chips, optional search overlay.
+ * Imported via `app/globals.css`.
+ */
+
+/* —— Search overlay (optional full-screen host; header SearchBar is the default) —— */
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.search-input {
+  width: 500px;
+  max-width: 90%;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.search-hint {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.search-hint kbd {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* —— Header search shortcut chips (GlobalSearch / SearchBar) —— */
+.admin-header-nav-search-shortcut-hint {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.admin-header-nav-search-shortcut-hint kbd,
+.keyboard-shortcuts-help-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 4px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* —— Save button (Ctrl/Cmd+S) —— */
+.save-button.ant-btn .anticon,
+.save-button .ant-btn-icon {
+  margin-inline-end: 8px;
+}
+
+.save-button-shortcut {
+  margin-inline-start: 6px;
+  opacity: 0.75;
+  font-size: 0.85em;
+  font-weight: 400;
+}

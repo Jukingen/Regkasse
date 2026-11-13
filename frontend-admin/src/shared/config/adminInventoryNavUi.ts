@@ -15,7 +15,9 @@ export function isAdminInventoryNavEnabled(): boolean {
 }
 
 /** Remove `inventory` catalog leaf when the nav feature is off (sidebar + no accidental API prefetch). */
-export function filterCatalogIdsForInventoryNav(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
+export function filterCatalogIdsForInventoryNav(
+  catalogIds: readonly SidebarCatalogId[]
+): SidebarCatalogId[] {
   if (isAdminInventoryNavEnabled()) return [...catalogIds];
   return catalogIds.filter((id) => id !== 'inventory');
 }

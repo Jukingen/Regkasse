@@ -11,7 +11,12 @@ public sealed record TenantProvisioningDto(
     IReadOnlyList<Guid> ProductIds,
     DateTime? TrialLicenseValidUntilUtc,
     bool WelcomeEmailSent = false,
-    bool ForcePasswordChangeOnNextLogin = false);
+    bool ForcePasswordChangeOnNextLogin = false,
+    Guid? TseDeviceId = null,
+    bool TseProvisioned = false,
+    string? TseScuId = null,
+    string? TseStatus = null,
+    bool TseFellBackToSoft = false);
 
 public sealed class TenantProvisioningResult
 {
@@ -23,6 +28,11 @@ public sealed class TenantProvisioningResult
     public required Guid CategoryId { get; init; }
     public required IReadOnlyList<Guid> ProductIds { get; init; }
     public DateTime? TrialLicenseValidUntilUtc { get; init; }
+    public Guid? TseDeviceId { get; init; }
+    public bool TseProvisioned { get; init; }
+    public string? TseScuId { get; init; }
+    public string? TseStatus { get; init; }
+    public bool TseFellBackToSoft { get; init; }
 
     public TenantProvisioningDto ToDto(bool welcomeEmailSent = false, bool forcePasswordChangeOnNextLogin = false) =>
         new(
@@ -35,5 +45,10 @@ public sealed class TenantProvisioningResult
             ProductIds,
             TrialLicenseValidUntilUtc,
             welcomeEmailSent,
-            forcePasswordChangeOnNextLogin);
+            forcePasswordChangeOnNextLogin,
+            TseDeviceId,
+            TseProvisioned,
+            TseScuId,
+            TseStatus,
+            TseFellBackToSoft);
 }

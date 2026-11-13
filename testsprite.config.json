@@ -4,7 +4,8 @@
   "baseUrl": {
     "api": "http://localhost:5184",
     "admin": "http://localhost:3000",
-    "pos": "http://localhost:8081"
+    "pos": "http://localhost:8081",
+    "sites": "http://localhost:3001"
   },
   "auth": {
     "devAdmin": {
@@ -13,22 +14,32 @@
       "clientApp": "admin"
     },
     "superAdmin": {
-      "email": "superadmin@regkasse.at",
-      "password": "***"
+      "loginIdentifier": "admin@admin.com",
+      "password": "Admin123!",
+      "clientApp": "admin"
     },
-    "tenantAdmin": {
-      "email": "manager@cafe.regkasse.at",
-      "password": "***"
+    "manager": {
+      "loginIdentifier": "manager1",
+      "password": "***",
+      "clientApp": "admin"
     },
     "cashier": {
-      "username": "cashier1",
-      "password": "***"
+      "loginIdentifier": "cashier1",
+      "password": "***",
+      "clientApp": "pos"
     }
   },
   "testData": {
-    "tenantSlug": "test_cafe",
-    "testUserId": "00000000-0000-0000-0000-000000000001",
-    "testProductId": "11111111-1111-1111-1111-111111111111"
+    "tenantSlug": "dev",
+    "notes": "Production tenant comes from JWT on pos/api/admin hosts; X-Tenant-Id is Development-only."
+  },
+  "suites": {
+    "api": "testsprite/api",
+    "e2e": "testsprite/e2e"
+  },
+  "runners": {
+    "validateSpecs": "node testsprite/validate-specs.mjs",
+    "apiSmoke": "node testsprite/run-api-smoke.mjs"
   },
   "output": {
     "reports": "./test-results",

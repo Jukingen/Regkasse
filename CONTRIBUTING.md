@@ -1,0 +1,228 @@
+# Contributing to Regkasse
+
+Guidelines for working in this monorepo. Prefer small, reversible changes over broad rewrites. Executable truth lives in code, package configs, and CI — not only in docs.
+
+## Prerequisites
+
+| Tool | Notes |
+|------|-------|
+| Node.js | **20+** LTS |
+| npm | **Workspaces** at repo root (see `package.json` → `workspaces`) |
+| .NET SDK | **10.x** |
+| PostgreSQL | **16+** (local or Docker) |
+| Optional | Redis, Docker Desktop, Android Studio / Xcode / Expo Go |
+
+**Docker:** setup/migration [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) ([DE](docs/DOCKER_SETUP.de.md)) · hub [`docs/DOCKER.md`](docs/DOCKER.md). Windows setup [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md); troubleshooting [`docs/DOCKER_WINDOWS_TROUBLESHOOTING.md`](docs/DOCKER_WINDOWS_TROUBLESHOOTING.md) · `.\scripts\docker-diagnose.ps1`. Helpers: `.\scripts\docker-up.ps1` / `docker-build.ps1` / `docker-deploy.ps1`. Full stack: `docker compose up --build` (Soft TSE via override). Infra only: `docker compose -f docker-compose.dev.yml up -d` then `npm run dev`. Detail: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack).
+
+## Clone and install
+
+```bash
+git clone <repo-url> Regkasse
+cd Regkasse
+
+# Preferred: install all JS workspaces from root (see .npmrc legacy-peer-deps)
+npm install
+
+# Or install a single workspace if you only need one app:
+# npm install -w registrierkasse-admin
+
+# Backend secrets (first time)
+cd backend
+copy appsettings.example.json appsettings.json
+copy appsettings.Development.example.json appsettings.Development.json
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD"
+dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_RANDOM_KEY_AT_LEAST_32_CHARS"
+cd ..
+```
+
+Optional root helpers:
+
+```bash
+npm install                 # workspaces + prepare (Husky hooks)
+npm run install:git-hooks   # re-install hooks if needed
+npm run precommit           # same as the git pre-commit hook
+npm run verify:api-client   # Orval / OpenAPI drift check
+```
+
+**Husky pre-commit** (`.husky/pre-commit` → `scripts/git-hooks/pre-commit.mjs`):
+
+1. **Secret scan** (`scripts/git-hooks/scan-secrets.mjs`) — blocks sensitive filenames and high-confidence secrets
+2. API client verify **only** when `backend/swagger.json` or `frontend-admin/src/api/generated/**` is staged (full Orval drift check). `HUSKY_FULL_VERIFY=1` forces that check
+3. `lint` for packages with staged files. The backend build runs only when `backend/**` is staged
+4. `typecheck` follows the staged source tree: `frontend-admin/src/**` for admin, `frontend/src/**` or `frontend/app/**` for POS, any staged `frontend-sites/**` for sites
+5. Tests **off** by default — set `HUSKY_RUN_TESTS=1` for fast contract tests on staged admin and POS packages
+
+Skip: `SKIP_PRECOMMIT=1`, `SKIP_SECRET_SCAN=1`, `SKIP_API_CLIENT_VERIFY=1`, `SKIP_PRECOMMIT_LINT=1`. Emergency typecheck skip: `SKIP_PRECOMMIT_TYPECHECK=1`.
+
+Secrets policy: [`SECURITY.md`](SECURITY.md). Manual scan of tracked files: `npm run verify:secrets`.
+
+## Daily development
+
+From the **repository root**:
+
+| Command | What it runs |
+|---------|----------------|
+| `npm run dev` | **Default (RAM-safe):** backend + admin in parallel; cleans orphan Next/Expo workers first |
+| `npm run dev:all` | Full stack in parallel (backend, admin, POS, sites) — high RAM |
+| `npm run dev:cleanup` | Kill leftover Regkasse Next/Expo `node` workers (Windows RAM leak) |
+| `npm run dev:cleanup:orphans` | Kill only `.next/dev/build` workers (safe while Admin/POS already run) |
+| `npm run dev:workspaces` | Native `npm run dev --workspaces` (sequential; blocks on first server) |
+| `npm run build` / `test` / `lint` | All workspaces via `npm run … --workspaces --if-present` |
+| `make <target>` / `just <recipe>` | Same orchestration — [`Makefile`](Makefile) / [`Justfile`](Justfile) (`dev`, `build`, `test`, `lint`, `clean`, `docker-up`, …) |
+| `npm run dev:backend` | API on http://localhost:5184 |
+| `npm run dev:admin` | FA on http://localhost:3000 |
+| `npm run dev:pos` | Expo Metro (typically :8081) |
+| `npm run dev:sites` | Tenant sites on http://localhost:3001 |
+
+Or work inside a package (`cd frontend-admin && npm run dev`). Standard scripts per workspace: **`dev`**, **`build`**, **`test`**, **`lint`**, **`typecheck`** (where applicable).
+
+Backend is included as workspace `@regkasse/backend` (npm scripts wrap `dotnet`).
+
+### Environment
+
+- **Admin:** `frontend-admin/.env.local` from `.env.example` — `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST`
+- **POS:** `frontend/.env` — `EXPO_PUBLIC_API_BASE_URL` (include `/api`), `EXPO_PUBLIC_DEV_TENANT_ID`
+- **Sites:** `frontend-sites/.env.local` — `NEXT_PUBLIC_API_BASE_URL`
+- **Dev tenant:** `X-Tenant-Id: dev` or `?tenant=dev` (Development only)
+
+## Scripts
+
+On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long npm/docker commands. They are shared team tooling (do **not** gitignore `.bat` files).
+
+### How to run
+
+- Double-click from Explorer, or from `cmd` / PowerShell at the **repo root**
+- Sibling PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\<name>.ps1`
+- Most wrappers `cd` to the repo root automatically (`%~dp0`)
+
+### Common scripts
+
+| Script | What it does |
+|--------|----------------|
+| `scripts\dev\start-dev.bat` | Default stack (`npm run dev`) — API + Admin |
+| `scripts\dev\start-dev-all.bat` | Full stack (`npm run dev:all`) — API + Admin + POS + Sites |
+| `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
+| `scripts\test\test-all.bat` | Sequential Backend → Admin → POS tests |
+| `scripts\dev\clean-all.DANGER.bat` | Confirm + clean build artifacts |
+| `scripts\docker\host\up.bat` / `down.bat` / `status.bat` | Compose lifecycle |
+| `scripts\docker\host\clean.DANGER.bat` | Volumes + prune (**data loss**) |
+| `scripts\ops\deploy.DANGER.bat` / `scripts\ops\rollback.DANGER.bat` | Prod Compose deploy / hard-reset rollback (**destructive**) |
+| `scripts\test\smoke-test.bat` | Lightweight curl smoke |
+| `scripts\test\run-comprehensive-smoke.bat` | Full smoke suite |
+
+### Docs
+
+- Full catalog + troubleshooting: [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md)
+- Getting started: [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md)
+- Decision map: [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md)
+- One-screen card: [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
+- Folder inventory & how to add scripts: [`scripts/README.md`](scripts/README.md)
+
+### When adding a script (PRs)
+
+1. Prefer `scripts/<category>/<name>.ps1` (or `.mjs` at `scripts/` root) + sibling `.bat` (`scripts\lib\create-bat-wrappers.bat`).
+2. Document user-facing scripts in `docs/SCRIPTS_REFERENCE.md`.
+3. Keep pairing green: `npm run verify:bat-ps1` and `npm run validate:scripts` (CI: `scripts-bat-ps1-pairing.yml`).
+4. Aliases / libraries: update allowlists in `scripts/verify-bat-ps1-pairing.mjs`.
+
+## Monorepo map
+
+See the [root README](README.md#repository-layout). Package READMEs:
+
+- [backend/README.md](backend/README.md)
+- [frontend/README.md](frontend/README.md)
+- [frontend-admin/README.md](frontend-admin/README.md)
+- [frontend-sites/README.md](frontend-sites/README.md)
+- [localization/README.md](localization/README.md)
+- [scripts/README.md](scripts/README.md)
+- [tools/README.md](tools/README.md)
+- [testsprite/README.md](testsprite/README.md)
+- [docs/README.md](docs/README.md)
+- [ai/README.md](ai/README.md)
+
+## Language and UI rules
+
+| Context | Language |
+|---------|----------|
+| Code identifiers / API errors / backend logs | English |
+| POS UI strings | German (`de-DE`) — do not translate to EN/TR |
+| Admin UI strings | i18n under `frontend-admin/src/i18n/` (de/en/tr) |
+| Git commits | English |
+
+## API boundaries (do not cross)
+
+| Client | Allowed | Forbidden |
+|--------|---------|-----------|
+| POS (`frontend/`) | `/api/pos/*`, `/api/Auth/*`, `/api/Receipts/*` | `/api/admin/*` |
+| Admin (`frontend-admin/`) | `/api/admin/*`, `/api/Auth/*` | `/api/pos/*` |
+
+Cross-tenant access must return **HTTP 404** (not 403). Do not use `IgnoreQueryFilters()` except Super Admin ops.
+
+## High-risk areas
+
+Treat with extra care (tests + review): payments, TSE/RKSV signature chain, voucher ledger, FinanzOnline outbox, tenant isolation, backup/restore, auth/RBAC. See [`ai/07_DO_NOT_TOUCH.md`](ai/07_DO_NOT_TOUCH.md) and [`AGENTS.md`](AGENTS.md).
+
+## Making changes
+
+1. Read nearby code and the package README before editing.
+2. Prefer minimal diffs; do not mix unrelated refactors.
+3. Keep schema changes additive; never edit committed EF migrations.
+4. After OpenAPI changes: regenerate `backend/swagger.json` (`node scripts/generate-backend-openapi.mjs`) before the FA client (`npm run generate:api` in `frontend-admin`, then `npm run verify:api-client` from root). Backend route or DTO changes must refresh swagger first; generating the client against a stale swagger leaves CI drift.
+
+### API client (OpenAPI → Orval)
+
+When adding a C# enum that appears in the API, ensure it has `x-enum-varnames` emitted by `EnumVarnamesSchemaFilter`; the CI test `GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames` fails otherwise.
+5. For medium/large work: short plan, affected files, risks, compatibility, test strategy.
+
+## Validation before PR
+
+From repo root when relevant:
+
+```bash
+npm run test:backend
+npm run test:admin
+npm run test:pos
+npm run verify:api-client
+npm run verify:bat-ps1
+npm run validate:scripts
+npm run i18n:ci
+```
+
+CI maps (see [`.github/workflows/README.md`](.github/workflows/README.md)): backend unit + PostgreSQL integration, Frontend Admin (lint/typecheck/test/build/E2E), POS, Sites, OpenAPI alignment, localization, **scripts pairing + documentation**. Optional Slack: secret `SLACK_WEBHOOK_URL`.
+
+Also useful:
+
+```bash
+node scripts/validate-critical-openapi-paths.mjs
+cd frontend-admin && npm run lint && npm run typecheck
+cd frontend && npm run lint && npm run typecheck
+```
+
+## Pull requests
+
+- Focused PRs; clear description of **why**.
+- Unit/integration tests where behavior changes.
+- No secrets in commits (`.env`, PEMs, production keys).
+- No `console.log` in production FE/FA code; avoid TypeScript `any` (prefer `unknown`).
+- Sensitive ops need audit events where the domain already requires them.
+
+## Why npm workspaces (with care)?
+
+Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `frontend-marketing`, `localization`.
+
+- **`build` / `test` / `lint`:** `npm run <script> --workspaces --if-present`
+- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS, sites, and marketing too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. Admin/Sites cap webpack workers (`experimental.cpus: 2`) so 24-thread hosts do not exhaust RAM. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
+- **`.npmrc`:** `legacy-peer-deps=true` for Expo / TypeScript peer ranges
+- Apps may still keep local `node_modules`; prefer `npm install` from the repo root after clone
+
+Do not add `pnpm-workspace.yaml` unless the team migrates package managers explicitly.
+
+## Further reading
+
+- [`AGENTS.md`](AGENTS.md) — index of development rules; detail in [`.cursor/rules/`](.cursor/rules/)
+- [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) — product/architecture brief
+- [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md) — Windows scripts reference
+- [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md) — which script for which task
+- [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md) — one-screen quick card
+- [`docs/`](docs/README.md) — human docs
+- [`ai/`](ai/README.md) — contracts for agents and complex changes

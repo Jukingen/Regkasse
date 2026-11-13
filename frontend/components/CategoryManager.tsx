@@ -1,9 +1,18 @@
 // Türkçe Açıklama: Merkezi kategori yönetimi ve backend ile senkronize çalışan dinamik menü sistemi. Kategorileri yönetir ve ürünleri kategorilere göre filtreler.
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
 
 export interface Category {
   id: string;
@@ -35,7 +44,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   onCategoryCreate,
   onCategoryDelete,
   canManage = false,
-  showProductCount = true
+  showProductCount = true,
 }) => {
   const { t } = useTranslation();
   const [showManageModal, setShowManageModal] = useState(false);
@@ -46,20 +55,23 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
     color: '#1976d2',
     icon: 'folder',
     sortOrder: 0,
-    isActive: true
+    isActive: true,
   });
 
   // Aktif kategorileri sırala
   const activeCategories = categories
-    .filter(c => c.isActive)
+    .filter((c) => c.isActive)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Tüm kategorileri sırala (yönetim için)
   const allCategories = categories.sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const handleCategoryPress = useCallback((category: Category) => {
-    onCategorySelect(category);
-  }, [onCategorySelect]);
+  const handleCategoryPress = useCallback(
+    (category: Category) => {
+      onCategorySelect(category);
+    },
+    [onCategorySelect]
+  );
 
   const handleEditCategory = useCallback((category: Category) => {
     setEditingCategory(category);
@@ -74,33 +86,39 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       color: '#1976d2',
       icon: 'folder',
       sortOrder: allCategories.length,
-      isActive: true
+      isActive: true,
     });
     setShowManageModal(true);
   }, [allCategories.length]);
 
-  const handleDeleteCategory = useCallback(async (category: Category) => {
-    if (!onCategoryDelete) return;
+  const handleDeleteCategory = useCallback(
+    async (category: Category) => {
+      if (!onCategoryDelete) return;
 
-    Alert.alert(
-      t('category.deleteTitle', 'Kategoriyi Sil'),
-      t('category.deleteMessage', 'Bu kategoriyi silmek istediğinizden emin misiniz?'),
-      [
-        { text: t('common.cancel', 'İptal'), style: 'cancel' },
-        {
-          text: t('common.delete', 'Sil'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await onCategoryDelete(category.id);
-            } catch (error) {
-              Alert.alert(t('common.error', 'Hata'), t('category.deleteError', 'Kategori silinemedi'));
-            }
-          }
-        }
-      ]
-    );
-  }, [onCategoryDelete, t]);
+      Alert.alert(
+        t('category.deleteTitle', 'Kategoriyi Sil'),
+        t('category.deleteMessage', 'Bu kategoriyi silmek istediğinizden emin misiniz?'),
+        [
+          { text: t('common.cancel', 'İptal'), style: 'cancel' },
+          {
+            text: t('common.delete', 'Sil'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await onCategoryDelete(category.id);
+              } catch (error) {
+                Alert.alert(
+                  t('common.error', 'Hata'),
+                  t('category.deleteError', 'Kategori silinemedi')
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [onCategoryDelete, t]
+  );
 
   const handleSaveCategory = useCallback(async () => {
     try {
@@ -116,68 +134,67 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
     }
   }, [editingCategory, newCategory, onCategoryUpdate, onCategoryCreate, t]);
 
-  const renderCategoryButton = useCallback((category: Category) => {
-    const isSelected = selectedCategoryId === category.id;
-    
-    return (
-      <TouchableOpacity
-        key={category.id}
-        style={[
-          styles.categoryButton,
-          {
-            backgroundColor: isSelected ? (category.color || '#1976d2') : '#f8f9fa',
-            borderColor: category.color || '#1976d2',
-          }
-        ]}
-        onPress={() => handleCategoryPress(category)}
-        activeOpacity={0.7}
-      >
-        {category.icon && (
-          <Ionicons
-            name={category.icon as any}
-            size={20}
-            color={isSelected ? '#fff' : (category.color || '#1976d2')}
-            style={styles.categoryIcon}
-          />
-        )}
-        <Text style={[
-          styles.categoryName,
-          { color: isSelected ? '#fff' : '#333' }
-        ]}>
-          {category.name}
-        </Text>
-        {showProductCount && category.productCount !== undefined && (
-          <Text style={[
-            styles.productCount,
-            { color: isSelected ? '#fff' : '#666' }
-          ]}>
-            ({category.productCount})
+  const renderCategoryButton = useCallback(
+    (category: Category) => {
+      const isSelected = selectedCategoryId === category.id;
+
+      return (
+        <TouchableOpacity
+          key={category.id}
+          style={[
+            styles.categoryButton,
+            {
+              backgroundColor: isSelected ? category.color || '#1976d2' : '#f8f9fa',
+              borderColor: category.color || '#1976d2',
+            },
+          ]}
+          onPress={() => {
+            handleCategoryPress(category);
+          }}
+          activeOpacity={0.7}>
+          {category.icon && (
+            <Ionicons
+              name={category.icon as any}
+              size={20}
+              color={isSelected ? '#fff' : category.color || '#1976d2'}
+              style={styles.categoryIcon}
+            />
+          )}
+          <Text style={[styles.categoryName, { color: isSelected ? '#fff' : '#333' }]}>
+            {category.name}
           </Text>
-        )}
-      </TouchableOpacity>
-    );
-  }, [selectedCategoryId, handleCategoryPress, showProductCount]);
+          {showProductCount && category.productCount !== undefined && (
+            <Text style={[styles.productCount, { color: isSelected ? '#fff' : '#666' }]}>
+              ({category.productCount})
+            </Text>
+          )}
+        </TouchableOpacity>
+      );
+    },
+    [selectedCategoryId, handleCategoryPress, showProductCount]
+  );
 
   const renderManageModal = () => (
     <Modal
       visible={showManageModal}
       animationType="slide"
       transparent
-      onRequestClose={() => setShowManageModal(false)}
-    >
+      onRequestClose={() => {
+        setShowManageModal(false);
+      }}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingCategory 
+              {editingCategory
                 ? t('category.editTitle', 'Kategori Düzenle')
-                : t('category.createTitle', 'Yeni Kategori')
-              }
+                : t('category.createTitle', 'Yeni Kategori')}
             </Text>
             <TouchableOpacity
-              onPress={() => setShowManageModal(false)}
-              style={styles.closeButton}
-            >
+              onPress={() => {
+                setShowManageModal(false);
+              }}
+              style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -227,9 +244,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
                       styles.colorOption,
                       {
                         backgroundColor: color,
-                        borderColor: (editingCategory?.color || newCategory.color) === color ? '#333' : 'transparent',
-                        borderWidth: (editingCategory?.color || newCategory.color) === color ? 3 : 1,
-                      }
+                        borderColor:
+                          (editingCategory?.color || newCategory.color) === color
+                            ? '#333'
+                            : 'transparent',
+                        borderWidth:
+                          (editingCategory?.color || newCategory.color) === color ? 3 : 1,
+                      },
                     ]}
                     onPress={() => {
                       if (editingCategory) {
@@ -265,14 +286,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowManageModal(false)}
-            >
+              onPress={() => {
+                setShowManageModal(false);
+              }}>
               <Text style={styles.cancelButtonText}>{t('common.cancel', 'İptal')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveCategory}
-            >
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveCategory}>
               <Text style={styles.saveButtonText}>{t('common.save', 'Kaydet')}</Text>
             </TouchableOpacity>
           </View>
@@ -286,10 +305,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>{t('category.title', 'Kategoriler')}</Text>
         {canManage && (
-          <TouchableOpacity
-            style={styles.manageButton}
-            onPress={handleCreateCategory}
-          >
+          <TouchableOpacity style={styles.manageButton} onPress={handleCreateCategory}>
             <Ionicons name="add" size={20} color="#fff" />
           </TouchableOpacity>
         )}
@@ -298,8 +314,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-      >
+        contentContainerStyle={styles.categoriesContainer}>
         {activeCategories.map(renderCategoryButton)}
       </ScrollView>
 
@@ -310,7 +325,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
             {allCategories.map((category) => (
               <View key={category.id} style={styles.manageItem}>
                 <View style={styles.manageItemInfo}>
-                  <View style={[styles.categoryColor, { backgroundColor: category.color || '#1976d2' }]} />
+                  <View
+                    style={[styles.categoryColor, { backgroundColor: category.color || '#1976d2' }]}
+                  />
                   <Text style={styles.manageItemName}>{category.name}</Text>
                   {showProductCount && category.productCount !== undefined && (
                     <Text style={styles.manageItemCount}>({category.productCount})</Text>
@@ -319,14 +336,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
                 <View style={styles.manageItemActions}>
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => handleEditCategory(category)}
-                  >
+                    onPress={() => {
+                      handleEditCategory(category);
+                    }}>
                     <Ionicons name="pencil" size={16} color="#1976d2" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => handleDeleteCategory(category)}
-                  >
+                    onPress={() => handleDeleteCategory(category)}>
                     <Ionicons name="trash" size={16} color="#d32f2f" />
                   </TouchableOpacity>
                 </View>
@@ -542,4 +559,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CategoryManager; 
+export default CategoryManager;

@@ -3,7 +3,6 @@
  * Bu dosya çalışma zamanı davranışını değiştirmez; `truthProvenance` ile hangi alanların hâlâ çıkarım
  * kullandığını tek yerde toplar. Gelecekte OpenAPI’ye eklenecek alan adları burada öneri olarak tutulur.
  */
-
 import type { BackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 import type {
   ArtifactTruth,
@@ -62,7 +61,7 @@ export interface BackupOperatorTruthProvenance {
 function zone(
   resolutionMode: TruthResolutionMode,
   summary: string,
-  suggestedBackendFields: readonly string[],
+  suggestedBackendFields: readonly string[]
 ): TruthZoneProvenance {
   return { resolutionMode, summary, suggestedBackendFields };
 }
@@ -96,7 +95,7 @@ export function buildBackupOperatorTruthProvenance(input: {
         'BackupRun.operationalSurfaceKind',
         'BackupRun.productionEvidenceKind',
         'BackupRun.isSimulatedExecution (mevcut, öncelikli)',
-      ],
+      ]
     ),
     runSimulatedSource: run.simulatedEvidenceSource,
     executionModeLoaded: executionMode.loaded,
@@ -110,7 +109,7 @@ export function buildBackupOperatorTruthProvenance(input: {
         'RestoreVerificationRun.failureClassification',
         'RestoreVerificationRun.failureTier',
         'RestoreVerificationRun.dumpInspectionClassification',
-      ],
+      ]
     ),
     latestDrillFailedFromStatusEnum: restore.latestDrillFailed,
   };
@@ -123,7 +122,7 @@ export function buildBackupOperatorTruthProvenance(input: {
         'BackupRecoverabilitySummary.proofCompleteness',
         'BackupRecoverabilitySummary.proofStrength',
         'BackupRecoverabilitySummary.proofGaps[]',
-      ],
+      ]
     ),
     hasProofGapsFromTimestamps: recoverability.hasProofGaps,
   };
@@ -136,7 +135,7 @@ export function buildBackupOperatorTruthProvenance(input: {
         'BackupRun.externalArchiveProofKind',
         'BackupArtifactSummary.externalCopyProof',
         'BackupRun.latestArtifacts[].externalProofKind',
-      ],
+      ]
     ),
     variantKind: artifact.externalArchiveTruthKind,
   };
@@ -148,7 +147,7 @@ export function buildBackupOperatorTruthProvenance(input: {
       'BackupPipelineSnapshotDto.confidence',
       'BackupPipelineSnapshotDto.source',
       'BackupRun.pipelineProvenance',
-    ],
+    ]
   );
 
   const readinessCap: BackupOperatorTruthProvenance['readinessLevelCap'] = {
@@ -161,7 +160,7 @@ export function buildBackupOperatorTruthProvenance(input: {
         'RestoreVerificationReadinessResponseDto.effectiveLevel',
         'RestoreVerificationReadinessResponseDto.capReason',
         'BackupConfigurationHealthResponseDto.realDumpOperationalSignals',
-      ],
+      ]
     ),
   };
 

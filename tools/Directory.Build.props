@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared metadata for tools/* — proprietary; see repository root LICENSE. -->
+<Project>
+  <PropertyGroup>
+    <Copyright>Copyright (c) Regkasse. All rights reserved.</Copyright>
+    <Company>Regkasse</Company>
+    <Authors>Regkasse</Authors>
+  </PropertyGroup>
+</Project>

@@ -1,2 +1,0 @@
--- DEPRECATED / NO-OP. Single admin role is "Admin". This file is kept for migration history only; do not run.
--- See docs/AUTHORIZATION_DEMO_CLEANUP.md for current role set.

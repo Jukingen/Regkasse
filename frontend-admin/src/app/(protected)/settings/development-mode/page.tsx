@@ -1,24 +1,28 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useEffect, useMemo } from 'react';
-import { Alert, Button, Card, Form, InputNumber, Select, Space, Spin, Switch, Typography } from 'antd';
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Form, InputNumber, Select, Space, Switch, Typography } from 'antd';
+import Link from 'next/link';
+import React, { useEffect, useMemo } from 'react';
+
+import { FormSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
 import {
+  type DevelopmentModeSettingsDto,
+  type DevelopmentModeSettingsPutDto,
   developmentModeSettingsQueryKey,
   fetchDevelopmentModeSettings,
   putDevelopmentModeSettings,
-  type DevelopmentModeSettingsDto,
-  type DevelopmentModeSettingsPutDto,
 } from '@/features/development-mode/developmentModeApi';
 import {
   DEVELOPMENT_MODE_FEATURE_IDS,
   type DevelopmentModeFeatureId,
 } from '@/features/development-mode/licenseFeatureOptions';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
+import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 type DevModeFormValues = {
   enabled: boolean;
@@ -83,11 +87,7 @@ export default function DevelopmentModeSettingsPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
-        <Card>
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin size="large" />
-          </div>
-        </Card>
+        <FormSkeleton fields={6} />
       </div>
     );
   }
@@ -112,11 +112,7 @@ export default function DevelopmentModeSettingsPage() {
   }
 
   return (
-    <DevelopmentModeSettingsForm
-      data={data}
-      breadcrumbs={breadcrumbs}
-      isFetching={isFetching}
-    />
+    <DevelopmentModeSettingsForm data={data} breadcrumbs={breadcrumbs} isFetching={isFetching} />
   );
 }
 
@@ -130,7 +126,7 @@ function DevelopmentModeSettingsForm({
   isFetching: boolean;
 }) {
   const { message } = useAntdApp();
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<DevModeFormValues>();
   const enabled = Form.useWatch('enabled', form);
@@ -145,7 +141,7 @@ function DevelopmentModeSettingsForm({
         value: id,
         label: t(FEATURE_LABEL_KEY[id]),
       })),
-    [t],
+    [t]
   );
 
   const saveMutation = useMutation({
@@ -161,10 +157,7 @@ function DevelopmentModeSettingsForm({
   });
 
   const formatUpdatedLine = (d: DevelopmentModeSettingsDto) => {
-    const date = new Date(d.updatedAtUtc).toLocaleString(formatLocale, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    const date = formatDateTimeSeconds(d.updatedAtUtc);
     const user = d.updatedBy?.trim();
     if (user) return t('developmentMode.page.lastUpdated', { date, user });
     return t('developmentMode.page.lastUpdatedUnknownUser', { date });
@@ -199,6 +192,17 @@ function DevelopmentModeSettingsForm({
         }}
       />
 
+      <Alert
+        type="info"
+        showIcon
+        title={t('developmentMode.page.rksvModeNote')}
+        action={
+          <Link href="/admin/rksv/config">
+            <Button size="small">{t('developmentMode.page.rksvModeLink')}</Button>
+          </Link>
+        }
+      />
+
       <Card>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Typography.Text type="secondary" style={{ display: 'block' }}>
@@ -220,7 +224,11 @@ function DevelopmentModeSettingsForm({
             }}
             disabled={saveMutation.isPending || isFetching}
           >
-            <Form.Item label={t('developmentMode.page.toggleMain')} name="enabled" valuePropName="checked">
+            <Form.Item
+              label={t('developmentMode.page.toggleMain')}
+              name="enabled"
+              valuePropName="checked"
+            >
               <Switch />
             </Form.Item>
 
@@ -230,19 +238,40 @@ function DevelopmentModeSettingsForm({
                 size="middle"
                 style={{ width: '100%', paddingLeft: 8, borderLeft: '3px solid #faad14' }}
               >
-                <Form.Item label={t('developmentMode.page.toggleBypassLicense')} name="bypassLicense" valuePropName="checked">
+                <Form.Item
+                  label={t('developmentMode.page.toggleBypassLicense')}
+                  name="bypassLicense"
+                  valuePropName="checked"
+                >
                   <Switch />
                 </Form.Item>
-                <Form.Item label={t('developmentMode.page.toggleBypassNtp')} name="bypassNtpCheck" valuePropName="checked">
+                <Form.Item
+                  label={t('developmentMode.page.toggleBypassNtp')}
+                  name="bypassNtpCheck"
+                  valuePropName="checked"
+                >
                   <Switch />
                 </Form.Item>
-                <Form.Item label={t('developmentMode.page.toggleBypassTse')} name="bypassTseCheck" valuePropName="checked">
+                <Form.Item
+                  label={t('developmentMode.page.toggleBypassTse')}
+                  name="bypassTseCheck"
+                  valuePropName="checked"
+                  extra={t('developmentMode.page.toggleBypassTseHint')}
+                >
                   <Switch />
                 </Form.Item>
-                <Form.Item label={t('developmentMode.page.toggleSimulateOffline')} name="simulateOffline" valuePropName="checked">
+                <Form.Item
+                  label={t('developmentMode.page.toggleSimulateOffline')}
+                  name="simulateOffline"
+                  valuePropName="checked"
+                >
                   <Switch />
                 </Form.Item>
-                <Form.Item label={t('developmentMode.page.toggleForceOnline')} name="forceOnline" valuePropName="checked">
+                <Form.Item
+                  label={t('developmentMode.page.toggleForceOnline')}
+                  name="forceOnline"
+                  valuePropName="checked"
+                >
                   <Switch />
                 </Form.Item>
               </Space>
@@ -275,10 +304,19 @@ function DevelopmentModeSettingsForm({
             </Form.Item>
 
             <Space wrap>
-              <Button type="primary" icon={<SaveOutlined />} loading={saveMutation.isPending} onClick={() => void handleSave()}>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={saveMutation.isPending}
+                onClick={() => void handleSave()}
+              >
                 {t('developmentMode.page.save')}
               </Button>
-              <Button icon={<UndoOutlined />} onClick={() => void handleReset()} disabled={saveMutation.isPending}>
+              <Button
+                icon={<UndoOutlined />}
+                onClick={() => void handleReset()}
+                disabled={saveMutation.isPending}
+              >
                 {t('developmentMode.page.reset')}
               </Button>
             </Space>

@@ -1,12 +1,13 @@
 /**
  * Regression: settings hub “Zu RKSV” must target the App Router RKSV hub (/rksv), not the legacy menu key (/rksv/operations).
  */
-import React from 'react';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { SettingsHubContextPanel } from '@/features/settings/components/SettingsHubContextPanel';
+import { I18nProvider } from '@/i18n';
 import { RKSV_HUB_PATH } from '@/shared/adminSidebarNavigation';
 
 beforeAll(() => {
@@ -30,7 +31,7 @@ describe('SettingsHubContextPanel — RKSV link', () => {
     render(
       <I18nProvider>
         <SettingsHubContextPanel />
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Bereiche & Verweise/i }));

@@ -2,8 +2,8 @@
  * POS: Ürün modifier grupları (Extra Zutaten). Cache ile gereksiz fetch önlenir.
  * Runtime uses .products only (add-on model); .modifiers not used.
  */
-import { apiClient } from './config';
 import { API_PATHS } from './apiPaths';
+import { apiClient } from './config';
 
 /** Shape for group.modifiers. Runtime returns empty; type kept for DTO shape. */
 export interface ModifierDto {

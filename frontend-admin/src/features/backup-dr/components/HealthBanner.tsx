@@ -3,9 +3,8 @@
 /**
  * Kritik / uyarı / bilgi: tek yüzeyde — çoklu Alert yorgunluğunu azaltır; yalnızca kritik varken bilgi bastırılır (uyarı + bilgi birlikte kalabilir).
  */
-
-import React from 'react';
 import { Button, Typography } from 'antd';
+import React from 'react';
 
 export interface HealthBannerProps {
   critical: string[];
@@ -53,7 +52,14 @@ export function HealthBanner({ critical, warn, info = [], t: tt, onRefresh }: He
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {critical.length > 0 && (
         <div style={panelStyle('critical')}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 8,
+            }}
+          >
             <Typography.Text strong>{tt('backupDr.banner.criticalTitle')}</Typography.Text>
             {onRefresh ? (
               <Button size="small" onClick={onRefresh}>

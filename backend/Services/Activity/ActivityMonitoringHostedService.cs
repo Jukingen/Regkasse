@@ -1,11 +1,10 @@
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
-using static KasseAPI_Final.Configuration.LicenseGracePeriodConfig;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using static KasseAPI_Final.Configuration.LicenseGracePeriodConfig;
 
 namespace KasseAPI_Final.Services.Activity;
 
@@ -69,6 +68,7 @@ public sealed class ActivityMonitoringHostedService : BackgroundService
             await CheckOfflineQueuesAsync(db, activity, tenant.Id, threshold, cancellationToken).ConfigureAwait(false);
             await CheckLicenseExpiryAsync(activity, tenant.Id, tenant.LicenseValidUntilUtc, tenant.Slug, cancellationToken)
                 .ConfigureAwait(false);
+            await CheckTenantLimitsAsync(scope.ServiceProvider, tenant.Id, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -143,5 +143,14 @@ public sealed class ActivityMonitoringHostedService : BackgroundService
                 cancellationToken).ConfigureAwait(false);
             break;
         }
+    }
+
+    private static async Task CheckTenantLimitsAsync(
+        IServiceProvider services,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var alerts = services.GetRequiredService<ITenantLimitAlertService>();
+        await alerts.EvaluateAndPublishAsync(tenantId, cancellationToken).ConfigureAwait(false);
     }
 }

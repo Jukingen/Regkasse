@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+
 import { DensityContext, type DensityContextValue } from './DensityContext';
 
 type DensityProviderProps = DensityContextValue & {

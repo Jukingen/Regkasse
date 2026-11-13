@@ -1,10 +1,12 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -44,32 +46,44 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly ILicenseSyncService _licenseSync;
     private readonly ILicenseIssuanceService _licenseIssuance;
     private readonly ILicenseReminderEmailSender _licenseReminderEmailSender;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AdminTenantLicenseService> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly TseOptions _tseOptions;
     private readonly LicenseOptions _licenseOptions;
+    private readonly EmailSmtpOptions _smtpOptions;
     private readonly IDevelopmentModeService _developmentModeService;
+    private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly ITrialService _trialService;
 
     public AdminTenantLicenseService(
         AppDbContext db,
         ILicenseSyncService licenseSync,
         ILicenseIssuanceService licenseIssuance,
         ILicenseReminderEmailSender licenseReminderEmailSender,
+        IAuditLogService auditLogService,
         ILogger<AdminTenantLicenseService> logger,
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IOptions<LicenseOptions> licenseOptions,
-        IDevelopmentModeService developmentModeService)
+        IOptions<EmailSmtpOptions> smtpOptions,
+        IDevelopmentModeService developmentModeService,
+        ITenantLicenseService tenantLicenseService,
+        ITrialService trialService)
     {
         _db = db;
         _licenseSync = licenseSync;
         _licenseIssuance = licenseIssuance;
         _licenseReminderEmailSender = licenseReminderEmailSender;
+        _auditLogService = auditLogService;
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _tseOptions = tseOptions.Value;
         _licenseOptions = licenseOptions.Value;
+        _smtpOptions = smtpOptions.Value;
         _developmentModeService = developmentModeService;
+        _tenantLicenseService = tenantLicenseService;
+        _trialService = trialService;
     }
 
     public async Task<TenantLicenseOverviewDto?> GetOverviewAsync(
@@ -87,24 +101,58 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         return new TenantLicenseOverviewDto(BuildStatus(tenant, history, features), history);
     }
 
+    public async Task<IReadOnlyList<TenantLicenseOverviewListItemDto>> ListOverviewAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var tenants = await _db.Tenants.AsNoTracking()
+            .Where(t => !TenantStatuses.RemovedStatuses.Contains(t.Status))
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (tenants.Count == 0)
+            return Array.Empty<TenantLicenseOverviewListItemDto>();
+
+        var tenantIds = tenants.Select(t => t.Id).ToList();
+        var tenantsWithOwner = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => tenantIds.Contains(m.TenantId) && m.IsActive && m.IsOwner)
+            .Select(m => m.TenantId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var ownerTenantIds = tenantsWithOwner.ToHashSet();
+        var now = DateTime.UtcNow;
+
+        return tenants
+            .Select(t => new TenantLicenseOverviewListItemDto(
+                t.Id,
+                t.Name,
+                t.Slug,
+                t.LicenseKey,
+                t.LicenseValidUntilUtc,
+                TenantLicenseOverviewStatusMapper.ResolveStatus(t.LicenseValidUntilUtc, t.LicenseKey, now),
+                ownerTenantIds.Contains(t.Id),
+                t.CreatedAt))
+            .ToList();
+    }
+
     public async Task<(TenantLicenseOverviewDto? Result, string? Error)> ActivateTrialAsync(
         Guid tenantId,
         string? actorUserId,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tenant == null)
+        var (summary, error) = await _trialService
+            .GrantOrRestartTrialAsync(tenantId, durationDays: null, actorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (error != null)
+            return (null, error);
+        if (summary == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
-            return (null, "Deleted tenants cannot receive a trial license.");
 
-        var now = DateTime.UtcNow;
-        tenant.LicenseValidUntilUtc = now.AddDays(30);
-        tenant.LicenseKey = null;
-        tenant.UpdatedAt = now;
-        tenant.UpdatedBy = actorUserId;
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("Super-admin activated 30-day trial for tenant {TenantId}", tenantId);
+        _logger.LogInformation("Super-admin activated managed trial for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
     }
 
@@ -112,28 +160,87 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         Guid tenantId,
         ExtendTenantLicenseRequest request,
         string? actorUserId,
+        string? actorRole = null,
         CancellationToken cancellationToken = default)
     {
         var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
+        var isSuperAdmin = string.Equals(actorRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
+        if (!isSuperAdmin)
+        {
+            if (request.ValidUntilUtc.HasValue)
+                return (null, "validUntilUtc is determined by the license key and cannot be set manually.");
+            if (string.IsNullOrWhiteSpace(request.LicenseKey))
+                return (null, "licenseKey is required.");
+        }
+
         var now = DateTime.UtcNow;
+        var previousValidUntil = tenant.LicenseValidUntilUtc;
+        var previousKey = tenant.LicenseKey;
+
         if (!string.IsNullOrWhiteSpace(request.LicenseKey))
         {
             var key = request.LicenseKey.Trim();
-            var issued = await _db.IssuedLicenses.AsNoTracking()
-                .Where(il => il.LicenseKey == key && !il.IsDeleted && !il.IsRevoked && !il.IsCancelled && il.SupersededByLicenseId == null)
-                .OrderByDescending(il => il.IssuedAtUtc)
-                .FirstOrDefaultAsync(cancellationToken)
-                .ConfigureAwait(false);
-            if (issued == null)
-                return (null, "Issued license key was not found.");
 
-            tenant.LicenseKey = key;
-            tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(issued.ExpiryAtUtc, DateTimeKind.Utc);
+            if (!isSuperAdmin)
+            {
+                var billing = await _tenantLicenseService.ResolveBillingLicenseSaleForKeyAsync(
+                        tenantId,
+                        key,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (billing.ErrorCode != null)
+                    return (null, billing.ErrorMessage);
+
+                tenant.LicenseKey = key;
+                tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(billing.Sale!.ValidUntilUtc, DateTimeKind.Utc);
+            }
+            else
+            {
+                if (LicenseKeyGenerator.IsMandantBillingKey(key))
+                {
+                    var billing = await _tenantLicenseService.ResolveBillingLicenseSaleForKeyAsync(
+                            tenantId,
+                            key,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    if (billing.ErrorCode != null)
+                        return (null, billing.ErrorMessage);
+
+                    tenant.LicenseKey = key;
+                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(billing.Sale!.ValidUntilUtc, DateTimeKind.Utc);
+                }
+                else if (LicenseKeyGenerator.IsDeploymentLicenseKey(key))
+                {
+                    if (request.ValidUntilUtc.HasValue)
+                    {
+                        tenant.LicenseKey = key;
+                        tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(request.ValidUntilUtc.Value, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        var resolved = await _tenantLicenseService.ResolveIssuedLicenseForKeyAsync(
+                                tenantId,
+                                key,
+                                isSuperAdmin,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                        if (resolved.ErrorCode != null)
+                            return (null, resolved.ErrorMessage);
+
+                        tenant.LicenseKey = key;
+                        tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(resolved.Issued!.ExpiryAtUtc, DateTimeKind.Utc);
+                    }
+                }
+                else
+                {
+                    return (null, RegkTenantLicenseKeyFormat.InvalidFormatMessage);
+                }
+            }
         }
         else if (request.ValidUntilUtc.HasValue)
         {
@@ -149,8 +256,141 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(tenant.LicenseKey))
             await _licenseSync.SyncTenantLicenseExpiryAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("Super-admin extended license for tenant {TenantId}", tenantId);
+
+        await LogLicenseExtendedAuditAsync(
+            tenantId,
+            actorUserId,
+            actorRole,
+            previousKey,
+            previousValidUntil,
+            tenant.LicenseKey,
+            tenant.LicenseValidUntilUtc,
+            cancellationToken).ConfigureAwait(false);
+
+        await TrySendRenewalConfirmationEmailAsync(tenant, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation("Tenant license extended for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
+    }
+
+    private async Task TrySendRenewalConfirmationEmailAsync(
+        Tenant tenant,
+        CancellationToken cancellationToken)
+    {
+        if (!tenant.LicenseValidUntilUtc.HasValue)
+            return;
+
+        try
+        {
+            var (recipientEmail, adminName) = await ResolveReminderRecipientAsync(
+                    tenant.Id,
+                    tenant.Email,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(recipientEmail))
+            {
+                _logger.LogInformation(
+                    "Skipped renewal confirmation email for tenant {TenantId}: no recipient.",
+                    tenant.Id);
+                return;
+            }
+
+            var support = string.IsNullOrWhiteSpace(_smtpOptions.SupportContact)
+                ? LicenseRenewalConfirmationEmailComposer.DefaultSupportEmail
+                : _smtpOptions.SupportContact.Trim();
+            var dashboardUrl = string.IsNullOrWhiteSpace(_licenseOptions.AdminDashboardUrl)
+                ? LicenseRenewalConfirmationEmailComposer.DefaultAdminDashboardUrl
+                : _licenseOptions.AdminDashboardUrl.Trim();
+
+            var content = LicenseRenewalConfirmationEmailComposer.Build(
+                LicenseRenewalConfirmationEmailComposer.CreateModel(
+                    tenant.Name,
+                    tenant.LicenseValidUntilUtc.Value,
+                    tenant.LicenseKey,
+                    adminName,
+                    dashboardUrl,
+                    support));
+
+            var sent = await _licenseReminderEmailSender
+                .TrySendTenantLicenseReminderAsync(
+                    recipientEmail,
+                    content.Subject,
+                    content.HtmlBody,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (sent)
+            {
+                _logger.LogInformation(
+                    "Renewal confirmation email sent for tenant {TenantId} to {RecipientEmail}",
+                    tenant.Id,
+                    recipientEmail);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Renewal confirmation email not delivered for tenant {TenantId} (SMTP unavailable).",
+                    tenant.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Renewal confirmation email failed for tenant {TenantId}",
+                tenant.Id);
+        }
+    }
+
+    private async Task LogLicenseExtendedAuditAsync(
+        Guid tenantId,
+        string? actorUserId,
+        string? actorRole,
+        string? previousKey,
+        DateTime? previousValidUntilUtc,
+        string? newKey,
+        DateTime? newValidUntilUtc,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return;
+
+        try
+        {
+            await _auditLogService.LogSystemOperationAsync(
+                AuditLogActions.LICENSE_EXTENDED,
+                AuditLogEntityTypes.SYSTEM_CONFIG,
+                actorUserId,
+                actorRole ?? "Manager",
+                description: "Tenant license extended.",
+                requestData: new
+                {
+                    tenantId,
+                    old_key = MaskLicenseKeyForAudit(previousKey),
+                    new_key = MaskLicenseKeyForAudit(newKey),
+                    old_valid_until_utc = previousValidUntilUtc,
+                    new_valid_until_utc = newValidUntilUtc,
+                },
+                actionType: AuditEventType.LicenseExtended,
+                entityId: tenantId,
+                tenantId: tenantId).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Audit log failed for tenant license extend TenantId={TenantId}", tenantId);
+        }
+
+        _ = cancellationToken;
+    }
+
+    private static string? MaskLicenseKeyForAudit(string? licenseKey)
+    {
+        if (string.IsNullOrWhiteSpace(licenseKey))
+            return null;
+        var trimmed = licenseKey.Trim();
+        if (trimmed.Length <= 8)
+            return trimmed;
+        return $"{trimmed[..8]}…";
     }
 
     public async Task<(TenantLicenseOverviewDto? Result, string? Error)> SetTierAsync(
@@ -165,7 +405,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         var now = DateTime.UtcNow;
@@ -197,7 +437,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be checked.");
 
         var warnings = new List<string>();
@@ -345,7 +585,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot receive license reminders.");
 
         var recipientEmail = await ResolveReminderRecipientEmailAsync(tenantId, tenant.Email, cancellationToken)
@@ -353,14 +593,60 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         if (string.IsNullOrWhiteSpace(recipientEmail))
             return (null, "Tenant has no owner or contact email for reminders.");
 
-        var (daysRemaining, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
+        var (daysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
             tenant.LicenseValidUntilUtc,
             tenant.LicenseKey);
 
-        var subject = $"Regkasse Lizenz-Erinnerung - {tenant.Name}";
-        var body = BuildReminderEmailBody(tenant, daysRemaining, kind);
+        var support = string.IsNullOrWhiteSpace(_smtpOptions.SupportContact)
+            ? LicenseReminderEmailComposer.DefaultSupportEmail
+            : _smtpOptions.SupportContact.Trim();
+
+        string subject;
+        string htmlBody;
+        var graceDays = Math.Max(
+            1,
+            _licenseOptions.GracePeriodDays > 0
+                ? _licenseOptions.GracePeriodDays
+                : LicenseGracePeriodConfig.GracePeriodDays);
+        var graceRemaining = tenant.LicenseValidUntilUtc is { } until
+            ? GracePeriodReminderMilestones.ResolveGraceDaysRemaining(until, DateTime.UtcNow, graceDays)
+            : null;
+
+        if (graceRemaining is not null)
+        {
+            var lockdown = GracePeriodReminderMilestones.ResolveLockdownDateUtc(
+                tenant.LicenseValidUntilUtc!.Value,
+                graceDays);
+            var graceContent = GracePeriodReminderEmailComposer.Build(
+                GracePeriodReminderEmailComposer.FromTenant(
+                    tenant,
+                    graceRemaining.Value,
+                    lockdown,
+                    recipientName: null,
+                    adminLicenseUrl: _licenseOptions.AdminLicenseUrl,
+                    supportEmail: support));
+            subject = graceContent.Subject;
+            htmlBody = graceContent.HtmlBody;
+        }
+        else
+        {
+            var content = LicenseReminderEmailComposer.Build(
+                LicenseReminderEmailComposer.FromTenant(
+                    tenant,
+                    daysRemaining,
+                    recipientName: null,
+                    adminLicenseUrl: _licenseOptions.AdminLicenseUrl,
+                    supportEmail: support));
+            subject = content.Subject;
+            htmlBody = content.HtmlBody;
+        }
+
         var sent = await _licenseReminderEmailSender
-            .TrySendTenantLicenseReminderAsync(recipientEmail, subject, body, cancellationToken)
+            .TrySendTenantLicenseReminderAsync(
+                recipientEmail,
+                subject,
+                htmlBody,
+                cancellationToken)
             .ConfigureAwait(false);
         if (!sent)
             return (null, "SMTP is not configured or the reminder email could not be delivered.");
@@ -418,7 +704,17 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         string? fallbackTenantEmail,
         CancellationToken cancellationToken)
     {
-        var ownerEmail = await _db.UserTenantMemberships
+        var (email, _) = await ResolveReminderRecipientAsync(tenantId, fallbackTenantEmail, cancellationToken)
+            .ConfigureAwait(false);
+        return email;
+    }
+
+    private async Task<(string? Email, string? DisplayName)> ResolveReminderRecipientAsync(
+        Guid tenantId,
+        string? fallbackTenantEmail,
+        CancellationToken cancellationToken)
+    {
+        var owner = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
@@ -426,44 +722,28 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 _db.Users.AsNoTracking(),
                 m => m.UserId,
                 u => u.Id,
-                (_, u) => u.Email ?? u.UserName)
+                (_, u) => new
+                {
+                    Email = u.Email ?? u.UserName,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    UserName = u.UserName,
+                })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(ownerEmail))
-            return ownerEmail;
-
-        return string.IsNullOrWhiteSpace(fallbackTenantEmail) ? null : fallbackTenantEmail.Trim();
-    }
-
-    private static string BuildReminderEmailBody(Tenant tenant, int? daysRemaining, string kind)
-    {
-        var validUntilLabel = tenant.LicenseValidUntilUtc?.ToString("dd.MM.yyyy") ?? "—";
-        var statusLabel = kind switch
+        if (owner != null && !string.IsNullOrWhiteSpace(owner.Email))
         {
-            "active" => "Aktiv",
-            "grace_write" => "Grace Write",
-            "grace_read_only" => "Grace ReadOnly",
-            "lockdown" => "Lockdown",
-            "no_license" => "Keine Lizenz",
-            _ => kind,
-        };
-        var remainingLabel = daysRemaining.HasValue ? daysRemaining.Value.ToString() : "—";
+            var display = $"{owner.FirstName} {owner.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(display))
+                display = owner.UserName ?? owner.Email;
+            return (owner.Email, display);
+        }
 
-        return string.Join(Environment.NewLine,
-        [
-            "Guten Tag,",
-            string.Empty,
-            $"für den Mandanten \"{tenant.Name}\" wurde eine Lizenz-Erinnerung ausgelöst.",
-            string.Empty,
-            $"Mandant: {tenant.Name}",
-            $"Subdomain: {tenant.Slug}",
-            $"Lizenzstatus: {statusLabel}",
-            $"Gültig bis: {validUntilLabel}",
-            $"Verbleibende Tage: {remainingLabel}",
-            string.Empty,
-            "Bitte prüfen Sie die Lizenzverlängerung im Regkasse Adminbereich.",
-        ]);
+        if (string.IsNullOrWhiteSpace(fallbackTenantEmail))
+            return (null, null);
+
+        return (fallbackTenantEmail.Trim(), null);
     }
 
     private async Task<Tenant?> LoadMutableTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>
@@ -517,7 +797,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
 
         var marker = TenantLicenseLink.Marker(tenant.Id);
         var byMarker = await _db.IssuedLicenses.AsNoTracking()
-            .Where(il => !il.IsDeleted && EF.Functions.ILike(il.CustomerName, $"%{marker}%"))
+            .Where(il => !il.IsDeleted && il.CustomerName != null && il.CustomerName.Contains(marker))
             .OrderByDescending(il => il.IssuedAtUtc)
             .Take(10)
             .ToListAsync(cancellationToken)
@@ -583,7 +863,11 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 tenant.LicenseValidUntilUtc,
                 999,
                 InferTier(features),
-                features);
+                features,
+                tenant.TrialStatus,
+                tenant.TrialEndsAtUtc,
+                ComputeTrialDaysRemaining(tenant),
+                tenant.TrialGracePeriodEndsAtUtc);
         }
 
         var (days, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
@@ -596,7 +880,19 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             tenant.LicenseValidUntilUtc,
             days,
             InferTier(features),
-            features);
+            features,
+            tenant.TrialStatus,
+            tenant.TrialEndsAtUtc,
+            ComputeTrialDaysRemaining(tenant),
+            tenant.TrialGracePeriodEndsAtUtc);
+    }
+
+    private static int? ComputeTrialDaysRemaining(Tenant tenant)
+    {
+        if (!TrialStatuses.IsOpenTrial(tenant.TrialStatus) || !tenant.TrialEndsAtUtc.HasValue)
+            return null;
+        var ends = DateTime.SpecifyKind(tenant.TrialEndsAtUtc.Value, DateTimeKind.Utc);
+        return (int)Math.Ceiling((ends - DateTime.UtcNow).TotalDays);
     }
 
     private static string? InferTier(IReadOnlyList<string>? features)

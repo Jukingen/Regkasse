@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers.Base
 {
@@ -28,9 +27,9 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                
+
                 var (items, totalCount) = await _repository.GetPagedAsync(validPageNumber, validPageSize);
-                
+
                 var response = new
                 {
                     items = items,
@@ -60,7 +59,7 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var entity = await _repository.GetByIdAsync(id);
-                
+
                 if (entity == null)
                 {
                     return ErrorResponse($"{typeof(T).Name} with ID {id} not found", 404);
@@ -89,8 +88,8 @@ namespace KasseAPI_Final.Controllers.Base
                 }
 
                 var createdEntity = await _repository.AddAsync(entity);
-                
-                return CreatedAtAction(nameof(GetById), new { id = createdEntity.Id }, 
+
+                return CreatedAtAction(nameof(GetById), new { id = createdEntity.Id },
                     SuccessResponse(createdEntity, $"{typeof(T).Name} created successfully"));
             }
             catch (Exception ex)
@@ -119,7 +118,7 @@ namespace KasseAPI_Final.Controllers.Base
                 }
 
                 var updatedEntity = await _repository.UpdateAsync(entity);
-                
+
                 return SuccessResponse(updatedEntity, $"{typeof(T).Name} updated successfully");
             }
             catch (Exception ex)
@@ -137,7 +136,7 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var deleted = await _repository.DeleteAsync(id);
-                
+
                 if (!deleted)
                 {
                     return ErrorResponse($"{typeof(T).Name} with ID {id} not found", 404);
@@ -161,7 +160,7 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var deleted = await _repository.HardDeleteAsync(id);
-                
+
                 if (!deleted)
                 {
                     return ErrorResponse($"{typeof(T).Name} with ID {id} not found", 404);
@@ -184,7 +183,7 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var count = await _repository.CountAsync();
-                
+
                 return SuccessResponse(new { count }, $"Total {typeof(T).Name} count retrieved");
             }
             catch (Exception ex)
@@ -202,7 +201,7 @@ namespace KasseAPI_Final.Controllers.Base
             try
             {
                 var exists = await _repository.ExistsAsync(id);
-                
+
                 return SuccessResponse(new { exists }, $"Existence check completed for {typeof(T).Name} with ID {id}");
             }
             catch (Exception ex)

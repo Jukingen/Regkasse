@@ -17,6 +17,15 @@
 
 ---
 
+## WKO / BMF — Jahresbeleg & Handbuch
+
+- [WKO — Prüfung des Jahresbelegs (Registrierkasse)](https://www.wko.at/steuern/pruefung-jahresbeleg-registrierkasse)
+- [BMF Handbuch Registrierkassen (PDF)](https://www.bmf.gv.at/dam/jcr:0af97a40-da60-4c81-8e1e-22c3ecca52a4/BMF_Handbuch_Registrierkassen.pdf)
+
+Internal product decision (Monatsbeleg FON scope): [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md)
+
+---
+
 ## RIS — Rechtsinformationssystem
 
 - [Rechtsinformationssystem des Bundes (RIS)](https://www.ris.bka.gv.at/)

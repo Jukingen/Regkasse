@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+
+import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 import {
   isRealModeSelectableNow,
   parseHypotheticalPgDumpHealthLevel,
   presentRealModeDiagnostics,
   realReadinessSummaryCopy,
 } from '@/features/backup-dr/logic/backupRealModeReadinessPresentation';
-import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 
 const t = (k: string) => k;
 
@@ -43,9 +44,12 @@ describe('isRealModeSelectableNow', () => {
       effectiveConfigurationHealth: {},
     };
     expect(isRealModeSelectableNow(d)).toBe(true);
-    expect(isRealModeSelectableNow({ ...d, selectableModes: [{ ...d.selectableModes[0], selectable: false }] })).toBe(
-      false,
-    );
+    expect(
+      isRealModeSelectableNow({
+        ...d,
+        selectableModes: [{ ...d.selectableModes[0], selectable: false }],
+      })
+    ).toBe(false);
   });
 });
 
@@ -66,7 +70,7 @@ describe('presentRealModeDiagnostics', () => {
           relatedConfigurationKeys: ['Backup:ArtifactStagingRoot'],
         },
       ],
-      t,
+      t
     );
     expect(presented[0].code).toBe('BACKUP_SETUP_PG_DUMP_STAGING_ROOT_MISSING');
     expect(presented[0].tier).toBe('blocking');

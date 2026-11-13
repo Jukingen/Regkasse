@@ -3,17 +3,26 @@
  * Memoized: re-renders only when product.id or selected modifiers change.
  */
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+
+import { ModifierOptionChips } from './ModifierOptionChips';
+import type { OnAddAddOn } from './ProductRow';
+import {
+  SoftColors,
+  SoftShadows,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
+import type { AddOnSelection } from '../services/api/productModifiersService';
+import { Product } from '../services/api/productService';
+import { resolveCategoryIcon, isCategoryColor, categoryColorTint } from '../utils/categoryDisplay';
 import {
   resolveProductDisplayDescription,
   resolveProductDisplayName,
 } from '../utils/productLocalization';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
-import { Product } from '../services/api/productService';
-import type { AddOnSelection } from '../services/api/productModifiersService';
-import { ModifierOptionChips } from './ModifierOptionChips';
-import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
-import type { OnAddAddOn } from './ProductRow';
 
 export interface ModifierChipItem {
   id: string;
@@ -61,12 +70,12 @@ function ProductGridCardInner({
   onAdd,
   onAddAddOn,
   onOpenAddOnSheet,
-  getCategoryEmoji = () => '📦',
+  getCategoryEmoji,
 }: ProductGridCardProps) {
   const displayLocale = useProductDisplayLocale();
   const displayName = useMemo(
     () => resolveProductDisplayName(product, displayLocale),
-    [product, displayLocale],
+    [product, displayLocale]
   );
 
   const groups = product.modifierGroups ?? [];
@@ -93,41 +102,64 @@ function ProductGridCardInner({
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={handlePress}
-    >
-      <View style={styles.imageWrapper}>
+      onPress={handlePress}>
+      <View
+        style={[
+          styles.imageWrapper,
+          isCategoryColor(product.categoryColor)
+            ? { backgroundColor: categoryColorTint(product.categoryColor, 0.22) }
+            : null,
+        ]}>
         {showHttpsImage && !imageFailed ? (
           <Image
             source={{ uri: trimmedImageUrl }}
             style={styles.gridImage}
             resizeMode="cover"
-            onError={() => setImageFailed(true)}
+            onError={() => {
+              setImageFailed(true);
+            }}
           />
         ) : (
-          <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+          <Text style={styles.emoji}>
+            {getCategoryEmoji
+              ? getCategoryEmoji(product.productCategory || product.category)
+              : resolveCategoryIcon(product.categoryIcon)}
+          </Text>
         )}
       </View>
       <View style={styles.content}>
-        <Text style={styles.category}>{product.productCategory || product.category}</Text>
-        <Text style={styles.name} numberOfLines={2}>{displayName}</Text>
+        <Text
+          style={[
+            styles.category,
+            isCategoryColor(product.categoryColor) ? { color: product.categoryColor } : null,
+          ]}>
+          {product.productCategory || product.category}
+        </Text>
+        <Text style={styles.name} numberOfLines={2}>
+          {displayName}
+        </Text>
         <View style={styles.priceBadge}>
           <Text style={styles.priceText}>€{product.price?.toFixed(2) || '0.00'}</Text>
         </View>
-        {hasAddOnProducts && onAddAddOn && groupsWithProducts.map((group) => (
-          <ModifierOptionChips
-            key={group.id}
-            label={group.name}
-            modifiers={(group.products ?? []).map((p) => ({
-              id: p.productId,
-              name: resolveProductDisplayName(p, displayLocale),
-              price: p.price,
-            }))}
-            selectedModifiers={[]}
-            onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
-            hideQuantityStepper
-            loading={false}
-          />
-        ))}
+        {hasAddOnProducts &&
+          onAddAddOn &&
+          groupsWithProducts.map((group) => (
+            <ModifierOptionChips
+              key={group.id}
+              label={group.name}
+              modifiers={(group.products ?? []).map((p) => ({
+                id: p.productId,
+                name: resolveProductDisplayName(p, displayLocale),
+                price: p.price,
+              }))}
+              selectedModifiers={[]}
+              onAdd={(m) => {
+                onAddAddOn({ productId: m.id, productName: m.name, price: m.price });
+              }}
+              hideQuantityStepper
+              loading={false}
+            />
+          ))}
       </View>
     </Pressable>
   );
@@ -135,10 +167,11 @@ function ProductGridCardInner({
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.xl,
-    margin: SoftSpacing.xs,
+    marginBottom: SoftSpacing.xs,
     overflow: 'hidden',
     ...SoftShadows.sm,
   },
@@ -149,10 +182,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  gridImage: StyleSheet.absoluteFillObject,
+  gridImage: StyleSheet.absoluteFill,
   emoji: { fontSize: 40 },
   content: { padding: SoftSpacing.md, gap: SoftSpacing.xs },
-  category: { ...SoftTypography.caption, color: SoftColors.textMuted, textTransform: 'uppercase' as const },
+  category: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    textTransform: 'uppercase' as const,
+  },
   name: { ...SoftTypography.body, fontWeight: '600', color: SoftColors.textPrimary },
   priceBadge: {
     backgroundColor: SoftColors.accentLight,

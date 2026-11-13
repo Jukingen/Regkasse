@@ -1,7 +1,6 @@
 /**
  * Orval şeması güncellenene kadar API’nin dönebileceği ek restore-drill alanlarını güvenli okur (yanıltıcı anlam üretmez).
  */
-
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 
 export interface RestoreVerificationRunDtoExtended {
@@ -41,7 +40,9 @@ function readNumber(r: Record<string, unknown>, key: string): number | null | un
 }
 
 /** Sunucu yanıtındaki ek alanları (varsa) okur. */
-export function extendRestoreVerificationRunDto(run: RestoreVerificationRunResponseDto | undefined | null): RestoreVerificationRunDtoExtended {
+export function extendRestoreVerificationRunDto(
+  run: RestoreVerificationRunResponseDto | undefined | null
+): RestoreVerificationRunDtoExtended {
   if (!run) return {};
   const r = run as RestoreVerificationRunResponseDto & Record<string, unknown>;
   return {
@@ -51,12 +52,11 @@ export function extendRestoreVerificationRunDto(run: RestoreVerificationRunRespo
     postRestoreContinuityChecksExecuted: readBool(r, 'postRestoreContinuityChecksExecuted'),
     postRestoreContinuityChecksPassed: readBool(r, 'postRestoreContinuityChecksPassed'),
     postRestoreL4ContinuityProofState: readString(r, 'postRestoreL4ContinuityProofState') as
-      | 'notExecuted'
-      | 'failed'
-      | 'passed'
-      | 'inconclusive'
-      | undefined,
-    restoredDatabaseApplicationSmokeExecuted: readBool(r, 'restoredDatabaseApplicationSmokeExecuted'),
+      'notExecuted' | 'failed' | 'passed' | 'inconclusive' | undefined,
+    restoredDatabaseApplicationSmokeExecuted: readBool(
+      r,
+      'restoredDatabaseApplicationSmokeExecuted'
+    ),
     restoredDatabaseApplicationSmokePassed: readBool(r, 'restoredDatabaseApplicationSmokePassed'),
     restoreDrillReachedStage: readNumber(r, 'restoreDrillReachedStage'),
     failureCategory: readNumber(r, 'failureCategory'),

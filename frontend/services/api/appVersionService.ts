@@ -30,5 +30,5 @@ export interface AppVersionResponse {
  * Backend endpoint'i anonim olduğu için Authorization header gerekli değil.
  */
 export async function getLatestAppVersion(): Promise<AppVersionResponse> {
-  return apiClient.get<AppVersionResponse>('/app/version');
+  return await apiClient.get<AppVersionResponse>('/app/version');
 }

@@ -10,14 +10,26 @@ public static class PermissionImplication
 {
     private static readonly FrozenDictionary<string, FrozenSet<string>> ParentToChildren = BuildParentToChildren();
     private static readonly FrozenDictionary<string, string> ChildToParent = BuildChildToParent();
+    /// <summary>One-way: holder permission satisfies required read (e.g. manage → view), not the reverse.</summary>
+    private static readonly FrozenDictionary<string, FrozenSet<string>> HolderToImpliedReads = BuildHolderToImpliedReads();
 
     public static bool IsSatisfied(string required, IReadOnlySet<string> effective)
     {
         if (string.IsNullOrWhiteSpace(required) || effective.Count == 0)
             return false;
 
+        // Compact SuperAdmin JWT emits only system.critical; treat it as full catalog access.
+        if (effective.Contains(AppPermissions.SystemCritical))
+            return true;
+
         if (effective.Contains(required))
             return true;
+
+        foreach (var held in effective)
+        {
+            if (HolderToImpliedReads.TryGetValue(held, out var implied) && implied.Contains(required))
+                return true;
+        }
 
         if (ParentToChildren.TryGetValue(required, out var children)
             && children.All(c => effective.Contains(c)))
@@ -67,11 +79,215 @@ public static class PermissionImplication
             [AppPermissions.SettingsManage] =
             [
                 AppPermissions.SettingsBackup,
+                AppPermissions.BackupManage,
+                AppPermissions.WebsiteManage,
+            ],
+            // Super Admin override: digital.manage satisfies all digital service checks.
+            [AppPermissions.DigitalManage] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalPreview,
+                AppPermissions.DigitalRequest,
+                AppPermissions.DigitalCreate,
+                AppPermissions.DigitalPublish,
+                AppPermissions.DigitalEdit,
+                AppPermissions.DigitalDelete,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalWebPreview,
+                AppPermissions.DigitalWebRequest,
+                AppPermissions.DigitalWebCreate,
+                AppPermissions.DigitalWebPublish,
+                AppPermissions.DigitalWebDelete,
+                AppPermissions.DigitalWebUse,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalAppPreview,
+                AppPermissions.DigitalAppRequest,
+                AppPermissions.DigitalAppCreate,
+                AppPermissions.DigitalAppPublish,
+                AppPermissions.DigitalAppDelete,
+                AppPermissions.DigitalAppUse,
+                AppPermissions.DigitalPricingManage,
+                AppPermissions.DigitalActivate,
+                AppPermissions.DigitalOrdersView,
+                AppPermissions.DigitalOrdersManage,
+                AppPermissions.DigitalOrdersApprove,
             ],
             [AppPermissions.AuditCleanup] =
             [
                 AppPermissions.AuditDelete,
             ],
+        };
+
+        return map.ToFrozenDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static FrozenDictionary<string, FrozenSet<string>> BuildHolderToImpliedReads()
+    {
+        var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Standard manage/write → read (one-way).
+            [AppPermissions.UserManage] = [AppPermissions.UserView],
+            [AppPermissions.ProductManage] = [AppPermissions.ProductView],
+            [AppPermissions.CategoryManage] = [AppPermissions.CategoryView],
+            [AppPermissions.ModifierManage] = [AppPermissions.ModifierView],
+            [AppPermissions.InventoryManage] = [AppPermissions.InventoryView],
+            [AppPermissions.CustomerManage] = [AppPermissions.CustomerView],
+            [AppPermissions.InvoiceManage] = [AppPermissions.InvoiceView],
+            [AppPermissions.SettingsManage] = [AppPermissions.SettingsView],
+            [AppPermissions.LocalizationManage] = [AppPermissions.LocalizationView],
+            [AppPermissions.ReceiptTemplateManage] = [AppPermissions.ReceiptTemplateView],
+            [AppPermissions.BenefitManage] = [AppPermissions.BenefitView],
+            [AppPermissions.RoleManage] = [AppPermissions.RoleView],
+            [AppPermissions.FinanzOnlineManage] = [AppPermissions.FinanzOnlineView],
+            [AppPermissions.PaymentTake] = [AppPermissions.PaymentView],
+            [AppPermissions.PaymentCancel] = [AppPermissions.PaymentView],
+            [AppPermissions.ReportExport] = [AppPermissions.ReportView],
+            [AppPermissions.AuditExport] = [AppPermissions.AuditView],
+            [AppPermissions.AuditCleanup] = [AppPermissions.AuditView],
+            [AppPermissions.CartManage] = [AppPermissions.CartView],
+            [AppPermissions.ShiftManage] = [AppPermissions.ShiftView],
+            [AppPermissions.ShiftOpen] = [AppPermissions.ShiftView],
+            [AppPermissions.ShiftClose] = [AppPermissions.ShiftView],
+            [AppPermissions.KitchenUpdate] = [AppPermissions.KitchenView],
+            [AppPermissions.VoucherCreate] = [AppPermissions.VoucherRead],
+            [AppPermissions.VoucherCancel] = [AppPermissions.VoucherRead],
+            [AppPermissions.VoucherIssue] = [AppPermissions.VoucherRead],
+            [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
+            [AppPermissions.CashRegisterDecommission] = [AppPermissions.CashRegisterView],
+            [AppPermissions.TableManage] = [AppPermissions.TableView],
+            [AppPermissions.RoomManage] = [AppPermissions.RoomView],
+            [AppPermissions.TicketManage] = [AppPermissions.TicketView],
+            [AppPermissions.AppointmentManage] = [AppPermissions.AppointmentView],
+            [AppPermissions.PatientManage] = [AppPermissions.PatientView],
+            [AppPermissions.ImeiManage] = [AppPermissions.ImeiView],
+            [AppPermissions.TaxiTripManage] = [AppPermissions.TaxiTripView],
+            [AppPermissions.LicenseManage] = [AppPermissions.LicenseView],
+            // Domains/customization — view/preview/request only (not create/publish).
+            [AppPermissions.WebsiteManage] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalPreview,
+                AppPermissions.DigitalRequest,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalWebPreview,
+                AppPermissions.DigitalWebRequest,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalAppPreview,
+                AppPermissions.DigitalAppRequest,
+            ],
+            // Simplified digital.* → legacy web/app checks + related actions.
+            [AppPermissions.DigitalView] =
+            [
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+            ],
+            [AppPermissions.DigitalPreview] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalWebPreview,
+                AppPermissions.DigitalAppPreview,
+            ],
+            [AppPermissions.DigitalRequest] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalWebRequest,
+                AppPermissions.DigitalAppRequest,
+            ],
+            [AppPermissions.DigitalCreate] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalPreview,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalWebPreview,
+                AppPermissions.DigitalAppPreview,
+                AppPermissions.DigitalWebCreate,
+                AppPermissions.DigitalAppCreate,
+                AppPermissions.DigitalWebUse,
+                AppPermissions.DigitalAppUse,
+            ],
+            [AppPermissions.DigitalPublish] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalWebPublish,
+                AppPermissions.DigitalAppPublish,
+            ],
+            [AppPermissions.DigitalEdit] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalPreview,
+                AppPermissions.WebsiteManage,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+            ],
+            [AppPermissions.DigitalDelete] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebDelete,
+                AppPermissions.DigitalAppDelete,
+            ],
+            [AppPermissions.DigitalWebCreate] =
+            [
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalWebPreview,
+                AppPermissions.DigitalWebUse,
+            ],
+            [AppPermissions.DigitalAppCreate] =
+            [
+                AppPermissions.DigitalAppView,
+                AppPermissions.DigitalAppPreview,
+                AppPermissions.DigitalAppUse,
+            ],
+            [AppPermissions.DigitalWebPublish] = [AppPermissions.DigitalWebView],
+            [AppPermissions.DigitalAppPublish] = [AppPermissions.DigitalAppView],
+            [AppPermissions.DigitalWebUse] = [AppPermissions.DigitalWebView],
+            [AppPermissions.DigitalAppUse] = [AppPermissions.DigitalAppView],
+            [AppPermissions.DigitalWebPreview] = [AppPermissions.DigitalWebView],
+            [AppPermissions.DigitalAppPreview] = [AppPermissions.DigitalAppView],
+            [AppPermissions.DigitalWebRequest] = [AppPermissions.DigitalWebView],
+            [AppPermissions.DigitalAppRequest] = [AppPermissions.DigitalAppView],
+            [AppPermissions.DigitalPricingManage] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+            ],
+            [AppPermissions.DigitalActivate] =
+            [
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalWebView,
+                AppPermissions.DigitalAppView,
+            ],
+            [AppPermissions.DigitalOrdersManage] =
+            [
+                AppPermissions.DigitalOrdersView,
+            ],
+            [AppPermissions.DigitalOrdersApprove] =
+            [
+                AppPermissions.DigitalOrdersView,
+                AppPermissions.DigitalOrdersManage,
+            ],
+            [AppPermissions.DailyClosingExecute] = [AppPermissions.DailyClosingView],
+            [AppPermissions.FiskalyOperationsNormal] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsCancel] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsNullbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsStartbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsMonatsbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsJahresbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsSchlussbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsTagesabschluss] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsDepExport] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsConfig] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyHistoryRetry] = [AppPermissions.FiskalyHistoryView],
         };
 
         return map.ToFrozenDictionary(

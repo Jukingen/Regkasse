@@ -32,14 +32,18 @@
 Regkasse runs as a **single backend instance** serving many **tenants** (companies/customers). Each tenant has:
 
 - A unique **`tenants.id`** (UUID, primary key for `tenant_id` columns)
-- A unique **`tenants.slug`** (string, e.g. `cafe`, `test_cafe`) used for subdomain and dev header resolution
+- A unique **`tenants.slug`** (string, e.g. `dev`, `prod`) used for subdomain and dev header resolution
 
-Production entry points:
+Production entry points (**Single POS UI** — see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md)):
 
 | Host | Purpose |
 |------|---------|
-| `{slug}.regkasse.at` | Tenant operator / POS / tenant admin |
-| `admin.regkasse.at` | Super Admin (tenant lifecycle, impersonation) |
+| `pos.regkasse.at` | Shared POS UI for **all** tenants (tenant from JWT after login) |
+| `admin.regkasse.at` | Admin FA (Super Admin + mandant admin sessions) |
+| `api.regkasse.at` | Shared API |
+| `{slug}.regkasse.at` | Legacy / transition only — **not** the POS production entry |
+
+Reserved Host labels (never tenant slugs): `pos`, `api`, `admin`, `www`.
 
 ---
 
@@ -48,14 +52,13 @@ Production entry points:
 ```mermaid
 flowchart TB
     subgraph clients [Clients]
-        POS[POS Expo app]
-        FA[Admin Next.js]
-        SA[Super Admin FA]
+        POS["POS pos.regkasse.at"]
+        FA["FA admin.regkasse.at"]
     end
 
     subgraph edge [Edge]
-        DNS["Wildcard DNS *.regkasse.at"]
-        TLS[Wildcard TLS]
+        DNS["pos / admin / api (+ optional *.regkasse.at)"]
+        TLS[TLS]
     end
 
     subgraph api [ASP.NET Core API]
@@ -72,23 +75,30 @@ flowchart TB
 
     POS --> DNS
     FA --> DNS
-    SA --> DNS
     DNS --> TLS --> TRM
-    TRM -->|"Host → slug → Guid"| EF
+    TRM -->|"reserved pos/api/admin ≠ slug"| AUTH
     AUTH --> TCM
-    TCM -->|"JWT tenant_id may override"| EF
+    TCM -->|"JWT tenant_id (authoritative for POS)"| EF
     EF --> TBL_T
     EF --> TBL_D
 ```
 
-**Data flow (typical tenant request):**
+**Data flow (production POS — target):**
 
 ```text
-Host: cafe.regkasse.at
-  → SubdomainTenantProvider → slug "cafe"
-  → CurrentTenantService → tenants row → ICurrentTenantAccessor.TenantId = {uuid}
-  → [optional] JWT tenant_id claim overrides accessor after login
+Host: pos.regkasse.at / api.regkasse.at
+  → Login resolves membership → JWT tenant_id
+  → TenantContextMiddleware → ICurrentTenantAccessor.TenantId = {uuid}
   → EF queries: WHERE tenant_id = {uuid}  (ITenantEntity types)
+```
+
+**Data flow (dev / legacy subdomain host):**
+
+```text
+Host: dev.regkasse.local  (or Development X-Tenant-Id / ?tenant=)
+  → SubdomainTenantProvider or header → slug "dev"
+  → CurrentTenantService → tenants row → accessor Guid
+  → [after login] JWT tenant_id overrides accessor
 ```
 
 ---
@@ -97,12 +107,13 @@ Host: cafe.regkasse.at
 
 | Environment | Resolution |
 |-------------|------------|
-| **Production** | First label of `Host` (`cafe.regkasse.at` → `cafe`), except `admin` / `www` → admin context |
-| **Development** | Same as production **or** `X-Tenant-Id: {slug}` **or** `?tenant={slug}` |
-| **After login** | JWT `tenant_id` claim may **override** host-resolved accessor (`TenantContextMiddleware`) |
-| **Stored value** | Always **UUID** on rows; slug is only for routing |
+| **Production (POS / shared API)** | Tenant from JWT `tenant_id` after login. Hosts `pos.regkasse.at` / `api.regkasse.at` are **not** tenant slugs. |
+| **Production (legacy slug host)** | First label of `Host` (`cafe.regkasse.at` → `cafe`), except reserved `admin` / `www` / `pos` / `api` |
+| **Development** | Prefer `X-Tenant-Id: {slug}`; fallback `?tenant={slug}`; or hosts-file slug host |
+| **After login** | JWT `tenant_id` claim **overrides** ambient/host-resolved accessor (`TenantContextMiddleware`) |
+| **Stored value** | Always **UUID** on rows; slug is for routing / display / login membership |
 
-**JWT vs header (2026-05):** FA dev switcher and POS dev tenant id set the **ambient** tenant before login; after authentication, APIs prefer JWT `tenant_id`. Production does **not** accept `X-Tenant-Id`. Strict host↔JWT binding in production is still a [known gap](#known-gaps-and-roadmap).
+**JWT vs header:** FA header switcher and POS `EXPO_PUBLIC_DEV_TENANT_ID` / DevTenantSwitcher set **ambient** tenant before login (Development only). After authentication, APIs prefer JWT `tenant_id`. Production must **not** accept `X-Tenant-Id`. Reserved-host + JWT-authoritative POS path: [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
 
 Code:
 
@@ -110,19 +121,22 @@ Code:
 - `backend/Tenancy/SubdomainTenantProvider.cs`
 - `backend/Tenancy/CurrentTenantService.cs`
 
-**Admin host:** slug `admin` is normalized to the **legacy default tenant** (`LegacyDefaultTenantIds.PrimarySlug`) for operational APIs until Super Admin **impersonates** a target tenant.
+**Admin host:** slug `admin` is normalized to the **platform sentinel tenant** (`SystemTenantIds.Platform` / slug `platform`) for operational APIs until Super Admin **impersonates** a target tenant. In Development, localhost/`admin` remaps to the seeded **`dev`** business tenant for DX.
 
 ---
 
 ## Request pipeline
 
-Order in `ApplicationHost.cs`:
+Order in `ApplicationHost.cs` (simplified; see `backend/docs/MIDDLEWARE_GUARDRAILS.md`):
 
-1. `TenantResolutionMiddleware` — host (or dev header/query) → slug → load tenant → set `ICurrentTenantAccessor`
-2. `UseAuthentication`
-3. `TenantContextMiddleware` — if JWT contains `tenant_id` claim, **override** accessor
-4. `UseAuthorization` + controllers
-5. `AppDbContext` — global query filters on `ITenantEntity`
+1. `CsrfMiddleware` — double-submit CSRF (before tenant work; no tenant dependency)
+2. `TenantResolutionMiddleware` — host (or Dev header/query) → ambient `ICurrentTenantAccessor` (platform hosts left unset)
+3. `TokenValidationMiddleware` + `UseAuthentication`
+4. `TenantContextMiddleware` — Production: JWT `tenant_id` only; Development: header/query override wins
+5. `TenantValidationMiddleware` — fail-closed 404 when ambient tenant missing (public/ops paths exempt)
+6. `LicenseMiddleware` — deployment + mandant lockdown (needs JWT + ambient tenant)
+7. `UseAuthorization` + controllers
+8. `AppDbContext` — global query filters on `ITenantEntity`
 
 ---
 
@@ -192,7 +206,9 @@ sequenceDiagram
     UI->>API: POST /api/admin/tenants/{id}/impersonate
     API->>JWT: token with tenant_id + tenant_impersonation
     API-->>UI: token, tenantSlug, refreshToken
-    alt Production host (not localhost / *.local)
+    alt Preferred production (shared FA)
+        UI->>UI: stay on admin.regkasse.at with impersonation JWT
+    else Legacy FA handoff (still in code)
         UI->>UI: redirect https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…
         UI->>UI: /impersonate-callback stores JWT, → /dashboard
     else Development
@@ -200,6 +216,8 @@ sequenceDiagram
     end
     UI->>API: Business APIs with impersonation JWT
 ```
+
+POS remains `pos.regkasse.at` (not part of this handoff). Details: [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
 
 **Restrictions:** cannot impersonate deleted, suspended, or inactive tenants.
 
@@ -209,7 +227,7 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 
 | Step | Operator action | API | Production |
 |------|-----------------|-----|------------|
-| **Archive (primary)** | *Mandant archivieren* | `DELETE /api/admin/tenants/{id}` | ✅ Allowed (except legacy default tenant) |
+| **Archive (primary)** | *Mandant archivieren* | `DELETE /api/admin/tenants/{id}` | ✅ Allowed (except platform sentinel) |
 | **Review dependencies** | *Abhängigkeiten prüfen* | `GET /api/admin/tenants/{id}/delete-dependencies` | ✅ Returns counts + `canHardDelete` |
 | **Permanent delete** | *Endgültig löschen* (archived only) | `DELETE /api/admin/tenants/{id}/permanent` | ❌ `403 production_policy` |
 | **Restore** | *Wiederherstellen* | `POST /api/admin/tenants/{id}/restore` | ✅ |
@@ -220,7 +238,7 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 - `confirmSlug` must match `tenants.slug`
 - No **cash registers** on tenant
 - No **fiscal footprint** (payments, signed receipts, daily closings, etc.)
-- Not the **legacy default tenant**
+- Not the **platform sentinel** (`SystemTenantIds.Platform` / slug `platform`)
 
 **RKSV:** Payment and audit data may require **7-year retention**; archive (soft-delete) is the recommended path. See [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) → Delete section.
 
@@ -244,15 +262,17 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 | API clients cannot bypass filters with query params | ✅ |
 | Cross-tenant IDOR returns 404 | ✅ (tested) |
 | Offline queue includes `tenant_id` through replay | ✅ |
-| Every business table has `tenant_id` | ⚠️ Partial — not all entities are `ITenantEntity` (e.g. `Customer`) |
+| Every business table has `tenant_id` | ⚠️ Partial — most tenant business entities implement `ITenantEntity` (e.g. `Customer` **does**); platform tables (Identity, `tenants`, sessions) stay non-tenant-scoped |
 
 ### Tenant spoofing prevention
 
 | Control | Status |
 |---------|--------|
-| Production: subdomain-only resolution | ✅ |
+| Production: no client tenant header/query | ✅ |
 | Dev `X-Tenant-Id` / `?tenant=` disabled in Production | ✅ |
 | Super Admin extra role check | ✅ |
+| Reserved hosts `pos` / `api` / `admin` / `www` not treated as tenant slugs | ✅ `TenantHostNames.IsReservedPlatformHostLabel` |
+| JWT `tenant_id` authoritative for shared POS/API hosts | ⚠️ Target (middleware already prefers JWT after login) |
 | JWT `tenant_id` must match host subdomain in Production | ❌ **Not enforced** — see [Known gaps](#known-gaps-and-roadmap) |
 
 ---
@@ -269,7 +289,7 @@ curl -X POST "https://admin.regkasse.at/api/admin/tenants" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Cafe Example",
-    "slug": "cafe",
+    "slug": "dev",
     "email": "ops@example.com"
   }'
 ```
@@ -282,7 +302,7 @@ Slug rules: lowercase alphanumeric, hyphens/underscores; must be unique.
 
 - Wildcard `*.regkasse.at` already points to API
 - No per-tenant DNS record required if wildcard is in place
-- Verify: `https://cafe.regkasse.at/api/health` (or your health route)
+- Verify: `https://api.regkasse.at/api/health` (production) or `http://localhost:5184/api/health` (local). Dev tenant header: `X-Tenant-Id: dev` (Development only).
 
 ### 3. User membership
 
@@ -350,7 +370,7 @@ Body (`UpdateAdminTenantRequest`): partial fields including `status` (`active` |
 ### `DELETE /api/admin/tenants/{tenantId}`
 
 Soft-delete (archive): `status=deleted`, `isActive=false`  
-`400` if legacy default tenant
+`400` if platform sentinel tenant
 
 ### `GET /api/admin/tenants/{tenantId}/delete-dependencies`
 
@@ -406,7 +426,9 @@ dotnet ef database update \
 
 | Migration | Purpose |
 |-----------|---------|
-| `20260403190133_AddTenantsAndSettingsTenantId` | `tenants` table + default tenant seed |
+| `20260403190133_AddTenantsAndSettingsTenantId` | `tenants` table + Wave-0 seed (now `SystemTenantIds.Platform` / slug `platform`) |
+| `20260811140000_RenameDefaultTenantToPlatform` | Rename leftover `default` → `platform`, deactivate sentinel |
+| `20260811150000_DeleteLeftoverDefaultTenantSlug` | Idempotent delete of any leftover `slug=default` row (same Guid only if still `default`) |
 | `20260403203332_UserTenantMemberships` | User–tenant links |
 | `20260403202249_AuthSessionTenantId` | Session tenant |
 | `20260404010055_Wave2TenantScopedPaymentMethodsAndCashRegisters` | Wave 2 |
@@ -417,12 +439,12 @@ dotnet ef database update \
 
 ### Pattern for adding `tenant_id` to a table
 
-1. Add column `uuid NOT NULL` with **default** `LegacyDefaultTenantIds.Primary` (Guid constant in migrations)
+1. Add column `uuid NOT NULL` with **default** `SystemTenantIds.Platform` (Guid constant in migrations)
 2. Backfill if needed (separate data migration)
 3. Add FK to `tenants.id` and index
 4. Map entity to `ITenantEntity` + global filter in `AppDbContext`
 
-**Do not** use string `'legacy'` as SQL default — use the seeded default tenant **Guid**.
+**Do not** use string `'legacy'` as SQL default — use the seeded platform sentinel **Guid**. Business DX default is the **`dev`** tenant, not `platform`.
 
 ### New migration
 
@@ -440,7 +462,7 @@ dotnet ef migrations add <DescriptiveName> \
 
 | Mode | Tenant source | API calls |
 |------|----------------|-------------|
-| **Production** | Subdomain of FA URL (`cafe.regkasse.at`) | JWT `tenant_id` after login; Super Admin on `admin.*` uses impersonation for mandant data |
+| **Production** | Subdomain of FA URL (`dev.regkasse.at`) | JWT `tenant_id` after login; Super Admin on `admin.*` uses impersonation for mandant data |
 | **Development** | `HeaderDevTenantSwitch` → `GET /api/tenants/switcher` | `localStorage.dev_tenant_id` + `X-Tenant-Id: {slug}` on reload; JWT overrides after login |
 
 **Production Super Admin:** no header switcher; use **Als Mandant anmelden** or platform routes (`/admin/tenants`, `/admin/license`).
@@ -453,8 +475,8 @@ Env: `NEXT_PUBLIC_API_BASE_URL` (build-time). See `frontend-admin/README.md`.
 
 | Mode | Tenant source |
 |------|----------------|
-| Production | License activation bootstrap (`tenantStorage`) |
-| Development | `EXPO_PUBLIC_DEV_TENANT_ID`, `DevTenantSwitcher` |
+| Production | Shared UI `pos.regkasse.at` → API `api.regkasse.at`; tenant from **JWT** after login ([`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md)) |
+| Development | `EXPO_PUBLIC_DEV_TENANT_ID`, `DevTenantSwitcher` → `X-Tenant-Id` |
 
 See `REGKASSE_AI_ONBOARDING.md` → POS Tenant Configuration.
 
@@ -464,16 +486,16 @@ See `REGKASSE_AI_ONBOARDING.md` → POS Tenant Configuration.
 
 ### DNS
 
-- Wildcard **A** / **AAAA**: `*.regkasse.at` → API load balancer
-- Apex / `admin` as required by your DNS provider
+- Explicit hosts: `pos.regkasse.at`, `admin.regkasse.at`, `api.regkasse.at`
+- Optional wildcard **A** / **AAAA**: `*.regkasse.at` if legacy `{slug}` hosts remain
 
 ### TLS
 
-- Certificate must cover `*.regkasse.at` (and apex if used)
+- Certificate must cover `pos`, `admin`, `api` (and `*.regkasse.at` if used)
 
 ### Proxy
 
-- Forward **`Host`** header unchanged (required for slug resolution)
+- Forward **`Host`** header unchanged (reserved-host detection + any legacy slug hosts)
 
 ### Environment
 
@@ -529,7 +551,7 @@ See `REGKASSE_AI_ONBOARDING.md` (Scoped service resolution, License service arch
 |---------|--------|
 | Sees another tenant’s rows | JWT `tenant_id` vs host slug; dev header stale in `localStorage` |
 | Empty lists | Accessor tenant UUID mismatch; missing `tenants` row for slug |
-| Super Admin sees only default tenant data | Expected until impersonation; use impersonate API |
+| Super Admin sees only platform/ambient data | Expected until impersonation; use impersonate API |
 
 **Fix (dev):** clear `dev_tenant_id`, re-select tenant in FA header switcher, re-login.
 
@@ -545,9 +567,9 @@ Tenant may be `suspended`, `deleted`, or `isActive=false`. Check `GET /api/admin
 
 | Check | Action |
 |-------|--------|
-| `tenants.slug` matches host first label | `test-cafe.localhost` → slug `test-cafe`, not `test_cafe` |
-| Hosts file for `*.regkasse.local` | Use `cafe.regkasse.local` or dev header |
-| `admin` host | Maps to legacy default tenant, not “all tenants” |
+| `tenants.slug` matches host first label | `dev.localhost` → slug `dev`, not `dev` |
+| Hosts file for `*.regkasse.local` | Use `dev.regkasse.local` or dev header |
+| `admin` host | Maps to platform sentinel (`platform`); Development remaps to `dev` |
 
 ### CORS errors with `*.localhost` API host
 
@@ -599,7 +621,12 @@ Operator UI is **German**; routes and code identifiers are **English**. Full det
 | List / CRUD / impersonate | `/api/admin/tenants` | `SuperAdmin` |
 | Tenant users | `/api/admin/tenants/{id}/users`, `…/users/assign`, `…/role` | `user.manage` / `SuperAdmin` |
 | Tenant mandant license | `/api/admin/tenants/{id}/license/*` | `SuperAdmin` |
+| Billing license sales | `/api/admin/billing/license-sales/*` | `SuperAdmin` |
+| Manager billing extend | `POST /api/admin/license/extend` | `settings.manage` + tenant JWT |
+| Manager mandant license (legacy) | `GET/POST /api/admin/license/mandant/*` | `license.manage` |
 | Dev switcher list | `GET /api/tenants/switcher` | authenticated; scoped by role |
+
+See [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) for billing key format and service split.
 
 ---
 
@@ -611,6 +638,7 @@ Two license types must not be conflated — see [`LICENSE_SYSTEM.md`](LICENSE_SY
 |--------------|-----------|-------------|-----|
 | **Deployment** | Server-Lizenz (On-Premise) | `/admin/license` | `/api/admin/license/*` |
 | **Tenant (Mandant)** | Mandantenlizenz | Tenant list/detail; Manager header | `tenants.license_*`, `/api/admin/tenants/{id}/license` |
+| **Billing sale** | Lizenzverkauf | Super Admin billing UI | `/api/admin/billing/license-sales/*`; Manager extend: `POST /api/admin/license/extend` |
 
 | Role / host | Deployment in header | Mandant in header | Expiry banner |
 |-------------|---------------------|-------------------|---------------|
@@ -662,11 +690,14 @@ Implementation:
 
 | Item | Status |
 |------|--------|
-| Production impersonation redirect to `{slug}.regkasse.at` | Implemented (fragment handoff + `/impersonate-callback`) |
+| Single POS UI hosts (`pos` / `api`) reserved in `TenantHostNames` | ✅ Done — also blocked in `TenantSlugSuggestions.IsValidSlug` |
+| Production POS fixed API base `https://api.regkasse.at/api` | Target |
+| Production impersonation handoff | Prefer FA session / documented handoff; POS remains `pos.regkasse.at` with JWT tenant — do not treat `{slug}.regkasse.at` as POS entry (see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md)) |
 | `AuditLog.impersonated_by` (or metadata) for impersonation | Not implemented |
-| JWT `tenant_id` ↔ host subdomain enforcement middleware | Not implemented |
+| JWT `tenant_id` ↔ host subdomain enforcement middleware | Not implemented (less relevant when POS/API hosts are reserved non-slugs) |
 | Cross-tenant SaaS metrics API | Not implemented |
-| All domain entities on `ITenantEntity` | Incomplete (e.g. `Customer`) |
+| All domain entities on `ITenantEntity` | Mostly complete for business tables; platform Identity / `tenants` remain non-tenant-scoped |
+| Customer websites (`frontend-sites`) + `TenantDomain` | Implemented — custom Host → slug via `ITenantDomainService`; FA `/settings/website` (`website.manage`) |
 
 When implementing security middleware, add tests to `TenantIsolationTests` and update this section.
 
@@ -676,14 +707,19 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 
 | Document | Content |
 |----------|---------|
+| `docs/POS_PRODUCTION_ARCHITECTURE.md` | **Single POS UI** production hosts, JWT tenant, dev URLs |
+| `docs/DIGITAL_SERVICES.md` / `docs/ONLINE_ORDERS.md` | Website/app generators + non-fiscal online orders |
+| `frontend-sites/README.md` | Shared tenant storefront runtime (`/[slug]`) |
 | `docs/TENANT_MANAGEMENT.md` | FA tenant CRUD, users, switcher, provisioning |
 | `docs/CUSTOMER_ONBOARDING.md` | Onboarding wizard, rollback, welcome email |
 | `docs/USER_MANAGEMENT.md` | Platform vs tenant users, direct create, reset |
+| `docs/WORKING_HOURS.md` | Website/app hours only (never POS/FA) |
 | `docs/CASH_REGISTER_LIFECYCLE.md` | RKSV decommission, Schlussbeleg |
 | `docs/LICENSE_SYSTEM.md` | Deployment vs Mandant license, FA badges/banners |
 | `docs/CHANGELOG_TENANT_MANAGEMENT.md` | Dated tenant/license FA changes |
 | `docs/CHANGELOG_RECENT.md` | Cross-cutting recent engineering changes |
 | `docs/IMPERSONATION_FLOW.md` | Super Admin impersonation redirect and token handshake |
+| `docs/README.md` | Documentation index |
 | `REGKASSE_AI_ONBOARDING.md` | AI brief, dev setup, API headers |
 | `AGENTS.md` | Agent rules, multi-tenant summary |
 | `backend/README.md` | Backend quick start, middleware paths |

@@ -53,6 +53,10 @@
     "detailsNote": "Ek açıklama (isteğe bağlı)"
   },
   "loadError": "Ödeme geçmişi yüklenemedi",
+  "preparingRegister": "Kasa hazırlanıyor…",
+  "noRegisterTitle": "Kasa seçilmedi",
+  "noRegister": "Lütfen önce bir vardiya başlatın veya kasa seçin.",
+  "selectRegister": "Kasa seç",
   "print": {
     "stornoFailed": "İptal fişi yazdırılamadı",
     "refundFailed": "İade fişi yazdırılamadı"

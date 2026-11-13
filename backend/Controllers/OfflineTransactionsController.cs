@@ -1,11 +1,8 @@
-using System;
-using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers
 {

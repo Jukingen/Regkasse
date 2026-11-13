@@ -67,8 +67,10 @@ public sealed class AdminFiscalExportAuditController : ControllerBase
         [FromQuery] int maxRows = 5000,
         CancellationToken cancellationToken = default)
     {
-        if (maxRows < 1) maxRows = 1;
-        if (maxRows > 50_000) maxRows = 50_000;
+        if (maxRows < 1)
+            maxRows = 1;
+        if (maxRows > 50_000)
+            maxRows = 50_000;
 
         exportType = string.IsNullOrWhiteSpace(exportType)
             ? FiscalExportAuditExportTypeFilter.All
@@ -99,7 +101,8 @@ public sealed class AdminFiscalExportAuditController : ControllerBase
     {
         static string C(string? value)
         {
-            if (string.IsNullOrEmpty(value)) return "\"\"";
+            if (string.IsNullOrEmpty(value))
+                return "\"\"";
             var v = value.Replace("\"", "\"\"", StringComparison.Ordinal);
             return $"\"{v}\"";
         }

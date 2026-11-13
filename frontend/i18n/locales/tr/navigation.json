@@ -20,15 +20,23 @@
   "accessibleScreens": "Erişilebilir Ekranlar",
   "demoUserInfo": "Demo Kullanıcı: Sadece test işlevleri mevcut",
   "cashRegister": "Kasa",
+  "orders": "Siparişler",
+  "receiptList": "Fis listesi",
   "settings": "Ayarlar",
   "offlineQueue": {
     "title": "Cevrimdisi kuyruk",
     "syncSummaryPartial": "{{processed}} odeme senkronize edildi. {{failed}} basarisiz.",
     "syncSummarySuccess": "{{processed}} odeme basariyla senkronize edildi.",
-    "syncSummaryAllFailed": "Hic odeme senkronize edilmedi. {{failed}} basarisiz — Ayarlar > cevrimdisi kuyruga bakin ve gerekirse tekrar deneyin."
+    "syncSummaryAllFailed": "Hic odeme senkronize edilmedi. {{failed}} basarisiz — Ayarlar > cevrimdisi kuyruga bakin ve gerekirse tekrar deneyin.",
+    "indicator": {
+      "onlineEmpty": "Cevrimici, kuyruk bos",
+      "syncing": "Cevrimici, {{count}} kayit senkronize ediliyor",
+      "offlineQueued": "Cevrimdisi, kuyrukta {{count}} kayit",
+      "syncFailed": "Senkronizasyon basarisiz, {{count}} kayit takili"
+    }
   },
   "cartAccessibility": {
-    "default": "Sepet, odemeye devam et",
-    "withCount": "Sepet, {{count}} urun, odemeye devam et"
+    "default": "Sepet {{total}}, odemeye devam et",
+    "withCount": "Sepet {{total}}, {{count}} urun, odemeye devam et"
   }
 }

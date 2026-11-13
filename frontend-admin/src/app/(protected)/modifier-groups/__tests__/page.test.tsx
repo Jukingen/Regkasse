@@ -2,12 +2,14 @@
  * Regression tests after legacy modifier migration removal.
  * Ensures: add-on groups page renders; no legacy migration UI; active add-on behavior only.
  */
-
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { I18nProvider } from '@/i18n';
+
 import ModifierGroupsPage from '../page';
 
 vi.mock('@/lib/api/modifierGroups', () => ({
@@ -18,13 +20,33 @@ vi.mock('@/lib/api/modifierGroups', () => ({
   removeProductFromGroup: vi.fn(),
 }));
 
-vi.mock('@/api/admin/products', () => ({
-  getAdminProductsList: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
-}));
+vi.mock('@/api/admin/products', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/admin/products')>();
+  return {
+    ...actual,
+    getAdminProductsList: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
+  };
+});
 
 vi.mock('@/features/categories/hooks/useCategories', () => ({
   useCategories: () => ({
     useList: () => ({ data: [] }),
+  }),
+}));
+
+vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    tenantSlug: 'dev',
+    isSuperAdminUser: false,
+  }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: {},
   }),
 }));
 
@@ -34,7 +56,9 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ModifierGroupsPage />
+      <I18nProvider>
+        <ModifierGroupsPage />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
@@ -46,7 +70,7 @@ describe('Modifier groups page (add-on only, no legacy migration)', () => {
 
   it('renders add-on groups title and create group button', async () => {
     renderPage();
-    expect(screen.getByText(/Add-on-Gruppen/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Add-on-Gruppen/).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Gruppe anlegen/ })).toBeInTheDocument();
   });
 
@@ -54,7 +78,9 @@ describe('Modifier groups page (add-on only, no legacy migration)', () => {
     renderPage();
     const body = document.body.textContent ?? '';
     // Absence of legacy migration strings (regression: must not reappear after removal)
-    expect(body).not.toMatch(/Bulk-Migration|Als Produkt migrieren|Legacy-Modifier|migration-progress|Aktive Legacy-Modifier|Migrieren\s*ausführen/i);
+    expect(body).not.toMatch(
+      /Bulk-Migration|Als Produkt migrieren|Legacy-Modifier|migration-progress|Aktive Legacy-Modifier|Migrieren\s*ausführen/i
+    );
   });
 
   it('shows add-on products copy (active add-on model only)', async () => {

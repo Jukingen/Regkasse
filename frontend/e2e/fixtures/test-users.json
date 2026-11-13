@@ -1,0 +1,42 @@
+{
+  "dev": {
+    "username": "cashier-gastro",
+    "password": "DevCashier1!"
+  },
+  "dev-gastronomy-tables": {
+    "username": "cashier-tables",
+    "password": "DevCashier1!"
+  },
+  "dev-vet": {
+    "username": "cashier-vet",
+    "password": "DevCashier1!"
+  },
+  "dev-doctor": {
+    "username": "cashier-doctor",
+    "password": "DevCashier1!"
+  },
+  "dev-hair-salon": {
+    "username": "cashier-hair",
+    "password": "DevCashier1!"
+  },
+  "dev-mobile-services": {
+    "username": "cashier-mobile",
+    "password": "DevCashier1!"
+  },
+  "dev-handy-shop": {
+    "username": "cashier-handy",
+    "password": "DevCashier1!"
+  },
+  "dev-taxi": {
+    "username": "cashier-taxi",
+    "password": "DevCashier1!"
+  },
+  "dev-ticket-sales": {
+    "username": "cashier-ticket",
+    "password": "DevCashier1!"
+  },
+  "dev-beherbergung": {
+    "username": "cashier-lodge",
+    "password": "DevCashier1!"
+  }
+}

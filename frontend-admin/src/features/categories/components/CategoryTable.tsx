@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Button, Popconfirm, Space, Table, Tag, Empty } from 'antd';
-import type { TableProps } from 'antd';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import type { TableProps } from 'antd';
+import { Button, Empty, Popconfirm, Space, Tag } from 'antd';
 import type { ColumnType } from 'antd/es/table';
+import React, { memo, useMemo } from 'react';
+
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { useI18n } from '@/i18n';
+
 import type { AdminCategory, RksvProductCategoryValue } from '../types';
 import EditableCell from './EditableCell';
-import { useI18n } from '@/i18n';
 
 interface CategoryTableProps {
   data: AdminCategory[];
@@ -20,7 +24,13 @@ interface CategoryTableProps {
   expandable?: TableProps<AdminCategory>['expandable'];
 }
 
-function FiscalCategoryTag({ value, t }: { value: RksvProductCategoryValue | undefined; t: (key: string) => string }) {
+function FiscalCategoryTag({
+  value,
+  t,
+}: {
+  value: RksvProductCategoryValue | undefined;
+  t: (key: string) => string;
+}) {
   switch (value) {
     case 1:
       return <Tag color="green">{t('common.categories.table.fiscalFood')}</Tag>;
@@ -35,7 +45,7 @@ function FiscalCategoryTag({ value, t }: { value: RksvProductCategoryValue | und
   }
 }
 
-export default function CategoryTable({
+function CategoryTable({
   data,
   loading,
   canManage = true,
@@ -47,16 +57,15 @@ export default function CategoryTable({
 }: CategoryTableProps) {
   const { t } = useI18n();
 
-  const columns: ColumnType<AdminCategory>[] = useMemo(
-    () => {
-      const cols: ColumnType<AdminCategory>[] = [
+  const columns: ColumnType<AdminCategory>[] = useMemo(() => {
+    const cols: ColumnType<AdminCategory>[] = [
       {
         title: t('common.categories.table.icon'),
         dataIndex: 'icon',
         key: 'icon',
         width: 80,
         render: (icon: string | null | undefined) => (
-          <span style={{ fontSize: 24 }}>{icon?.trim() ? icon : '📁'}</span>
+          <span style={{ fontSize: 24 }}>{icon?.trim() ? icon : '📦'}</span>
         ),
       },
       {
@@ -79,6 +88,20 @@ export default function CategoryTable({
         ),
       },
       {
+        title: t('common.categories.table.color'),
+        dataIndex: 'color',
+        key: 'color',
+        width: 120,
+        render: (color: string | null | undefined) =>
+          color ? (
+            <Tag color={color} style={{ marginInlineEnd: 0 }}>
+              {color}
+            </Tag>
+          ) : (
+            '—'
+          ),
+      },
+      {
         title: t('common.categories.table.vatRate'),
         dataIndex: 'defaultTaxRate',
         key: 'defaultTaxRate',
@@ -95,7 +118,9 @@ export default function CategoryTable({
         dataIndex: 'fiscalCategory',
         key: 'fiscalCategory',
         width: 140,
-        render: (cat: RksvProductCategoryValue | undefined) => <FiscalCategoryTag value={cat} t={t} />,
+        render: (cat: RksvProductCategoryValue | undefined) => (
+          <FiscalCategoryTag value={cat} t={t} />
+        ),
       },
       {
         title: t('common.categories.table.productCount'),
@@ -114,10 +139,10 @@ export default function CategoryTable({
         align: 'right',
         sorter: (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
       },
-      ];
+    ];
 
-      if (canManage) {
-        cols.push({
+    if (canManage) {
+      cols.push({
         title: t('common.categories.table.actions'),
         key: 'actions',
         width: 220,
@@ -154,22 +179,22 @@ export default function CategoryTable({
           </Space>
         ),
       });
-      }
+    }
 
-      return cols;
-    },
-    [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage],
-  );
+    return cols;
+  }, [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage]);
 
   return (
-    <Table<AdminCategory>
+    <VirtualTable<AdminCategory>
       columns={columns}
       dataSource={data}
       rowKey="id"
       loading={loading}
-      pagination={{ pageSize: 10, showSizeChanger: true }}
+      pagination={{ ...adminTablePaginationDefaults, pageSize: 10 }}
       expandable={expandable}
       locale={{ emptyText: <Empty description={t('common.categories.emptyCategories')} /> }}
     />
   );
 }
+
+export default memo(CategoryTable);

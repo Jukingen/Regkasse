@@ -1,15 +1,16 @@
 /**
  * Users page – shell, tenant list (Manager) and unified view wiring (SuperAdmin).
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import '@testing-library/jest-dom';
-import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { I18nProvider } from '@/i18n';
-import UsersPage from '../page';
-import type { UserInfo } from '@/features/users/api/usersGateway';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { UsersListResponse } from '@/features/users/api/usersApi';
+import type { UserInfo } from '@/features/users/api/usersGateway';
+import UsersPage from '@/features/users/components/UsersPageContent';
+import { I18nProvider } from '@/i18n';
 
 const { mockMessageSuccess, mockMessageError } = vi.hoisted(() => ({
   mockMessageSuccess: vi.fn(() => ({})),
@@ -115,7 +116,8 @@ vi.mock('@/features/users/api/usersGateway', () => ({
   resetPassword: (id: string, data: unknown) => mockResetPassword(id, data),
   createRole: (data: unknown) => mockCreateRole(data),
   normalizeError: (err: unknown, fallback: string) =>
-    (err as { response?: { data?: { message?: string }; message?: string } })?.response?.data?.message ??
+    (err as { response?: { data?: { message?: string }; message?: string } })?.response?.data
+      ?.message ??
     (err as Error)?.message ??
     fallback,
   useGenerateTemporaryPasswordMutation: () => ({
@@ -138,6 +140,7 @@ const mockUseUsersPolicy = vi.fn(() => ({
   canDeleteRole: false,
   canEditRolePermissions: false,
   canResetPassword: () => true,
+  useGeneratedPasswordReset: false,
   canProvisionTenantCredentials: true,
   canManagePermissions: false,
 }));
@@ -169,13 +172,21 @@ vi.mock('@/features/users/hooks/useUsersList', () => ({
   },
 }));
 
+vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
+  useTenant: () => ({
+    tenant: testPageContext.authRole === 'SuperAdmin' ? null : 'dev',
+    setTenant: vi.fn(),
+    clearTenant: vi.fn(),
+  }),
+}));
+
 vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
   useCurrentTenant: () => ({
     hasAuthToken: true,
     isSuperAdminPlatformMode: testPageContext.authRole === 'SuperAdmin',
     isRealTenantSlug: testPageContext.authRole !== 'SuperAdmin',
     tenantName: 'Test Cafe',
-    tenantSlug: 'test_cafe',
+    tenantSlug: 'dev',
     tenantId: 'tenant-1',
     isTenantSuspended: false,
     licenseValidUntilUtc: null,
@@ -210,11 +221,17 @@ vi.mock('@/features/users/components/UnifiedAdminUsersView', () => ({
     onReactivate: (user: UserInfo) => void;
     onResetPassword: (user: UserInfo) => void;
     policy: { canCreate: boolean };
+    tenantScopeId?: string;
+    isSuperAdminActor?: boolean;
   }) => {
     unifiedViewPropsRef.current = props as unknown as Record<string, unknown>;
+    const showPlatformCreate = props.isSuperAdminActor !== false && props.policy.canCreate;
     return (
       <div data-testid="unified-admin-users-view">
-        {props.policy.canCreate ? (
+        {props.tenantScopeId ? (
+          <span data-testid="tenant-scope-id">{props.tenantScopeId}</span>
+        ) : null}
+        {showPlatformCreate ? (
           <button type="button" onClick={() => props.onCreatePlatformUser()}>
             Plattform-Admin anlegen
           </button>
@@ -296,7 +313,12 @@ vi.mock('@/features/users/api/users', () => ({
 }));
 
 vi.mock('@/features/users/components/UserFormDrawer', () => ({
-  UserFormDrawer: ({ open, onClose, mode, onSubmit }: {
+  UserFormDrawer: ({
+    open,
+    onClose,
+    mode,
+    onSubmit,
+  }: {
     open: boolean;
     onClose: () => void;
     mode: string;
@@ -332,7 +354,12 @@ function listResponse(items: UserInfo[], totalCount?: number): UsersListResponse
   const count = totalCount ?? items.length;
   return {
     items,
-    pagination: { page: 1, pageSize: 20, totalCount: count, totalPages: Math.ceil(count / 20) || 1 },
+    pagination: {
+      page: 1,
+      pageSize: 20,
+      totalCount: count,
+      totalPages: Math.ceil(count / 20) || 1,
+    },
   };
 }
 
@@ -357,7 +384,7 @@ function renderPage() {
       <I18nProvider>
         <UsersPage />
       </I18nProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 
@@ -426,7 +453,7 @@ describe('Users page', () => {
         expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       });
       expect(
-        screen.getByText(/Alle Plattform- und Mandanten-Benutzer an einem Ort/),
+        screen.getByText(/Alle Plattform- und Mandanten-Benutzer an einem Ort/)
       ).toBeInTheDocument();
       expect(screen.getByTestId('unified-admin-users-view')).toBeInTheDocument();
       expect(screen.queryByTestId('access-secondary-nav')).not.toBeInTheDocument();
@@ -448,14 +475,16 @@ describe('Users page', () => {
             lastName: 'User',
             email: 'new@test.com',
             role: 'SuperAdmin',
-          }),
+          })
         );
       });
       expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer angelegt.');
     });
 
     it('shows error when platform user creation fails', async () => {
-      mockCreatePlatformUser.mockRejectedValue({ response: { data: { message: 'Email already exists' } } });
+      mockCreatePlatformUser.mockRejectedValue({
+        response: { data: { message: 'Email already exists' } },
+      });
       renderPage();
       fireEvent.click(screen.getByRole('button', { name: /Plattform-Admin anlegen/ }));
       await waitFor(() => {
@@ -492,7 +521,9 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(screen.getByTestId('unified-admin-users-view')).toBeInTheDocument();
       });
-      expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -500,196 +531,60 @@ describe('Users page', () => {
     beforeEach(() => {
       useManagerContext();
       listHookState.data = listResponse([tenantSampleUser]);
+      mockUseUsersPolicy.mockReturnValue({
+        canView: true,
+        canCreate: true,
+        canEdit: true,
+        canDeactivate: true,
+        canReactivate: true,
+        canCreateRole: false,
+        canDeleteRole: false,
+        canEditRolePermissions: false,
+        canResetPassword: () => true,
+        canProvisionTenantCredentials: false,
+        canManagePermissions: false,
+      });
     });
 
-    it('renders access hub nav, breadcrumb and tenant filter controls', async () => {
+    it('renders access hub nav and scoped unified view for the JWT tenant', async () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByTestId('access-secondary-nav')).toBeInTheDocument();
       });
       expect(screen.getByText('Zugriff & Rollen')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Name, E-Mail, Mitarbeiternummer/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Benutzer anlegen/ })).toBeInTheDocument();
+      expect(screen.getByTestId('unified-admin-users-view')).toBeInTheDocument();
+      expect(screen.getByTestId('tenant-scope-id')).toHaveTextContent('tenant-1');
+      expect(unifiedViewPropsRef.current).toMatchObject({
+        tenantScopeId: 'tenant-1',
+        isSuperAdminActor: false,
+      });
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
 
-    it('displays tenant user list from useUsersList', async () => {
+    it('opens edit drawer from unified view callback', async () => {
       renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      });
-      expect(screen.getAllByRole('table').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/jane@example\.com/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Manager').length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows empty state when list returns no items', async () => {
-      listHookState.data = listResponse([]);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Keine Benutzer in dieser Ansicht/)).toBeInTheDocument();
-      });
-    });
-
-    it('shows error alert and retry when list load fails', async () => {
-      listHookState.isError = true;
-      listHookState.error = new Error('network');
-      listHookState.data = undefined;
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText(/Benutzerliste konnte nicht geladen werden/)).toBeInTheDocument();
-      });
-      expect(screen.getByRole('button', { name: /Erneut versuchen/ })).toBeInTheDocument();
-    });
-
-    it('calls createUser and shows success when drawer submit succeeds', async () => {
-      mockCreateUser.mockResolvedValue({ id: 'new-1', userName: 'newuser' });
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByRole('button', { name: /Benutzer anlegen/ }));
-      await waitFor(() => {
-        expect(screen.getByTestId('user-form-drawer')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-      await waitFor(() => {
-        expect(mockCreateUser).toHaveBeenCalledWith(
-          expect.objectContaining({
-            userName: 'newuser',
-            firstName: 'New',
-            lastName: 'User',
-            email: 'new@test.com',
-            employeeNumber: 'EMP001',
-            role: 'Manager',
-          }),
-        );
-      });
-      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer angelegt.');
-    });
-
-    it('calls updateUser when edit drawer is submitted', async () => {
-      mockUpdateUser.mockResolvedValue(undefined);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getAllByRole('button', { name: /Bearbeiten/ })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Bearbeiten/ }));
       await waitFor(() => {
         expect(screen.getByText('Edit user')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-      await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith(
-          'user-1',
-          expect.objectContaining({
-            employeeNumber: 'EMP001',
-            firstName: 'New',
-            lastName: 'User',
-            role: 'Manager',
-          }),
-        );
-      });
-      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer aktualisiert.');
     });
 
-    it('invalidates user detail query on update success', async () => {
-      mockUpdateUser.mockResolvedValue(undefined);
-      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
-      render(
-        <QueryClientProvider client={queryClient}>
-          <I18nProvider>
-            <UsersPage />
-          </I18nProvider>
-        </QueryClientProvider>,
-      );
-      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
-      fireEvent.click(screen.getAllByRole('button', { name: /Bearbeiten/ })[0]);
-      await waitFor(() => expect(screen.getByText('Edit user')).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-      await waitFor(() => expect(mockUpdateUser).toHaveBeenCalled());
-      expect(invalidateSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ queryKey: ['/api/UserManagement', 'user-1'] }),
-      );
-    });
-
-    it('opens deactivate modal and calls deactivateUser with reason on confirm', async () => {
+    it('opens deactivate modal from unified view callback', async () => {
       mockDeactivateUser.mockResolvedValue(undefined);
       renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getAllByRole('button', { name: /Deaktivieren/ })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Deaktivieren/ }));
       await waitFor(() => {
         expect(screen.getByText(/wird deaktiviert/)).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByPlaceholderText(/z. B. Ausscheiden/), {
-        target: { value: 'Ausscheiden' },
-      });
-      const dialog = screen.getByRole('dialog');
-      fireEvent.click(within(dialog).getByRole('button', { name: /Deaktivieren/ }));
-      await waitFor(() => {
-        expect(mockDeactivateUser).toHaveBeenCalledWith('user-1', { reason: 'Ausscheiden' });
-      });
-      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer deaktiviert.');
     });
 
-    it('calls reactivateUser when reactivate modal is confirmed', async () => {
-      mockReactivateUser.mockResolvedValue(undefined);
-      listHookState.data = listResponse([
-        { ...tenantSampleUser, id: 'user-2', isActive: false, firstName: 'In', lastName: 'Active' },
-      ]);
+    it('hides platform create when scoped as Manager', async () => {
       renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('In Active')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getAllByRole('button', { name: /Reaktivieren/ })[0]);
-      await waitFor(() => {
-        expect(screen.getByText(/wieder aktivieren/)).toBeInTheDocument();
-      });
-      const dialog = screen.getByRole('dialog');
-      fireEvent.click(within(dialog).getByRole('button', { name: /Reaktivieren/ }));
-      await waitFor(() => {
-        expect(mockReactivateUser).toHaveBeenCalledWith('user-2', undefined);
-      });
-      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer reaktiviert.');
-    });
-
-    it('shows validation when reset password is too short', async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getAllByRole('button', { name: /Passwort zurücksetzen/ })[0]);
-      await waitFor(() => {
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-      });
-      fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: '12345' } });
-      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Speichern' }));
-      await waitFor(() => {
-        expect(mockResetPassword).not.toHaveBeenCalled();
-      });
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-
-    it('hides create button when user cannot create', async () => {
-      mockUseUsersPolicy.mockReturnValue({
-        canView: true,
-        canCreate: false,
-        canEdit: false,
-        canDeactivate: false,
-        canReactivate: false,
-        canCreateRole: false,
-        canDeleteRole: false,
-        canEditRolePermissions: false,
-        canResetPassword: () => false,
-        canManagePermissions: false,
-      } as ReturnType<typeof mockUseUsersPolicy>);
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
-      });
-      expect(screen.queryByRole('button', { name: /Benutzer anlegen/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
   });
 });

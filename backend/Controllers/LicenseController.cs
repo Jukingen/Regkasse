@@ -2,33 +2,34 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Anonymous-friendly license endpoints for POS bootstrap (status, features, activation) — no JWT required.
-/// POS may call these before any cashier signs in.
+/// License endpoints for POS bootstrap. <c>GET status</c> requires <see cref="AppPermissions.LicenseView"/>.
+/// <c>features</c> and <c>activate</c> remain anonymous-friendly (POS may activate before sign-in).
 /// </summary>
 [ApiController]
 [Route("api/license")]
 [Produces("application/json")]
-[AllowAnonymous]
-public sealed class LicenseController : ControllerBase
+public partial class LicenseController : ControllerBase
 {
     /// <summary>Optional client-reported SHA-256 machine hash (hex); must match this host when set. Same as JSON <c>machineFingerprint</c>.</summary>
     public const string MachineFingerprintHttpHeader = "X-Machine-Fingerprint";
 
     private readonly ILicenseService _licenseService;
+    private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly IOptions<LicenseOptions> _licenseOptions;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<LicenseController> _logger;
@@ -37,6 +38,8 @@ public sealed class LicenseController : ControllerBase
 
     public LicenseController(
         ILicenseService licenseService,
+        ITenantLicenseService tenantLicenseService,
+        IUnifiedLicenseService unifiedLicenseService,
         IOptions<LicenseOptions> licenseOptions,
         IWebHostEnvironment environment,
         ILogger<LicenseController> logger,
@@ -44,6 +47,8 @@ public sealed class LicenseController : ControllerBase
         AppDbContext db)
     {
         _licenseService = licenseService;
+        _tenantLicenseService = tenantLicenseService;
+        _unifiedLicenseService = unifiedLicenseService;
         _licenseOptions = licenseOptions;
         _environment = environment;
         _logger = logger;
@@ -54,35 +59,38 @@ public sealed class LicenseController : ControllerBase
     /// <summary>
     /// Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).
     /// When <paramref name="tenantId"/> or resolved tenant context is present, mandant grace-period fields are included.
+    /// Requires <see cref="AppPermissions.LicenseView"/> (Cashier POS JWT includes this claim).
     /// </summary>
     [HttpGet("status")]
+    [HasPermission(AppPermissions.LicenseView)]
     public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        // Same mapping in all environments so POS/admin anonymous status matches activated license
-        // Optional synthetic licensing is controlled by <see cref="IDevelopmentModeService.ShouldBypassLicense"/> (Development host only).
-        var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        var dto = LicensePublicStatusMapper.MapDeploymentStatus(s);
-
         var resolvedTenantId = ResolveMandantTenantId(tenantId);
-        if (resolvedTenantId is Guid effectiveTenantId)
-        {
-            var mandant = await _licenseService
-                .GetLicenseStatusAsync(effectiveTenantId, cancellationToken)
-                .ConfigureAwait(false);
-            dto = LicensePublicStatusMapper.ApplyMandantOverlay(dto, mandant);
-        }
-
-        return Ok(dto);
+        var unified = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(resolvedTenantId, cancellationToken)
+            .ConfigureAwait(false);
+        var language = HttpContext.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
+            && langObj is string lang
+            ? lang
+            : LanguageMiddleware.DefaultLanguage;
+        return Ok(LicensePublicStatusMapper.MapUnified(unified, language));
     }
 
     /// <summary>Optional POS-facing feature limits (configuration-driven).</summary>
     [HttpGet("features")]
+    [AllowAnonymous]
     public async Task<ActionResult<LicenseFeaturesDto>> GetFeatures(CancellationToken cancellationToken)
     {
-        var lic = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        var licenseFeatures = lic.EnabledFeatures is { Count: > 0 } ? lic.EnabledFeatures : LicenseFeatureIds.All;
+        var lic = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var snapshot = lic.DeploymentSnapshot
+            ?? await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var licenseFeatures = snapshot.EnabledFeatures is { Count: > 0 }
+            ? snapshot.EnabledFeatures
+            : LicenseFeatureIds.All;
 
         if (_environment.IsDevelopment())
         {
@@ -115,6 +123,7 @@ public sealed class LicenseController : ControllerBase
     /// </list>
     /// </remarks>
     [HttpPost("activate")]
+    [AllowAnonymous]
     public async Task<ActionResult<LicenseActivationResult>> ActivateLicense(
         [FromBody] ActivateLicenseRequest? body,
         CancellationToken cancellationToken)
@@ -146,7 +155,22 @@ public sealed class LicenseController : ControllerBase
             string.IsNullOrEmpty(ua) ? null : ua,
             initiatorUserId,
             appContext);
-        var result = await _licenseService.ActivateAsync(body, client, cancellationToken).ConfigureAwait(false);
+
+        var ambientTenantId = _tenantAccessor.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+        var requestTenantId = body.TenantId is Guid bodyTenant && bodyTenant != Guid.Empty
+            ? bodyTenant
+            : ambientTenantId;
+        var result = await _unifiedLicenseService
+            .ActivateLicenseAsync(
+                body.LicenseKey,
+                new UnifiedLicenseActivationContext(
+                    TenantId: requestTenantId,
+                    ActorUserId: initiatorUserId,
+                    DeploymentRequest: body,
+                    ClientInfo: client),
+                cancellationToken)
+            .ConfigureAwait(false);
+
         if (!result.Success)
         {
             _logger.LogWarning("License activation failed: {Message}", result.Message);
@@ -157,13 +181,63 @@ public sealed class LicenseController : ControllerBase
         return Ok(enriched);
     }
 
+    /// <summary>Validate a unified REGK key (format, expiry, slug, database) without activating.</summary>
+    [HttpPost("validate")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LicenseKeyValidationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LicenseKeyValidationResult>> ValidateLicense(
+        [FromBody] LicenseKeyLookupRequest? body,
+        CancellationToken cancellationToken)
+    {
+        var key = body?.LicenseKey?.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+            return BadRequest(new LicenseKeyValidationResult
+            {
+                IsValid = false,
+                IsFormatValid = false,
+                ErrorCode = LicenseKeyErrorCodes.InvalidFormat,
+                Message = "licenseKey is required.",
+            });
+
+        var result = await _unifiedLicenseService
+            .ValidateLicenseAsync(key, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Resolved metadata for a unified or mapped REGK key (no activation).</summary>
+    [HttpGet("info")]
+    [HasPermission(AppPermissions.LicenseView)]
+    [ProducesResponseType(typeof(LicenseInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LicenseInfo>> GetLicenseInfo(
+        [FromQuery] string? licenseKey,
+        CancellationToken cancellationToken)
+    {
+        var key = licenseKey?.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+            return BadRequest(new { message = "licenseKey is required." });
+
+        var info = await _unifiedLicenseService
+            .GetLicenseInfoAsync(key, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(info);
+    }
+
+    /// <summary>308 to <see cref="UnifiedLicenseRoutes.Activate"/> (preserves POST body).</summary>
+    internal static RedirectResult RedirectToUnifiedActivate() =>
+        new(UnifiedLicenseRoutes.Activate, permanent: true, preserveMethod: true);
+
     private async Task<LicenseActivationResult> EnrichActivationResultWithTenantAsync(
         LicenseActivationResult result,
         CancellationToken cancellationToken)
     {
-        var tenantId = _tenantAccessor.TenantId;
+        var tenantId = result.TenantId is Guid activated && activated != Guid.Empty
+            ? activated
+            : _tenantAccessor.TenantId;
         if (tenantId == Guid.Empty)
-            tenantId = LegacyDefaultTenantIds.Primary;
+            tenantId = SystemTenantIds.Platform;
 
         var tenant = await _db.Tenants
             .AsNoTracking()
@@ -176,7 +250,7 @@ public sealed class LicenseController : ControllerBase
         var resolvedId = tenant?.Id ?? tenantId;
         var slug = tenant?.Slug;
         if (string.IsNullOrWhiteSpace(slug))
-            slug = LegacyDefaultTenantIds.PrimarySlug;
+            slug = SystemTenantIds.PlatformSlug;
 
         return result with
         {

@@ -5,6 +5,7 @@
 ## 🚀 Son Gelişmeler (14.05.2024)
 
 ### 1. Performans Optimizasyonları
+
 - **Axios Kaldırıldı:**
   - Axios bağımlılığı tamamen kaldırıldı
   - Merkezi `useFetch` hook'u implementasyonu
@@ -32,6 +33,7 @@
   - Gereksiz render'ların önlenmesi
 
 ### 2. Ekran Güncellemeleri
+
 - **Products.tsx:**
   - `OptimizedList` entegrasyonu
   - Arama fonksiyonunun memoization ile optimize edilmesi
@@ -45,12 +47,14 @@
   - Tema entegrasyonu ve UI iyileştirmeleri
 
 ### 3. Hata Yönetimi İyileştirmeleri
+
 - Merkezi hata yönetimi servisi
 - API hatalarının standardizasyonu
 - Kullanıcı dostu hata mesajları (İngilizce)
 - Retry mekanizması
 
 ### 4. Tema ve Stil Yönetimi
+
 - Merkezi tema yapılandırması
 - Dinamik stil oluşturma
 - Tutarlı UI bileşenleri
@@ -154,4 +158,4 @@ KasseUI-APP/
   - Axios kaldırıldı
   - Liste performansı iyileştirildi
   - Callback'ler optimize edildi
-  - Tema sistemi entegre edildi 
+  - Tema sistemi entegre edildi

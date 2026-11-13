@@ -1,3 +1,4 @@
+import { safeLog } from './loggingUtils';
 /**
  * Memory leak'leri önlemek için utility fonksiyonları
  */
@@ -34,7 +35,7 @@ export const cleanupMemory = () => {
   if (global.gc) {
     global.gc();
   }
-  
+
   // Event listener'ları temizle
   if (typeof window !== 'undefined') {
     window.removeEventListener('beforeunload', cleanupMemory);
@@ -47,10 +48,11 @@ export const checkMemoryUsage = () => {
     const memory = (global.performance as any).memory;
     const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
     const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
-    
-    console.log(`Memory: ${usedMB}MB / ${totalMB}MB`);
-    
-    if (usedMB > 150) { // 150MB üzerinde uyarı
+
+    safeLog(`Memory: ${usedMB}MB / ${totalMB}MB`);
+
+    if (usedMB > 150) {
+      // 150MB üzerinde uyarı
       console.warn('Memory usage is high! Consider cleanup.');
       cleanupMemory();
     }
@@ -60,7 +62,7 @@ export const checkMemoryUsage = () => {
 // Component unmount olduğunda otomatik cleanup
 export const createCleanupFunction = (cleanupFns: (() => void)[]) => {
   return () => {
-    cleanupFns.forEach(fn => {
+    cleanupFns.forEach((fn) => {
       try {
         fn();
       } catch (error) {

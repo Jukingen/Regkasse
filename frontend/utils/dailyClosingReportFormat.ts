@@ -1,18 +1,46 @@
+import { formatUserDate } from './dateFormatter';
 import type { PosDailyClosingReportDto } from '../services/api/shiftService';
 
 export interface DailyClosingReportLabels {
   title: string;
   date: string;
+  period: string;
   register: string;
+  cashRegisterId: string;
+  cashier: string;
+  tseStatus: string;
+  tseProvider: string;
+  depExport: string;
   sales: string;
   cash: string;
   card: string;
+  voucher: string;
+  other: string;
+  paymentMethodsSection: string;
+  financialSummarySection: string;
+  transactionBreakdownSection: string;
+  rksvStatusSection: string;
+  startbeleg: string;
+  monatsbeleg: string;
+  jahresbeleg: string;
+  breakdownCash: string;
+  breakdownCard: string;
+  breakdownVoucher: string;
+  breakdownCancellations: string;
+  breakdownTotal: string;
   cashCount: string;
   difference: string;
   fiscalTotal: string;
+  fiscalNet: string;
   fiscalTax: string;
+  taxSection: string;
+  tax20: string;
+  tax10: string;
+  tax0: string;
   transactions: string;
   tseSignature: string;
+  tseVerification: string;
+  previousSignature: string;
   disclaimer: string;
 }
 
@@ -33,10 +61,33 @@ function formatMoney(amount: number, locale: string): string {
   }).format(amount);
 }
 
-import { formatUserDate } from './dateFormatter';
-
 function formatDate(iso: string, _locale: string): string {
   return formatUserDate(iso) || iso;
+}
+
+function formatBelegStatus(exists?: boolean): string {
+  return exists ? 'Ja' : 'Nein';
+}
+
+function formatPeriod(startUtc?: string | null, endUtc?: string | null, locale = 'de-AT'): string {
+  if (!startUtc || !endUtc) return '—';
+  const start = new Date(startUtc);
+  const end = new Date(endUtc);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '—';
+  const fmt = new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
+function formatVerificationStatus(report: PosDailyClosingReportDto): string {
+  if (report.tseSignatureVerified) return 'GEPRÜFT';
+  if (report.isDemoFiscal) return 'SIMULIERT';
+  return 'NICHT VERIFIZIERT';
 }
 
 export function formatDailyClosingReportHtml(
@@ -48,13 +99,77 @@ export function formatDailyClosingReportHtml(
     `<tr><td style="padding:4px 8px 4px 0;color:#555;">${escapeHtml(label)}</td>` +
     `<td style="padding:4px 0;font-weight:600;text-align:right;">${escapeHtml(value)}</td></tr>`;
 
-  const tsePreview = report.tseSignature
-    ? report.tseSignature.length > 48
-      ? `${report.tseSignature.slice(0, 48)}…`
-      : report.tseSignature
-    : '—';
+  const section = (title: string) =>
+    `<tr><td colspan="2" style="padding:8px 0 4px;font-weight:700;font-size:11px;">${escapeHtml(title)}</td></tr>`;
 
+  const tseSignature = report.tseSignature?.trim() || '—';
+  const previousSignature = report.previousClosingSignature?.trim() || '—';
   const disclaimer = report.snapshotDisclaimerDe || labels.disclaimer;
+  const tseStatus = report.tseStatusLabel?.trim() || '—';
+  const tseBadgeText = report.tseStatusBadge?.trim() || report.tseStatusLabel?.trim() || '';
+  const tax = report.taxBreakdown;
+  const payments = report.paymentBreakdown ?? {
+    cash: report.totalCash,
+    card: report.totalCard,
+    voucher: report.totalVoucherRedemptions,
+    other: report.totalOtherPaymentMethods,
+    total:
+      report.totalCash +
+      report.totalCard +
+      report.totalVoucherRedemptions +
+      report.totalOtherPaymentMethods,
+  };
+
+  const breakdown = report.transactionBreakdown ?? {
+    cash: 0,
+    card: 0,
+    voucher: 0,
+    cancellations: 0,
+    total: 0,
+  };
+
+  const notes = [report.salesFiscalReconciliationNote, report.differenceScopeNote]
+    .filter((note): note is string => Boolean(note?.trim()))
+    .map((note) => `<p class="note">${escapeHtml(note)}</p>`)
+    .join('');
+
+  const taxRows = tax
+    ? [
+        tax.grossAt20 > 0 || tax.taxAt20 > 0
+          ? row(
+              labels.tax20,
+              `${formatMoney(tax.grossAt20, formatLocale)} / ${formatMoney(tax.taxAt20, formatLocale)}`
+            )
+          : '',
+        tax.grossAt10 > 0 || tax.taxAt10 > 0
+          ? row(
+              labels.tax10,
+              `${formatMoney(tax.grossAt10, formatLocale)} / ${formatMoney(tax.taxAt10, formatLocale)}`
+            )
+          : '',
+        tax.grossAt0 > 0 ? row(labels.tax0, formatMoney(tax.grossAt0, formatLocale)) : '',
+      ]
+        .filter(Boolean)
+        .join('')
+    : '';
+
+  const tseBadge = tseBadgeText
+    ? `<p class="${report.isDemoFiscal ? 'demo-badge' : 'prod-badge'}">${escapeHtml(tseBadgeText)}</p>`
+    : '';
+
+  const companyHeader = report.companyName?.trim()
+    ? `<div style="text-align:center;margin-bottom:12px;line-height:1.4;">
+        <div style="font-weight:700;">${escapeHtml(report.companyName.trim())}</div>
+        ${report.companyAddress?.trim() ? `<div>${escapeHtml(report.companyAddress.trim())}</div>` : ''}
+        ${report.companyVatId?.trim() ? `<div>UID: ${escapeHtml(report.companyVatId.trim())}</div>` : ''}
+      </div>`
+    : '';
+
+  const cashRegisterId = report.cashRegisterId?.trim() || report.registerNumber?.trim() || '—';
+  const tseProvider = report.tseProviderLabel?.trim() || tseStatus;
+  const depExport = report.depExportStatusLabel?.trim() || '—';
+  const fiscalNet =
+    report.fiscalTotalNetAmount ?? report.fiscalTotalAmount - report.fiscalTotalTaxAmount;
 
   return `<!DOCTYPE html>
 <html>
@@ -64,24 +179,53 @@ export function formatDailyClosingReportHtml(
     body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 12px; }
     h1 { font-size: 16px; margin: 0 0 12px; text-align: center; }
     table { width: 100%; border-collapse: collapse; }
-    .disclaimer { margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4; }
+    .disclaimer { margin-top: 12px; font-size: 10px; color: #666; line-height: 1.4; white-space: pre-line; }
+    .demo-badge { margin-top: 8px; text-align: center; font-weight: 700; color: #c2410c; font-size: 11px; }
+    .prod-badge { margin-top: 8px; text-align: center; font-weight: 700; color: #15803d; font-size: 11px; }
+    .note { margin: 6px 0 0; font-size: 10px; color: #666; line-height: 1.4; }
+    .tse { margin-top: 10px; font-size: 9px; word-break: break-all; line-height: 1.35; }
   </style>
 </head>
 <body>
+  ${companyHeader}
   <h1>${escapeHtml(labels.title)}</h1>
   <table>
     ${row(labels.date, formatDate(report.businessDate, formatLocale))}
+    ${row(labels.period, formatPeriod(report.periodStartUtc, report.periodEndUtc, formatLocale))}
+    ${row(labels.cashRegisterId, cashRegisterId)}
     ${row(labels.register, report.registerNumber || '—')}
-    ${row(labels.sales, formatMoney(report.totalSales, formatLocale))}
-    ${row(labels.cash, formatMoney(report.totalCash, formatLocale))}
-    ${row(labels.card, formatMoney(report.totalCard, formatLocale))}
-    ${row(labels.cashCount, formatMoney(report.cashCount, formatLocale))}
-    ${row(labels.difference, formatMoney(report.difference, formatLocale))}
+    ${row(labels.cashier, report.cashierName || '—')}
+    ${row(labels.tseProvider, tseProvider)}
+    ${row(labels.depExport, depExport)}
+    ${section(labels.financialSummarySection)}
     ${row(labels.fiscalTotal, formatMoney(report.fiscalTotalAmount, formatLocale))}
+    ${row(labels.fiscalNet, formatMoney(fiscalNet, formatLocale))}
     ${row(labels.fiscalTax, formatMoney(report.fiscalTotalTaxAmount, formatLocale))}
     ${row(labels.transactions, String(report.fiscalTransactionCount))}
-    ${row(labels.tseSignature, tsePreview)}
+    ${taxRows ? section(labels.taxSection) + taxRows : ''}
+    ${section(labels.paymentMethodsSection)}
+    ${row(labels.cash, formatMoney(payments.cash, formatLocale))}
+    ${row(labels.card, formatMoney(payments.card, formatLocale))}
+    ${row(labels.voucher, formatMoney(payments.voucher, formatLocale))}
+    ${row(labels.other, formatMoney(payments.other, formatLocale))}
+    ${section(labels.transactionBreakdownSection)}
+    ${row(labels.breakdownCash, String(breakdown.cash))}
+    ${row(labels.breakdownCard, String(breakdown.card))}
+    ${row(labels.breakdownVoucher, String(breakdown.voucher))}
+    ${row(labels.breakdownCancellations, String(breakdown.cancellations))}
+    ${row(labels.breakdownTotal, String(breakdown.total))}
+    ${row(labels.cashCount, formatMoney(report.cashCount, formatLocale))}
+    ${row(labels.difference, formatMoney(report.difference, formatLocale))}
+    ${section(labels.rksvStatusSection)}
+    ${row(labels.startbeleg, formatBelegStatus(report.hasStartbeleg))}
+    ${row(labels.monatsbeleg, formatBelegStatus(report.hasMonatsbeleg))}
+    ${row(labels.jahresbeleg, formatBelegStatus(report.hasJahresbeleg))}
   </table>
+  ${notes}
+  <p class="tse"><strong>${escapeHtml(labels.tseSignature)}:</strong> ${escapeHtml(tseSignature)}</p>
+  <p class="tse"><strong>${escapeHtml(labels.tseVerification)}:</strong> ${escapeHtml(formatVerificationStatus(report))}</p>
+  ${report.previousClosingSignature?.trim() ? `<p class="tse"><strong>${escapeHtml(labels.previousSignature)}:</strong> ${escapeHtml(previousSignature)}</p>` : ''}
+  ${tseBadge}
   <p class="disclaimer">${escapeHtml(disclaimer)}</p>
 </body>
 </html>`;

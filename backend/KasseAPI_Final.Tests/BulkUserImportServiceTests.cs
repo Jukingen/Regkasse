@@ -4,7 +4,6 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -36,7 +35,7 @@ public sealed class BulkUserImportServiceTests
         {
             Id = CafeTenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
         });
@@ -79,10 +78,11 @@ public sealed class BulkUserImportServiceTests
             Mock.Of<IQuickUserGeneratorService>(),
             userCreation,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+            TenantTestDoubles.SuperAdminHttpAccessor(),
             NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             Mock.Of<IUserRoleChangeService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
             Mock.Of<ILogger<TenantUserService>>());
 
         var resultStore = new Mock<IBulkUserImportResultStore>();
@@ -128,7 +128,7 @@ public sealed class BulkUserImportServiceTests
 
         var service = CreateService(db);
         var csv = "email,username,firstName,lastName,role,tenantSlug\n" +
-                  "import.test@example.com,,Anna,Test,Cashier,cafe\n";
+                  "import.test@example.com,,Anna,Test,Cashier,dev\n";
         var (rows, _) = BulkUserImportFileParser.Parse(new MemoryStream(Encoding.UTF8.GetBytes(csv)), "users.csv");
 
         var job = new BulkImportJobEntry
@@ -174,8 +174,8 @@ public sealed class BulkUserImportServiceTests
 
         var service = CreateService(db);
         var csv = "email,role,tenantSlug\n" +
-                  "dup@example.com,Cashier,cafe\n" +
-                  "dup@example.com,Manager,cafe\n";
+                  "dup@example.com,Cashier,dev\n" +
+                  "dup@example.com,Manager,dev\n";
         var (rows, _) = BulkUserImportFileParser.Parse(new MemoryStream(Encoding.UTF8.GetBytes(csv)), "users.csv");
 
         var job = new BulkImportJobEntry

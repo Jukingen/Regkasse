@@ -5,13 +5,15 @@ import {
   type AdminTarget,
   type AdminTargetContext,
 } from './adminRoutes';
-import {
-  openAdmin as openAdminUrl,
-  type OpenAdminOptions,
-} from '@/utils/openAdmin';
+
+import { openAdmin as openAdminUrl, type OpenAdminOptions } from '@/utils/openAdmin';
 
 export interface IAdminRedirector {
-  openAdmin(target: AdminTarget, context?: AdminTargetContext, options?: OpenAdminOptions): Promise<boolean>;
+  openAdmin(
+    target: AdminTarget,
+    context?: AdminTargetContext,
+    options?: OpenAdminOptions
+  ): Promise<boolean>;
   isAvailable(target: AdminTarget, context?: AdminTargetContext): boolean;
   getAdminBaseUrl(): string;
   buildUrl(target: AdminTarget, context?: AdminTargetContext): string;
@@ -19,7 +21,7 @@ export interface IAdminRedirector {
 
 export const adminRedirector: IAdminRedirector = {
   async openAdmin(target, context, options) {
-    return openAdminUrl(target, context, options);
+    return await openAdminUrl(target, context, options);
   },
 
   isAvailable(target, context) {

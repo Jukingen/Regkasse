@@ -14,13 +14,14 @@
  * - If the env flag is true (migration), legacy role fallbacks apply: `/users` uses `canViewUsers`,
  *   RKSV leaves use `isRksvRouteKeyAllowed`, other leaves stay visible. Prefer `/me` permissions in prod.
  */
-import { isRksvRouteKeyAllowed } from '@/shared/auth/menuPermissions';
-
 import type { MenuProps } from 'antd';
+
+import { isRksvRouteKeyAllowed } from '@/shared/auth/menuPermissions';
+import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from '@/shared/auth/routeGuardConfig';
+import { BACKUP_AREA_ROUTE_PATHS } from '@/shared/backupAreaRoutes';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 import { SETTINGS_AREA_ROUTE_PATHS } from '@/shared/settingsAreaRoutes';
-import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from '@/shared/auth/routeGuardConfig';
 
 /** RKSV landing URL vs menu leaf key (Orval / menu model use /rksv/operations as selected key). */
 export const RKSV_HUB_PATH = '/rksv';
@@ -30,114 +31,491 @@ export const RKSV_HUB_MENU_LEAF_KEY = '/rksv/operations';
  * Normalize pathname for menu matching (strip trailing slashes; `/` stays `/`).
  */
 export function normalizeAdminPathname(pathname: string | null | undefined): string {
-    if (pathname == null || pathname === '') return '';
-    let p = pathname.replace(/\/+$/, '');
-    if (p === '') p = '/';
-    return p;
+  if (pathname == null || pathname === '') return '';
+  let p = pathname.replace(/\/+$/, '');
+  if (p === '') p = '/';
+  return p;
 }
 
 /**
  * Non-RKSV submenu keys (prefix `grp-` — not in MENU_PERMISSION; parents are shown only if a child remains after filtering).
  */
 export const ADMIN_SIDEBAR_GROUP_KEYS = {
-    operations: 'grp-operations',
-    salesTransactions: 'grp-sales-transactions',
-    catalogPricing: 'grp-catalog-pricing',
-    customersBenefits: 'grp-customers-benefits',
-    reportingAnalytics: 'grp-reporting-analytics',
-    fiscalCompliance: 'grp-fiscal-compliance',
-    /** Operative closing + formal RKSV reports + special receipts (sidebar IA). */
-    fiscalRksvClosing: 'grp-fiscal-rksv-closing',
-    verwaltung: 'grp-verwaltung',
-    /** Super Admin: companies / tenants (platform). */
-    platformAdmin: 'grp-platform-admin',
-    /** Nested under Verwaltung: Zugriff & Rollen hub */
-    accessArea: 'grp-access',
-    /** Nested under Verwaltung: /settings + /settings/payment-methods */
-    settingsArea: 'grp-settings-area',
+  dashboard: 'grp-dashboard',
+  /** Super Admin: license management + billing sales; tenant license leaf when permitted. */
+  license: 'grp-license',
+  operations: 'grp-operations',
+  /** Nested under Verkauf: receipts, online orders, Tagesabschluss */
+  salesTransactions: 'grp-sales-transactions',
+  /** Nested under Verkauf: staff + shifts */
+  personnel: 'grp-personnel',
+  /** Payments, invoices, operational reports */
+  finance: 'grp-finance',
+  rksv: 'grp-rksv',
+  /** Nested under RKSV & FinanzOnline (approved IA) */
+  rksvCurrentStatus: 'grp-rksv-current-status',
+  rksvBelegeExport: 'grp-rksv-belege-export',
+  /** Nested under Belege & Export: Sonderbelege leaves */
+  specialReceipts: 'grp-special-receipts',
+  rksvFinanzOnline: 'grp-rksv-finanzonline',
+  rksvAuditPruefung: 'grp-rksv-audit-pruefung',
+  /** Nested under RKSV: advanced RKSV Werkzeuge hub */
+  rksvTools: 'grp-rksv-tools',
+  catalog: 'grp-catalog',
+  customers: 'grp-customers',
+  reports: 'grp-reports',
+  settings: 'grp-settings',
+  /** Nested under Einstellungen (approved IA) */
+  settingsGeneral: 'grp-settings-general',
+  settingsFinancesTaxes: 'grp-settings-finances-taxes',
+  settingsOperations: 'grp-settings-operations',
+  settingsCompliance: 'grp-settings-compliance',
+  /** Verwaltung: Zugriff & Rollen + Mandanten */
+  admin: 'grp-admin',
+  /** Nested under Verwaltung: Zugriff & Rollen hub */
+  accessArea: 'grp-access',
+  /** Sicherheit & TSE (platform Super Admin ops) */
+  securityTse: 'grp-security-tse',
+  /** Nested under Sicherheit & TSE: Peppol operator pages */
+  peppol: 'grp-peppol',
+  /** Nested under Sicherheit & TSE: Swiss MWST */
+  ch: 'grp-ch',
+  /** Nested under Sicherheit & TSE */
+  tseManagement: 'grp-tse-management',
+  tseOpsFailover: 'grp-tse-ops-failover',
+  tseAnalyticsMonitoring: 'grp-tse-analytics-monitoring',
+  tseReportsFinance: 'grp-tse-reports-finance',
+  tseAdvanced: 'grp-tse-advanced',
+  tseDiagnostics: 'grp-tse-diagnostics',
+  /** Deployment & System */
+  deploymentSystem: 'grp-deployment-system',
+  /** Monitoring & Logs */
+  monitoringLogs: 'grp-monitoring-logs',
+  /** Super Admin shell: TSE platform, deployment, monitoring, development */
+  system: 'grp-system',
+  /** Backup & Disaster Recovery */
+  backup: 'grp-backup',
+  /** Nested under Backup: schedule vs platform settings */
+  backupConfig: 'grp-backup-config',
+  /** Nested under Einstellungen: digital services (tenant + Super Admin manage) */
+  digitalServices: 'grp-digital-services',
+  development: 'grp-development',
+  /** Nested under Lizenzverwaltung: Super Admin outbound communication */
+  communication: 'grp-communication',
+  /** Nested under Lizenzverwaltung: Mandanten-Admin self-service (hub, invoices, support) */
+  myAccount: 'grp-my-account',
+  /**
+   * @deprecated Digitale Dienste lives under Einstellungen (`digitalServices`) only.
+   * Alias kept so open-key / lockdown merges stay stable during migration.
+   */
+  digitalAdmin: 'grp-digital-services',
+  /** @deprecated Use `settings` — kept for open-keys merge during migration */
+  settingsArea: 'grp-settings',
+  /** @deprecated Use `rksv` */
+  fiscalCompliance: 'grp-rksv',
+  /** @deprecated Use `specialReceipts` */
+  fiscalRksvClosing: 'grp-special-receipts',
+  /** @deprecated Use `reports` */
+  reportingAnalytics: 'grp-reports',
+  /** @deprecated Use `catalog` */
+  catalogPricing: 'grp-catalog',
+  /** @deprecated Use `customers` */
+  customersBenefits: 'grp-customers',
+  /** @deprecated Use `admin` */
+  verwaltung: 'grp-admin',
 } as const;
 
 /** Route prefixes per group — used to auto-open the matching submenu for nested routes (e.g. /receipts/[id]). */
 export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
-    [ADMIN_SIDEBAR_GROUP_KEYS.operations]: ['/operations-center', '/tables', '/kassenverwaltung'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
-        '/receipts',
-        '/payments',
-        '/payments/trends',
-        '/payments/storno-refund-audit',
-        '/invoices',
-        '/receipt-templates',
-        '/receipt-generate',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing]: ['/products', '/modifier-groups', '/categories', '/inventory', '/pricing-rules'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics]: [
-        '/dashboard',
-        '/reporting',
-        '/reporting/report-center',
-        '/reporting/compliance',
-        '/reporting/staff',
-        '/reports/daily-closing',
-        '/admin/reports',
-        '/admin/reports/user-activity',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing]: [
-        '/tagesabschluss',
-        '/reporting/tagesbericht',
-        '/reporting/monatsbericht',
-        '/reporting/jahresbericht',
-        '/rksv/sb/startbeleg',
-        '/rksv/sb/schlussbeleg',
-        '/rksv/sonderbelege',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance]: [
-        '/tagesabschluss',
-        '/reporting/tagesbericht',
-        '/reporting/monatsbericht',
-        '/reporting/jahresbericht',
-        '/audit-logs',
-        '/admin/audit/fiscal-exports',
-        '/admin/tse',
-        '/admin/rksv',
-        '/rksv',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: [
-        ...SETTINGS_AREA_ROUTE_PATHS,
-        '/admin/system/time-sync',
-        '/admin/license',
-        '/admin/access',
-        '/admin/users',
-        '/admin/access/roles',
-        '/admin/access/matrix',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
-        '/admin/access',
-        '/admin/users',
-        '/admin/access/roles',
-        '/admin/access/matrix',
-    ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.dashboard]: ['/dashboard'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.license]: [
+    '/license',
+    '/license/dashboard',
+    '/admin/license',
+    '/admin/license-management',
+    '/admin/limits/dashboard',
+    '/admin/license/audit',
+    '/admin/licenses',
+    '/admin/billing',
+    '/admin/billing/sales',
+    '/admin/billing/stats',
+    '/admin/billing/subscription-invoices',
+    '/billing/digital',
+    '/admin/communication',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.communication]: ['/admin/communication'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.myAccount]: [
+    '/tenant/dashboard',
+    '/tenant/portal',
+    '/tenant/invoices',
+    '/tenant/support',
+    '/tenant/license',
+    '/tenant/profile',
+    '/profile',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
+    '/operations-center',
+    '/tables',
+    '/kassenverwaltung',
+    '/staff',
+    '/staff/list',
+    '/staff/performance',
+    '/staff/shifts',
+    '/shifts',
+    '/tagesabschluss',
+    '/receipts',
+    '/orders',
+    '/orders/online',
+    '/receipt-templates',
+    '/receipt-generate',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
+    '/receipts',
+    '/orders',
+    '/orders/online',
+    '/tagesabschluss',
+    '/receipt-templates',
+    '/receipt-generate',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.personnel]: ['/staff', '/staff/list', '/staff/performance', '/staff/shifts', '/shifts'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.finance]: [
+    '/payments',
+    '/payments/trends',
+    '/payments/storno-refund-audit',
+    '/admin/payments/card-transactions',
+    '/admin/online-payments',
+    '/invoices',
+    '/reporting',
+    '/reporting/report-center',
+    '/reporting/steuerberichte',
+    '/reporting/compliance',
+    '/reporting/staff',
+    '/audit-logs/activity',
+    '/reports/daily-closing',
+    '/admin/reports',
+    '/admin/reports/user-activity',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksv]: [
+    '/audit-logs',
+    '/admin/audit/fiscal-exports',
+    '/admin/tse',
+    '/admin/rksv',
+    '/rksv',
+    '/reporting/tagesbericht',
+    '/reporting/monatsbericht',
+    '/reporting/jahresbericht',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvCurrentStatus]: ['/rksv/operations', '/rksv', '/rksv/status'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport]: [
+    '/admin/rksv/dep-export',
+    '/admin/rksv/signature-verify',
+    '/rksv/sb/startbeleg',
+    '/rksv/sb/monatsbeleg',
+    '/rksv/monatsbelege',
+    '/rksv/sb/jahresbeleg',
+    '/rksv/sb/nullbeleg',
+    '/rksv/sb/schlussbeleg',
+    '/rksv/sb/test-helper',
+    '/rksv/sonderbelege',
+    '/admin/fiskaly/history',
+    '/admin/fiskaly/statistics',
+    '/admin/fiskaly/errors',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts]: [
+    '/rksv/sb/startbeleg',
+    '/rksv/sb/monatsbeleg',
+    '/rksv/monatsbelege',
+    '/rksv/sb/jahresbeleg',
+    '/rksv/sb/nullbeleg',
+    '/rksv/sb/schlussbeleg',
+    '/rksv/sb/test-helper',
+    '/rksv/sonderbelege',
+    '/admin/fiskaly/history',
+    '/admin/fiskaly/statistics',
+    '/admin/fiskaly/errors',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline]: [
+    '/rksv/finanz-online-outbox',
+    '/rksv/offline-orders',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung]: [
+    '/audit-logs',
+    '/admin/audit/fiscal-exports',
+    '/admin/tse/offline-transactions',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvTools]: ['/admin/rksv'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: [
+    '/products',
+    '/admin/tickets/redemptions',
+    '/admin/tickets/events',
+    '/admin/rooms',
+    '/admin/folios',
+    '/modifier-groups',
+    '/categories',
+    '/inventory',
+    '/pricing-rules',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.customers]: [
+    '/customers',
+    '/vouchers',
+    '/benefit-definitions',
+    '/benefit-assignments',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.reports]: [
+    '/reporting',
+    '/reporting/report-center',
+    '/reporting/steuerberichte',
+    '/reporting/compliance',
+    '/reporting/staff',
+    '/audit-logs/activity',
+    '/reports/daily-closing',
+    '/admin/reports',
+    '/admin/reports/user-activity',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
+    '/settings',
+    '/admin/kitchen',
+    '/admin/extensions',
+    ...SETTINGS_AREA_ROUTE_PATHS,
+    '/settings/website',
+    '/settings/digital',
+    '/settings/data-management',
+    '/settings/account',
+    '/settings/preferences',
+    '/digital/customer-portal',
+    '/admin/system/time-sync',
+    '/admin/tse/signaturkarte-program',
+    '/tenant/dashboard',
+    '/tenant/portal',
+    '/tenant/invoices',
+    '/tenant/support',
+    '/tenant/license',
+    '/tenant/profile',
+    '/profile',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral]: [
+    '/settings',
+    '/settings/company',
+    '/settings/receipt',
+    '/settings/personalization',
+    '/settings/preferences',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes]: [
+    '/settings/tax-groups',
+    '/settings/tax-history',
+    '/settings/payment-methods',
+    '/settings/payment',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations]: [
+    '/settings/working-hours',
+    '/admin/kitchen',
+    '/settings/session',
+    '/settings/sessions',
+    '/settings/tse',
+    '/settings/finanzonline',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance]: [
+    '/settings/data-management',
+    '/settings/account',
+    '/admin/tse/signaturkarte-program',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.digitalServices]: [
+    '/settings/website',
+    '/settings/digital',
+    '/digital/customer-portal',
+    '/admin/digital',
+    '/admin/digital/requests',
+    '/admin/online-order-integrations',
+    '/admin/feedback',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.backup]: [...BACKUP_AREA_ROUTE_PATHS],
+  [ADMIN_SIDEBAR_GROUP_KEYS.admin]: [
+    '/admin/access',
+    '/admin/users',
+    '/admin/sessions',
+    '/admin/access/roles',
+    '/admin/access/matrix',
+    '/admin/tenants',
+    '/admin/tenants/create',
+    '/admin/vertical-profiles',
+    '/admin/support',
+    '/license',
+    '/license/dashboard',
+    '/admin/license',
+    '/admin/license-management',
+    '/admin/limits/dashboard',
+    '/admin/license/audit',
+    '/admin/licenses',
+    '/admin/billing',
+    '/admin/billing/sales',
+    '/admin/billing/stats',
+    '/admin/billing/subscription-invoices',
+    '/billing/digital',
+    '/admin/communication',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
+    '/admin/access',
+    '/admin/users',
+    '/admin/sessions',
+    '/admin/access/roles',
+    '/admin/access/matrix',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.securityTse]: [
+    '/admin/approvals',
+    '/admin/rksv/config',
+    '/admin/mwst',
+    '/admin/kassensicherheit',
+    '/admin/peppol/submissions',
+    '/admin/peppol/participants',
+    '/admin/tse-management',
+    '/admin/tse/failover',
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+    '/admin/tse/cost',
+    '/admin/tse/disaster-recovery',
+    '/admin/tse/logs',
+    '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
+    '/admin/tse/compliance',
+    '/admin/tse/ausfall',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/auto-healing',
+    '/admin/tse/knowledge',
+    '/admin/tse/api-gateway',
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/recommendations',
+    '/admin/tse/updates',
+    '/admin/tse/sustainability',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/training',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.peppol]: ['/admin/peppol/submissions', '/admin/peppol/participants'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.ch]: ['/admin/mwst'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseManagement]: ['/admin/tse-management'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover]: [
+    '/admin/tse/failover',
+    '/admin/tse/auto-healing',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/disaster-recovery',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring]: [
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/logs',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseReportsFinance]: [
+    '/admin/tse/cost',
+    '/admin/tse/sustainability',
+    '/admin/tse/compliance',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced]: [
+    '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
+    '/admin/tse/api-gateway',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/knowledge',
+    '/admin/tse/training',
+    '/admin/tse/updates',
+    '/admin/tse/recommendations',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseDiagnostics]: [
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/ausfall',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem]: [
+    '/admin/deployments',
+    '/admin/deployments/go-live',
+    '/admin/deployments/tenants',
+    '/admin/deployments/compliance',
+    '/admin/database/migrations',
+    '/admin/feature-flags',
+    '/admin/maintenance',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs]: [
+    '/admin/errors',
+    '/admin/monitoring',
+    '/admin/risk-dashboard',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.development]: ['/admin/development'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.system]: [
+    '/admin/approvals',
+    '/admin/rksv/config',
+    '/admin/mwst',
+    '/admin/kassensicherheit',
+    '/admin/peppol/submissions',
+    '/admin/peppol/participants',
+    '/admin/tse-management',
+    '/admin/tse/failover',
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+    '/admin/tse/cost',
+    '/admin/tse/disaster-recovery',
+    '/admin/tse/logs',
+    '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
+    '/admin/tse/compliance',
+    '/admin/tse/ausfall',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/auto-healing',
+    '/admin/tse/knowledge',
+    '/admin/tse/api-gateway',
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/recommendations',
+    '/admin/tse/updates',
+    '/admin/tse/sustainability',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/training',
+    '/admin/deployments',
+    '/admin/deployments/go-live',
+    '/admin/deployments/tenants',
+    '/admin/deployments/compliance',
+    '/admin/database/migrations',
+    '/admin/feature-flags',
+    '/admin/maintenance',
+    '/admin/errors',
+    '/admin/monitoring',
+    '/admin/risk-dashboard',
+    '/admin/development',
+  ],
 };
 
 /**
  * Collect leaf menu keys (routes) from built Ant Design menu items — excludes submenu group keys.
  */
-export function collectSelectableRouteKeysFromMenuItems(items: MenuProps['items'] | undefined): string[] {
-    const out: string[] = [];
-    const walk = (list: MenuProps['items']) => {
-        if (!list) return;
-        for (const it of list) {
-            if (!it || typeof it !== 'object') continue;
-            if ('type' in it && it.type === 'divider') continue;
-            const node = it as { key?: string; children?: MenuProps['items'] };
-            if (node.children && node.children.length > 0) {
-                walk(node.children);
-                continue;
-            }
-            if (node.key && typeof node.key === 'string') out.push(node.key);
-        }
-    };
-    walk(items);
-    return out;
+export function collectSelectableRouteKeysFromMenuItems(
+  items: MenuProps['items'] | undefined
+): string[] {
+  const out: string[] = [];
+  const walk = (list: MenuProps['items']) => {
+    if (!list) return;
+    for (const it of list) {
+      if (!it || typeof it !== 'object') continue;
+      if ('type' in it && it.type === 'divider') continue;
+      const node = it as { key?: string; children?: MenuProps['items'] };
+      if (node.children && node.children.length > 0) {
+        walk(node.children);
+        continue;
+      }
+      if (node.key && typeof node.key === 'string') out.push(node.key);
+    }
+  };
+  walk(items);
+  return out;
 }
 
 /**
@@ -145,229 +523,577 @@ export function collectSelectableRouteKeysFromMenuItems(items: MenuProps['items'
  */
 /** Optional `search` without leading `?` (e.g. `focus=startbeleg&x=1`) — used for virtual Sonderbeleg sidebar keys. */
 export function resolveAdminMenuSelectedKeys(
-    pathname: string | null | undefined,
-    selectableLeafKeys: readonly string[],
-    search?: string,
+  pathname: string | null | undefined,
+  selectableLeafKeys: readonly string[],
+  search?: string
 ): string[] {
-    const p = normalizeAdminPathname(pathname);
-    if (!p) return [];
-    if (p === RKSV_HUB_PATH) return [RKSV_HUB_MENU_LEAF_KEY];
+  const p = normalizeAdminPathname(pathname);
+  if (!p) return [];
+  if (p === RKSV_HUB_PATH) return [RKSV_HUB_MENU_LEAF_KEY];
 
-    if (p === '/rksv/sonderbelege' && search && search.length > 0) {
-        const sp = new globalThis.URLSearchParams(search);
-        const focus = sp.get('focus')?.trim();
-        const keys = selectableLeafKeys as string[];
-        if (focus === 'startbeleg' && keys.includes('/rksv/sb/startbeleg')) {
-            return ['/rksv/sb/startbeleg'];
-        }
-        if (focus === 'schlussbeleg' && keys.includes('/rksv/sb/schlussbeleg')) {
-            return ['/rksv/sb/schlussbeleg'];
-        }
+  if (p === '/rksv/monatsbelege' || p === '/admin/rksv/monatsbelege') {
+    const keys = selectableLeafKeys as string[];
+    if (keys.includes('/rksv/sb/monatsbeleg')) {
+      return ['/rksv/sb/monatsbeleg'];
     }
+  }
 
-    const sorted = [...selectableLeafKeys].sort((a, b) => b.length - a.length);
-    for (const key of sorted) {
-        if (p === key || p.startsWith(`${key}/`)) return [key];
+  if (p === '/rksv/sonderbelege' && search && search.length > 0) {
+    const sp = new globalThis.URLSearchParams(search);
+    const focus = sp.get('focus')?.trim();
+    const keys = selectableLeafKeys as string[];
+    if (focus === 'startbeleg' && keys.includes('/rksv/sb/startbeleg')) {
+      return ['/rksv/sb/startbeleg'];
     }
-    return [p];
+    if (focus === 'schlussbeleg' && keys.includes('/rksv/sb/schlussbeleg')) {
+      return ['/rksv/sb/schlussbeleg'];
+    }
+    if (focus === 'monatsbeleg' && keys.includes('/rksv/sb/monatsbeleg')) {
+      return ['/rksv/sb/monatsbeleg'];
+    }
+    if (focus === 'jahresbeleg' && keys.includes('/rksv/sb/jahresbeleg')) {
+      return ['/rksv/sb/jahresbeleg'];
+    }
+    if (focus === 'nullbeleg' && keys.includes('/rksv/sb/nullbeleg')) {
+      return ['/rksv/sb/nullbeleg'];
+    }
+    if (focus === 'test-helper' && keys.includes('/rksv/sb/test-helper')) {
+      return ['/rksv/sb/test-helper'];
+    }
+  }
+
+  if (p === '/backup/configuration' || p.startsWith('/backup/configuration/')) {
+    const keys = selectableLeafKeys as string[];
+    if (keys.includes('/backup/configuration/schedule')) {
+      return ['/backup/configuration/schedule'];
+    }
+    if (keys.includes('/backup/configuration/platform')) {
+      return ['/backup/configuration/platform'];
+    }
+  }
+
+  if (p === '/backup/audit' && (selectableLeafKeys as string[]).includes('/backup/audit')) {
+    return ['/backup/audit'];
+  }
+
+  if (p === '/tenant/dashboard' && (selectableLeafKeys as string[]).includes('/tenant/portal')) {
+    return ['/tenant/portal'];
+  }
+
+  if (p === '/profile' && (selectableLeafKeys as string[]).includes('/tenant/profile')) {
+    return ['/tenant/profile'];
+  }
+
+  const sorted = [...selectableLeafKeys].sort((a, b) => b.length - a.length);
+  for (const key of sorted) {
+    if (p === key || p.startsWith(`${key}/`)) return [key];
+  }
+  return [p];
 }
 
-/** True when pathname is under the Verwaltung sidebar group (users, settings, license, tenants, …). */
+/** True when pathname is under Einstellungen or platform admin sidebar groups (excludes backup hub). */
 export function isVerwaltungAdminPath(pathname: string | null | undefined): boolean {
-    const p = normalizeAdminPathname(pathname);
-    const routes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.verwaltung];
-    return routes.some((r) => p === r || p.startsWith(`${r}/`));
+  const p = normalizeAdminPathname(pathname);
+  if (BACKUP_AREA_ROUTE_PATHS.some((r) => p === r || p.startsWith(`${r}/`))) {
+    return false;
+  }
+  const settingsRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.settings];
+  const adminRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.admin];
+  const securityRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.securityTse];
+  const deploymentRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem];
+  const monitoringRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs];
+  return (
+    settingsRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    adminRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    securityRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    deploymentRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    monitoringRoutes.some((r) => p === r || p.startsWith(`${r}/`))
+  );
 }
 
 /** Subgroup keys to open when pathname falls under a non-RKSV route group. */
 export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefined): string[] {
-    const p = normalizeAdminPathname(pathname);
-    const keys: string[] = [];
-    for (const [groupKey, routes] of Object.entries(ADMIN_SIDEBAR_GROUP_ROUTES)) {
-        if (routes.some((r) => p === r || p.startsWith(`${r}/`))) keys.push(groupKey);
+  const p = normalizeAdminPathname(pathname);
+  const keys: string[] = [];
+  for (const [groupKey, routes] of Object.entries(ADMIN_SIDEBAR_GROUP_ROUTES)) {
+    if (routes.some((r) => p === r || p.startsWith(`${r}/`))) keys.push(groupKey);
+  }
+  if (p === '/settings' || p.startsWith('/settings/') || p === '/admin/system/time-sync') {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+  }
+  if (p === '/backup/configuration' || p.startsWith('/backup/configuration/')) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.backupConfig);
+  }
+  if (
+    p === '/admin/access' ||
+    p.startsWith('/admin/access/') ||
+    p === '/admin/users' ||
+    p.startsWith('/admin/users/') ||
+    p === '/admin/sessions' ||
+    p.startsWith('/admin/sessions/') ||
+    p === '/admin/tenants' ||
+    p.startsWith('/admin/tenants/') ||
+    p === '/admin/support' ||
+    p.startsWith('/admin/support/') ||
+    p === '/admin/data-management'
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
+  }
+  if (
+    p === '/admin/access' ||
+    p.startsWith('/admin/access/') ||
+    p === '/admin/users' ||
+    p.startsWith('/admin/users/') ||
+    p === '/admin/sessions' ||
+    p.startsWith('/admin/sessions/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
+  }
+  if (
+    p === '/admin/approvals' ||
+    p.startsWith('/admin/approvals/') ||
+    p === '/admin/rksv/config' ||
+    p.startsWith('/admin/rksv/config/') ||
+    p === '/admin/mwst' ||
+    p.startsWith('/admin/mwst/') ||
+    p === '/admin/kassensicherheit' ||
+    p.startsWith('/admin/kassensicherheit/') ||
+    p.startsWith('/admin/peppol') ||
+    p === '/admin/tse-management' ||
+    p.startsWith('/admin/tse-management/') ||
+    p === '/admin/tse/failover' ||
+    p.startsWith('/admin/tse/failover/') ||
+    p === '/admin/tse/resource-pools' ||
+    p.startsWith('/admin/tse/resource-pools/') ||
+    p === '/admin/tse/incidents' ||
+    p.startsWith('/admin/tse/incidents/') ||
+    p === '/admin/tse/sla' ||
+    p.startsWith('/admin/tse/sla/') ||
+    p === '/admin/tse/capacity' ||
+    p.startsWith('/admin/tse/capacity/') ||
+    p === '/admin/tse/cost' ||
+    p.startsWith('/admin/tse/cost/') ||
+    p === '/admin/tse/disaster-recovery' ||
+    p.startsWith('/admin/tse/disaster-recovery/') ||
+    p === '/admin/tse/logs' ||
+    p.startsWith('/admin/tse/logs/') ||
+    p === '/admin/tse/developer-tools' ||
+    p.startsWith('/admin/tse/developer-tools/') ||
+    p === '/admin/tse/fiskaly' ||
+    p.startsWith('/admin/tse/fiskaly/') ||
+    p === '/admin/tse/compliance' ||
+    p.startsWith('/admin/tse/compliance/') ||
+    p === '/admin/tse/ausfall' ||
+    p.startsWith('/admin/tse/ausfall/') ||
+    p === '/admin/tse/auto-scaling' ||
+    p.startsWith('/admin/tse/auto-scaling/') ||
+    p === '/admin/tse/auto-healing' ||
+    p.startsWith('/admin/tse/auto-healing/') ||
+    p === '/admin/tse/knowledge' ||
+    p.startsWith('/admin/tse/knowledge/') ||
+    p === '/admin/tse/api-gateway' ||
+    p.startsWith('/admin/tse/api-gateway/') ||
+    p === '/admin/tse/anomalies' ||
+    p.startsWith('/admin/tse/anomalies/') ||
+    p === '/admin/tse/analytics' ||
+    p.startsWith('/admin/tse/analytics/') ||
+    p === '/admin/tse/user-analytics' ||
+    p.startsWith('/admin/tse/user-analytics/') ||
+    p === '/admin/tse/recommendations' ||
+    p.startsWith('/admin/tse/recommendations/') ||
+    p === '/admin/tse/updates' ||
+    p.startsWith('/admin/tse/updates/') ||
+    p === '/admin/tse/sustainability' ||
+    p.startsWith('/admin/tse/sustainability/') ||
+    p === '/admin/tse/webhooks' ||
+    p.startsWith('/admin/tse/webhooks/') ||
+    p === '/admin/tse/blockchain' ||
+    p.startsWith('/admin/tse/blockchain/') ||
+    p === '/admin/tse/training' ||
+    p.startsWith('/admin/tse/training/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.securityTse);
+    if (p.startsWith('/admin/peppol')) keys.push(ADMIN_SIDEBAR_GROUP_KEYS.peppol);
+    if (p === '/admin/mwst' || p.startsWith('/admin/mwst/')) keys.push(ADMIN_SIDEBAR_GROUP_KEYS.ch);
+  }
+  if (
+    p === '/admin/deployments' ||
+    p.startsWith('/admin/deployments/') ||
+    p === '/admin/database/migrations' ||
+    p.startsWith('/admin/database/') ||
+    p === '/admin/feature-flags' ||
+    p.startsWith('/admin/feature-flags/') ||
+    p === '/admin/maintenance' ||
+    p.startsWith('/admin/maintenance/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem);
+  }
+  if (
+    p === '/admin/errors' ||
+    p.startsWith('/admin/errors/') ||
+    p === '/admin/monitoring' ||
+    p.startsWith('/admin/monitoring/') ||
+    p === '/admin/risk-dashboard' ||
+    p.startsWith('/admin/risk-dashboard/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs);
+  }
+  if (
+    p === '/license' ||
+    p.startsWith('/license/') ||
+    p === '/admin/license' ||
+    p.startsWith('/admin/license/') ||
+    p === '/admin/license-management' ||
+    p.startsWith('/admin/license-management/') ||
+    p === '/admin/limits/dashboard' ||
+    p.startsWith('/admin/limits/') ||
+    p === '/admin/licenses' ||
+    p === '/admin/billing' ||
+    p.startsWith('/admin/billing/') ||
+    p === '/billing/digital' ||
+    p.startsWith('/billing/digital/') ||
+    p === '/admin/communication' ||
+    p.startsWith('/admin/communication/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
+    if (p === '/admin/communication' || p.startsWith('/admin/communication/')) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.communication);
     }
-    if (
-        p === '/settings' ||
-        p.startsWith('/settings/') ||
-        p === '/admin/system/time-sync' ||
-        p === '/admin/license'
-    ) {
-        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
+  }
+  if (
+    p === '/tenant/dashboard' ||
+    p.startsWith('/tenant/dashboard/') ||
+    p === '/tenant/portal' ||
+    p.startsWith('/tenant/portal/') ||
+    p === '/tenant/invoices' ||
+    p.startsWith('/tenant/invoices/') ||
+    p === '/tenant/support' ||
+    p.startsWith('/tenant/support/') ||
+    p === '/tenant/license' ||
+    p.startsWith('/tenant/license/') ||
+    p === '/tenant/profile' ||
+    p.startsWith('/tenant/profile/') ||
+    p === '/profile' ||
+    p.startsWith('/profile/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.myAccount);
+  }
+  if (
+    p === '/settings/website' ||
+    p.startsWith('/settings/website/') ||
+    p === '/settings/digital' ||
+    p.startsWith('/settings/digital/') ||
+    p === '/digital/customer-portal' ||
+    p.startsWith('/digital/customer-portal/') ||
+    p === '/admin/digital' ||
+    p.startsWith('/admin/digital/') ||
+    p === '/admin/online-order-integrations' ||
+    p.startsWith('/admin/online-order-integrations/') ||
+    p === '/admin/feedback' ||
+    p.startsWith('/admin/feedback/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.digitalServices);
+  }
+  if (p === '/tagesabschluss' || p.startsWith('/tagesabschluss/')) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.operations);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
+  }
+  if (
+    p === '/receipts' ||
+    p.startsWith('/receipts/') ||
+    p === '/orders' ||
+    p.startsWith('/orders/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
+  }
+  if (
+    p === '/payments' ||
+    p.startsWith('/payments/') ||
+    p === '/invoices' ||
+    p.startsWith('/invoices/') ||
+    p === '/admin/online-payments' ||
+    p.startsWith('/admin/online-payments/') ||
+    p === '/admin/payments/card-transactions' ||
+    p.startsWith('/admin/payments/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.finance);
+  }
+  if (p === '/vouchers' || p.startsWith('/vouchers/')) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.customers);
+  }
+  if (
+    p === '/rksv/sb/startbeleg' ||
+    p === '/rksv/sb/monatsbeleg' ||
+    p === '/rksv/monatsbelege' ||
+    p === '/rksv/sb/jahresbeleg' ||
+    p === '/rksv/sb/nullbeleg' ||
+    p === '/rksv/sb/schlussbeleg' ||
+    p === '/rksv/sb/test-helper' ||
+    p === '/rksv/sonderbelege' ||
+    p.startsWith('/rksv/sonderbelege/') ||
+    p === '/admin/fiskaly/history' ||
+    p.startsWith('/admin/fiskaly/history/') ||
+    p === '/admin/fiskaly/statistics' ||
+    p.startsWith('/admin/fiskaly/statistics/') ||
+    p === '/admin/fiskaly/errors' ||
+    p.startsWith('/admin/fiskaly/errors/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
+  }
+  if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    const isExportLeaf =
+      p === '/admin/rksv/dep-export' ||
+      p.startsWith('/admin/rksv/dep-export/') ||
+      p === '/admin/rksv/signature-verify' ||
+      p.startsWith('/admin/rksv/signature-verify/');
+    if (isExportLeaf) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport);
+    } else {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     }
-    if (
-        p === '/admin/access' ||
-        p.startsWith('/admin/access/') ||
-        p === '/admin/users' ||
-        p.startsWith('/admin/users/')
-    ) {
-        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
-    }
-    if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
-        keys.push('/admin/rksv');
-    }
-    return keys;
+  }
+  return keys;
 }
 
 export type SidebarPermissionContext = {
-    usePermissionFirst: boolean;
-    permissions: string[];
-    userRole: string;
-    isMenuItemAllowed: (key: string, permissions: string[] | undefined) => boolean;
-    canViewUsers: (role: string) => boolean;
-    canShowRksvMenu: (role: string) => boolean;
-    canShowPlatformAdminMenu: (role: string) => boolean;
-    isSuperAdminRole: (role: string) => boolean;
+  usePermissionFirst: boolean;
+  permissions: string[];
+  userRole: string;
+  isMenuItemAllowed: (key: string, permissions: string[] | undefined) => boolean;
+  canViewUsers: (role: string) => boolean;
+  canShowRksvMenu: (role: string) => boolean;
+  canShowPlatformAdminMenu: (role: string) => boolean;
+  isSuperAdminRole: (role: string) => boolean;
 };
 
 /**
  * Recursively filter menu items by permission / role. Submenus with no visible children are removed.
  */
 export function filterSidebarMenuItems(
-    items: MenuProps['items'] | undefined,
-    ctx: SidebarPermissionContext,
+  items: MenuProps['items'] | undefined,
+  ctx: SidebarPermissionContext
 ): MenuProps['items'] {
-    if (!items?.length) return items;
+  if (!items?.length) return items;
 
-    const isStructuralSubmenuKey = (key: string) =>
-        key.startsWith('grp-') || key.startsWith('rksv-grp-');
+  const isStructuralSubmenuKey = (key: string) =>
+    key.startsWith('grp-') || key.startsWith('rksv-grp-');
 
-    const platformAdminKeys = new Set([
-        '/admin/tenants',
-        '/admin/licenses',
-        '/admin/cash-registers',
-    ]);
+  const platformAdminKeys = new Set([
+    '/admin/tenants',
+    '/admin/errors',
+    '/admin/licenses',
+    '/admin/cash-registers',
+  ]);
 
-    const leafAllowed = (key: string): boolean => {
-        if (ctx.isSuperAdminRole(ctx.userRole)) return true;
-        if (platformAdminKeys.has(key)) return ctx.canShowPlatformAdminMenu(ctx.userRole);
-        if (ctx.usePermissionFirst) {
-            return ctx.isMenuItemAllowed(key, ctx.permissions);
-        }
-        if (!ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS) {
-            if (isStructuralSubmenuKey(key)) {
-                return true;
-            }
-            return false;
-        }
-        if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
-        if (key === '/rksv' || key.startsWith('/rksv/')) {
-            return isRksvRouteKeyAllowed(key, ctx.permissions, ctx.userRole);
-        }
-        if (
-            key === '/admin/tenants' ||
-            key === '/admin/licenses' ||
-            key === '/admin/cash-registers'
-        ) {
-            return ctx.canShowPlatformAdminMenu(ctx.userRole);
-        }
+  const leafAllowed = (key: string): boolean => {
+    if (ctx.isSuperAdminRole(ctx.userRole)) return true;
+    if (platformAdminKeys.has(key)) return ctx.canShowPlatformAdminMenu(ctx.userRole);
+    if (ctx.usePermissionFirst) {
+      return ctx.isMenuItemAllowed(key, ctx.permissions);
+    }
+    if (!ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS) {
+      if (isStructuralSubmenuKey(key)) {
         return true;
+      }
+      return false;
+    }
+    if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
+    if (key === '/rksv' || key.startsWith('/rksv/')) {
+      return isRksvRouteKeyAllowed(key, ctx.permissions, ctx.userRole);
+    }
+    if (
+      key === '/admin/tenants' ||
+      key === '/admin/errors' ||
+      key === '/admin/licenses' ||
+      key === '/admin/cash-registers'
+    ) {
+      return ctx.canShowPlatformAdminMenu(ctx.userRole);
+    }
+    return true;
+  };
+
+  const result: MenuProps['items'] = [];
+
+  for (const it of items) {
+    if (!it || typeof it !== 'object') continue;
+    if ('type' in it && it.type === 'divider') {
+      result.push(it);
+      continue;
+    }
+    const node = it as {
+      key?: string;
+      children?: MenuProps['items'];
+      [k: string]: unknown;
     };
 
-    const result: MenuProps['items'] = [];
-
-    for (const it of items) {
-        if (!it || typeof it !== 'object') continue;
-        if ('type' in it && it.type === 'divider') {
-            result.push(it);
-            continue;
-        }
-        const node = it as {
-            key?: string;
-            children?: MenuProps['items'];
-            [k: string]: unknown;
-        };
-
-        if (node.children && node.children.length > 0) {
-            const parentKey = node.key;
-            if (parentKey && typeof parentKey === 'string' && !leafAllowed(parentKey)) continue;
-            const filteredChildren = filterSidebarMenuItems(node.children, ctx);
-            if (!filteredChildren?.length) continue;
-            result.push({ ...it, children: filteredChildren } as NonNullable<MenuProps['items']>[number]);
-            continue;
-        }
-
-        const key = node.key;
-        if (key && typeof key === 'string') {
-            if (!leafAllowed(key)) continue;
-        }
-        result.push(it);
+    if (node.children && node.children.length > 0) {
+      const parentKey = node.key;
+      if (parentKey && typeof parentKey === 'string' && !leafAllowed(parentKey)) continue;
+      const filteredChildren = filterSidebarMenuItems(node.children, ctx);
+      if (!filteredChildren?.length) continue;
+      result.push({ ...it, children: filteredChildren } as NonNullable<MenuProps['items']>[number]);
+      continue;
     }
 
-    return result;
+    const key = node.key;
+    if (key && typeof key === 'string') {
+      if (!leafAllowed(key)) continue;
+    }
+    result.push(it);
+  }
+
+  return result;
+}
+
+function menuNodeSearchText(node: { key?: string; title?: unknown }): string {
+  const parts: string[] = [];
+  if (typeof node.key === 'string') parts.push(node.key);
+  if (typeof node.title === 'string') parts.push(node.title);
+  return parts.join(' ').toLocaleLowerCase();
+}
+
+/**
+ * Filters the Ant Design menu tree by a free-text query (label `title` + route key).
+ * Matching parents keep all children; matching children keep their ancestors.
+ */
+export function filterSidebarMenuItemsByQuery(
+  items: MenuProps['items'] | undefined,
+  query: string
+): MenuProps['items'] {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q || !items?.length) return items;
+
+  const result: MenuProps['items'] = [];
+
+  for (const it of items) {
+    if (!it || typeof it !== 'object') continue;
+    if ('type' in it && it.type === 'divider') {
+      result.push(it);
+      continue;
+    }
+    const node = it as {
+      key?: string;
+      title?: unknown;
+      children?: MenuProps['items'];
+    };
+    const selfMatch = menuNodeSearchText(node).includes(q);
+
+    if (node.children && node.children.length > 0) {
+      if (selfMatch) {
+        result.push(it);
+        continue;
+      }
+      const filteredChildren = filterSidebarMenuItemsByQuery(node.children, query);
+      if (!filteredChildren?.length) continue;
+      result.push({ ...it, children: filteredChildren } as NonNullable<MenuProps['items']>[number]);
+      continue;
+    }
+
+    if (selfMatch) result.push(it);
+  }
+
+  return result;
+}
+
+/** Collect submenu keys (nodes with children) — used to auto-expand while filtering. */
+export function collectSubmenuKeysFromMenuItems(items: MenuProps['items'] | undefined): string[] {
+  const out: string[] = [];
+  const walk = (list: MenuProps['items']) => {
+    if (!list) return;
+    for (const it of list) {
+      if (!it || typeof it !== 'object') continue;
+      if ('type' in it && it.type === 'divider') continue;
+      const node = it as { key?: string; children?: MenuProps['items'] };
+      if (node.children && node.children.length > 0) {
+        if (node.key && typeof node.key === 'string') out.push(node.key);
+        walk(node.children);
+      }
+    }
+  };
+  walk(items);
+  return out;
 }
 
 export type SidebarOpenKeysMergeParams = {
-    pathname: string | null | undefined;
-    /** Current open keys from React state (includes user-expanded submenus). */
-    prevOpenKeys: readonly string[];
-    canSeeRksv: boolean;
-    rksvGroups: RksvMenuGroup[];
+  pathname: string | null | undefined;
+  /** Current open keys from React state (includes user-expanded submenus). */
+  prevOpenKeys: readonly string[];
+  canSeeRksv: boolean;
+  rksvGroups: RksvMenuGroup[];
 };
 
 /**
  * Derives next `openKeys` after a navigation or permission change.
- * - Prunes stale `/rksv` and `rksv-grp-*` when the route leaves `/rksv/*` (avoids Ant Design inline menu drift).
+ * - Prunes stale RKSV Werkzeuge / `rksv-grp-*` when the route leaves `/rksv/*` (avoids Ant Design inline menu drift).
  * - Closes the fiscal top group when neither audit nor RKSV routes are active.
  * - Merges route-driven auto-open hints; preserves unrelated user-opened keys.
  */
 export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams): string[] {
-    const p = normalizeAdminPathname(params.pathname);
-    const keys = new Set(params.prevOpenKeys);
+  const p = normalizeAdminPathname(params.pathname);
+  const keys = new Set(params.prevOpenKeys);
 
-    /** Drop RKSV submenu keys when the route is outside `/rksv` or the user cannot see RKSV at all. */
-    if (!params.canSeeRksv || !p.startsWith('/rksv')) {
-        for (const k of Array.from(keys)) {
-            if (k === '/rksv' || k.startsWith('rksv-grp-')) {
-                keys.delete(k);
-            }
-        }
+  /** Drop RKSV Werkzeuge submenu keys when the route is outside `/rksv` or the user cannot see RKSV at all. */
+  if (!params.canSeeRksv || !p.startsWith('/rksv')) {
+    for (const k of Array.from(keys)) {
+      if (
+        k === '/rksv' ||
+        k === ADMIN_SIDEBAR_GROUP_KEYS.rksvTools ||
+        k.startsWith('rksv-grp-')
+      ) {
+        keys.delete(k);
+      }
     }
+  }
 
-    /** Keep fiscal section open on closing/reports, audit/TSE routes, or `/rksv/*` when allowed. */
-    const fiscalActive =
-        p === '/tagesabschluss' ||
-        p.startsWith('/tagesabschluss/') ||
-        p === '/reporting/tagesbericht' ||
-        p.startsWith('/reporting/tagesbericht/') ||
-        p === '/reporting/monatsbericht' ||
-        p.startsWith('/reporting/monatsbericht/') ||
-        p === '/reporting/jahresbericht' ||
-        p.startsWith('/reporting/jahresbericht/') ||
-        p === '/audit-logs' ||
-        p.startsWith('/audit-logs/') ||
-        p === '/admin/audit/fiscal-exports' ||
-        p.startsWith('/admin/audit/') ||
-        p.startsWith('/admin/tse/') ||
-        p === '/admin/tse/offline-transactions' ||
-        (params.canSeeRksv && p.startsWith('/rksv'));
-    if (!fiscalActive) {
-        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+  /** Keep RKSV section open on audit/TSE routes or `/rksv/*` when allowed. */
+  const rksvActive =
+    p === '/audit-logs' ||
+    p.startsWith('/audit-logs/') ||
+    p === '/admin/audit/fiscal-exports' ||
+    p.startsWith('/admin/audit/') ||
+    p.startsWith('/admin/tse/') ||
+    p === '/admin/tse/offline-transactions' ||
+    p === '/admin/rksv' ||
+    p.startsWith('/admin/rksv/') ||
+    p === '/reporting/tagesbericht' ||
+    p.startsWith('/reporting/tagesbericht/') ||
+    p === '/reporting/monatsbericht' ||
+    p.startsWith('/reporting/monatsbericht/') ||
+    p === '/reporting/jahresbericht' ||
+    p.startsWith('/reporting/jahresbericht/') ||
+    (params.canSeeRksv && p.startsWith('/rksv'));
+  if (!rksvActive) {
+    keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+  }
+
+  for (const k of getNonRksvSidebarOpenGroupKeys(p)) {
+    keys.add(k);
+  }
+
+  if (!params.canSeeRksv && p.startsWith('/rksv')) {
+    keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+  }
+
+  const sonderOnly = p === '/rksv/sonderbelege' || p.startsWith('/rksv/sonderbelege/');
+
+  if (params.canSeeRksv && p.startsWith('/rksv') && !sonderOnly) {
+    keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
+    for (const k of getRksvOpenSubgroupKeys(p, params.rksvGroups)) {
+      keys.add(k);
     }
+  }
 
-    for (const k of getNonRksvSidebarOpenGroupKeys(p)) {
-        keys.add(k);
-    }
+  /** Sonderbelege deep links: open special-receipts subgroup without expanding the full RKSV hub. */
+  if (params.canSeeRksv && sonderOnly) {
+    keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    keys.add(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
+  }
 
-    if (!params.canSeeRksv && p.startsWith('/rksv')) {
-        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-    }
-
-    const sonderOnly =
-        p === '/rksv/sonderbelege' || p.startsWith('/rksv/sonderbelege/');
-
-    if (params.canSeeRksv && p.startsWith('/rksv') && !sonderOnly) {
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        keys.add('/rksv');
-        for (const k of getRksvOpenSubgroupKeys(p, params.rksvGroups)) {
-            keys.add(k);
-        }
-    }
-
-    /** Sonderbelege is linked under fiscal closing; avoid auto-expanding the whole RKSV hub tree. */
-    if (params.canSeeRksv && sonderOnly) {
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing);
-    }
-
-    return Array.from(keys);
+  return Array.from(keys);
 }

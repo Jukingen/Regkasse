@@ -36,7 +36,7 @@ export async function searchReceiptsByReceiptNumber(params: {
   });
 
   const layer = unwrapApiResponseLayer(raw);
-  const body = isRecord(layer) ? layer : isRecord(raw as object) ? (raw as Record<string, unknown>) : {};
+  const body = isRecord(layer) ? layer : isRecord(raw) ? raw : {};
   const itemsRaw = body.items ?? body.Items ?? [];
   if (!Array.isArray(itemsRaw)) return [];
 
@@ -47,7 +47,9 @@ export async function searchReceiptsByReceiptNumber(params: {
     const paymentId = coerceUuid(row.paymentId ?? row.PaymentId);
     const receiptNumber = String(row.receiptNumber ?? row.ReceiptNumber ?? '').trim();
     const grandTotal = Number(row.grandTotal ?? row.GrandTotal ?? 0);
-    const cashRegisterId = coerceUuid(row.cashRegisterId ?? row.CashRegisterId ?? row.cashRegisterEntityId);
+    const cashRegisterId = coerceUuid(
+      row.cashRegisterId ?? row.CashRegisterId ?? row.cashRegisterEntityId
+    );
     if (!paymentId || !receiptNumber) continue;
     rows.push({
       receiptId,
@@ -57,7 +59,9 @@ export async function searchReceiptsByReceiptNumber(params: {
       cashRegisterId,
       cashRegisterEntityId: coerceUuid(row.cashRegisterEntityId ?? row.CashRegisterEntityId),
       rksvSpecialReceiptKind:
-        row.rksvSpecialReceiptKind != null ? String(row.rksvSpecialReceiptKind) : (row.RksvSpecialReceiptKind as string | undefined) ?? null,
+        row.rksvSpecialReceiptKind != null
+          ? String(row.rksvSpecialReceiptKind)
+          : ((row.RksvSpecialReceiptKind as string | undefined) ?? null),
     });
   }
   return rows;
@@ -122,7 +126,9 @@ export async function fetchPaymentRowForPos(paymentId: string): Promise<ParsedPa
 
 export async function fetchReceiptDtoByPayment(paymentId: string): Promise<ReceiptDTO | null> {
   try {
-    const raw = await apiClient.get<unknown>(`/Receipts/by-payment/${encodeURIComponent(paymentId)}`);
+    const raw = await apiClient.get<unknown>(
+      `/Receipts/by-payment/${encodeURIComponent(paymentId)}`
+    );
     const layer = unwrapApiResponseLayer(raw);
     const d = unwrapApiResponseLayer(layer);
     if (!d || typeof d !== 'object') return null;

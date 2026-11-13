@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
+
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { RestoreVerificationStatus } from '@/api/generated/model/restoreVerificationStatus';
 import { deriveBackupEvidenceLadder } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
-import { BackupRunResponseDtoStatus } from '@/api/generated/model/backupRunResponseDtoStatus';
-import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model/restoreVerificationRunResponseDtoStatus';
 
 describe('deriveBackupEvidenceLadder', () => {
   it('Fake success: stub headline and non-stub step fails', () => {
     const m = deriveBackupEvidenceLadder({
-      latest: { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'r1', adapterKind: 'Fake' } as never,
+      latest: {
+        status: BackupRunStatus.Succeeded,
+        id: 'r1',
+        adapterKind: 'Fake',
+      } as never,
       detailForPipeline: { artifacts: [], isSimulatedExecution: true } as never,
       verification: undefined,
       restoreLatest: undefined,
@@ -21,14 +26,18 @@ describe('deriveBackupEvidenceLadder', () => {
 
   it('PgDump + list OK + drill OK + full proofs: strong headline', () => {
     const m = deriveBackupEvidenceLadder({
-      latest: { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'r1', adapterKind: 'PgDump' } as never,
+      latest: {
+        status: BackupRunStatus.Succeeded,
+        id: 'r1',
+        adapterKind: 'PgDump',
+      } as never,
       detailForPipeline: {
         isSimulatedExecution: false,
         artifacts: [{ artifactType: 0, isFilePresentForDownload: true, byteSize: 50_000 }],
       } as never,
       verification: { status: 1, backupRunId: 'r1' } as never,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
         dumpInspectionPassed: true,
         restoreAttemptExecuted: false,
       } as never,
@@ -47,14 +56,18 @@ describe('deriveBackupEvidenceLadder', () => {
 
   it('PgDump + latest drill failed: warns instead of strong headline', () => {
     const m = deriveBackupEvidenceLadder({
-      latest: { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'r1', adapterKind: 'PgDump' } as never,
+      latest: {
+        status: BackupRunStatus.Succeeded,
+        id: 'r1',
+        adapterKind: 'PgDump',
+      } as never,
       detailForPipeline: {
         isSimulatedExecution: false,
         artifacts: [{ artifactType: 0, isFilePresentForDownload: true, byteSize: 50_000 }],
       } as never,
       verification: { status: 1, backupRunId: 'r1' } as never,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         dumpInspectionPassed: false,
         restoreAttemptExecuted: true,
         restoreAttemptPassed: false,

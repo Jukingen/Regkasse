@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { findRegistersMissingStartbeleg } from '@/features/rksv/compliance/startbelegCoverage';
 
 describe('findRegistersMissingStartbeleg', () => {
@@ -8,7 +9,7 @@ describe('findRegistersMissingStartbeleg', () => {
         { id: 'a', registerNumber: 'K1' },
         { id: 'b', registerNumber: 'K2' },
       ],
-      [{ cashRegisterId: 'a', kind: 'Startbeleg' }],
+      [{ cashRegisterId: 'a', kind: 'Startbeleg' }]
     );
     expect(missing).toEqual([{ cashRegisterId: 'b', registerNumber: 'K2' }]);
   });
@@ -20,7 +21,7 @@ describe('findRegistersMissingStartbeleg', () => {
         { id: 'b', registerNumber: 'K2' },
       ],
       [],
-      'b',
+      'b'
     );
     expect(missing).toEqual([{ cashRegisterId: 'b', registerNumber: 'K2' }]);
   });

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +13,7 @@ public sealed class RksvSpecialReceiptFinanzOnlineSubmissionTracker : IRksvSpeci
         _db = db;
     }
 
-    public RksvSpecialReceiptFinanzOnlineSubmission CreateInitialNotRequiredRow(
+    public RksvSpecialReceiptFinanzOnlineSubmission CreateInitialPendingRow(
         Guid paymentId,
         Guid receiptId,
         Guid cashRegisterId,

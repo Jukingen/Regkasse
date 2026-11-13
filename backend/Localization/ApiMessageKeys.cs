@@ -5,6 +5,7 @@ public static class ApiMessageKeys
 {
     // Auth
     public const string InvalidLoginCredentials = "auth.invalid_login_credentials";
+    public const string AccountTemporarilyLocked = "auth.account_temporarily_locked";
     public const string ForgotPasswordGeneric = "auth.forgot_password_generic";
     public const string RegistrationFailed = "auth.registration_failed";
     public const string UserNotFound = "auth.user_not_found";
@@ -14,10 +15,18 @@ public static class ApiMessageKeys
     public const string AccountNotActive = "auth.account_not_active";
     public const string NotAuthorizedForApp = "auth.not_authorized_for_app";
     public const string LoginError = "auth.login_error";
+    public const string TwoFactorRequired = "auth.two_factor_required";
+    public const string TwoFactorInvalid = "auth.two_factor_invalid";
+    public const string TwoFactorChallengeExpired = "auth.two_factor_challenge_expired";
     public const string UserCreatedSuccess = "auth.user_created_success";
     public const string TenantMembershipRequired = "auth.tenant_membership_required";
     public const string TenantDisabled = "auth.tenant_disabled";
     public const string TenantLicenseLockdown = "auth.tenant_license_lockdown";
+    public const string LicenseStatusActive = "license.status.active";
+    public const string LicenseStatusExpiringSoon = "license.status.expiring_soon";
+    public const string LicenseStatusGrace = "license.status.grace";
+    public const string LicenseStatusLocked = "license.status.locked";
+    public const string LicenseStatusSystemActiveTenantLocked = "license.status.system_active_tenant_locked";
 
     // Password change / Identity validation
     public const string PasswordChangeValidationFailed = "password.change_validation_failed";
@@ -39,6 +48,7 @@ public static class ApiMessageKeys
     public const string RegistersFetchError = "cash_register.registers_fetch_error";
     public const string RegistersFetchSuccess = "cash_register.registers_fetch_success";
     public const string RegisterNotFound = "cash_register.not_found";
+    public const string RegisterOperationNotPermitted = "cash_register.operation_not_permitted";
     public const string RegisterFetchSuccess = "cash_register.fetch_success";
     public const string RegisterFetchError = "cash_register.fetch_error";
     public const string RegisterCreateSuccess = "cash_register.create_success";
@@ -49,9 +59,11 @@ public static class ApiMessageKeys
     public const string RegisterOpenedByOtherUser = "cash_register.opened_by_other_user";
     public const string MonthlyReceiptRequired = "cash_register.monthly_receipt_required";
     public const string RegisterCannotOpenInState = "cash_register.cannot_open_in_state";
+    public const string RegisterDecommissionedCannotOpen = "cash_register.decommissioned_cannot_open";
     public const string RegisterOpenError = "cash_register.open_error";
     public const string RegisterCloseSuccess = "cash_register.close_success";
     public const string RegisterAlreadyClosed = "cash_register.already_closed";
+    public const string RegisterHeldByOtherUser = "cash_register.held_by_other_user";
     public const string RegisterCloseError = "cash_register.close_error";
     public const string TransactionsFetchSuccess = "cash_register.transactions_fetch_success";
     public const string TransactionsFetchError = "cash_register.transactions_fetch_error";

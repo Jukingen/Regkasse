@@ -9,7 +9,10 @@ export interface UserPermissionOverrideDto {
   reason?: string | null;
   createdAt: string;
   createdByUserId?: string | null;
+  validFrom?: string | null;
   expiresAt?: string | null;
+  /** scheduled | active | expiringSoon | expired */
+  status?: string | null;
 }
 
 export interface UserEffectivePermissionsDto {
@@ -22,6 +25,7 @@ export interface UpsertUserPermissionOverrideRequest {
   permission: string;
   isGranted: boolean;
   reason?: string | null;
+  validFrom?: string | null;
   expiresAt?: string | null;
   tenantId?: string | null;
 }
@@ -29,16 +33,35 @@ export interface UpsertUserPermissionOverrideRequest {
 export const userEffectivePermissionsQueryKey = (userId: string) =>
   ['/api/UserManagement', userId, 'permissions', 'effective'] as const;
 
-export async function getUserEffectivePermissions(userId: string): Promise<UserEffectivePermissionsDto> {
+export const userPermissionOverridesQueryKey = (userId: string, includeExpired = false) =>
+  ['/api/UserManagement', userId, 'permissions', 'overrides', { includeExpired }] as const;
+
+export async function getUserEffectivePermissions(
+  userId: string
+): Promise<UserEffectivePermissionsDto> {
   return customInstance<UserEffectivePermissionsDto>({
     url: `/api/UserManagement/${userId}/permissions/effective`,
     method: 'GET',
   });
 }
 
+export async function listUserPermissionOverrides(
+  userId: string,
+  options?: { includeExpired?: boolean; tenantId?: string | null }
+): Promise<UserPermissionOverrideDto[]> {
+  return customInstance<UserPermissionOverrideDto[]>({
+    url: `/api/UserManagement/${userId}/permissions/overrides`,
+    method: 'GET',
+    params: {
+      includeExpired: options?.includeExpired ? 'true' : undefined,
+      tenantId: options?.tenantId ?? undefined,
+    },
+  });
+}
+
 export async function upsertUserPermissionOverride(
   userId: string,
-  body: UpsertUserPermissionOverrideRequest,
+  body: UpsertUserPermissionOverrideRequest
 ): Promise<UserPermissionOverrideDto> {
   return customInstance<UserPermissionOverrideDto>({
     url: `/api/UserManagement/${userId}/permissions/overrides`,
@@ -47,7 +70,10 @@ export async function upsertUserPermissionOverride(
   });
 }
 
-export async function deleteUserPermissionOverride(userId: string, overrideId: string): Promise<void> {
+export async function deleteUserPermissionOverride(
+  userId: string,
+  overrideId: string
+): Promise<void> {
   await customInstance<void>({
     url: `/api/UserManagement/${userId}/permissions/overrides/${overrideId}`,
     method: 'DELETE',

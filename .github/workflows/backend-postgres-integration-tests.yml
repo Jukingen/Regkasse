@@ -6,7 +6,17 @@ name: Backend PostgreSQL integration tests
 
 on:
   pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-postgres-integration-tests.yml'
+      - 'docs/backend-postgresql-integration-tests.md'
   push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-postgres-integration-tests.yml'
+      - 'docs/backend-postgresql-integration-tests.md'
+  workflow_dispatch:
 
 concurrency:
   group: backend-pg-tests-${{ github.workflow }}-${{ github.ref }}
@@ -16,14 +26,17 @@ env:
   DOTNET_VERSION: '10.0.x'
   CI: 'true'
   # Ephemeral CI database only (matches services.postgres below).
-  REGKASSE_TEST_POSTGRES: 'Host=localhost;Port=5432;Database=regkasse_pg_integration;Username=postgres;Password=postgres'
+  # 127.0.0.1 avoids the runner resolving localhost to ::1, where the service port is not published.
+  # SSL Mode=Disable matches the non-TLS postgres service. Npgsql Prefer can fail that handshake.
+  REGKASSE_TEST_POSTGRES: 'Host=127.0.0.1;Port=5432;Database=test;Username=postgres;Password=postgres;SSL Mode=Disable'
   # Ensure cold schema even if the integration DB name ever diverges from fixture defaults.
   REGKASSE_TEST_POSTGRES_RESET: '1'
 
 jobs:
   postgres-integration:
-    name: dotnet test (Category=PostgreSql)
+    name: dotnet build + test (Category=PostgreSql)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -31,11 +44,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: regkasse_pg_integration
+          POSTGRES_DB: test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d regkasse_pg_integration"
+          --health-cmd "pg_isready -U postgres -d test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -49,9 +62,37 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore KasseAPI_Final.sln
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
+
+      # Includes OnlinePaymentIntegrationTests (state machine + idempotency on PostgreSQL).
       - name: Run PostgreSQL-tagged tests
         working-directory: backend
         run: >-
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
           --filter "Category=PostgreSql"
-          --verbosity minimal
+          --verbosity normal
+
+  notify-failure:
+    name: Notify on failure
+    needs: [postgres-integration]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Backend PostgreSQL integration tests failed
+    secrets: inherit

@@ -1,8 +1,11 @@
 using System.Security.Claims;
 
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -55,25 +58,29 @@ public sealed class AdminTenantUsersController : ControllerBase
 
     [HttpGet]
 
-    [ProducesResponseType(typeof(IReadOnlyList<TenantUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TenantUserListPage), StatusCodes.Status200OK)]
 
     [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-    public async Task<ActionResult<IReadOnlyList<TenantUserDto>>> List(
+    public async Task<ActionResult<TenantUserListPage>> List(
 
         Guid tenantId,
+
+        [FromQuery] int page = 1,
+
+        [FromQuery] int pageSize = 50,
 
         CancellationToken cancellationToken = default)
 
     {
 
-        var items = await _tenantUserService.ListAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        var result = await _tenantUserService.ListAsync(tenantId, page, pageSize, cancellationToken).ConfigureAwait(false);
 
-        if (items == null)
+        if (result == null)
 
             return NotFound(new { message = "Tenant not found." });
 
-        return Ok(items);
+        return Ok(result);
 
     }
 
@@ -117,7 +124,7 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         if (error != null)
 
-            return BadRequest(new { message = error });
+            return MapTenantUserError(error);
 
 
 
@@ -183,7 +190,7 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         if (error != null)
 
-            return BadRequest(new { message = error });
+            return MapTenantUserError(error);
 
 
 
@@ -301,9 +308,14 @@ public sealed class AdminTenantUsersController : ControllerBase
 
 
 
-    /// <summary>Generate a new password for a tenant user (shown once in the response).</summary>
+    /// <summary>
+    /// Generate a new password for a tenant user (shown once in the response).
+    /// Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+    /// </summary>
 
     [HttpPost("{userId}/reset-password")]
+
+    [HttpPost("{userId}/generate-temporary-password")]
 
     [ProducesResponseType(typeof(TenantUserPasswordResetResultDto), StatusCodes.Status200OK)]
 
@@ -413,6 +425,22 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         return NoContent();
 
+    }
+
+    private ActionResult MapTenantUserError(string error)
+    {
+        if (LimitErrorDto.TryParseServiceError(error, out var limitError))
+            return Conflict(limitError);
+
+        if (error.StartsWith(TrialLimitExceededException.ErrorCodeValue, StringComparison.OrdinalIgnoreCase))
+        {
+            var message = error.Contains(':')
+                ? error[(error.IndexOf(':') + 1)..].Trim()
+                : error;
+            return BadRequest(new { message, code = TrialLimitExceededException.ErrorCodeValue });
+        }
+
+        return BadRequest(new { message = error });
     }
 
 }

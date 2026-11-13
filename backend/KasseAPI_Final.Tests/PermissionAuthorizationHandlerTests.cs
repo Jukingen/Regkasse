@@ -135,6 +135,22 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task PermissionPolicy_PaymentTake_Denies_Compact_Admin_Cashier_Jwt()
+    {
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim("userId", "user-id"));
+        identity.AddClaim(new Claim("role", Roles.Cashier));
+        identity.AddClaim(new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin));
+        var user = new ClaimsPrincipal(identity);
+
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.PaymentTake));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public async Task PermissionPolicy_AuditCleanup_Allows_SuperAdmin_Role()
     {
         var provider = BuildAuthorizationServices();
@@ -228,7 +244,7 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task PermissionPolicy_UserManage_Denies_Manager_Role()
+    public async Task PermissionPolicy_UserManage_Allows_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
@@ -236,7 +252,7 @@ public class PermissionAuthorizationHandlerTests
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
     }
 
     // --- SystemCritical: SuperAdmin only ---
@@ -249,6 +265,24 @@ public class PermissionAuthorizationHandlerTests
         var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SystemCritical));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_SuperAdmin_JwtRoleClaim_ShortCircuits_Any_Permission()
+    {
+        // Mirrors issued tokens: RoleClaimType "role" (not only ClaimTypes.Role).
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-id"));
+        identity.AddClaim(new Claim("role", Roles.SuperAdmin));
+        identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical));
+        var user = new ClaimsPrincipal(identity);
+
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
         Assert.True(result.Succeeded);
     }
@@ -344,6 +378,29 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task PermissionPolicy_CartManage_Allows_Cashier_When_Jwt_Has_AdminFilteredClaimsOnly()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var adminFiltered = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Cashier },
+            RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier }));
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-id"));
+        identity.AddClaim(new Claim(ClaimTypes.Role, Roles.Cashier));
+        foreach (var p in adminFiltered)
+            identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, p));
+        var user = new ClaimsPrincipal(identity);
+
+        Assert.DoesNotContain(AppPermissions.CartManage, adminFiltered);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public async Task PermissionPolicy_CartManage_Allows_Cashier_Role()
     {
         var provider = BuildAuthorizationServices();
@@ -351,6 +408,30 @@ public class PermissionAuthorizationHandlerTests
         var user = CreatePrincipalWithRoles(Roles.Cashier);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AuthorizeAsync_Cashier_HasLicenseViewPolicy()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.LicenseView));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AuthorizeAsync_Manager_LicenseManage_SatisfiesLicenseViewPolicy()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithPermissions(AppPermissions.LicenseManage);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.LicenseView));
 
         Assert.True(result.Succeeded);
     }

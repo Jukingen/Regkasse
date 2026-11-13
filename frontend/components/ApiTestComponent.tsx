@@ -8,7 +8,9 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+
 import { apiClient } from '../services/api/config';
+import { formatUserTime } from '../utils/dateFormatter';
 
 /**
  * API bağlantısını test etmek için basit component
@@ -21,7 +23,10 @@ export const ApiTestComponent: React.FC = () => {
 
   // Test sonuçlarını logla
   const addLog = (message: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${formatUserTime(new Date(), { includeSeconds: true })}: ${message}`,
+    ]);
   };
 
   // Ping testi
@@ -90,12 +95,12 @@ export const ApiTestComponent: React.FC = () => {
     setIsLoading(true);
     setTestResults([]);
     addLog('=== TÜM TESTLER BAŞLATILIYOR ===');
-    
+
     await testPing();
     await testEcho();
     await testMath();
     await testSystemInfo();
-    
+
     addLog('=== TÜM TESTLER TAMAMLANDI ===');
     setIsLoading(false);
   };
@@ -108,14 +113,13 @@ export const ApiTestComponent: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🔌 API Bağlantı Testi</Text>
-      
+
       {/* Test Butonları */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.primaryButton]}
           onPress={runAllTests}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>
             {isLoading ? '🔄 Testler Çalışıyor...' : '🚀 Tüm Testleri Çalıştır'}
           </Text>
@@ -124,39 +128,32 @@ export const ApiTestComponent: React.FC = () => {
         <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
           onPress={testPing}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>🏓 Ping Testi</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
           onPress={testEcho}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>📢 Echo Testi</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
           onPress={testMath}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>🧮 Math Testi</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
           onPress={testSystemInfo}
-          disabled={isLoading}
-        >
+          disabled={isLoading}>
           <Text style={styles.buttonText}>💻 System Info</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.clearButton]}
-          onPress={clearLogs}
-        >
+        <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={clearLogs}>
           <Text style={styles.buttonText}>🗑️ Logları Temizle</Text>
         </TouchableOpacity>
       </View>

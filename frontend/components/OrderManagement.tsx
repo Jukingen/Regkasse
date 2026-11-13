@@ -9,9 +9,10 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+
 import { useOrders } from '../hooks/useOrders';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 import { usePayment } from '../hooks/usePayment';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 // Türkçe Açıklama: Sipariş yönetimi component'i - Masa bazlı siparişleri yönetir
 interface OrderManagementProps {
@@ -24,7 +25,7 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
   const [customerId, setCustomerId] = useState<string>('demo-customer-001');
   const [notes, setNotes] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
+
   const {
     loading: orderLoading,
     error: orderError,
@@ -37,13 +38,13 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
     cancelOrder,
     updateOrderNotes,
     updateOrderCustomer,
-    clearError: clearOrderError
+    clearError: clearOrderError,
   } = useOrders();
 
   const {
     loading: paymentLoading,
     error: paymentError,
-    clearError: clearPaymentError
+    clearError: clearPaymentError,
   } = usePayment();
 
   // Siparişi yükle
@@ -60,9 +61,12 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
         setNotes(orderData.cart.notes || '');
       } else {
         // Sipariş yoksa yeni oluştur
-        const newOrder = await createOrder(tableNumber, customerId);
-        if (newOrder?.success) {
-          setOrder(newOrder.cart);
+        const created = await createOrder(tableNumber, customerId);
+        if (created?.cartId) {
+          const refreshed = await getOrder(tableNumber);
+          if (refreshed?.success) {
+            setOrder(refreshed.cart);
+          }
         }
       }
     } catch (error) {
@@ -74,7 +78,7 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
   const handleAddItem = async (productId: string, quantity: number = 1) => {
     try {
       const result = await addItemToOrder(tableNumber, productId, quantity, notes);
-      if (result?.success) {
+      if (result?.cart) {
         await loadOrder(); // Siparişi yeniden yükle
         onOrderUpdate(); // Parent component'i güncelle
       }
@@ -111,56 +115,48 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
 
   // Siparişi temizle
   const handleClearOrder = async () => {
-    Alert.alert(
-      'Siparişi Temizle',
-      'Bu siparişi tamamen temizlemek istediğinizden emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Temizle',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await clearOrder(tableNumber);
-              if (result?.success) {
-                setOrder(null);
-                setNotes('');
-                onOrderUpdate(); // Parent component'i güncelle
-              }
-            } catch (error) {
-              console.error('Clear order error:', error);
+    Alert.alert('Siparişi Temizle', 'Bu siparişi tamamen temizlemek istediğinizden emin misiniz?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Temizle',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const result = await clearOrder(tableNumber);
+            if (result?.success) {
+              setOrder(null);
+              setNotes('');
+              onOrderUpdate(); // Parent component'i güncelle
             }
+          } catch (error) {
+            console.error('Clear order error:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   // Siparişi iptal et
   const handleCancelOrder = async () => {
-    Alert.alert(
-      'Siparişi İptal Et',
-      'Bu siparişi iptal etmek istediğinizden emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'İptal Et',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await cancelOrder(tableNumber, 'Kasiyer tarafından iptal edildi');
-              if (result?.success) {
-                setOrder(null);
-                setNotes('');
-                onOrderUpdate(); // Parent component'i güncelle
-              }
-            } catch (error) {
-              console.error('Cancel order error:', error);
+    Alert.alert('Siparişi İptal Et', 'Bu siparişi iptal etmek istediğinizden emin misiniz?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'İptal Et',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const result = await cancelOrder(tableNumber, 'Kasiyer tarafından iptal edildi');
+            if (result) {
+              setOrder(null);
+              setNotes('');
+              onOrderUpdate(); // Parent component'i güncelle
             }
+          } catch (error) {
+            console.error('Cancel order error:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   // Notları güncelle
@@ -200,13 +196,13 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
   const handlePaymentSuccess = async (paymentId: string) => {
     try {
       Alert.alert('Başarılı', `Ödeme tamamlandı!\nÖdeme ID: ${paymentId}`);
-      
+
       // Siparişi temizle
       await clearOrder(tableNumber);
       setOrder(null);
       setNotes('');
       onOrderUpdate(); // Parent component'i güncelle
-      
+
       setShowPaymentModal(false);
     } catch (error) {
       console.error('Payment success handling error:', error);
@@ -297,21 +293,18 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
               <View style={styles.itemActions}>
                 <TouchableOpacity
                   style={styles.quantityButton}
-                  onPress={() => handleQuantityUpdate(item.id, item.quantity - 1)}
-                >
+                  onPress={() => handleQuantityUpdate(item.id, item.quantity - 1)}>
                   <Ionicons name="remove" size={16} color="#666" />
                 </TouchableOpacity>
                 <Text style={styles.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
                   style={styles.quantityButton}
-                  onPress={() => handleQuantityUpdate(item.id, item.quantity + 1)}
-                >
+                  onPress={() => handleQuantityUpdate(item.id, item.quantity + 1)}>
                   <Ionicons name="add" size={16} color="#666" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.removeButton}
-                  onPress={() => handleRemoveItem(item.id)}
-                >
+                  onPress={() => handleRemoveItem(item.id)}>
                   <Ionicons name="trash-outline" size={16} color="#f44336" />
                 </TouchableOpacity>
               </View>
@@ -349,16 +342,13 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
       {/* Hata Mesajları */}
       {(orderError || paymentError) && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            {orderError || paymentError}
-          </Text>
+          <Text style={styles.errorText}>{orderError || paymentError}</Text>
           <TouchableOpacity
             style={styles.clearErrorButton}
             onPress={() => {
               clearOrderError();
               clearPaymentError();
-            }}
-          >
+            }}>
             <Text style={styles.clearErrorButtonText}>Temizle</Text>
           </TouchableOpacity>
         </View>

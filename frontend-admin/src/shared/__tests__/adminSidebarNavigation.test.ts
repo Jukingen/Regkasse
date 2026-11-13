@@ -1,261 +1,468 @@
 import { describe, expect, it } from 'vitest';
-import {
-    RKSV_HUB_PATH,
-    RKSV_HUB_MENU_LEAF_KEY,
-    resolveAdminMenuSelectedKeys,
-    getNonRksvSidebarOpenGroupKeys,
-    isVerwaltungAdminPath,
-    ADMIN_SIDEBAR_GROUP_KEYS,
-    normalizeAdminPathname,
-    computeSidebarOpenKeysMerge,
-    filterSidebarMenuItems,
-    type SidebarPermissionContext,
-} from '../adminSidebarNavigation';
-import { buildRksvMenuGroups } from '../rksvMenuModel';
+
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+
+import {
+  ADMIN_SIDEBAR_GROUP_KEYS,
+  RKSV_HUB_MENU_LEAF_KEY,
+  RKSV_HUB_PATH,
+  type SidebarPermissionContext,
+  collectSubmenuKeysFromMenuItems,
+  computeSidebarOpenKeysMerge,
+  filterSidebarMenuItems,
+  filterSidebarMenuItemsByQuery,
+  getNonRksvSidebarOpenGroupKeys,
+  isVerwaltungAdminPath,
+  normalizeAdminPathname,
+  resolveAdminMenuSelectedKeys,
+} from '../adminSidebarNavigation';
+import { buildRksvMenuGroups } from '../rksvMenuModel';
 
 const passthroughT = (k: string) => k;
 const sampleRksvGroups = () => buildRksvMenuGroups(passthroughT, 'verifications');
 
 const SAMPLE_LEAVES = [
-    '/dashboard',
-    '/invoices',
-    '/receipts',
-    '/receipt-templates',
-    '/payments',
-    '/rksv/finanz-online-queue',
-    '/rksv/incident',
+  '/dashboard',
+  '/invoices',
+  '/receipts',
+  '/receipt-templates',
+  '/payments',
+  '/rksv/finanz-online-queue',
+  '/rksv/incident',
 ];
 
 describe('adminSidebarNavigation', () => {
-    it('maps RKSV hub path to operations menu leaf key', () => {
-        expect(resolveAdminMenuSelectedKeys(RKSV_HUB_PATH, SAMPLE_LEAVES)).toEqual([RKSV_HUB_MENU_LEAF_KEY]);
-    });
+  it('maps RKSV hub path to operations menu leaf key', () => {
+    expect(resolveAdminMenuSelectedKeys(RKSV_HUB_PATH, SAMPLE_LEAVES)).toEqual([
+      RKSV_HUB_MENU_LEAF_KEY,
+    ]);
+  });
 
-    it('maps legacy /rksv/operations pathname to hub leaf when that key is in selectable leaves', () => {
-        const leavesWithHub = ['/rksv/operations', '/rksv/finanz-online-queue', '/rksv/incident'];
-        expect(resolveAdminMenuSelectedKeys('/rksv/operations', leavesWithHub)).toEqual([RKSV_HUB_MENU_LEAF_KEY]);
-    });
+  it('maps legacy /rksv/operations pathname to hub leaf when that key is in selectable leaves', () => {
+    const leavesWithHub = ['/rksv/operations', '/rksv/finanz-online-queue', '/rksv/incident'];
+    expect(resolveAdminMenuSelectedKeys('/rksv/operations', leavesWithHub)).toEqual([
+      RKSV_HUB_MENU_LEAF_KEY,
+    ]);
+  });
 
-    it('normalizes trailing slashes for selected key resolution', () => {
-        const leavesWithHub = ['/rksv/operations', '/dashboard'];
-        expect(resolveAdminMenuSelectedKeys('/dashboard/', leavesWithHub)).toEqual(['/dashboard']);
-        expect(resolveAdminMenuSelectedKeys('/rksv/operations/', leavesWithHub)).toEqual([RKSV_HUB_MENU_LEAF_KEY]);
-    });
+  it('normalizes trailing slashes for selected key resolution', () => {
+    const leavesWithHub = ['/rksv/operations', '/dashboard'];
+    expect(resolveAdminMenuSelectedKeys('/dashboard/', leavesWithHub)).toEqual(['/dashboard']);
+    expect(resolveAdminMenuSelectedKeys('/rksv/operations/', leavesWithHub)).toEqual([
+      RKSV_HUB_MENU_LEAF_KEY,
+    ]);
+  });
 
-    it('normalizeAdminPathname strips trailing slashes', () => {
-        expect(normalizeAdminPathname('/foo/')).toBe('/foo');
-        expect(normalizeAdminPathname('/')).toBe('/');
-    });
+  it('normalizeAdminPathname strips trailing slashes', () => {
+    expect(normalizeAdminPathname('/foo/')).toBe('/foo');
+    expect(normalizeAdminPathname('/')).toBe('/');
+  });
 
-    it('selects longest matching route prefix for nested paths', () => {
-        expect(resolveAdminMenuSelectedKeys('/receipts/abc-uuid', SAMPLE_LEAVES)).toEqual(['/receipts']);
-        expect(resolveAdminMenuSelectedKeys('/receipt-templates/new', SAMPLE_LEAVES)).toEqual(['/receipt-templates']);
-        expect(resolveAdminMenuSelectedKeys('/rksv/incident', SAMPLE_LEAVES)).toEqual(['/rksv/incident']);
-    });
+  it('selects longest matching route prefix for nested paths', () => {
+    expect(resolveAdminMenuSelectedKeys('/receipts/abc-uuid', SAMPLE_LEAVES)).toEqual([
+      '/receipts',
+    ]);
+    expect(resolveAdminMenuSelectedKeys('/receipt-templates/new', SAMPLE_LEAVES)).toEqual([
+      '/receipt-templates',
+    ]);
+    expect(resolveAdminMenuSelectedKeys('/rksv/incident', SAMPLE_LEAVES)).toEqual([
+      '/rksv/incident',
+    ]);
+  });
 
-    it('falls back to raw pathname when no leaf matches', () => {
-        expect(resolveAdminMenuSelectedKeys('/unknown-route', SAMPLE_LEAVES)).toEqual(['/unknown-route']);
-    });
+  it('falls back to raw pathname when no leaf matches', () => {
+    expect(resolveAdminMenuSelectedKeys('/unknown-route', SAMPLE_LEAVES)).toEqual([
+      '/unknown-route',
+    ]);
+  });
 
-    it('maps Sonderbelege focus query to virtual sidebar keys when present in selectable leaves', () => {
-        const leaves = ['/rksv/sonderbelege', '/rksv/sb/startbeleg', '/rksv/sb/schlussbeleg'];
-        expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, 'focus=startbeleg')).toEqual([
-            '/rksv/sb/startbeleg',
-        ]);
-        expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, 'focus=schlussbeleg')).toEqual([
-            '/rksv/sb/schlussbeleg',
-        ]);
-        expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, '')).toEqual(['/rksv/sonderbelege']);
-    });
+  it('maps Mein Konto aliases to sidebar leaves', () => {
+    const leaves = ['/tenant/portal', '/tenant/profile', '/tenant/invoices'];
+    expect(resolveAdminMenuSelectedKeys('/tenant/dashboard', leaves)).toEqual(['/tenant/portal']);
+    expect(resolveAdminMenuSelectedKeys('/profile', leaves)).toEqual(['/tenant/profile']);
+    expect(resolveAdminMenuSelectedKeys('/tenant/portal', leaves)).toEqual(['/tenant/portal']);
+  });
 
-    it('returns open group keys for paths under grouped routes', () => {
-        expect(getNonRksvSidebarOpenGroupKeys('/operations-center')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.operations);
-        expect(getNonRksvSidebarOpenGroupKeys('/tables')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.operations);
-        expect(getNonRksvSidebarOpenGroupKeys('/payments')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
-        expect(getNonRksvSidebarOpenGroupKeys('/payments/storno-refund-audit')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/products')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing);
-        expect(getNonRksvSidebarOpenGroupKeys('/customers')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits);
-        expect(getNonRksvSidebarOpenGroupKeys('/reporting/tagesbericht')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/reporting/tagesbericht')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/tagesabschluss')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing);
-        expect(getNonRksvSidebarOpenGroupKeys('/audit-logs')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(getNonRksvSidebarOpenGroupKeys('/admin/audit/fiscal-exports')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/offline-transactions')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/rksv/incident')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
-        expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
-            ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
-        );
-        expect(getNonRksvSidebarOpenGroupKeys('/admin/tenants')).toEqual([]);
-        expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
-    });
+  it('opens Mein Konto when visiting the portal or profile', () => {
+    expect(getNonRksvSidebarOpenGroupKeys('/tenant/portal')).toEqual(
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.settings, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/tenant/portal')).not.toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/profile')).toEqual(
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.settings, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+    );
+  });
 
-    it('detects Verwaltung routes for tenant context card', () => {
-        expect(isVerwaltungAdminPath('/admin/users')).toBe(true);
-        expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(true);
-        expect(isVerwaltungAdminPath('/admin/tenants')).toBe(false);
-        expect(isVerwaltungAdminPath('/products')).toBe(false);
-        expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
-    });
+  it('maps Sonderbelege focus query to virtual sidebar keys when present in selectable leaves', () => {
+    const leaves = ['/rksv/sonderbelege', '/rksv/sb/startbeleg', '/rksv/sb/schlussbeleg'];
+    expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, 'focus=startbeleg')).toEqual([
+      '/rksv/sb/startbeleg',
+    ]);
+    expect(
+      resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, 'focus=schlussbeleg')
+    ).toEqual(['/rksv/sb/schlussbeleg']);
+    expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, '')).toEqual([
+      '/rksv/sonderbelege',
+    ]);
+  });
+
+  it('returns open group keys for paths under grouped routes', () => {
+    expect(getNonRksvSidebarOpenGroupKeys('/dashboard')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.dashboard
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/operations-center')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.operations
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/tables')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.operations
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/payments')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/payments')).not.toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/payments/storno-refund-audit')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/vouchers')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.customers
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/reporting')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/reporting')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.reports
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/products')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.catalog);
+    expect(getNonRksvSidebarOpenGroupKeys('/customers')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.customers
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/reporting')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.reports
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/tagesabschluss')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.operations
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/audit-logs')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/audit/fiscal-exports')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksv
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/offline-transactions')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksv
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/rksv/incident')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksv
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settings
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settings
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/tse')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/data-management')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/rksv/dep-export')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/rksv/finanz-online-outbox')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/audit-logs')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/backup/dashboard')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.backup
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/backup/runs')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.backup
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/backup/configuration')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.backupConfig
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tenants')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.admin
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.accessArea
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/rksv/config')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settings
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.digitalServices
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).not.toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/orders/online')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/deployments')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/monitoring')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.admin
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.communication
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.system
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/monitoring')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.system
+    );
+  });
+
+  it('detects Verwaltung routes for tenant context card', () => {
+    expect(isVerwaltungAdminPath('/admin/users')).toBe(true);
+    expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(false);
+    expect(isVerwaltungAdminPath('/backup/dashboard')).toBe(false);
+    expect(isVerwaltungAdminPath('/admin/tenants')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/tse/failover')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/deployments')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/monitoring')).toBe(true);
+    expect(isVerwaltungAdminPath('/products')).toBe(false);
+    expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
+  });
+
+  it('maps backup configuration path to virtual sidebar keys', () => {
+    const leaves = [
+      '/backup/dashboard',
+      '/backup/audit',
+      '/backup/configuration/schedule',
+      '/backup/configuration/platform',
+    ];
+    expect(resolveAdminMenuSelectedKeys('/backup/audit', leaves)).toEqual(['/backup/audit']);
+    expect(resolveAdminMenuSelectedKeys('/backup/configuration', leaves)).toEqual([
+      '/backup/configuration/schedule',
+    ]);
+  });
 });
 
 describe('filterSidebarMenuItems', () => {
-    const baseCtx = (permissions: string[]): SidebarPermissionContext => ({
-        usePermissionFirst: true,
-        permissions,
-        userRole: 'Cashier',
-        isMenuItemAllowed,
-        canViewUsers: () => false,
-        canShowRksvMenu: () => false,
-        canShowPlatformAdminMenu: () => false,
-        isSuperAdminRole: () => false,
-    });
+  const baseCtx = (permissions: string[]): SidebarPermissionContext => ({
+    usePermissionFirst: true,
+    permissions,
+    userRole: 'Cashier',
+    isMenuItemAllowed,
+    canViewUsers: () => false,
+    canShowRksvMenu: () => false,
+    canShowPlatformAdminMenu: () => false,
+    isSuperAdminRole: () => false,
+  });
 
-    const sampleMenu = [
-        {
-            key: 'grp-reporting',
-            label: 'Reporting',
-            children: [
-                { key: '/dashboard', label: 'Dashboard' },
-                { key: '/admin/reports', label: 'Reports' },
-            ],
-        },
-        {
-            key: 'grp-verwaltung',
-            label: 'Admin',
-            children: [
-                { key: '/admin/users', label: 'Users' },
-                { key: '/settings/company', label: 'Settings' },
-            ],
-        },
-    ];
+  const sampleMenu = [
+    {
+      key: 'grp-reporting',
+      label: 'Reporting',
+      children: [
+        { key: '/dashboard', label: 'Dashboard' },
+        { key: '/admin/reports', label: 'Reports' },
+      ],
+    },
+    {
+      key: 'grp-admin',
+      label: 'Admin',
+      children: [{ key: '/admin/users', label: 'Users' }],
+    },
+    {
+      key: 'grp-settings',
+      label: 'Settings',
+      children: [
+        { key: '/settings', label: 'Settings hub' },
+        { key: '/settings/company', label: 'Company' },
+      ],
+    },
+  ];
 
-    it('hides unauthorized leaves and removes empty parent groups', () => {
-        const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.REPORT_VIEW]));
-        expect(filtered).toHaveLength(1);
-        const reporting = filtered![0] as { children?: { key?: string }[] };
-        expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
-    });
+  it('hides unauthorized leaves and removes empty parent groups', () => {
+    const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.REPORT_VIEW]));
+    expect(filtered).toHaveLength(1);
+    const reporting = filtered![0] as { children?: { key?: string }[] };
+    expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
+  });
 
-    it('hides users menu without user.view', () => {
-        const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.SETTINGS_VIEW]));
-        const verwaltung = filtered!.find((item) => (item as { key?: string }).key === 'grp-verwaltung') as
-            | { children?: { key?: string }[] }
-            | undefined;
-        expect(verwaltung?.children?.map((c) => c.key)).toEqual(['/settings/company']);
-    });
+  it('hides users menu without user.view', () => {
+    const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.SETTINGS_VIEW]));
+    const adminGroup = filtered!.find((item) => (item as { key?: string }).key === 'grp-admin') as
+      { children?: { key?: string }[] } | undefined;
+    expect(adminGroup).toBeUndefined();
+    const settingsGroup = filtered!.find(
+      (item) => (item as { key?: string }).key === 'grp-settings'
+    ) as { children?: { key?: string }[] } | undefined;
+    expect(settingsGroup?.children?.map((c) => c.key)).toEqual(['/settings']);
+  });
 
-    it('shows dashboard for any permission holder', () => {
-        const filtered = filterSidebarMenuItems(
-            [{ key: '/dashboard', label: 'Dashboard' }],
-            baseCtx(['shift.view']),
-        );
-        expect(filtered).toHaveLength(1);
-    });
+  it('shows dashboard for any permission holder', () => {
+    const filtered = filterSidebarMenuItems(
+      [{ key: '/dashboard', label: 'Dashboard' }],
+      baseCtx(['shift.view'])
+    );
+    expect(filtered).toHaveLength(1);
+  });
 
-    it('shows all leaves for SuperAdmin regardless of permission list', () => {
-        const filtered = filterSidebarMenuItems(sampleMenu, {
-            ...baseCtx([]),
-            userRole: 'SuperAdmin',
-            isSuperAdminRole: () => true,
-        });
-        expect(filtered).toHaveLength(2);
-        const reporting = filtered![0] as { children?: { key?: string }[] };
-        expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
+  it('shows all leaves for SuperAdmin regardless of permission list', () => {
+    const filtered = filterSidebarMenuItems(sampleMenu, {
+      ...baseCtx([]),
+      userRole: 'SuperAdmin',
+      isSuperAdminRole: () => true,
     });
+    expect(filtered).toHaveLength(3);
+    const reporting = filtered![0] as { children?: { key?: string }[] };
+    expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
+    const admin = filtered![1] as { children?: { key?: string }[] };
+    expect(admin.children?.map((c) => c.key)).toEqual(['/admin/users']);
+    const settings = filtered![2] as { children?: { key?: string }[] };
+    expect(settings.children?.map((c) => c.key)).toEqual(['/settings', '/settings/company']);
+  });
 });
 
 describe('computeSidebarOpenKeysMerge', () => {
-    const groups = sampleRksvGroups();
+  const groups = sampleRksvGroups();
 
-    it('prunes RKSV open keys when navigating away from /rksv', () => {
-        const prev = [
-            ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
-            '/rksv',
-            'rksv-grp-daily',
-            ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics,
-        ];
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/dashboard',
-            prevOpenKeys: prev,
-            canSeeRksv: true,
-            rksvGroups: groups,
-        });
-        expect(next).not.toContain('/rksv');
-        expect(next).not.toContain('rksv-grp-daily');
-        expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics);
+  it('prunes RKSV open keys when navigating away from /rksv', () => {
+    const prev = [
+      ADMIN_SIDEBAR_GROUP_KEYS.rksv,
+      '/rksv',
+      'rksv-grp-daily',
+      ADMIN_SIDEBAR_GROUP_KEYS.reports,
+    ];
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/dashboard',
+      prevOpenKeys: prev,
+      canSeeRksv: true,
+      rksvGroups: groups,
     });
+    expect(next).not.toContain('/rksv');
+    expect(next).not.toContain('rksv-grp-daily');
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.reports);
+  });
 
-    it('opens fiscal + RKSV subtree on deep link when user may see RKSV', () => {
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/rksv/incident',
-            prevOpenKeys: [],
-            canSeeRksv: true,
-            rksvGroups: groups,
-        });
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).toContain('/rksv');
-        expect(next).toContain('rksv-grp-investigation');
+  it('opens fiscal + RKSV subtree on deep link when user may see RKSV', () => {
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/rksv/incident',
+      prevOpenKeys: [],
+      canSeeRksv: true,
+      rksvGroups: groups,
     });
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
+    expect(next).toContain('rksv-grp-investigation');
+  });
 
-    it('does not keep fiscal open on /rksv when user cannot see RKSV', () => {
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/rksv/incident',
-            prevOpenKeys: [],
-            canSeeRksv: false,
-            rksvGroups: groups,
-        });
-        expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).not.toContain('/rksv');
+  it('does not keep RKSV open on /rksv when user cannot see RKSV', () => {
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/rksv/incident',
+      prevOpenKeys: [],
+      canSeeRksv: false,
+      rksvGroups: groups,
     });
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
+    expect(next).not.toContain('/rksv');
+  });
 
-    it('opens fiscal for audit without RKSV keys', () => {
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/audit-logs',
-            prevOpenKeys: [],
-            canSeeRksv: true,
-            rksvGroups: groups,
-        });
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).not.toContain('/rksv');
+  it('opens RKSV group for audit without RKSV hub keys', () => {
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/audit-logs',
+      prevOpenKeys: [],
+      canSeeRksv: true,
+      rksvGroups: groups,
     });
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain('/rksv');
+  });
 
-    it('opens fiscal for fiscal-export audit route', () => {
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/admin/audit/fiscal-exports',
-            prevOpenKeys: [],
-            canSeeRksv: true,
-            rksvGroups: groups,
-        });
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).not.toContain('/rksv');
+  it('opens RKSV group for fiscal-export audit route', () => {
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/admin/audit/fiscal-exports',
+      prevOpenKeys: [],
+      canSeeRksv: true,
+      rksvGroups: groups,
     });
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain('/rksv');
+  });
 
-    it('opens fiscal closing subgroup for Sonderbelege without expanding the RKSV hub', () => {
-        const next = computeSidebarOpenKeysMerge({
-            pathname: '/rksv/sonderbelege',
-            prevOpenKeys: [],
-            canSeeRksv: true,
-            rksvGroups: groups,
-        });
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing);
-        expect(next).not.toContain('/rksv');
+  it('opens special-receipts subgroup for Sonderbelege without expanding the RKSV hub', () => {
+    const next = computeSidebarOpenKeysMerge({
+      pathname: '/rksv/sonderbelege',
+      prevOpenKeys: [],
+      canSeeRksv: true,
+      rksvGroups: groups,
     });
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
+    expect(next).not.toContain('/rksv');
+  });
+});
+
+describe('filterSidebarMenuItemsByQuery', () => {
+  const sampleMenu = [
+    {
+      key: 'grp-operations',
+      title: 'Verkauf',
+      children: [
+        { key: '/receipts', title: 'Belege' },
+        { key: '/payments', title: 'Zahlungen' },
+      ],
+    },
+    {
+      key: 'grp-catalog',
+      title: 'Sortiment',
+      children: [{ key: '/products', title: 'Produkte' }],
+    },
+  ];
+
+  it('returns the original tree for a blank query', () => {
+    expect(filterSidebarMenuItemsByQuery(sampleMenu, '  ')).toEqual(sampleMenu);
+  });
+
+  it('keeps matching leaves and their ancestors', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'zahl');
+    expect(filtered).toHaveLength(1);
+    const group = filtered![0] as { key?: string; children?: { key?: string }[] };
+    expect(group.key).toBe('grp-operations');
+    expect(group.children?.map((c) => c.key)).toEqual(['/payments']);
+  });
+
+  it('keeps all children when the parent title matches', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'verkauf');
+    const group = filtered![0] as { children?: { key?: string }[] };
+    expect(group.children?.map((c) => c.key)).toEqual(['/receipts', '/payments']);
+  });
+
+  it('collects submenu keys for auto-expand while filtering', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'prod');
+    expect(collectSubmenuKeysFromMenuItems(filtered)).toEqual(['grp-catalog']);
+  });
 });

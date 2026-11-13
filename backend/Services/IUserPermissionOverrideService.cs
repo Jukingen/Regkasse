@@ -7,6 +7,7 @@ public interface IUserPermissionOverrideService
     Task<IReadOnlyList<UserPermissionOverrideDto>> ListOverridesAsync(
         string userId,
         Guid? tenantScope,
+        bool includeExpired = false,
         CancellationToken cancellationToken = default);
 
     Task<UserEffectivePermissionsDto> GetEffectivePermissionsDetailAsync(

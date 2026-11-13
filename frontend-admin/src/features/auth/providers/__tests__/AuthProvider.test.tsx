@@ -1,7 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AuthProvider, useAuthContext } from '@/features/auth/providers/AuthProvider';
 
 const mockUseAuth = vi.fn();

@@ -29,6 +29,7 @@ public static class TenantLicenseStatusMapper
             TenantLicenseStatus.GraceWrite => (days, "grace_write"),
             TenantLicenseStatus.GraceReadOnly => (days, "grace_read_only"),
             TenantLicenseStatus.Lockdown => (days, "lockdown"),
+            TenantLicenseStatus.Archived => (days, "archived"),
             TenantLicenseStatus.NoLicense => (null, "no_license"),
             _ => (days, string.IsNullOrWhiteSpace(licenseKey) ? "active" : "active"),
         };
@@ -48,9 +49,10 @@ public static class TenantLicenseStatusMapper
         var days = daysRaw ?? 0;
         var status = Validator.GetStatus(until, now);
 
-        if (status == TenantLicenseStatus.GraceReadOnly
-            || status == TenantLicenseStatus.Lockdown
-            || status == TenantLicenseStatus.NoLicense)
+        if (status is TenantLicenseStatus.GraceReadOnly
+            or TenantLicenseStatus.Lockdown
+            or TenantLicenseStatus.Archived
+            or TenantLicenseStatus.NoLicense)
         {
             return new LicenseStatusResponse(
                 IsValid: false,

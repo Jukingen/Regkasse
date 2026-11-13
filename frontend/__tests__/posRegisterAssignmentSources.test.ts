@@ -1,7 +1,6 @@
+import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-
-import { describe, expect, it } from '@jest/globals';
 
 /**
  * Guardrail: POS payment/register picker must not call inventory GET /api/CashRegister.
@@ -16,7 +15,9 @@ describe('POS register assignment sources', () => {
 
   it('cashRegisterService keeps POS selectable path aligned with backend ListSelectableForPosPickerAsync', () => {
     const svc = read('services/api/cashRegisterService.ts');
-    expect(svc).toMatch(/POS_SELECTABLE_REGISTERS_PATH\s*=\s*['"]\/pos\/cash-register\/selectable['"]/);
+    expect(svc).toMatch(
+      /POS_SELECTABLE_REGISTERS_PATH\s*=\s*['"]\/pos\/cash-register\/selectable['"]/
+    );
   });
 
   it('assignment hook loads list only via fetchPosSelectableRegisters (no inventory GET)', () => {

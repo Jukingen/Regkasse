@@ -111,6 +111,23 @@ public sealed class BackupOptions
     public string? AlertingChannelPlaceholder { get; set; }
 
     /// <summary>
+    /// Comma- or semicolon-separated ops recipients for German backup-failure emails
+    /// (<c>EmailBackupAlertPublisher</c> / <c>IBackupFailureEmailAlertService</c>).
+    /// Empty skips dedicated SMTP (activity-feed email path may still notify).
+    /// Example: <c>admin@regkasse.at</c>.
+    /// </summary>
+    public string? FailureAlertEmailRecipients { get; set; }
+
+    /// <summary>
+    /// When true, staging artifacts are wrapped with AES-256-GCM after write
+    /// (<see cref="Services.Backup.BackupEncryptionService"/>). Requires <see cref="EncryptionKeyBase64"/>.
+    /// </summary>
+    public bool EncryptionEnabled { get; set; }
+
+    /// <summary>Base64-encoded 32-byte AES-256 key for artifact encryption at rest.</summary>
+    public string? EncryptionKeyBase64 { get; set; }
+
+    /// <summary>
     /// Production-like ortamda (Development dışı): <see cref="ExecutionAdapterKind"/> <see cref="BackupExecutionAdapterKind.ProductionStub"/> iken
     /// zorunlu. <c>pg_dump</c> / gerçek PostgreSQL mantıksal yedek çalıştırılmadığını operatör beyan eder.
     /// </summary>
@@ -176,13 +193,129 @@ public sealed class BackupOptions
 
     /// <summary>
     /// Operator-declared WAL archiving for PITR planning UI (not continuously verified by the worker).
+    /// Prefer a real <see cref="WalArchiveDirectory"/> populated by PostgreSQL <c>archive_command</c>.
     /// </summary>
     public bool PitrWalArchivingDeclaredEnabled { get; set; }
 
     /// <summary>
     /// Declared lag between last archived WAL and database "now" for PITR upper bound (minutes).
+    /// When WAL archiving is enabled and this is null, the planner uses 5 minutes
+    /// (matches recommended <c>archive_timeout</c>).
     /// </summary>
     public int? PitrWalArchiveDeclaredLagMinutes { get; set; }
+
+    /// <summary>
+    /// Host directory that PostgreSQL <c>archive_command</c> writes WAL segments into.
+    /// When unset, defaults to <c>{ContentRoot}/App_Data/wal-archive</c>.
+    /// The API never enables <c>archive_mode</c> itself — ops must configure PostgreSQL.
+    /// </summary>
+    public string? WalArchiveDirectory { get; set; }
+
+    /// <summary>How long archived WAL files are kept on disk. Default 7 days.</summary>
+    public int WalArchiveRetentionDays { get; set; } = 7;
+
+    /// <summary>
+    /// Recommended PostgreSQL <c>archive_timeout</c> in minutes (documentation + planner lag default).
+    /// The API cannot force WAL switches without a superuser SQL session.
+    /// </summary>
+    public int WalArchiveSwitchIntervalMinutes { get; set; } = 5;
+
+    /// <summary>
+    /// When true, enqueue a daily Tenant incremental ZIP after the last succeeded full Tenant backup
+    /// (per active mandant). Default false — operators opt in after WAL / staging capacity is ready.
+    /// </summary>
+    public bool IncrementalBackupEnabled { get; set; }
+
+    /// <summary>UTC cron for daily tenant incrementals. Default 03:00 UTC (after typical 02:00 System full).</summary>
+    public string IncrementalBackupCron { get; set; } = "0 3 * * *";
+
+    /// <summary>
+    /// <c>pg_dump -Fc</c> compression level (<c>-Z</c>, 0–9). Default 6 balances size vs CPU (cost optimization).
+    /// Custom format already uses zlib; this tunes the zlib level (not a separate .gz wrapper).
+    /// </summary>
+    public int PgDumpCompressionLevel { get; set; } = 6;
+
+    /// <summary>
+    /// Optional <c>--exclude-table</c> list for logical dumps (schema-qualified or bare names).
+    /// Default excludes ASP.NET Identity credential tables so password hashes are not in dumps.
+    /// Tenant business data, audit logs, and fiscal tables remain included. Empty array = dump all tables.
+    /// </summary>
+    public string[] LogicalDumpExcludeTables { get; set; } =
+    {
+        "AspNetUsers",
+        "AspNetUserClaims",
+        "AspNetUserLogins",
+        "AspNetUserTokens",
+    };
+
+    /// <summary>
+    /// When staging root disk usage reaches this percent, dashboard/health surfaces a cost/ops alert.
+    /// Also used by <c>StorageAlertService</c> for periodic staging-volume alerts.
+    /// </summary>
+    public int StagingDiskUsageAlertPercent { get; set; } = 80;
+
+    /// <summary>
+    /// Poll interval for <c>StorageAlertService</c> (budget + staging disk). Minimum enforced: 5 minutes.
+    /// </summary>
+    public TimeSpan StorageAlertCheckInterval { get; set; } = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// When true, succeeded-run cleanup uses GFS smart retention
+    /// (<see cref="Services.Backup.SmartRetentionService"/>: 7 daily / 4 weekly / 12 monthly / 7 yearly)
+    /// instead of the flat Tenant 30d / System 90d cutoff.
+    /// Default false preserves existing schedule retention windows.
+    /// </summary>
+    public bool SmartRetentionEnabled { get; set; }
+
+    /// <summary>
+    /// When true, post-success retention pass also reclassifies succeeded artifacts into
+    /// Hot (≤30d) / Warm (≤90d) / Cold (&gt;90d) via <see cref="Services.Backup.StorageTierService"/>.
+    /// Cold tags prefer external / cloud archive; actual upload is <see cref="Services.Backup.ICloudStorageService"/>.
+    /// </summary>
+    public bool StorageTierManagementEnabled { get; set; }
+
+    /// <summary>Cloud / WORM cold archive (S3 Glacier, Azure Archive, GCS Coldline, or filesystem).</summary>
+    public CloudStorageOptions CloudStorage { get; set; } = new();
+
+    /// <summary>
+    /// When set, <c>StorageAlertService</c> raises <c>StorageCostHigh</c> if the indicative
+    /// all-Hot monthly EUR estimate meets or exceeds this value.
+    /// </summary>
+    public decimal? StorageCostAlertEurPerMonth { get; set; } = 25m;
+
+    /// <summary>Indicative EUR/GiB-month for Hot (fast staging). Ops estimate only.</summary>
+    public decimal StorageCostHotEurPerGbMonth { get; set; } = 0.023m;
+
+    /// <summary>Indicative EUR/GiB-month for Warm.</summary>
+    public decimal StorageCostWarmEurPerGbMonth { get; set; } = 0.0125m;
+
+    /// <summary>Indicative EUR/GiB-month for Cold (archive preference).</summary>
+    public decimal StorageCostColdEurPerGbMonth { get; set; } = 0.004m;
+
+    /// <summary>
+    /// When true, <see cref="Services.Backup.AutomaticCleanupService"/> runs periodic retention cleanup
+    /// (and optional storage-tier retag). Complements post-success cleanup.
+    /// </summary>
+    public bool AutomaticCleanupEnabled { get; set; }
+
+    /// <summary>Interval between automatic cleanup passes. Minimum enforced: 1 hour. Default: 1 day.</summary>
+    public TimeSpan AutomaticCleanupInterval { get; set; } = TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// When true, <c>BackupRpoOverdueAlertService</c> alerts if no successful System backup
+    /// completed within <see cref="AlertOnNoBackupDays"/>. Also requires <see cref="WorkerEnabled"/>
+    /// and <see cref="ScheduledBackupEnabled"/> with a configured cron (avoids tenant-only false positives).
+    /// </summary>
+    public bool RpoOverdueAlertEnabled { get; set; }
+
+    /// <summary>Days without a successful System backup before RPO overdue alert. Default 2.</summary>
+    public int AlertOnNoBackupDays { get; set; } = 2;
+
+    /// <summary>Minimum interval between repeated RPO overdue alerts. Default 12 hours.</summary>
+    public TimeSpan RpoOverdueAlertMinInterval { get; set; } = TimeSpan.FromHours(12);
+
+    /// <summary>Poll interval for RPO overdue checks. Minimum enforced: 30 minutes. Default 6 hours.</summary>
+    public TimeSpan RpoOverdueAlertCheckInterval { get; set; } = TimeSpan.FromHours(6);
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

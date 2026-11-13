@@ -1,60 +1,75 @@
 // Türkçe Açıklama: Ürün detay modalı - varyasyon ve seçenek seçimi ile birlikte sepete ekleme özelliği
 
-import React, { useState, useMemo } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 
-import { Product, ProductVariation, ProductOption } from '../services/api/productService';
-import ProductVariationSelector from './ProductVariationSelector';
-import ProductOptionSelector from './ProductOptionSelector';
+import ProductOptionSelector, { ProductOption } from './ProductOptionSelector';
+import ProductVariationSelector, { ProductVariation } from './ProductVariationSelector';
+import { Product } from '../services/api/productService';
+
+/** Legacy optional extras not on catalog Product (avoid nonexistent options/variations). */
+type ProductWithExtras = Product & {
+  options?: ProductOption[];
+  variations?: ProductVariation[];
+};
 
 interface ProductDetailModalProps {
   visible: boolean;
   product: Product | null;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number, variation?: ProductVariation, options?: Record<string, any>) => void;
+  onAddToCart: (
+    product: Product,
+    quantity: number,
+    variation?: ProductVariation,
+    options?: Record<string, any>
+  ) => void;
 }
 
 const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   visible,
   product,
   onClose,
-  onAddToCart
+  onAddToCart,
 }) => {
   const { t } = useTranslation();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
 
+  const productExtras = product as ProductWithExtras | null;
+  const options = productExtras?.options;
+  const variations = productExtras?.variations;
+
   // Fiyat hesaplama
   const calculateTotalPrice = useMemo(() => {
     if (!product) return 0;
-    
+
     let basePrice = product.price;
-    
+
     // Varyasyon fiyatını ekle
     if (selectedVariation) {
       basePrice = basePrice * selectedVariation.priceMultiplier + selectedVariation.priceModifier;
     }
-    
+
     // Seçenek fiyatlarını ekle
     let optionPrice = 0;
-    if (product.options) {
-      product.options.forEach(option => {
+    if (options) {
+      options.forEach((option: ProductOption) => {
         const selectedValue = selectedOptions[option.id];
         if (selectedValue) {
           if (Array.isArray(selectedValue)) {
             // Çoklu seçim
-            selectedValue.forEach(valueId => {
-              const optionValue = option.optionValues.find(v => v.id === valueId);
+            selectedValue.forEach((valueId) => {
+              const optionValue = option.optionValues.find((v) => v.id === valueId);
               if (optionValue) {
                 optionPrice += optionValue.priceModifier;
               }
             });
           } else if (typeof selectedValue === 'string') {
             // Tek seçim
-            const optionValue = option.optionValues.find(v => v.id === selectedValue);
+            const optionValue = option.optionValues.find((v) => v.id === selectedValue);
             if (optionValue) {
               optionPrice += optionValue.priceModifier;
             }
@@ -62,18 +77,18 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         }
       });
     }
-    
+
     return (basePrice + optionPrice) * quantity;
-  }, [product, selectedVariation, selectedOptions, quantity]);
+  }, [product, selectedVariation, selectedOptions, quantity, options]);
 
   const handleVariationChange = (variation: ProductVariation) => {
     setSelectedVariation(variation);
   };
 
   const handleOptionChange = (optionId: string, value: any) => {
-    setSelectedOptions(prev => ({
+    setSelectedOptions((prev) => ({
       ...prev,
-      [optionId]: value
+      [optionId]: value,
     }));
   };
 
@@ -85,10 +100,10 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const handleAddToCart = () => {
     if (!product) return;
-    
+
     // Zorunlu seçenekleri kontrol et
-    if (product.options) {
-      const requiredOptions = product.options.filter(opt => opt.isRequired);
+    if (options) {
+      const requiredOptions = options.filter((opt: ProductOption) => opt.isRequired);
       for (const option of requiredOptions) {
         const selectedValue = selectedOptions[option.id];
         if (!selectedValue || (Array.isArray(selectedValue) && selectedValue.length === 0)) {
@@ -103,7 +118,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
     onAddToCart(product, quantity, selectedVariation || undefined, selectedOptions);
     onClose();
-    
+
     // State'i sıfırla
     setQuantity(1);
     setSelectedVariation(null);
@@ -117,93 +132,92 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+        {!product ? null : (
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.productName}>{product.name}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Ürün Açıklaması */}
-            {product.description && (
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.description}>{product.description}</Text>
-              </View>
-            )}
+            <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+              {/* Ürün Açıklaması */}
+              {product.description && (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.description}>{product.description}</Text>
+                </View>
+              )}
 
-            {/* Varyasyon Seçici */}
-            {product.variations && product.variations.length > 0 && (
-              <ProductVariationSelector
-                variations={product.variations}
-                selectedVariationId={selectedVariation?.id}
-                basePrice={product.price}
-                onVariationChange={handleVariationChange}
-              />
-            )}
-
-            {/* Seçenek Seçici */}
-            {product.options && product.options.length > 0 && (
-              <View style={styles.optionsContainer}>
-                <Text style={styles.sectionTitle}>{t('product.options', 'Zusatzoptionen')}</Text>
-                <ProductOptionSelector
-                  options={product.options}
-                  selectedOptions={selectedOptions}
-                  onOptionChange={handleOptionChange}
+              {/* Varyasyon Seçici */}
+              {variations && variations.length > 0 && (
+                <ProductVariationSelector
+                  variations={variations}
+                  selectedVariationId={selectedVariation?.id}
+                  basePrice={product.price}
+                  onVariationChange={handleVariationChange}
                 />
+              )}
+
+              {/* Seçenek Seçici */}
+              {options && options.length > 0 && (
+                <View style={styles.optionsContainer}>
+                  <Text style={styles.sectionTitle}>{t('product.options', 'Zusatzoptionen')}</Text>
+                  <ProductOptionSelector
+                    options={options}
+                    selectedOptions={selectedOptions}
+                    onOptionChange={handleOptionChange}
+                  />
+                </View>
+              )}
+
+              {/* Miktar Seçici */}
+              <View style={styles.quantityContainer}>
+                <Text style={styles.sectionTitle}>{t('product.quantity', 'Menge')}</Text>
+                <View style={styles.quantitySelector}>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => {
+                      handleQuantityChange(quantity - 1);
+                    }}
+                    disabled={quantity <= 1}>
+                    <Ionicons name="remove" size={20} color={quantity <= 1 ? '#ccc' : '#666'} />
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>{quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => {
+                      handleQuantityChange(quantity + 1);
+                    }}>
+                    <Ionicons name="add" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
               </View>
-            )}
 
-            {/* Miktar Seçici */}
-            <View style={styles.quantityContainer}>
-              <Text style={styles.sectionTitle}>{t('product.quantity', 'Menge')}</Text>
-              <View style={styles.quantitySelector}>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={() => handleQuantityChange(quantity - 1)}
-                  disabled={quantity <= 1}
-                >
-                  <Ionicons name="remove" size={20} color={quantity <= 1 ? "#ccc" : "#666"} />
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={() => handleQuantityChange(quantity + 1)}
-                >
-                  <Ionicons name="add" size={20} color="#666" />
-                </TouchableOpacity>
+              {/* Toplam Fiyat */}
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>{t('product.totalPrice', 'Gesamtpreis')}</Text>
+                <Text style={styles.totalPrice}>€{calculateTotalPrice.toFixed(2)}</Text>
               </View>
-            </View>
+            </ScrollView>
 
-            {/* Toplam Fiyat */}
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>{t('product.totalPrice', 'Gesamtpreis')}</Text>
-              <Text style={styles.totalPrice}>€{calculateTotalPrice.toFixed(2)}</Text>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.resetButton} onPress={resetSelections}>
+                <Text style={styles.resetButtonText}>{t('common.reset', 'Zurücksetzen')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+                <Ionicons name="cart" size={20} color="#fff" style={styles.cartIcon} />
+                <Text style={styles.addToCartButtonText}>
+                  {t('product.addToCart', 'Zum Warenkorb hinzufügen')}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetSelections}>
-              <Text style={styles.resetButtonText}>{t('common.reset', 'Zurücksetzen')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-              <Ionicons name="cart" size={20} color="#fff" style={styles.cartIcon} />
-              <Text style={styles.addToCartButtonText}>
-                {t('product.addToCart', 'Zum Warenkorb hinzufügen')}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        )}
       </View>
     </Modal>
   );
@@ -344,4 +358,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductDetailModal; 
+export default ProductDetailModal;

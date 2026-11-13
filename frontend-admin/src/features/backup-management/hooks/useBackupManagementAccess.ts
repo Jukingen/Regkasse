@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { isSuperAdmin } from "@/features/auth/constants/roles";
-import { hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { useMemo } from 'react';
+
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { PERMISSIONS, hasAnyPermission, hasPermission } from '@/shared/auth/permissions';
 
 /** Backup panel capability matrix (permissions-first; SuperAdmin for platform scope). */
 export function useBackupManagementAccess() {
@@ -11,6 +12,12 @@ export function useBackupManagementAccess() {
 
   return useMemo(() => {
     const canView = hasPermission(user, PERMISSIONS.SETTINGS_VIEW);
+    /** Tenant-scoped backup ops (trigger + schedule); Manager via backup.manage. */
+    const canManageBackup = hasAnyPermission(user, [
+      PERMISSIONS.SETTINGS_MANAGE,
+      PERMISSIONS.BACKUP_MANAGE,
+    ]);
+    /** Instance-wide settings (execution mode) — settings.manage only. */
     const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
     const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW);
     const superAdmin = isSuperAdmin(user?.role);
@@ -18,13 +25,18 @@ export function useBackupManagementAccess() {
     return {
       canView,
       canManage,
+      canManageBackup,
       canViewAudit,
-      isReadOnly: canView && !canManage,
+      isReadOnly: canView && !canManageBackup,
       isSuperAdmin: superAdmin,
-      /** Manual backup trigger + restore drill enqueue. */
-      canTriggerBackup: canManage,
-      /** Cron, retention, execution mode. */
-      canEditConfiguration: canManage,
+      /** Manual backup trigger + schedule. */
+      canTriggerBackup: canManageBackup,
+      /** Cron, retention schedule (tenant-scoped). */
+      canEditConfiguration: canManageBackup,
+      /** Download + import tenant-scoped backup artifacts. */
+      canDownloadBackup: canManageBackup,
+      /** Execution mode / deployment paths — instance-wide, settings.manage only. */
+      canEditExecutionMode: canManage,
       /** Platform operator: same deployment scope until per-tenant backup runs exist. */
       canViewAllTenantsScope: superAdmin,
     };

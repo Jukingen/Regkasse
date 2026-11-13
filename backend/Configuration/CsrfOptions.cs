@@ -1,0 +1,29 @@
+namespace KasseAPI_Final.Configuration;
+
+/// <summary>
+/// Double-submit CSRF protection for state-changing HTTP methods.
+/// Bound from <c>Security:Csrf</c>. Defaults to enabled; Production startup fails if it is off
+/// (and <see cref="ProductionCsrfPostConfigure"/> turns it on if options still load as disabled).
+/// </summary>
+public sealed class CsrfOptions
+{
+    public const string SectionName = "Security:Csrf";
+
+    /// <summary>When false, middleware is a no-op. Default on; Production requires this to stay true.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// When true and the host is Development, skip CSRF validation.
+    /// Ignored outside Development (fail-closed, same pattern as TwoFactorAuth).
+    /// </summary>
+    public bool BypassInDevelopment { get; set; } = true;
+
+    /// <summary>Request header that must carry the CSRF token (Angular-style X-XSRF-TOKEN).</summary>
+    public string HeaderName { get; set; } = "X-XSRF-TOKEN";
+
+    /// <summary>Cookie name that must match the header token.</summary>
+    public string CookieName { get; set; } = "XSRF-TOKEN";
+
+    /// <summary>Token lifetime in hours (cache + cookie Max-Age).</summary>
+    public int TokenLifetimeHours { get; set; } = 24;
+}

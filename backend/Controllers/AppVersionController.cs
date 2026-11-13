@@ -1,4 +1,3 @@
-using System;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using Microsoft.AspNetCore.Authorization;

@@ -1,39 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Platform,
-} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
+
+import { PosCameraView } from './camera/PosCameraView';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { POS_PRODUCT_BARCODE_TYPES, POS_RETAIL_BARCODE_TYPES } from '../constants/posCameraScan';
+import { usePosCameraPermission } from '../hooks/usePosCameraPermission';
+
+export type BarcodeScannerMode = 'ticket' | 'product';
 
 export type BarcodeScannerModalProps = {
   visible: boolean;
   title: string;
   hint?: string;
+  /** Ticket keeps the existing symbology list. Product uses EAN-13, EAN-8, Code 128, and QR. */
+  mode?: BarcodeScannerMode;
   onClose: () => void;
   onScan: (payload: string) => void;
 };
 
 /**
- * Full-screen QR/barcode scanner for POS (customer card, voucher code).
- * Web: shows manual-entry hint (camera scan not supported in browser).
+ * Full-screen QR/barcode scanner for POS (customer card, voucher code, product codes).
+ * Uses expo-camera native barcode pipeline (no separate barcode-detector package).
  */
 export function BarcodeScannerModal({
   visible,
   title,
   hint,
+  mode = 'ticket',
   onClose,
   onScan,
 }: BarcodeScannerModalProps) {
-  const [permission, requestPermission] = useCameraPermissions();
+  const { t } = useTranslation(['common']);
+  const { ui, requestPermission, openSettings } = usePosCameraPermission(visible);
   const scannedRef = useRef(false);
-  const [permissionRequested, setPermissionRequested] = useState(false);
+  const [cameraError, setCameraError] = useState(false);
+
+  React.useEffect(() => {
+    if (!visible) {
+      scannedRef.current = false;
+      setCameraError(false);
+    }
+  }, [visible]);
 
   const handleBarcode = useCallback(
     ({ data }: { data: string }) => {
@@ -47,53 +57,90 @@ export function BarcodeScannerModal({
     [onScan, onClose]
   );
 
-  React.useEffect(() => {
-    if (!visible) {
-      scannedRef.current = false;
-      return;
+  const renderBody = () => {
+    if (ui === 'web') {
+      return (
+        <View style={styles.fallback}>
+          <Ionicons name="scan-outline" size={48} color={SoftColors.textMuted} />
+          <Text style={styles.fallbackText}>{t('common:barcodeScanner.webFallback')}</Text>
+        </View>
+      );
     }
-    if (Platform.OS === 'web') return;
-    if (!permission?.granted && !permissionRequested) {
-      setPermissionRequested(true);
-      void requestPermission();
+    if (ui === 'loading') {
+      return (
+        <View style={styles.fallback}>
+          <Text style={styles.fallbackText}>{t('common:barcodeScanner.loading')}</Text>
+        </View>
+      );
     }
-  }, [visible, permission?.granted, permissionRequested, requestPermission]);
+    if (ui === 'blocked') {
+      return (
+        <View style={styles.fallback}>
+          <Text style={styles.fallbackText}>{t('common:barcodeScanner.permissionBlocked')}</Text>
+          <Pressable style={styles.permissionBtn} onPress={openSettings}>
+            <Text style={styles.permissionBtnText}>{t('common:barcodeScanner.openSettings')}</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    if (ui === 'prompt') {
+      return (
+        <View style={styles.fallback}>
+          <Text style={styles.fallbackText}>{t('common:barcodeScanner.cameraRequired')}</Text>
+          <Pressable style={styles.permissionBtn} onPress={requestPermission}>
+            <Text style={styles.permissionBtnText}>{t('common:barcodeScanner.allowCamera')}</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    if (cameraError) {
+      return (
+        <View style={styles.fallback}>
+          <Text style={styles.fallbackText}>{t('common:barcodeScanner.cameraUnavailable')}</Text>
+        </View>
+      );
+    }
+
+    // Only mount when modal is visible + permission granted — frees the camera session.
+    if (!visible) return null;
+
+    return (
+      <PosCameraView
+        style={styles.camera}
+        facing="back"
+        active={visible}
+        barcodeScannerSettings={{
+          barcodeTypes: [
+            ...(mode === 'product' ? POS_RETAIL_BARCODE_TYPES : POS_PRODUCT_BARCODE_TYPES),
+          ],
+        }}
+        onBarcodeScanned={handleBarcode}
+        onMountError={() => {
+          setCameraError(true);
+        }}
+      />
+    );
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Schließen">
+          <Pressable
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel={t('common:barcodeScanner.closeA11y')}>
             <Ionicons name="close" size={28} color={SoftColors.textInverse} />
           </Pressable>
           <Text style={styles.title}>{title}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        {Platform.OS === 'web' ? (
-          <View style={styles.fallback}>
-            <Ionicons name="scan-outline" size={48} color={SoftColors.textMuted} />
-            <Text style={styles.fallbackText}>
-              Kamera-Scan ist im Browser nicht verfügbar. Bitte Code manuell eingeben.
-            </Text>
-          </View>
-        ) : !permission?.granted ? (
-          <View style={styles.fallback}>
-            <Text style={styles.fallbackText}>Kamerazugriff wird benötigt.</Text>
-            <Pressable style={styles.permissionBtn} onPress={() => void requestPermission()}>
-              <Text style={styles.permissionBtnText}>Kamera erlauben</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <CameraView
-            style={styles.camera}
-            facing="back"
-            barcodeScannerSettings={{
-              barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8'],
-            }}
-            onBarcodeScanned={handleBarcode}
-          />
-        )}
+        {renderBody()}
 
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>

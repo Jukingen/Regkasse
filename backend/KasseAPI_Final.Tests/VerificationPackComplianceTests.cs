@@ -7,7 +7,6 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Filters;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
@@ -50,7 +49,7 @@ public sealed class VerificationPackComplianceTests
             .UseInMemoryDatabase($"VerifyPack_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     /// <summary>VERIFICATION: daily closing succeeds with more than ten reconciled (invoiced) payments for Vienna “today”.</summary>
@@ -58,7 +57,7 @@ public sealed class VerificationPackComplianceTests
     public async Task DailyClosing_WithElevenInvoicedPaymentsToday_Succeeds()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -75,7 +74,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-VERIFY",
             Location = "T",
@@ -152,7 +151,8 @@ public sealed class VerificationPackComplianceTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("daily-closing-jws-test");
 
         var finanz = new Mock<IFinanzOnlineService>();
@@ -169,7 +169,9 @@ public sealed class VerificationPackComplianceTests
             finanz.Object,
             Options.Create(new TseOptions { AllowSimulatedDailyClosing = true, Mode = "Fake" }),
             hostEnv.Object,
-            NullLogger<TagesabschlussService>.Instance);
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>());
 
         var result = await sut.PerformDailyClosingAsync("user-1", regId);
 
@@ -182,7 +184,7 @@ public sealed class VerificationPackComplianceTests
     public async Task MonatsbelegStatus_AfterSeventhViennaDay_WhenPriorMonthMissing_ReturnsYellow()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -199,7 +201,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-MB",
             Location = "T",
@@ -234,7 +236,7 @@ public sealed class VerificationPackComplianceTests
 
         // Vienna local 10 May 2026 → prior April Monatsbeleg missing; April deadline end May → not overdue on 10 May.
         var time = new FixedUtcTimeProvider(new DateTime(2026, 5, 10, 14, 0, 0, DateTimeKind.Utc));
-        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()));
+        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()), time);
         var sut = new MonatsbelegReminderService(ctx, TenantTestDoubles.PrimaryTenantResolver, time, policy);
 
         var status = await sut.GetMonatsbelegStatusAsync(regId, CancellationToken.None);

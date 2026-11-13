@@ -11,7 +11,7 @@
   "hardware": "Hardware-Verwaltung",
   "inventory": "Lagerverwaltung",
   "finanzonline": "FinanzOnline",
-  "backup": "Backup",
+  "backup": "Sicherung",
   "reports": "Berichte",
   "audit": "Audit-Protokolle",
   "staff": "Personalverwaltung",
@@ -20,15 +20,23 @@
   "accessibleScreens": "Zugängliche Bildschirme",
   "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar",
   "cashRegister": "Kassa",
+  "orders": "Bestellungen",
+  "receiptList": "Belegliste",
   "settings": "Einstellungen",
   "offlineQueue": {
     "title": "Offline-Warteschlange",
     "syncSummaryPartial": "{{processed}} Zahlung(en) synchronisiert. {{failed}} fehlgeschlagen.",
     "syncSummarySuccess": "{{processed}} Zahlung(en) erfolgreich synchronisiert.",
-    "syncSummaryAllFailed": "Keine Zahlung synchronisiert. {{failed}} fehlgeschlagen — bitte Offline-Warteschlange in den Einstellungen prüfen und ggf. erneut senden."
+    "syncSummaryAllFailed": "Keine Zahlung synchronisiert. {{failed}} fehlgeschlagen — bitte Offline-Warteschlange in den Einstellungen prüfen und ggf. erneut senden.",
+    "indicator": {
+      "onlineEmpty": "Online, Warteschlange leer",
+      "syncing": "Online, {{count}} Einträge werden synchronisiert",
+      "offlineQueued": "Offline, {{count}} Einträge in der Warteschlange",
+      "syncFailed": "Synchronisation fehlgeschlagen, {{count}} Einträge blockiert"
+    }
   },
   "cartAccessibility": {
-    "default": "Warenkorb, zum Bezahlen",
-    "withCount": "Warenkorb, {{count}} Artikel, zum Bezahlen"
+    "default": "Warenkorb {{total}}, zum Bezahlen",
+    "withCount": "Warenkorb {{total}}, {{count}} Artikel, zum Bezahlen"
   }
 }

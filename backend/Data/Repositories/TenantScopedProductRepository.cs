@@ -1,8 +1,7 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data.Repositories;
 
@@ -29,6 +28,7 @@ public class TenantScopedProductRepository : GenericRepository<Product>
     {
         var tid = await ResolveTenantIdAsync();
         return await _dbSet
+            .IgnoreQueryFilters()
             .Where(e => e.IsActive && e.TenantId == tid)
             .OrderByDescending(e => e.CreatedAt)
             .ToListAsync();
@@ -38,6 +38,7 @@ public class TenantScopedProductRepository : GenericRepository<Product>
     {
         var tid = await ResolveTenantIdAsync();
         return await _dbSet
+            .IgnoreQueryFilters()
             .Where(e => e.IsActive && e.TenantId == tid)
             .Where(predicate)
             .OrderByDescending(e => e.CreatedAt)
@@ -52,7 +53,7 @@ public class TenantScopedProductRepository : GenericRepository<Product>
         bool ascending = true)
     {
         var tid = await ResolveTenantIdAsync();
-        var query = _dbSet.Where(e => e.IsActive && e.TenantId == tid);
+        var query = _dbSet.IgnoreQueryFilters().Where(e => e.IsActive && e.TenantId == tid);
         if (predicate != null)
             query = query.Where(predicate);
         var totalCount = await query.CountAsync();
@@ -70,19 +71,21 @@ public class TenantScopedProductRepository : GenericRepository<Product>
     public override async Task<Product?> GetByIdAsync(Guid id)
     {
         var tid = await ResolveTenantIdAsync();
-        return await _dbSet.FirstOrDefaultAsync(e => e.Id == id && e.IsActive && e.TenantId == tid);
+        return await _dbSet.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(e => e.Id == id && e.IsActive && e.TenantId == tid);
     }
 
     public override async Task<bool> ExistsAsync(Guid id)
     {
         var tid = await ResolveTenantIdAsync();
-        return await _dbSet.AnyAsync(e => e.Id == id && e.IsActive && e.TenantId == tid);
+        return await _dbSet.IgnoreQueryFilters()
+            .AnyAsync(e => e.Id == id && e.IsActive && e.TenantId == tid);
     }
 
     public override async Task<int> CountAsync(Expression<Func<Product, bool>>? predicate = null)
     {
         var tid = await ResolveTenantIdAsync();
-        var query = _dbSet.Where(e => e.IsActive && e.TenantId == tid);
+        var query = _dbSet.IgnoreQueryFilters().Where(e => e.IsActive && e.TenantId == tid);
         if (predicate != null)
             query = query.Where(predicate);
         return await query.CountAsync();
@@ -115,7 +118,8 @@ public class TenantScopedProductRepository : GenericRepository<Product>
     public override async Task<bool> HardDeleteAsync(Guid id)
     {
         var tid = await ResolveTenantIdAsync();
-        var entity = await _dbSet.FirstOrDefaultAsync(e => e.Id == id && e.TenantId == tid);
+        var entity = await _dbSet.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(e => e.Id == id && e.TenantId == tid);
         if (entity == null)
             return false;
         _dbSet.Remove(entity);

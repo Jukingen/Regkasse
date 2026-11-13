@@ -3,10 +3,14 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -14,7 +18,7 @@ namespace KasseAPI_Final.Tests;
 
 public class PosStatusServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
     private const string UserId = "cashier-status-overview";
 
     private static AppDbContext CreateContext()
@@ -26,6 +30,42 @@ public class PosStatusServiceTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantId));
     }
 
+    private static IRksvEnvironmentService CreateDemoRksvEnvironment() =>
+        new RksvEnvironmentService(
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?> { ["RKSV:Mode"] = "Demo" })
+                .Build(),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development));
+
+    private static PosStatusService CreateService(
+        ILicenseService license,
+        IPosCashRegisterReadinessService readiness,
+        AppDbContext ctx)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RKSV:Mode"] = "Demo",
+                ["FinanzOnline:Session:UseSimulation"] = "true",
+            })
+            .Build();
+        var tse = new Mock<IOptionsMonitor<TseOptions>>();
+        tse.Setup(m => m.CurrentValue).Returns(new TseOptions
+        {
+            TseMode = "Demo",
+            Mode = "Fake",
+            Provider = "soft",
+        });
+        return new PosStatusService(
+            license,
+            readiness,
+            CreateDemoRksvEnvironment(),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            config,
+            tse.Object,
+            TenantTestDoubles.TenantAccessorReturning(TenantId),
+            ctx);
+    }
     [Fact]
     public async Task GetOverviewAsync_ReturnsLicenseRegisterAndSettingsSnapshot()
     {
@@ -73,7 +113,7 @@ public class PosStatusServiceTests
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady,
             });
 
-        var svc = new PosStatusService(license.Object, readiness.Object, ctx);
+        var svc = CreateService(license.Object, readiness.Object, ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));
@@ -82,12 +122,18 @@ public class PosStatusServiceTests
 
         Assert.True(overview.License.IsValid);
         Assert.Equal("Licensed", overview.License.LicenseType);
+        Assert.Equal(999, overview.License.DaysRemaining);
         Assert.True(overview.HealthLicense.IsValid);
+        Assert.Equal(999, overview.HealthLicense.DaysRemaining);
         Assert.Equal("abc123", overview.HealthLicense.MachineHash);
         Assert.Equal("ready", overview.CashRegister.NextAction);
         Assert.NotNull(overview.Settings.CashRegisterId);
         Assert.Equal(updatedAt.Ticks, overview.Settings.SettingsVersion);
         Assert.True((DateTime.UtcNow - overview.ServerTimeUtc).TotalSeconds < 5);
+        Assert.Equal("Demo", overview.RksvEnvironment.Environment);
+        Assert.True(overview.RksvEnvironment.IsSimulated);
+        Assert.True(overview.RksvEnvironment.IsHostDevelopment);
+        Assert.True(overview.RksvEnvironment.IsSimulationMode);
     }
 
     [Fact]
@@ -150,13 +196,14 @@ public class PosStatusServiceTests
             ctx,
             resolution,
             Mock.Of<ICashRegisterShiftService>(),
+            Mock.Of<IPosShiftService>(),
             TenantTestDoubles.CashRegisterSettingsServiceReturning(new PosCashRegisterFeatureOptions()),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             RksvStartbelegTestDoubles.GateOff(),
             RksvMonatsbelegTestDoubles.GateOff());
 
-        var svc = new PosStatusService(license.Object, readiness, ctx);
+        var svc = CreateService(license.Object, readiness, ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));
@@ -166,5 +213,65 @@ public class PosStatusServiceTests
         Assert.Equal("ready", overview.CashRegister.NextAction);
         Assert.Equal(registerId.ToString(), overview.CashRegister.EffectiveRegisterId);
         Assert.Equal(registerId.ToString("D"), overview.Settings.CashRegisterId);
+    }
+
+    [Fact]
+    public async Task GetOverviewAsync_WhenMandantHasPersistedExpiry_UsesTenantDaysForLicenseAndHealth()
+    {
+        await using var ctx = CreateContext();
+        var validUntil = DateTime.UtcNow.Date.AddDays(1);
+        var mandantStatus = new LicenseStatusInfo
+        {
+            IsActive = true,
+            CanAccess = true,
+            CanTransact = true,
+            ValidUntil = validUntil,
+            DaysRemaining = 1,
+            StatusMessage = "Lizenz läuft in 1 Tagen ab",
+        };
+
+        var license = new Mock<ILicenseService>();
+        license.Setup(s => s.GetCurrentStatusAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LicenseStatusResponse(
+                IsValid: true,
+                IsTrial: false,
+                IsExpired: false,
+                DaysRemaining: 999,
+                ExpiryDate: DateTime.UtcNow.AddDays(999),
+                MachineHash: "abc123"));
+        license.Setup(s => s.GetStatus())
+            .Returns(new LicenseStatusResponse(
+                IsValid: true,
+                IsTrial: false,
+                IsExpired: false,
+                DaysRemaining: 999,
+                ExpiryDate: DateTime.UtcNow.AddDays(999),
+                MachineHash: "abc123"));
+        license.Setup(s => s.GetLicenseStatusAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mandantStatus);
+
+        var readiness = new Mock<IPosCashRegisterReadinessService>();
+        readiness.Setup(s => s.GetReadinessSnapshotForPosAsync(
+                UserId,
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PosCashRegisterContextDto
+            {
+                EffectiveRegisterId = Guid.NewGuid().ToString("D"),
+                NextAction = "ready",
+                MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady,
+            });
+
+        var svc = CreateService(license.Object, readiness.Object, ctx);
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
+            "Test"));
+
+        var overview = await svc.GetOverviewAsync(UserId, principal, TenantId);
+
+        Assert.Equal(1, overview.License.DaysRemaining);
+        Assert.Equal(1, overview.HealthLicense.DaysRemaining);
+        Assert.Equal(validUntil, overview.License.ValidUntil);
+        Assert.True(overview.License.CanAccess);
     }
 }

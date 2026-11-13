@@ -1,3 +1,7 @@
 'use client';
 
-export { ThemeContext, useThemeContext, type ThemeContextValue } from '@/lib/personalization/ThemeContext';
+export {
+  ThemeContext,
+  type ThemeContextValue,
+  useThemeContext,
+} from '@/lib/personalization/ThemeContext';

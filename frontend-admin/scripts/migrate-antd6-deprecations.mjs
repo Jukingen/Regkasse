@@ -42,14 +42,8 @@ function migrateAlertMultiline(content) {
 }
 
 function migrateStatisticValueStyle(content) {
-  let next = content.replace(
-    /valueStyle=\{\{([^{}]*)\}\}/g,
-    'styles={{ content: { $1 } }}',
-  );
-  next = next.replace(
-    /valueStyle=\{([^{][^}\n]*)\}/g,
-    'styles={{ content: $1 }}',
-  );
+  let next = content.replace(/valueStyle=\{\{([^{}]*)\}\}/g, 'styles={{ content: { $1 } }}');
+  next = next.replace(/valueStyle=\{([^{][^}\n]*)\}/g, 'styles={{ content: $1 }}');
   return next;
 }
 
@@ -58,18 +52,13 @@ function migrateSpinTip(content) {
   const lines = content.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     if (!/<Spin\b/.test(lines[i])) continue;
-    lines[i] = lines[i]
-      .replace(/\btip=/g, 'description=')
-      .replace(/\btip\s*=/g, 'description=');
+    lines[i] = lines[i].replace(/\btip=/g, 'description=').replace(/\btip\s*=/g, 'description=');
   }
   return lines.join(eol);
 }
 
 function migrateOverlayClassName(content) {
-  return content.replace(
-    /overlayClassName="([^"]+)"/g,
-    'classNames={{ root: "$1" }}',
-  );
+  return content.replace(/overlayClassName="([^"]+)"/g, 'classNames={{ root: "$1" }}');
 }
 
 function migrateDrawerWidth(content) {

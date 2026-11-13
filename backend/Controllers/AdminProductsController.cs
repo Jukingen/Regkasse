@@ -1,19 +1,21 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -35,6 +37,12 @@ namespace KasseAPI_Final.Controllers
         private readonly IDemoProductImportService _demoProductImportService;
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly IAdminProductListService _productListService;
+        private readonly IProductService _productService;
+        private readonly IProductExportService _productExport;
+        private readonly IOperationLogService _operationLogs;
+        private readonly IProductPriceHistoryService _priceHistoryService;
+        private readonly IPriceChangeService _priceChangeService;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public AdminProductsController(
             AppDbContext context,
@@ -46,7 +54,13 @@ namespace KasseAPI_Final.Controllers
             ProductImageThumbnailService productImageThumbnailService,
             IDemoProductImportService demoProductImportService,
             ICurrentTenantAccessor tenantAccessor,
-            IAdminProductListService productListService)
+            IAdminProductListService productListService,
+            IProductService productService,
+            IProductExportService productExport,
+            IOperationLogService operationLogs,
+            IProductPriceHistoryService priceHistoryService,
+            IPriceChangeService priceChangeService,
+            ITenantLimitGuard? tenantLimitGuard = null)
             : base(logger)
         {
             _context = context;
@@ -58,6 +72,45 @@ namespace KasseAPI_Final.Controllers
             _demoProductImportService = demoProductImportService;
             _tenantAccessor = tenantAccessor;
             _productListService = productListService;
+            _productService = productService;
+            _productExport = productExport;
+            _operationLogs = operationLogs;
+            _priceHistoryService = priceHistoryService;
+            _priceChangeService = priceChangeService;
+            _tenantLimitGuard = tenantLimitGuard;
+        }
+
+        /// <summary>
+        /// Export products as CSV or JSON. Filename: <c>product_{tenantSlug}_{stamp}.{ext}</c>.
+        /// </summary>
+        [HttpGet("export")]
+        [Produces("text/csv", "application/json")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Export(
+            [FromQuery] string format = "csv",
+            [FromQuery] bool? isActive = null,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var tenantSlug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            try
+            {
+                var result = await _productExport
+                    .ExportAsync(tenantId, tenantSlug, format, isActive, cancellationToken)
+                    .ConfigureAwait(false);
+                return File(result.Content, result.ContentType, result.FileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message, code = "PRODUCT_EXPORT_TOO_LARGE" });
+            }
         }
 
         /// <summary>Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog</summary>
@@ -211,6 +264,9 @@ namespace KasseAPI_Final.Controllers
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
+                product.HasVariants = await _context.ProductVariants
+                    .AsNoTracking()
+                    .AnyAsync(variant => variant.ProductId == product.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(product), "Product retrieved");
             }
             catch (Exception ex)
@@ -223,21 +279,58 @@ namespace KasseAPI_Final.Controllers
         /// Ürün ara (name, category adı). GET api/admin/products/search
         /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? name = null, [FromQuery] string? category = null)
+        public async Task<IActionResult> Search(
+            [FromQuery] string? name = null,
+            [FromQuery] string? category = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var useILike = _context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
                 if (!string.IsNullOrWhiteSpace(name))
-                    query = query.Where(p => p.Name.ToLower().Contains(name.Trim().ToLower()));
-                if (!string.IsNullOrWhiteSpace(category))
-                    query = query.Where(p => p.Category != null && p.Category.ToLower().Contains(category.Trim().ToLower()));
+                {
+                    var term = name.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => EF.Functions.ILike(p.Name, pattern))
+                        : query.Where(p => p.Name.ToLower().Contains(term.ToLower()));
+                }
 
-                var products = await query.OrderBy(p => p.Name).ToListAsync();
+                if (!string.IsNullOrWhiteSpace(category))
+                {
+                    var term = category.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => p.Category != null && EF.Functions.ILike(p.Category, pattern))
+                        : query.Where(p => p.Category != null && p.Category.ToLower().Contains(term.ToLower()));
+                }
+
+                var totalCount = await query.CountAsync();
+                var products = await query
+                    .OrderBy(p => p.Name)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
                 var items = products.Select(AdminProductDto.FromProduct).ToList();
-                _logger.LogInformation("Admin products search: found {Count} products", items.Count);
-                return SuccessResponse(items, $"Found {items.Count} products");
+                var payload = new
+                {
+                    items,
+                    pagination = new
+                    {
+                        pageNumber = page,
+                        pageSize,
+                        totalCount,
+                        totalPages = pageSize == 0 ? 0 : (int)Math.Ceiling((double)totalCount / pageSize),
+                    },
+                };
+                _logger.LogInformation("Admin products search: page {Page}, total {Total}", page, totalCount);
+                return SuccessResponse(payload, $"Found {totalCount} products");
             }
             catch (Exception ex)
             {
@@ -254,30 +347,83 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return ErrorResponse("Invalid product data", 400);
+                ProductLocalization.SyncCanonicalFields(product);
 
-                var validationResult = await ValidateProductForRKSVAsync(product);
-                if (!validationResult.IsValid)
-                    return ErrorResponse(validationResult.ErrorMessage!, 400);
+                var lengthViolation = GetProductFieldLengthViolation(product);
+                if (lengthViolation != null)
+                {
+                    _logger.LogWarning(
+                        "Admin product create rejected: {ValidationMessage}",
+                        lengthViolation);
+                    return ErrorResponse(lengthViolation, 400);
+                }
+
+                if (!TryValidateProduct(product, out var annotationErrors))
+                    return ProductAnnotationValidationErrorResponse(product.Id, annotationErrors, "create");
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                var category = await _context.Categories
-                    .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
-                if (category == null || !category.IsActive)
-                    return ErrorResponse("Category not found or inactive", 400);
-                product.Category = category.Name;
 
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: null);
+                if (barcodeError != null)
+                    return barcodeError;
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
+
+                var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
+                if (!taxGroupResult.IsValid)
+                    return ValidationErrorResponse(taxGroupResult);
+
+                var validationResult = await ValidateAdminProductMutationAsync(product, tenantId);
+                if (!validationResult.IsValid)
+                    return ValidationErrorResponse(validationResult);
+
+                product.TenantId = tenantId;
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;
                 product.CreatedBy = User.Identity?.Name ?? "system";
                 product.UpdatedBy = User.Identity?.Name ?? "system";
                 product.IsActive = true;
-                ProductLocalization.SyncCanonicalFields(product);
 
                 var createdProduct = await _productRepository.AddAsync(product);
+                try
+                {
+                    var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
+                        ? parsedActor
+                        : Guid.Empty;
+                    await _priceHistoryService.EnsureInitialVersionAsync(
+                        tenantId,
+                        createdProduct.Id,
+                        createdProduct.Price,
+                        createdProduct.TaxGroupId,
+                        createdProduct.TaxRate,
+                        actorId,
+                        reason: "Initial product price");
+                }
+                catch (Exception priceHistEx)
+                {
+                    _logger.LogWarning(
+                        priceHistEx,
+                        "Failed to seed price history for product create {ProductId}",
+                        createdProduct.Id);
+                }
+
+                await _productService.InvalidateProductsCacheAsync(tenantId, createdProduct.Id);
                 _logger.LogInformation("Admin product created: {Name} (ID: {Id})", product.Name, createdProduct.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(createdProduct), "Product created successfully");
+            }
+            catch (DbUpdateException ex)
+            {
+                return HandleProductDbUpdateException(ex, product.Id, "create");
             }
             catch (Exception ex)
             {
@@ -297,45 +443,364 @@ namespace KasseAPI_Final.Controllers
                 if (id != product.Id)
                     return ErrorResponse("ID mismatch", 400);
 
-                if (!ModelState.IsValid)
-                    return ErrorResponse("Invalid product data", 400);
+                ProductLocalization.SyncCanonicalFields(product);
 
-                var validationResult = await ValidateProductForRKSVAsync(product);
-                if (!validationResult.IsValid)
-                    return ErrorResponse(validationResult.ErrorMessage!, 400);
+                var lengthViolation = GetProductFieldLengthViolation(product);
+                if (lengthViolation != null)
+                {
+                    _logger.LogWarning(
+                        "Admin product update rejected for {ProductId}: {ValidationMessage}",
+                        id,
+                        lengthViolation);
+                    return ErrorResponse(lengthViolation, 400);
+                }
+
+                if (!TryValidateProduct(product, out var annotationErrors))
+                    return ProductAnnotationValidationErrorResponse(id, annotationErrors, "update");
 
                 var existingProduct = await GetAdminProductByIdAsync(id);
                 if (existingProduct == null)
                     return ErrorResponse("Product not found", 404);
 
-                if (product.CategoryId != Guid.Empty)
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: id);
+                if (barcodeError != null)
+                    return barcodeError;
+
+                var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
+                if (!taxGroupResult.IsValid)
+                    return ValidationErrorResponse(taxGroupResult);
+
+                var validationResult = await ValidateAdminProductMutationAsync(product, tenantId, existingProduct.TenantId);
+                if (!validationResult.IsValid)
+                    return ValidationErrorResponse(validationResult);
+
+                var before = OperationSnapshots.FromProduct(existingProduct);
+                var previousTaxRate = existingProduct.TaxRate;
+                var previousTaxGroupId = existingProduct.TaxGroupId;
+                var previousPrice = existingProduct.Price;
+
+                var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
+                    ? parsedActor
+                    : Guid.Empty;
+
+                var priceOrTaxChanging = previousPrice != product.Price
+                    || previousTaxGroupId != product.TaxGroupId
+                    || previousTaxRate != product.TaxRate;
+
+                if (priceOrTaxChanging)
                 {
-                    var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                    var category = await _context.Categories
-                        .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
-                    if (category == null || !category.IsActive)
-                        return ErrorResponse("Category not found or inactive", 400);
-                    product.Category = category.Name;
+                    var priceChange = await _priceChangeService.ChangePriceAsync(new PriceChangeRequest
+                    {
+                        TenantId = existingProduct.TenantId,
+                        ProductId = existingProduct.Id,
+                        NewPrice = product.Price,
+                        NewTaxGroupId = product.TaxGroupId,
+                        ChangedBy = actorId,
+                        ChangedByRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value,
+                        Reason = previousPrice != product.Price && previousTaxGroupId != product.TaxGroupId
+                            ? "Product price and tax updated"
+                            : previousPrice != product.Price
+                                ? "Product price updated"
+                                : "Product tax group updated",
+                    });
+
+                    if (!priceChange.Succeeded)
+                        return ErrorResponse(priceChange.ErrorMessage ?? "Price change failed", 400);
+
+                    // RKSV: fiscal history → new catalog product; continue update against successor.
+                    if (priceChange.CreatedNewProductVersion
+                        && priceChange.ProductId is { } newProductId
+                        && newProductId != id)
+                    {
+                        var successor = await GetAdminProductByIdAsync(newProductId);
+                        if (successor is null)
+                            return ErrorResponse("New product version was created but could not be loaded", 500);
+
+                        product.Id = newProductId;
+                        ApplyAdminProductUpdate(successor, product);
+                        await _context.Entry(successor).Reference(p => p.TaxGroup).LoadAsync();
+                        successor.UpdatedAt = DateTime.UtcNow;
+                        successor.UpdatedBy = User.Identity?.Name ?? "system";
+                        await _context.SaveChangesAsync();
+                        await _productService.InvalidateProductsCacheAsync(successor.TenantId, id);
+                        await _productService.InvalidateProductsCacheAsync(successor.TenantId, newProductId);
+
+                        var versionUserId = GetCurrentUserId();
+                        if (!string.IsNullOrEmpty(versionUserId))
+                        {
+                            try
+                            {
+                                await _operationLogs.LogAsync(
+                                    successor.TenantId,
+                                    versionUserId,
+                                    OperationTypes.UpdateProduct,
+                                    OperationEntityTypes.Product,
+                                    newProductId.ToString("D"),
+                                    before,
+                                    OperationSnapshots.FromProduct(successor));
+                            }
+                            catch (Exception logEx)
+                            {
+                                _logger.LogWarning(
+                                    logEx,
+                                    "Failed to write operation log for catalog version {ProductId}",
+                                    newProductId);
+                            }
+                        }
+
+                        _logger.LogInformation(
+                            "Admin product catalog version created: {Name} archived {OldId} → {NewId}",
+                            successor.Name,
+                            id,
+                            newProductId);
+                        return SuccessResponse(
+                            AdminProductDto.FromProduct(successor),
+                            priceChange.WarningMessage
+                            ?? "Product version created for RKSV compliance; previous product archived.");
+                    }
+
+                    // Reload tracked entity after transactional in-place price change.
+                    await _context.Entry(existingProduct).ReloadAsync();
                 }
 
-                product.UpdatedAt = DateTime.UtcNow;
-                product.UpdatedBy = User.Identity?.Name ?? "system";
-                product.CreatedAt = existingProduct.CreatedAt;
-                product.CreatedBy = existingProduct.CreatedBy;
-                product.TenantId = existingProduct.TenantId;
-                ProductLocalization.SyncCanonicalFields(product);
+                ApplyAdminProductUpdate(existingProduct, product);
+                // Refresh navigation for response DTO when tax group changed.
+                await _context.Entry(existingProduct).Reference(p => p.TaxGroup).LoadAsync();
+                existingProduct.UpdatedAt = DateTime.UtcNow;
+                existingProduct.UpdatedBy = User.Identity?.Name ?? "system";
 
-                _context.Entry(existingProduct).State = EntityState.Detached;
-                _context.Products.Update(product);
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(existingProduct.TenantId, id);
 
-                _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", product.Name, id);
-                return SuccessResponse(AdminProductDto.FromProduct(product), "Product updated successfully");
+                var userId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    try
+                    {
+                        await _operationLogs.LogAsync(
+                            existingProduct.TenantId,
+                            userId,
+                            OperationTypes.UpdateProduct,
+                            OperationEntityTypes.Product,
+                            id.ToString("D"),
+                            before,
+                            OperationSnapshots.FromProduct(existingProduct));
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "Failed to write operation log for product update {ProductId}", id);
+                    }
+                }
+
+                _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", existingProduct.Name, id);
+                return SuccessResponse(AdminProductDto.FromProduct(existingProduct), "Product updated successfully");
+            }
+            catch (DbUpdateException ex)
+            {
+                return HandleProductDbUpdateException(ex, id, "update");
             }
             catch (Exception ex)
             {
                 return HandleException(ex, "AdminProducts.Update");
             }
+        }
+
+        /// <summary>
+        /// Patch tracked product from request body without replacing the EF graph (preserves tenant FK,
+        /// modifier assignments, and fields not sent by admin FE such as IsSellableAddOn / MaxStockLevel).
+        /// </summary>
+        private static void ApplyAdminProductUpdate(Product existing, Product incoming)
+        {
+            existing.Name = incoming.Name;
+            existing.NameDe = incoming.NameDe;
+            existing.NameEn = incoming.NameEn;
+            existing.NameTr = incoming.NameTr;
+            existing.Description = incoming.Description ?? string.Empty;
+            existing.DescriptionDe = incoming.DescriptionDe;
+            existing.DescriptionEn = incoming.DescriptionEn;
+            existing.DescriptionTr = incoming.DescriptionTr;
+            existing.Price = incoming.Price;
+            existing.TaxType = incoming.TaxType;
+            existing.TaxRate = incoming.TaxRate;
+            existing.TaxGroupId = incoming.TaxGroupId;
+            existing.CategoryId = incoming.CategoryId;
+            existing.Category = incoming.Category;
+            existing.StockQuantity = incoming.StockQuantity;
+            existing.MinStockLevel = incoming.MinStockLevel;
+            existing.Unit = incoming.Unit;
+            existing.DurationMinutes = incoming.DurationMinutes;
+            existing.StaffId = incoming.StaffId;
+            existing.ImeiTracked = incoming.ImeiTracked;
+            existing.IsTicket = incoming.IsTicket;
+            existing.Cost = incoming.Cost;
+            existing.Barcode = incoming.Barcode;
+            existing.ImageUrl = incoming.ImageUrl;
+            existing.IsActive = incoming.IsActive;
+            existing.IsFiscalCompliant = incoming.IsFiscalCompliant;
+            existing.IsTaxable = incoming.IsTaxable;
+            existing.FiscalCategoryCode = incoming.FiscalCategoryCode;
+            existing.TaxExemptionReason = incoming.TaxExemptionReason;
+            existing.RksvProductType = incoming.RksvProductType;
+        }
+
+        private static bool IsBarcodeDuplicateViolation(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("IX_products_tenant_id_Barcode", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("tenant_id", StringComparison.OrdinalIgnoreCase)
+                    && message.Contains("barcode", StringComparison.OrdinalIgnoreCase)
+                    && message.Contains("duplicate", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsNotNullColumnViolation(DbUpdateException ex, string columnName)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("23502", StringComparison.Ordinal)
+                && message.Contains("null value", StringComparison.OrdinalIgnoreCase)
+                && message.Contains(columnName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsStringTooLongViolation(DbUpdateException ex, out string? columnName)
+        {
+            columnName = null;
+            var message = ex.InnerException?.Message ?? ex.Message;
+            if (!message.Contains("22001", StringComparison.Ordinal)
+                && !message.Contains("value too long", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            const string prefix = "column \"";
+            var start = message.IndexOf(prefix, StringComparison.Ordinal);
+            if (start >= 0)
+            {
+                start += prefix.Length;
+                var end = message.IndexOf('"', start);
+                if (end > start)
+                    columnName = message[start..end];
+            }
+
+            return true;
+        }
+
+        private IActionResult HandleProductDbUpdateException(DbUpdateException ex, Guid productId, string operation)
+        {
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            _logger.LogError(
+                ex,
+                "DbUpdateException during admin product {Operation} for {ProductId}: {InnerMessage}",
+                operation,
+                productId,
+                innerMessage);
+
+            if (IsBarcodeDuplicateViolation(ex))
+                return BarcodeDuplicateResponse();
+
+            if (IsNotNullColumnViolation(ex, "description"))
+                return ErrorResponse("Product description cannot be empty.", 400);
+
+            if (IsStringTooLongViolation(ex, out var column))
+            {
+                var field = string.IsNullOrWhiteSpace(column) ? "field" : column;
+                return ErrorResponse($"Product {field} exceeds the maximum allowed length.", 400);
+            }
+
+            object? details = _hostEnvironment.IsDevelopment()
+                ? new { databaseError = innerMessage, stackTrace = ex.StackTrace }
+                : null;
+
+            return ErrorResponse($"Product {operation} failed due to a database error.", 500, details);
+        }
+
+        private const int ProductNameMaxLength = 200;
+        private const int ProductDescriptionMaxLength = 2000;
+        private const int ProductImageUrlMaxLength = 500;
+
+        private async Task<IActionResult?> NormalizeProductBarcodeAsync(
+            Product product,
+            Guid tenantId,
+            Guid? exceptProductId)
+        {
+            var prepared = await _productService.PrepareBarcodeAsync(tenantId, product.Barcode, exceptProductId);
+            if (prepared is null)
+            {
+                product.Barcode = ProductBarcodeRules.Normalize(product.Barcode);
+                return null;
+            }
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Invalid)
+                return ErrorResponse(prepared.Message ?? "Barcode is invalid.", 400);
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Duplicate)
+                return BarcodeDuplicateResponse();
+
+            product.Barcode = prepared.Barcode;
+            return null;
+        }
+
+        private IActionResult BarcodeDuplicateResponse() =>
+            Conflict(new
+            {
+                success = false,
+                code = ProductBarcodeWriteResult.DuplicateCode,
+                message = "A product with this barcode already exists for this tenant.",
+                timestamp = DateTime.UtcNow,
+            });
+
+        private static string? GetProductFieldLengthViolation(Product product)
+        {
+            if (product.Name.Length > ProductNameMaxLength)
+                return $"Product name must be at most {ProductNameMaxLength} characters.";
+
+            if (ExceedsMaxLength(product.NameDe, ProductNameMaxLength))
+                return $"German product name must be at most {ProductNameMaxLength} characters.";
+            if (ExceedsMaxLength(product.NameEn, ProductNameMaxLength))
+                return $"English product name must be at most {ProductNameMaxLength} characters.";
+            if (ExceedsMaxLength(product.NameTr, ProductNameMaxLength))
+                return $"Turkish product name must be at most {ProductNameMaxLength} characters.";
+
+            if (ExceedsMaxLength(product.Description, ProductDescriptionMaxLength))
+                return $"Description must be at most {ProductDescriptionMaxLength} characters.";
+            if (ExceedsMaxLength(product.DescriptionDe, ProductDescriptionMaxLength))
+                return $"German description must be at most {ProductDescriptionMaxLength} characters.";
+            if (ExceedsMaxLength(product.DescriptionEn, ProductDescriptionMaxLength))
+                return $"English description must be at most {ProductDescriptionMaxLength} characters.";
+            if (ExceedsMaxLength(product.DescriptionTr, ProductDescriptionMaxLength))
+                return $"Turkish description must be at most {ProductDescriptionMaxLength} characters.";
+
+            if (ExceedsMaxLength(product.Barcode, ProductBarcodeRules.MaxLength))
+                return $"Barcode must be at most {ProductBarcodeRules.MaxLength} characters.";
+
+            if (ExceedsMaxLength(product.ImageUrl, ProductImageUrlMaxLength))
+                return $"Image URL must be at most {ProductImageUrlMaxLength} characters.";
+
+            return null;
+        }
+
+        private static bool ExceedsMaxLength(string? value, int maxLength) =>
+            value != null && value.Length > maxLength;
+
+        private IActionResult ProductAnnotationValidationErrorResponse(
+            Guid productId,
+            IReadOnlyList<System.ComponentModel.DataAnnotations.ValidationResult> results,
+            string operation)
+        {
+            var errors = results
+                .SelectMany(
+                    r => r.MemberNames.DefaultIfEmpty("_"),
+                    (result, member) => new { member, message = result.ErrorMessage ?? "Invalid value" })
+                .GroupBy(x => x.member)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.message).Distinct().ToArray());
+
+            _logger.LogWarning(
+                "Admin product {Operation} annotation validation failed for {ProductId}: {Errors}",
+                operation,
+                productId,
+                string.Join("; ", results.Select(r => r.ErrorMessage)));
+
+            return ErrorResponse("Invalid product data", 400, new { errors });
         }
 
         /// <summary>
@@ -364,6 +829,7 @@ namespace KasseAPI_Final.Controllers
                     product.UpdatedBy = User.Identity?.Name ?? "system";
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+                    await _productService.InvalidateProductsCacheAsync(product.TenantId, id);
                     _logger.LogInformation("Admin product stock updated: {Name} (ID: {Id}) Old: {Old}, New: {New}", product.Name, id, oldStock, request.Quantity);
                     return SuccessResponse(AdminProductDto.FromProduct(product), "Product stock updated successfully");
                 }
@@ -402,6 +868,7 @@ namespace KasseAPI_Final.Controllers
                 entity.UpdatedAt = DateTime.UtcNow;
                 entity.UpdatedBy = User.Identity?.Name ?? "system";
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(entity.TenantId, id);
                 _logger.LogInformation("Admin product deleted: {Id}", id);
                 return SuccessResponse(new { id }, "Product deleted successfully");
             }
@@ -490,7 +957,8 @@ namespace KasseAPI_Final.Controllers
                     int sortOrder = 0;
                     foreach (var gid in groupIds)
                     {
-                        if (!existingGroups.Contains(gid)) continue;
+                        if (!existingGroups.Contains(gid))
+                            continue;
                         _context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
                         {
                             ProductId = id,
@@ -598,7 +1066,74 @@ namespace KasseAPI_Final.Controllers
         private async Task<Product?> GetAdminProductByIdAsync(Guid id)
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-            return await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            return await _context.Products
+                .Include(p => p.TaxGroup)
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+        }
+
+        /// <summary>
+        /// Stamps TaxRate/TaxType from the tenant catalog row referenced by <see cref="Product.TaxGroupId"/>.
+        /// </summary>
+        private async Task<ValidationResult> ApplyTaxGroupAsync(Product product, Guid tenantId, CancellationToken cancellationToken = default)
+        {
+            if (product.TaxGroupId == Guid.Empty)
+                return ValidationResult.Error("Tax group is required");
+
+            var group = await _context.TaxGroups
+                .FirstOrDefaultAsync(
+                    g => g.Id == product.TaxGroupId && g.TenantId == tenantId && g.IsActive,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (group == null)
+                return ValidationResult.Error("Tax group not found");
+
+            product.TaxRate = group.Rate;
+            product.TaxType = TaxTypes.FromTaxGroup(group);
+            return ValidationResult.Success();
+        }
+
+        private async Task<ValidationResult> ValidateAdminProductMutationAsync(
+            Product product,
+            Guid effectiveTenantId,
+            Guid? existingProductTenantId = null)
+        {
+            if (effectiveTenantId == Guid.Empty)
+                return ValidationResult.Error("Tenant context is required");
+
+            if (existingProductTenantId.HasValue && existingProductTenantId.Value != effectiveTenantId)
+                return ValidationResult.Error("Product not found");
+
+            if (product.TenantId != Guid.Empty && product.TenantId != effectiveTenantId)
+                return ValidationResult.Error("Product not found");
+
+            if (string.IsNullOrWhiteSpace(product.Name))
+                return ValidationResult.Error("Product name is required");
+
+            if (string.IsNullOrWhiteSpace(product.Unit))
+                return ValidationResult.Error("Product unit is required");
+
+            if (product.CategoryId == Guid.Empty)
+                return ValidationResult.Error("CategoryId is required");
+
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == effectiveTenantId);
+            if (category == null)
+                return ValidationResult.Error("Category not found");
+            if (!category.IsActive)
+                return ValidationResult.Error("Category not found or inactive");
+
+            product.Category = category.Name;
+
+            if (!Enum.IsDefined(typeof(TaxType), product.TaxType))
+                return ValidationResult.Error("Invalid tax type");
+
+            return await ValidateProductForRKSVAsync(product);
+        }
+
+        private IActionResult ValidationErrorResponse(ValidationResult validationResult)
+        {
+            var statusCode = validationResult.ErrorMessage == "Product not found" ? 404 : 400;
+            return ErrorResponse(validationResult.ErrorMessage!, statusCode);
         }
 
         private async Task<ValidationResult> ValidateProductForRKSVAsync(Product product)
@@ -609,8 +1144,6 @@ namespace KasseAPI_Final.Controllers
                 return ValidationResult.Error("Stock quantity cannot be negative");
             if (product.MinStockLevel < 0)
                 return ValidationResult.Error("Minimum stock level cannot be negative");
-            if (product.CategoryId == Guid.Empty)
-                return ValidationResult.Error("CategoryId is required");
             if (!TaxTypes.All.Contains(product.TaxType))
                 return ValidationResult.Error($"Tax type must be one of: {string.Join(", ", TaxTypes.All)}");
             if (!product.IsFiscalCompliant)
@@ -655,6 +1188,18 @@ namespace KasseAPI_Final.Controllers
                 Products = products,
                 Modifiers = new List<ModifierDto>()
             };
+        }
+
+        /// <summary>
+        /// Validates product data attributes after canonical localization fields are synced.
+        /// </summary>
+        private static bool TryValidateProduct(
+            Product product,
+            out List<System.ComponentModel.DataAnnotations.ValidationResult> results)
+        {
+            results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+            var context = new ValidationContext(product);
+            return Validator.TryValidateObject(product, context, results, validateAllProperties: true);
         }
     }
 }

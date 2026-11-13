@@ -34,7 +34,7 @@ RksvDepExportRootDto  →  BMF JSON response
 | Receipt row model | `backend/Models/Export/RksvDepReceiptSignatureInfo.cs` |
 | TSE certs / chain | `backend/Tse/ITseKeyProvider.cs`, `TseCertificateChainBuilder.cs` |
 | RKSV §9 signing | `backend/Tse/BelegdatenPayload.cs`, `BelegdatenPayloadBuilder.cs`, `RksvMachineCodeBuilder.cs`, `SignaturePipeline.cs`, `Services/TseService.cs` |
-| Prüftool script | `scripts/verify-rksv-dep-export.ps1` |
+| Prüftool script | `scripts/rksv/verify-rksv-dep-export.ps1` |
 | Unit tests | `backend/KasseAPI_Final.Tests/RksvDepExportServiceTests.cs`, `BelegdatenPayloadTests.cs` |
 
 ## API
@@ -62,6 +62,23 @@ curl -H "Authorization: Bearer {token}" \
      -H "X-Tenant-Id: {tenant}" \
      "http://localhost:5184/api/admin/rksv/dep-export?cashRegisterId={guid}&fromUtc=2026-01-01T00:00:00Z&toUtc=2026-01-31T23:59:59Z"
 ```
+
+## Download (stored history)
+
+Completed exports are written under `DepExportStorage` (default `App_Data/dep-exports/{tenantId}/`) and listed with `hasStoredFile` / `downloadUrl`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/api/admin/rksv/dep-export/download/{id}` | Auth download by history id (canonical) |
+| `GET` | `/api/admin/rksv/dep-export/history/{id}/download` | Alias |
+| `POST` | `/api/admin/rksv/dep-export/download/{id}/token` | Issue/rotate opaque token (default TTL **24h**) |
+| `GET` | `/api/admin/rksv/dep-export/download/token/{token}` | Token download (JWT + permissions still required) |
+
+Every attempt is audited (`DepExportAuditActions.Downloaded` → `AuditEventType.RksvDepExportDownloaded`). Cross-tenant → HTTP **404**.
+
+Migration: `20260807120000_AddDepExportHistoryDownloadToken` (`download_token`, `download_token_expires_at_utc`, `expires_at`, `downloaded_at`).
+
+---
 
 ## Data sources
 
@@ -101,7 +118,24 @@ Key files: `backend/Tse/BelegdatenPayload.cs`, `BelegdatenPayloadBuilder.cs`, `R
 
 Migration: `20260611023458_DepExportCertificateAndTurnoverColumns` adds thumbprint columns and `signature_chain_state.last_turnover_counter_cents`.
 
-**Note:** Receipts signed before F5 use the legacy JSON JWS payload and will not pass BMF receipt verification; re-sign or accept only new receipts for Prüftool runs.
+**Note:** Receipts signed before F5 use the legacy JSON JWS payload and will not pass BMF receipt verification.
+
+### Legacy (pre-F5) JWS detection (P2-2)
+
+| Format | JWS payload (middle segment) | Prüftool beleg verify |
+|--------|------------------------------|------------------------|
+| **F5** | RKSV §9 machine code starting with `_R1-…` (`SignaturePipeline.Sign`) | Expected to pass |
+| **Pre-F5 / legacy** | JSON `BelegdatenPayload` (e.g. Soft/Fake TSE historical rows) | Likely fail |
+
+Detection: `SignaturePipeline.IsF5CompliantJws` / `RksvDepExportService.IsF5CompliantJws`.
+
+Export envelope (`includeEnvelope=true`) and history metadata expose:
+
+- `legacyJwsCount`, `f5CompliantJwsCount`, `legacyJwsWarning`, `prueftoolCompatible`
+- History column `legacy_jws_count` (migration `20260729230000_AddDepExportHistoryLegacyJwsCount`)
+- FA: warning alert on DEP export page + “Prüftool-kompatibel” history column
+
+**Compliance decision — no automatic re-sign:** Rewriting stored TSE signatures would break the fiscal signature chain. Operators should treat legacy rows as inventory for Prüftool awareness only; new receipts must be signed with F5. A future re-sign tool would require an explicit Compliance/Ops change request (out of scope for P2-2).
 
 ## Testing
 
@@ -115,32 +149,65 @@ dotnet test --filter "BelegdatenPayloadTests"
 
 ### Prerequisites (BMF Prüftool)
 
-1. JDK 17+ installed (`java` on PATH)
-2. BMF DEP JAR: `backend/Tests/regkassen-verification-depformat-1.1.1.jar`
-3. Dependency JARs: `backend/Tests/lib/*.jar`
-4. Generated `dep-export.json` from the API, or committed fixtures under `backend/Tests/fixtures/prueftool/dep-export.json`
-5. `crypto-material.json` — BMF cryptographic material container (`backend/Tests/fixtures/prueftool/crypto-material.json`; dev-only, not production secrets)
+1. JDK 17+ installed (`java` on PATH, or `JAVA_HOME` / `PRUEFTOOL_JAVA`)
+2. BMF DEP JAR + dependencies under `backend/Tests/` (gitignored — see below)
+3. Generated `dep-export.json` from the API, or committed fixtures under `backend/Tests/fixtures/prueftool/dep-export.json`
+4. `crypto-material.json` — BMF cryptographic material container (`backend/Tests/fixtures/prueftool/crypto-material.json`; dev-only, not production secrets)
+
+#### Install JARs (local or CI)
+
+Official release: [BMF Prüftool V1.1.1](https://github.com/BMF-RKSV-Technik/at-registrierkassen-mustercode/releases/tag/V1.1.1) (`regkassen-verification-1.1.1.zip`).
+
+```powershell
+pwsh ./scripts/rksv/ensure-bmf-prueftool.ps1
+```
+
+This downloads the ZIP (SHA256-pinned), then copies:
+
+- `backend/Tests/regkassen-verification-depformat-1.1.1.jar`
+- `backend/Tests/regkassen-verification-receipts-1.1.1.jar`
+- `backend/Tests/lib/*.jar`
+
+JARs remain gitignored (~19 MB). Re-run with `-Force` to refresh.
 
 ### Run verification
 
 ```powershell
 # Committed fixtures (recommended for local/CI smoke)
-.\scripts\verify-rksv-dep-export.ps1 -UseFixtures
+.\scripts\rksv\verify-rksv-dep-export.ps1 -UseFixtures
+
+# Explicit fixture paths (same as -UseFixtures)
+.\scripts\rksv\verify-rksv-dep-export.ps1 `
+  -DepExportPath "./backend/Tests/fixtures/prueftool/dep-export.json" `
+  -CryptoMaterialPath "./backend/Tests/fixtures/prueftool/crypto-material.json"
 
 # Custom export from API
-.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
 ```
 
-Regenerate fixtures:
+### CI (GitHub Actions)
+
+Workflow: [`.github/workflows/dep-prueftool.yml`](../.github/workflows/dep-prueftool.yml)
+
+| Step | What |
+|------|------|
+| `actions/setup-java@v4` | Temurin JDK **17** |
+| `ensure-bmf-prueftool.ps1` | Official BMF ZIP → `backend/Tests/` (cached) |
+| `verify-rksv-dep-export.ps1 -UseFixtures` | Hard-fail smoke on committed fixtures |
+| `dotnet test --filter Category=DepPrueftool` | (1) committed fixtures via runner helper; (2) **seeded in-memory DB** → `RksvDepExportService.GenerateDepExportAsync` → live Prüftool PASS (`FiskalyDepExportPrueftoolTests`) |
+
+Triggers on `backend/**` and related script/workflow path changes (`pull_request` / `push` to `main`/`master`).
+
+Regenerate fixtures (the script sets `REGKASSE_UPDATE_BASELINE=1`; a plain `dotnet test` run does not rewrite the committed JSON):
 
 ```powershell
-.\scripts\generate-dep-export-fixtures.ps1
+.\scripts\rksv\generate-dep-export-fixtures.ps1
 ```
 
 Verbose / detailed Java output:
 
 ```powershell
-.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json" -DetailedOutput
+.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json" -DetailedOutput
 ```
 
 (`-DetailedOutput` passes `-d` to the BMF checker.)
@@ -152,6 +219,14 @@ Verbose / detailed Java output:
 - On failure, the script prints `DEP-global.json` to the console
 
 ## Common issues
+
+### Empty `Signaturzertifikat` (P2-3 hard-fail)
+
+**Problem:** Leaf signing certificate cannot be resolved for a thumbprint group that has compact JWS receipts.
+
+**Behavior:** `GenerateDepExportAsync` throws `RksvDepExportCertificateMissingException`. Admin API returns **HTTP 500** with `code: RKSV_DEP_EXPORT_MISSING_CERTIFICATE` and `thumbprint`. Empty `Signaturzertifikat` is never emitted in BMF JSON.
+
+**Solution:** Ensure payments/closings store a valid `certificate_thumbprint` and `ITseKeyProvider.GetCertificateByThumbprintAsync` can load the leaf DER for that thumbprint.
 
 ### Certificate chain missing
 
@@ -176,9 +251,10 @@ Verbose / detailed Java output:
 | Error | Solution |
 |-------|----------|
 | Java not found | Install JDK 17+, add `java` to PATH |
-| JAR not found | Ensure `backend/Tests/regkassen-verification-depformat-1.1.1.jar` and `backend/Tests/lib/` exist |
+| JAR not found | Run `pwsh ./scripts/rksv/ensure-bmf-prueftool.ps1` |
 | DEP format invalid | Re-run with `-DetailedOutput` for detailed checker output |
 | Empty `Belege-Gruppe` | No signed rows in period, or all JWS failed validation |
+| `RKSV_DEP_EXPORT_MISSING_CERTIFICATE` (500) | Leaf cert missing for thumbprint group — fix TSE key material / thumbprint stamp |
 | Register not found (404) | Wrong `cashRegisterId`, missing tenant context, or cross-tenant access |
 
 ## Related documentation

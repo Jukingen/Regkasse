@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Backup.PgDump;
 
@@ -28,6 +27,14 @@ public sealed class PgDumpProcessRunner : IPgDumpProcessRunner
         args.Append(" -p ").Append(spec.Port);
         args.Append(" -U ").Append(QuoteArg(spec.User));
         args.Append(" -Fc --no-owner --no-acl ");
+        var z = Math.Clamp(spec.CompressionLevel, 0, 9);
+        args.Append("-Z").Append(z).Append(' ');
+        foreach (var table in spec.ExcludeTables)
+        {
+            if (string.IsNullOrWhiteSpace(table))
+                continue;
+            args.Append("--exclude-table=").Append(QuoteArg(table.Trim())).Append(' ');
+        }
         args.Append("-f ").Append(QuoteArg(spec.OutputFilePath));
         args.Append(' ').Append(QuoteArg(spec.Database));
 
@@ -49,11 +56,13 @@ public sealed class PgDumpProcessRunner : IPgDumpProcessRunner
         var stdout = new StringBuilder();
         proc.ErrorDataReceived += (_, e) =>
         {
-            if (e.Data != null) stderr.AppendLine(e.Data);
+            if (e.Data != null)
+                stderr.AppendLine(e.Data);
         };
         proc.OutputDataReceived += (_, e) =>
         {
-            if (e.Data != null) stdout.AppendLine(e.Data);
+            if (e.Data != null)
+                stdout.AppendLine(e.Data);
         };
 
         _logger.LogInformation(

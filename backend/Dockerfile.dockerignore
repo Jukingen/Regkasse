@@ -1,0 +1,67 @@
+# BuildKit ignore for: docker build -f backend/Dockerfile <repo-root>
+# Keeps the monorepo context small while allowing backend + LicenseGenerator.Core.
+
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+**/.DS_Store
+
+# Other packages (not needed for the API image)
+frontend/
+frontend-admin/
+frontend-sites/
+localization/
+testsprite/
+docs/
+ai/
+scripts/
+deploy/
+monitoring/
+
+# Tools: keep only LicenseGenerator.Core (ProjectReference)
+tools/**
+!tools/LicenseGenerator.Core/
+!tools/LicenseGenerator.Core/**
+
+# Backend junk / tests / local artifacts
+backend/**/bin/
+backend/**/obj/
+backend/**/artifacts/
+backend/**/_test_build_out/
+backend/**/_testout/
+backend/**/_ef_build/
+backend/**/_build_out/
+backend/**/build-migrate-out/
+backend/**/build-test-out/
+backend/**/tmp-build-out/
+backend/**/tmp-pdf-verify/
+backend/**/publish/
+backend/KasseAPI_Final.Tests/
+backend/Tests/
+backend/TestResults/
+backend/**/coverage/
+backend/**/*.trx
+
+# Secrets — bake example JSON only (Dockerfile copies *.example.json → appsettings*.json)
+backend/appsettings.json
+backend/appsettings.Development.json
+backend/appsettings.Production.json
+backend/appsettings.Staging.json
+backend/**/App_Data/
+backend/**/*.pem
+backend/**/*.key
+backend/.env
+backend/.env.*
+!**/.env.example
+
+# Large / generated / docs not needed at runtime
+backend/swagger.json
+backend/**/*.md
+!backend/README.md
+backend/docs/
+**/*.user
+**/*.suo
+**/*nupkg*
+**/node_modules/

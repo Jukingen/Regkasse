@@ -1,19 +1,15 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { Button, Card, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 /**
  * Artefakt listesi ve indirme: satır başına gerçeklik / kurtarılabilirlik / API dosya varlığı sinyali (iyimser etiket yok).
  */
-
 import React, { useCallback, useMemo, useState } from 'react';
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Space, Spin, Table, Tag, Tooltip, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
-import {
-  BackupArtifactDownloadError,
-  downloadBackupArtifactFile,
-} from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { TableSkeleton } from '@/components/Skeleton';
 import {
   type ArtifactDownloadRowTruth,
   type RunDownloadContext,
@@ -28,6 +24,17 @@ import {
   sortArtifactsForOperatorDisplay,
 } from '@/features/backup-dr/logic/backupArtifactDownloadTruth';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
+import {
+  BackupArtifactDownloadError,
+  downloadBackupArtifactFile,
+} from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 
 export type BackupArtifactsDownloadVariant = 'latest_success' | 'last_known_good';
 
@@ -43,6 +50,8 @@ export interface BackupArtifactsDownloadCardProps {
   realPostgreSqlLogicalDumpConfigured?: boolean | null;
   /** Fake/Stub ortamı — başlık ve kapsam metni “gerçek yedek dosyası” ima etmez. */
   simulatedOperationalMode?: boolean;
+  /** When true, download requires privacy ack (system backup). */
+  requireSensitiveSystemGate?: boolean;
   loadingArtifacts?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }
@@ -54,8 +63,10 @@ interface ArtifactRow extends BackupArtifactResponseDto {
 function recoverabilityUseKey(truth: ArtifactDownloadRowTruth): string {
   const m: Record<ArtifactDownloadRowTruth['recoverabilityUse'], string> = {
     not_dr_evidence_simulated: 'backupDr.download.recoverabilityUse.not_dr_evidence_simulated',
-    not_dr_evidence_unverified_adapter: 'backupDr.download.recoverabilityUse.not_dr_evidence_unverified_adapter',
-    possible_operational_artifact: 'backupDr.download.recoverabilityUse.possible_operational_artifact',
+    not_dr_evidence_unverified_adapter:
+      'backupDr.download.recoverabilityUse.not_dr_evidence_unverified_adapter',
+    possible_operational_artifact:
+      'backupDr.download.recoverabilityUse.possible_operational_artifact',
     unknown_recovery_value: 'backupDr.download.recoverabilityUse.unknown_recovery_value',
   };
   return m[truth.recoverabilityUse];
@@ -70,7 +81,9 @@ function filePresenceKey(truth: ArtifactDownloadRowTruth): string {
   return m[truth.filePresence];
 }
 
-function blockedReasonKey(reason: NonNullable<Extract<ArtifactDownloadRowTruth['download'], { state: 'blocked' }>['reason']>): string {
+function blockedReasonKey(
+  reason: NonNullable<Extract<ArtifactDownloadRowTruth['download'], { state: 'blocked' }>['reason']>
+): string {
   const m = {
     no_manage: 'backupDr.download.downloadBlocked.no_manage',
     file_not_on_server: 'backupDr.download.downloadBlocked.file_not_on_server',
@@ -88,10 +101,14 @@ export function BackupArtifactsDownloadCard({
   runAdapterKind,
   realPostgreSqlLogicalDumpConfigured,
   simulatedOperationalMode = false,
+  requireSensitiveSystemGate = false,
   loadingArtifacts = false,
   t,
 }: BackupArtifactsDownloadCardProps) {
   const { message, modal } = useAntdApp();
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
+  const { user } = useAuth();
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -102,7 +119,7 @@ export function BackupArtifactsDownloadCard({
       realPostgreSqlLogicalDumpConfigured,
       canManage,
     }),
-    [isSimulatedExecution, runAdapterKind, realPostgreSqlLogicalDumpConfigured, canManage],
+    [isSimulatedExecution, runAdapterKind, realPostgreSqlLogicalDumpConfigured, canManage]
   );
 
   const simulated =
@@ -119,12 +136,12 @@ export function BackupArtifactsDownloadCard({
 
   const hasNonFakeSuspicionRow = useMemo(
     () => rows.some((r) => r._truth.nonFakeSuspicion !== 'none'),
-    [rows],
+    [rows]
   );
 
   const showNonFakeIntegrityNote = useMemo(
     () => !simulated && rows.some((r) => r._truth.showIntegrityPrecheckDisclaimer),
-    [rows, simulated],
+    [rows, simulated]
   );
 
   const runDownloadBlob = useCallback(
@@ -132,44 +149,91 @@ export function BackupArtifactsDownloadCard({
       const id = artifact.id;
       if (!id) return;
       const fallback = `backup-${runId}-${id}`;
-      setBusyId(id);
-      try {
-        await downloadBackupArtifactFile(runId, id, fallback);
-      } catch (e) {
-        if (e instanceof BackupArtifactDownloadError) {
-          const key =
-            e.code === 'run_not_found'
-              ? 'backupDr.download.errorRunNotFound'
-              : e.code === 'artifact_not_found'
-                ? 'backupDr.download.errorArtifactNotFound'
-                : e.code === 'file_missing'
-                  ? 'backupDr.download.errorFileMissing'
-                  : e.code === 'not_found'
-                    ? 'backupDr.download.errorNotFound'
-                    : e.code === 'conflict'
-                      ? 'backupDr.download.errorConflict'
-                      : e.code === 'storage'
-                        ? 'backupDr.download.errorStorage'
-                        : e.code === 'simulated_not_downloadable'
-                          ? 'backupDr.download.errorSimulated'
-                          : e.code === 'forbidden'
-                            ? 'backupDr.download.errorForbidden'
-                            : e.code === 'unauthorized'
-                              ? 'backupDr.download.errorUnauthorized'
+      const label = t('common.downloadProgress.labelBackup');
+      const executeDownload = async (headers?: Record<string, string>) => {
+        setBusyId(id);
+        try {
+          await progressiveDownload.runCustom({
+            fileName: fallback,
+            label,
+            expectedTotalBytes: artifact.byteSize,
+            execute: async ({ session, onProgress }) => {
+              await downloadBackupArtifactFile(
+                runId,
+                id,
+                fallback,
+                {
+                  session,
+                  onProgress,
+                  label,
+                  expectedSizeBytes: artifact.byteSize,
+                },
+                headers ? { headers } : undefined
+              );
+            },
+          });
+        } catch (e) {
+          if (e instanceof BackupArtifactDownloadError && e.code === 'cancelled') {
+            return;
+          }
+          if (e instanceof BackupArtifactDownloadError) {
+            const key =
+              e.code === 'run_not_found'
+                ? 'backupDr.download.errorRunNotFound'
+                : e.code === 'artifact_not_found'
+                  ? 'backupDr.download.errorArtifactNotFound'
+                  : e.code === 'file_missing'
+                    ? 'backupDr.download.errorFileMissing'
+                    : e.code === 'not_found'
+                      ? 'backupDr.download.errorNotFound'
+                      : e.code === 'conflict'
+                        ? 'backupDr.download.errorConflict'
+                        : e.code === 'storage'
+                          ? 'backupDr.download.errorStorage'
+                          : e.code === 'simulated_not_downloadable'
+                            ? 'backupDr.download.errorSimulated'
+                            : e.code === 'forbidden'
+                              ? 'backupDr.download.errorForbidden'
+                              : e.code === 'unauthorized'
+                                ? 'backupDr.download.errorUnauthorized'
                                 : e.code === 'unknown'
                                   ? 'backupDr.download.errorUnknown'
                                   : e.code === 'empty_payload'
                                     ? 'backupDr.download.errorEmptyPayload'
                                     : 'backupDr.download.error';
-          message.error(t(key));
-          return;
+            message.error(t(key));
+            return;
+          }
+          message.error(t('backupDr.download.error'));
+          throw e;
+        } finally {
+          setBusyId(null);
         }
-        message.error(t('backupDr.download.error'));
-      } finally {
-        setBusyId(null);
+      };
+
+      if (requireSensitiveSystemGate) {
+        sensitiveGate.run({
+          kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+          resourceId: `${runId}:${id}`,
+          isSuperAdmin: isSuperAdmin(user?.role),
+          execute: async (headers) => {
+            await executeDownload(headers);
+          },
+        });
+        return;
       }
+
+      await executeDownload();
     },
-    [runId, t],
+    [
+      message,
+      progressiveDownload,
+      requireSensitiveSystemGate,
+      runId,
+      sensitiveGate,
+      t,
+      user?.role,
+    ]
   );
 
   const onDownloadRow = useCallback(
@@ -196,7 +260,9 @@ export function BackupArtifactsDownloadCard({
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                 {t('backupDr.download.confirmStubNotEmptyFailedBackup')}
               </Typography.Paragraph>
-              <Typography.Text strong>{t('backupDr.download.confirmStubExpectationLead')}</Typography.Text>
+              <Typography.Text strong>
+                {t('backupDr.download.confirmStubExpectationLead')}
+              </Typography.Text>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                 {t(row._truth.contentExpectationKey)}
               </Typography.Paragraph>
@@ -214,7 +280,9 @@ export function BackupArtifactsDownloadCard({
           width: 520,
           content: (
             <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-              <Typography.Paragraph style={{ marginBottom: 0 }}>{t('backupDr.download.confirmUnprovenLogicalLead')}</Typography.Paragraph>
+              <Typography.Paragraph style={{ marginBottom: 0 }}>
+                {t('backupDr.download.confirmUnprovenLogicalLead')}
+              </Typography.Paragraph>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                 {t(row._truth.contentExpectationKey)}
               </Typography.Paragraph>
@@ -228,7 +296,7 @@ export function BackupArtifactsDownloadCard({
       }
       void runDownloadBlob(row);
     },
-    [canManage, runDownloadBlob, simulated, t],
+    [canManage, runDownloadBlob, simulated, t]
   );
 
   const titleKey = (() => {
@@ -237,7 +305,9 @@ export function BackupArtifactsDownloadCard({
         ? 'backupDr.download.titleLastKnownGoodFake'
         : 'backupDr.download.titleLatestSuccessFake';
     }
-    return variant === 'last_known_good' ? 'backupDr.download.titleLastKnownGood' : 'backupDr.download.titleLatestSuccess';
+    return variant === 'last_known_good'
+      ? 'backupDr.download.titleLastKnownGood'
+      : 'backupDr.download.titleLatestSuccess';
   })();
   const scopeKey = (() => {
     if (simulatedOperationalMode) {
@@ -245,160 +315,195 @@ export function BackupArtifactsDownloadCard({
         ? 'backupDr.download.scopeLastKnownGoodFake'
         : 'backupDr.download.scopeLatestSuccessFake';
     }
-    return variant === 'last_known_good' ? 'backupDr.download.scopeLastKnownGood' : 'backupDr.download.scopeLatestSuccess';
+    return variant === 'last_known_good'
+      ? 'backupDr.download.scopeLastKnownGood'
+      : 'backupDr.download.scopeLatestSuccess';
   })();
 
-  const artifactColTitle = simulated ? t('backupDr.download.artifactLabelSimulated') : t('backupDr.download.artifactLabel');
-  const byteColTitle = simulated ? t('backupDr.download.byteSizeColumnSimulated') : t('backupDr.download.byteSizeColumn');
+  const artifactColTitle = simulated
+    ? t('backupDr.download.artifactLabelSimulated')
+    : t('backupDr.download.artifactLabel');
+  const byteColTitle = simulated
+    ? t('backupDr.download.byteSizeColumnSimulated')
+    : t('backupDr.download.byteSizeColumn');
 
   const columns: ColumnsType<ArtifactRow> = useMemo(
     () => [
-    {
-      title: artifactColTitle,
-      key: 'artifact',
-      render: (_: unknown, row, index) => {
-        const k = row._truth.artifactClassLabelKey;
-        const label = t(k);
-        const text = label === k ? t('backupDr.download.types.unknown') : label;
-        const stubRow = simulated || row._truth.sourceExecutionReality === 'simulated_stub';
-        const realityKey = artifactRealityBadgeKey(row._truth.sourceExecutionReality);
-        const summaryKey = contentExpectationTableSummaryKey(
-          row.artifactType,
-          row._truth.sourceExecutionReality,
-          realPostgreSqlLogicalDumpConfigured,
-        );
-        const displayExpectKey = summaryKey ?? row._truth.contentExpectationKey;
-        return (
-          <div>
-            {simulated && rows.length > 1 ? (
-              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
-                {t('backupDr.download.rowPosition', { current: index + 1, total: rows.length })}
-              </Typography.Text>
-            ) : null}
-            <Typography.Text strong>{text}</Typography.Text>
-            <div style={{ marginTop: 6 }}>
-              <Space size={[4, 4]} wrap>
-                <Tag
-                  color={
-                    stubRow ? 'blue' : row._truth.sourceExecutionReality === 'non_simulated' ? 'geekblue' : 'default'
-                  }
+      {
+        title: artifactColTitle,
+        key: 'artifact',
+        render: (_: unknown, row, index) => {
+          const k = row._truth.artifactClassLabelKey;
+          const label = t(k);
+          const text = label === k ? t('backupDr.download.types.unknown') : label;
+          const stubRow = simulated || row._truth.sourceExecutionReality === 'simulated_stub';
+          const realityKey = artifactRealityBadgeKey(row._truth.sourceExecutionReality);
+          const summaryKey = contentExpectationTableSummaryKey(
+            row.artifactType,
+            row._truth.sourceExecutionReality,
+            realPostgreSqlLogicalDumpConfigured
+          );
+          const displayExpectKey = summaryKey ?? row._truth.contentExpectationKey;
+          return (
+            <div>
+              {simulated && rows.length > 1 ? (
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 11, display: 'block', marginBottom: 4 }}
                 >
-                  {t(realityKey)}
-                </Tag>
-                <Tooltip title={t(recoverabilityUseKey(row._truth))}>
-                  <Tag>
-                    {t(recoverabilityUseShortKey(row._truth.recoverabilityUse))}{' '}
-                    <InfoCircleOutlined style={{ fontSize: 11, opacity: 0.75 }} />
+                  {t('backupDr.download.rowPosition', { current: index + 1, total: rows.length })}
+                </Typography.Text>
+              ) : null}
+              <Typography.Text strong>{text}</Typography.Text>
+              <div style={{ marginTop: 6 }}>
+                <Space size={[4, 4]} wrap>
+                  <Tag
+                    color={
+                      stubRow
+                        ? 'blue'
+                        : row._truth.sourceExecutionReality === 'non_simulated'
+                          ? 'geekblue'
+                          : 'default'
+                    }
+                  >
+                    {t(realityKey)}
                   </Tag>
+                  <Tooltip title={t(recoverabilityUseKey(row._truth))}>
+                    <Tag>
+                      {t(recoverabilityUseShortKey(row._truth.recoverabilityUse))}{' '}
+                      <InfoCircleOutlined style={{ fontSize: 11, opacity: 0.75 }} />
+                    </Tag>
+                  </Tooltip>
+                </Space>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Tooltip title={t(row._truth.contentExpectationKey)}>
+                  <Typography.Paragraph
+                    type="secondary"
+                    style={{ fontSize: 12, marginBottom: 0, maxWidth: 360 }}
+                    ellipsis={{ rows: 2, expandable: false }}
+                  >
+                    {summaryKey ? (
+                      <>
+                        <span style={{ fontWeight: 600 }}>
+                          {t('backupDr.download.preDownloadWhatYouGet')}{' '}
+                        </span>
+                        {t(displayExpectKey)}
+                      </>
+                    ) : (
+                      t(row._truth.contentExpectationKey)
+                    )}
+                  </Typography.Paragraph>
                 </Tooltip>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        title: byteColTitle,
+        key: 'byteSize',
+        width: 200,
+        render: (_: unknown, row) => {
+          const suspicionKeys = nonFakeSuspicionMessageKeys(row._truth.nonFakeSuspicion);
+          const footKey = artifactByteSizeFootnoteKey(
+            row.artifactType,
+            row._truth.sourceExecutionReality
+          );
+          return (
+            <div>
+              <Space size={4} wrap align="start">
+                <div>
+                  <Typography.Text type="secondary">
+                    {formatArtifactByteSize(row.byteSize ?? null, t)}
+                  </Typography.Text>
+                  {footKey ? (
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 11, display: 'block', marginTop: 4 }}
+                    >
+                      {t(footKey)}
+                    </Typography.Text>
+                  ) : null}
+                </div>
+                {suspicionKeys ? (
+                  <Tooltip title={t(suspicionKeys.detail)}>
+                    <Tag color="warning" style={{ marginInlineEnd: 0 }}>
+                      {t(suspicionKeys.short)}
+                    </Tag>
+                  </Tooltip>
+                ) : null}
               </Space>
             </div>
-            <div style={{ marginTop: 8 }}>
-              <Tooltip title={t(row._truth.contentExpectationKey)}>
-                <Typography.Paragraph
-                  type="secondary"
-                  style={{ fontSize: 12, marginBottom: 0, maxWidth: 360 }}
-                  ellipsis={{ rows: 2, expandable: false }}
-                >
-                  {summaryKey ? (
-                    <>
-                      <span style={{ fontWeight: 600 }}>{t('backupDr.download.preDownloadWhatYouGet')} </span>
-                      {t(displayExpectKey)}
-                    </>
-                  ) : (
-                    t(row._truth.contentExpectationKey)
-                  )}
-                </Typography.Paragraph>
-              </Tooltip>
-            </div>
-          </div>
-        );
+          );
+        },
       },
-    },
-    {
-      title: byteColTitle,
-      key: 'byteSize',
-      width: 200,
-      render: (_: unknown, row) => {
-        const suspicionKeys = nonFakeSuspicionMessageKeys(row._truth.nonFakeSuspicion);
-        const footKey = artifactByteSizeFootnoteKey(row.artifactType, row._truth.sourceExecutionReality);
-        return (
-          <div>
-            <Space size={4} wrap align="start">
+      {
+        title: t('backupDr.download.filePresenceLabel'),
+        key: 'presence',
+        width: 200,
+        render: (_: unknown, row) => (
+          <Typography.Text
+            type={row._truth.filePresence === 'reported_absent' ? 'danger' : 'secondary'}
+          >
+            {t(filePresenceKey(row._truth))}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: t('backupDr.download.actionLabel'),
+        key: 'dl',
+        width: 160,
+        render: (_: unknown, row) => {
+          const id = row.id;
+          if (!id) return null;
+          const { download } = row._truth;
+          const disabled = download.state !== 'eligible';
+          const stubRow = simulated || row._truth.sourceExecutionReality === 'simulated_stub';
+          const labelKey = stubRow ? 'backupDr.download.buttonStub' : 'backupDr.download.button';
+          const suspicionKeys = nonFakeSuspicionMessageKeys(row._truth.nonFakeSuspicion);
+          const tooltipTitle =
+            download.state === 'blocked' ? (
+              t(blockedReasonKey(download.reason))
+            ) : stubRow ? (
+              t('backupDr.download.downloadStubTooltip')
+            ) : suspicionKeys ? (
               <div>
-                <Typography.Text type="secondary">{formatArtifactByteSize(row.byteSize ?? null, t)}</Typography.Text>
-                {footKey ? (
-                  <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
-                    {t(footKey)}
-                  </Typography.Text>
-                ) : null}
+                <div>{t('backupDr.download.downloadNotProvenUntilRequest')}</div>
+                <div style={{ marginTop: 8 }}>{t(suspicionKeys.detail)}</div>
               </div>
-              {suspicionKeys ? (
-                <Tooltip title={t(suspicionKeys.detail)}>
-                  <Tag color="warning" style={{ marginInlineEnd: 0 }}>
-                    {t(suspicionKeys.short)}
-                  </Tag>
-                </Tooltip>
-              ) : null}
-            </Space>
-          </div>
-        );
+            ) : (
+              t('backupDr.download.downloadNotProvenUntilRequest')
+            );
+          return (
+            <Tooltip title={tooltipTitle}>
+              <span>
+                <Button
+                  type="link"
+                  size="small"
+                  disabled={disabled}
+                  loading={busyId === id}
+                  onClick={() => onDownloadRow(row)}
+                >
+                  {t(labelKey)}
+                </Button>
+              </span>
+            </Tooltip>
+          );
+        },
       },
-    },
-    {
-      title: t('backupDr.download.filePresenceLabel'),
-      key: 'presence',
-      width: 200,
-      render: (_: unknown, row) => (
-        <Typography.Text type={row._truth.filePresence === 'reported_absent' ? 'danger' : 'secondary'}>
-          {t(filePresenceKey(row._truth))}
-        </Typography.Text>
-      ),
-    },
-    {
-      title: t('backupDr.download.actionLabel'),
-      key: 'dl',
-      width: 160,
-      render: (_: unknown, row) => {
-        const id = row.id;
-        if (!id) return null;
-        const { download } = row._truth;
-        const disabled = download.state !== 'eligible';
-        const stubRow = simulated || row._truth.sourceExecutionReality === 'simulated_stub';
-        const labelKey = stubRow ? 'backupDr.download.buttonStub' : 'backupDr.download.button';
-        const suspicionKeys = nonFakeSuspicionMessageKeys(row._truth.nonFakeSuspicion);
-        const tooltipTitle =
-          download.state === 'blocked'
-            ? t(blockedReasonKey(download.reason))
-            : stubRow
-              ? t('backupDr.download.downloadStubTooltip')
-              : suspicionKeys
-                ? (
-                    <div>
-                      <div>{t('backupDr.download.downloadNotProvenUntilRequest')}</div>
-                      <div style={{ marginTop: 8 }}>{t(suspicionKeys.detail)}</div>
-                    </div>
-                  )
-                : t('backupDr.download.downloadNotProvenUntilRequest');
-        return (
-          <Tooltip title={tooltipTitle}>
-            <span>
-              <Button
-                type="link"
-                size="small"
-                disabled={disabled}
-                loading={busyId === id}
-                onClick={() => onDownloadRow(row)}
-              >
-                {t(labelKey)}
-              </Button>
-            </span>
-          </Tooltip>
-        );
-      },
-    },
-  ],
-    [artifactColTitle, byteColTitle, busyId, canManage, onDownloadRow, realPostgreSqlLogicalDumpConfigured, rows.length, simulated, t],
+    ],
+    [
+      artifactColTitle,
+      byteColTitle,
+      busyId,
+      canManage,
+      onDownloadRow,
+      realPostgreSqlLogicalDumpConfigured,
+      rows.length,
+      simulated,
+      t,
+    ]
   );
 
   return (
@@ -420,7 +525,9 @@ export function BackupArtifactsDownloadCard({
           <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>
             {t('backupDr.download.stubZoneAlertTitle')}
           </Typography.Text>
-          <Typography.Paragraph style={{ marginBottom: 8 }}>{t('backupDr.download.stubZoneAlertDescription')}</Typography.Paragraph>
+          <Typography.Paragraph style={{ marginBottom: 8 }}>
+            {t('backupDr.download.stubZoneAlertDescription')}
+          </Typography.Paragraph>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
             {t('backupDr.download.simulatedWarning', { adapter: runAdapterKind ?? '—' })}
           </Typography.Text>
@@ -458,7 +565,9 @@ export function BackupArtifactsDownloadCard({
       ) : null}
 
       {loadingArtifacts ? (
-        <Spin style={{ display: 'block', marginBottom: 12 }} />
+        <div style={{ marginBottom: 12 }}>
+          <TableSkeleton rows={4} cols={4} loading />
+        </div>
       ) : null}
 
       {!loadingArtifacts && artifacts.length === 0 ? (
@@ -493,12 +602,17 @@ export function BackupArtifactsDownloadCard({
       ) : null}
 
       <Table<ArtifactRow>
-        rowKey={(r, i) => r.id ?? `row-${i}-${r.storageLocator ?? 'na'}`}
+        rowKey={(r) =>
+          r.id ??
+          `${r.storageLocator ?? r.artifactType ?? 'artifact'}-${r.contentHashSha256 ?? r.createdAt ?? 'na'}`
+        }
         size="small"
         pagination={false}
         dataSource={rows}
         columns={columns}
       />
+      <DownloadProgressModal {...progressiveDownload.modalProps} />
+      {sensitiveGate.modals}
     </Card>
   );
 }

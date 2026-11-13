@@ -1,8 +1,8 @@
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -48,7 +48,7 @@ public sealed class BackupPostSuccessActivityHook : IBackupPostSuccessOrchestrat
                 .ConfigureAwait(false);
 
             await _activity.TryPublishAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 ActivityEventType.BackupSucceeded,
                 new
                 {

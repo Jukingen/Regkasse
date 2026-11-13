@@ -3,153 +3,187 @@
 /**
  * Protected admin shell: sidebar via `AdminSidebar` (registry + permission filter).
  * Route access: `PermissionRouteGuard` + `ROUTE_PERMISSIONS`. Desktop Sider width: `usePersistedAdminSiderWidth`.
+ * Super Admin mandant gate: `TenantGuard` (modal until tenant context is set).
+ * Session idle timeout (30 min / 5 min warning / auto-logout) lives in `AppLayout` → `useSessionTimeout`
+ * — do not call `useSessionTimeout()` here or timers will run twice.
+ * Global keyboard shortcuts: `AppLayout` → `KeyboardShortcutsProvider` / `useKeyboardShortcuts`
+ * — do not call `useKeyboardShortcuts()` here. Shortcuts help modal is mounted once below.
  */
+import { Drawer, Grid, Layout, theme } from 'antd';
+import React, { ReactNode, Suspense, useEffect, useState } from 'react';
 
-import React, { Suspense, useState, useEffect, ReactNode } from 'react';
-import { Layout, theme, Drawer, Grid } from 'antd';
-import { AuthGate } from '@/shared/auth/AuthGate';
-import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
+import { AdminSidebar } from '@/components/AdminSidebar';
+import { AppLayout } from '@/components/AppLayout';
+import { CommandPaletteShell } from '@/components/CommandPalette';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
+import { MaintenanceBanner } from '@/components/MaintenanceBanner';
+import { MaintenanceLimitedModeAlert } from '@/components/MaintenanceLimitedModeAlert';
+import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
+import { TenantGuard } from '@/components/TenantGuard';
+import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
+import { AdminLayout } from '@/components/admin-layout/AdminLayout';
+import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
+import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
+import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
+import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
+import {
+  ADMIN_SIDER_WIDTH_MAX,
+  ADMIN_SIDER_WIDTH_MIN,
+  clampAdminSiderWidth,
+  usePersistedAdminSiderWidth,
+} from '@/components/admin-layout/usePersistedAdminSiderWidth';
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
+import { AdminShellHeader } from '@/components/layout/Header';
+import { PageLoader } from '@/components/ui/PageLoader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { GracePeriodUrgentWarningHost } from '@/features/license/components/GracePeriodUrgentWarningHost';
+import { LicenseRenewalModalHost } from '@/features/license/components/LicenseRenewalModalHost';
+import { LicenseRenewalRecoveryBanner } from '@/features/license/components/LicenseRenewalRecoveryBanner';
+import { FiscalHostEnvironmentBanners } from '@/features/rksv/components/FiscalHostEnvironmentBanners';
+import { SignaturkarteProgramBanner } from '@/features/signaturkarte-program/components/SignaturkarteProgramBanner';
+import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
+import { TrialStatusBanner } from '@/features/trial/components/TrialStatusBanner';
+import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
+import { AdminVerticalProfileProvider } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { useI18n } from '@/i18n';
 import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
-import { PageLoader } from '@/components/ui/PageLoader';
-import { AdminSidebar } from '@/components/AdminSidebar';
-import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
-import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
-import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
-import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
-import { AdminShellHeader } from '@/components/layout/Header';
-import { CommandPaletteShell } from '@/components/CommandPalette';
-import { AppLayout } from '@/components/AppLayout';
-import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
-import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
-import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
-import {
-    ADMIN_SIDER_WIDTH_MAX,
-    ADMIN_SIDER_WIDTH_MIN,
-    clampAdminSiderWidth,
-    usePersistedAdminSiderWidth,
-} from '@/components/admin-layout/usePersistedAdminSiderWidth';
+import { AuthGate } from '@/shared/auth/AuthGate';
+import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
+
 import sidebarStyles from './protected-layout-sidebar.module.css';
 
 const { Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
 
-export default function DashboardLayout({
-    children,
-}: {
-    children: ReactNode;
-}) {
-    const [collapsed, setCollapsed] = useState(false);
-    const [drawerVisible, setDrawerVisible] = useState(false);
-    const screens = useBreakpoint();
-    const { user, logout } = useAuth();
-    const { t } = useI18n();
-    const { effectiveTheme } = usePersonalization();
-    const menuTheme = effectiveTheme;
-    const { width: sidebarWidth, setWidth: setSidebarWidth } = usePersistedAdminSiderWidth();
-    const {
-        token: { colorBgContainer, borderRadiusLG },
-    } = theme.useToken();
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const screens = useBreakpoint();
+  const { user, logout } = useAuth();
+  const { t } = useI18n();
+  const { effectiveTheme } = usePersonalization();
+  const menuTheme = effectiveTheme;
+  const { width: sidebarWidth, setWidth: setSidebarWidth } = usePersistedAdminSiderWidth();
+  const {
+    token: { colorBgContainer, borderRadiusLG },
+  } = theme.useToken();
 
-    const isMobile = !screens.md;
+  const isMobile = !screens.md;
 
-    useEffect(() => {
-        if (isMobile) {
-            setCollapsed(false);
-        }
-    }, [isMobile]);
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(false);
+    }
+  }, [isMobile]);
 
-    const menuInlineCollapsed = !isMobile && collapsed;
+  const menuInlineCollapsed = !isMobile && collapsed;
 
-    const sidebarShell = (
-        <AdminSidebar
-            collapsed={collapsed}
-            isMobile={isMobile}
-            menuTheme={menuTheme}
-            menuInlineCollapsed={menuInlineCollapsed}
-            onNavigate={() => setDrawerVisible(false)}
-        />
-    );
+  const sidebarShell = (
+    <AdminSidebar
+      collapsed={collapsed}
+      isMobile={isMobile}
+      menuTheme={menuTheme}
+      menuInlineCollapsed={menuInlineCollapsed}
+      onNavigate={() => setDrawerVisible(false)}
+    />
+  );
 
-    // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions (content only).
-    return (
-        <AuthGate mode="protected">
-            <AppLayout>
+  // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions (content only).
+  return (
+    <AuthGate mode="protected">
+      <TenantProvider>
+        <AdminVerticalProfileProvider>
+          <AppLayout>
             <CommandPaletteShell />
-                <Suspense fallback={null}>
-                    <PageLoader />
-                </Suspense>
-                <Layout style={{ minHeight: '100vh' }}>
-                    {!isMobile && (
-                        <Sider
-                            trigger={null}
-                            collapsible
-                            collapsed={collapsed}
-                            theme={menuTheme}
-                            width={clampAdminSiderWidth(sidebarWidth)}
-                            collapsedWidth={80}
-                            className={sidebarStyles.siderRoot}
-                        >
-                            {!collapsed && (
-                                <AdminDesktopSiderResizeHandle
-                                    minWidth={ADMIN_SIDER_WIDTH_MIN}
-                                    maxWidth={ADMIN_SIDER_WIDTH_MAX}
-                                    onWidthChange={setSidebarWidth}
-                                    ariaLabel={t('adminShell.aria.resizeSidebar')}
-                                />
-                            )}
-                            {sidebarShell}
-                        </Sider>
-                    )}
+            {/* Single shortcuts help host; header/user menu open via regkasse:openShortcutsHelp */}
+            <KeyboardShortcutsHelp showTrigger={false} />
+            <FeedbackWidget />
+            <Suspense fallback={null}>
+              <PageLoader />
+            </Suspense>
+            <Layout style={{ minHeight: '100vh' }}>
+              {!isMobile && (
+                <Sider
+                  trigger={null}
+                  collapsible
+                  collapsed={collapsed}
+                  theme={menuTheme}
+                  width={clampAdminSiderWidth(sidebarWidth)}
+                  collapsedWidth={80}
+                  className={sidebarStyles.siderRoot}
+                >
+                  {!collapsed && (
+                    <AdminDesktopSiderResizeHandle
+                      minWidth={ADMIN_SIDER_WIDTH_MIN}
+                      maxWidth={ADMIN_SIDER_WIDTH_MAX}
+                      onWidthChange={setSidebarWidth}
+                      ariaLabel={t('adminShell.aria.resizeSidebar')}
+                    />
+                  )}
+                  {sidebarShell}
+                </Sider>
+              )}
 
-                    <Drawer
-                        title={t('adminShell.branding.drawerTitle')}
-                        placement="left"
-                        onClose={() => setDrawerVisible(false)}
-                        open={drawerVisible}
-                        styles={{ body: { padding: 0 } }}
-                        size={250}
-                    >
-                        {sidebarShell}
-                    </Drawer>
+              <Drawer
+                title={t('adminShell.branding.drawerTitle')}
+                placement="left"
+                onClose={() => setDrawerVisible(false)}
+                open={drawerVisible}
+                styles={{ body: { padding: 0 } }}
+                size={250}
+              >
+                {sidebarShell}
+              </Drawer>
 
-                    <Layout>
-                        <AdminShellHeader
-                            background={colorBgContainer}
-                            isMobile={isMobile}
-                            drawerVisible={drawerVisible}
-                            collapsed={collapsed}
-                            onToggleSidebar={() =>
-                                isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed)
-                            }
-                            user={user}
-                            onLogout={() => void logout()}
-                        />
-                        <Content
-                            style={{
-                                margin: '24px 16px',
-                                padding: 'var(--admin-density-padding, 24px)',
-                                minHeight: 280,
-                                background: colorBgContainer,
-                                borderRadius: borderRadiusLG,
-                                overflow: 'initial',
-                            }}
-                        >
-                            <LicenseExpiryBanner />
-                            <ReadOnlyBanner />
-                            <ImpersonationBanner />
-                            <SuperAdminModeBanner />
-                            <VerwaltungTenantContextGate />
-                            <main id="main-content" tabIndex={-1}>
-                                <SuperAdminTenantGate>
-                                    <PermissionRouteGuard>{children}</PermissionRouteGuard>
-                                </SuperAdminTenantGate>
-                            </main>
-                        </Content>
-                    </Layout>
-                </Layout>
-            </AppLayout>
-        </AuthGate>
-    );
+              <Layout>
+                <AdminShellHeader
+                  background={colorBgContainer}
+                  isMobile={isMobile}
+                  drawerVisible={drawerVisible}
+                  collapsed={collapsed}
+                  onToggleSidebar={() =>
+                    isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed)
+                  }
+                  user={user}
+                  onLogout={() => void logout()}
+                />
+                <Content
+                  style={{
+                    margin: '24px 16px',
+                    padding: 'var(--admin-density-padding, 24px)',
+                    minHeight: 280,
+                    background: colorBgContainer,
+                    borderRadius: borderRadiusLG,
+                    overflow: 'initial',
+                  }}
+                >
+                  <AdminLayout>
+                    <MaintenanceBanner />
+                    <MaintenanceLimitedModeAlert />
+                    <FiscalHostEnvironmentBanners />
+                    <LicenseExpiryBanner />
+                    <TrialStatusBanner />
+                    <SignaturkarteProgramBanner />
+                    <LicenseRenewalRecoveryBanner />
+                    <LicenseRenewalModalHost />
+                    <GracePeriodUrgentWarningHost />
+                    <ReadOnlyBanner />
+                    <ImpersonationBanner />
+                    <RoleMenuPreviewBanner />
+                    <SuperAdminModeBanner />
+                    <VerwaltungTenantContextGate />
+                    <main id="main-content" tabIndex={-1}>
+                      <TenantGuard>
+                        <PermissionRouteGuard>{children}</PermissionRouteGuard>
+                      </TenantGuard>
+                    </main>
+                  </AdminLayout>
+                </Content>
+              </Layout>
+            </Layout>
+          </AppLayout>
+        </AdminVerticalProfileProvider>
+      </TenantProvider>
+    </AuthGate>
+  );
 }

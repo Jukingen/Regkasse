@@ -1,25 +1,40 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useState } from 'react';
-import { Modal, Button, Table, Space, Popconfirm, Tooltip, Empty, Alert, Form, Input, InputNumber, Select, Switch } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { ColumnType } from 'antd/es/table';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  useAdminBenefitDefinitionsList,
-  useCreateAdminBenefitDefinition,
-  useUpdateAdminBenefitDefinition,
-  useDeleteAdminBenefitDefinition,
-  adminBenefitDefinitionsQueryKeys,
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tooltip,
+} from 'antd';
+import type { ColumnType } from 'antd/es/table';
+import React, { useState } from 'react';
+
+import {
+  AppliedBenefitKind,
   type BenefitDefinition,
   type CreateBenefitDefinitionRequest,
-  AppliedBenefitKind,
+  adminBenefitDefinitionsQueryKeys,
+  useAdminBenefitDefinitionsList,
+  useCreateAdminBenefitDefinition,
+  useDeleteAdminBenefitDefinition,
+  useUpdateAdminBenefitDefinition,
 } from '@/api/admin/benefit-definitions';
 import { useAdminCategoriesList } from '@/api/admin/categories';
-import { useQueryClient } from '@tanstack/react-query';
+import { EmptyState } from '@/components/EmptyState';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function BenefitDefinitionsPage() {
@@ -52,7 +67,8 @@ export default function BenefitDefinitionsPage() {
   const benefitKindWatch = Form.useWatch('benefitKind', form);
 
   const definitions = listQuery.data ?? [];
-  const invalidateList = () => queryClient.invalidateQueries({ queryKey: adminBenefitDefinitionsQueryKeys.lists() });
+  const invalidateList = () =>
+    queryClient.invalidateQueries({ queryKey: adminBenefitDefinitionsQueryKeys.lists() });
 
   const handleCreate = () => {
     setEditing(null);
@@ -115,7 +131,11 @@ export default function BenefitDefinitionsPage() {
       invalidateList();
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(editing ? t('benefits.definitions.messages.updateFailed') : t('benefits.definitions.messages.saveFailed'));
+      message.error(
+        editing
+          ? t('benefits.definitions.messages.updateFailed')
+          : t('benefits.definitions.messages.saveFailed')
+      );
     }
   };
 
@@ -159,7 +179,12 @@ export default function BenefitDefinitionsPage() {
       render: (_: unknown, record: BenefitDefinition) => (
         <Space>
           <Tooltip title={t('benefits.shared.edit')}>
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
           </Tooltip>
           <Popconfirm
             title={t('benefits.definitions.popconfirmDeactivate')}
@@ -223,32 +248,60 @@ export default function BenefitDefinitionsPage() {
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}
-        locale={{ emptyText: <Empty description={t('benefits.definitions.emptyList')} /> }}
+        locale={{ emptyText: <EmptyState title={t('benefits.definitions.emptyList')} /> }}
       />
 
       <Modal
-        title={editing ? t('benefits.definitions.modalEditTitle') : t('benefits.definitions.modalCreateTitle')}
+        title={
+          editing
+            ? t('benefits.definitions.modalEditTitle')
+            : t('benefits.definitions.modalCreateTitle')
+        }
         open={modalOpen}
+        forceRender
         onOk={handleSubmit}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditing(null);
+        }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnHidden
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="code" label={t('benefits.shared.code')} rules={[{ required: true, message: t('benefits.definitions.formCodeRequired') }]}>
+          <Form.Item
+            name="code"
+            label={t('benefits.shared.code')}
+            rules={[{ required: true, message: t('benefits.definitions.formCodeRequired') }]}
+          >
             <Input placeholder={t('benefits.definitions.codePlaceholder')} maxLength={50} />
           </Form.Item>
-          <Form.Item name="name" label={t('benefits.shared.name')} rules={[{ required: true, message: t('benefits.definitions.formNameRequired') }]}>
+          <Form.Item
+            name="name"
+            label={t('benefits.shared.name')}
+            rules={[{ required: true, message: t('benefits.definitions.formNameRequired') }]}
+          >
             <Input placeholder={t('benefits.definitions.namePlaceholder')} maxLength={100} />
           </Form.Item>
-          <Form.Item name="benefitKind" label={t('benefits.shared.kind')} rules={[{ required: true }]}>
+          <Form.Item
+            name="benefitKind"
+            label={t('benefits.shared.kind')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Select
               options={[
-                { value: AppliedBenefitKind.PercentageDiscount, label: benefitKindLabel(AppliedBenefitKind.PercentageDiscount) },
-                { value: AppliedBenefitKind.FreeAllowance, label: benefitKindLabel(AppliedBenefitKind.FreeAllowance) },
-                { value: AppliedBenefitKind.BuyXGetY, label: benefitKindLabel(AppliedBenefitKind.BuyXGetY) },
+                {
+                  value: AppliedBenefitKind.PercentageDiscount,
+                  label: benefitKindLabel(AppliedBenefitKind.PercentageDiscount),
+                },
+                {
+                  value: AppliedBenefitKind.FreeAllowance,
+                  label: benefitKindLabel(AppliedBenefitKind.FreeAllowance),
+                },
+                {
+                  value: AppliedBenefitKind.BuyXGetY,
+                  label: benefitKindLabel(AppliedBenefitKind.BuyXGetY),
+                },
               ]}
             />
           </Form.Item>
@@ -259,9 +312,15 @@ export default function BenefitDefinitionsPage() {
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="allowanceScope" label={t('benefits.definitions.formAllowanceScope')}>
-            <Input maxLength={50} placeholder={t('benefits.definitions.formAllowanceScopePlaceholder')} />
+            <Input
+              maxLength={50}
+              placeholder={t('benefits.definitions.formAllowanceScopePlaceholder')}
+            />
           </Form.Item>
-          <Form.Item name="allowanceCategoryId" label={t('benefits.definitions.formAllowanceCategory')}>
+          <Form.Item
+            name="allowanceCategoryId"
+            label={t('benefits.definitions.formAllowanceCategory')}
+          >
             <Select
               allowClear
               placeholder={t('benefits.shared.selectCategory')}
@@ -277,7 +336,8 @@ export default function BenefitDefinitionsPage() {
             rules={[
               {
                 validator(_, value) {
-                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
+                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY)
+                    return Promise.resolve();
                   if (value == null || value === '' || Number(value) < 1) {
                     return Promise.reject(new Error(t('benefits.definitions.validationBuyX')));
                   }
@@ -296,7 +356,8 @@ export default function BenefitDefinitionsPage() {
             rules={[
               {
                 validator(_, value) {
-                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
+                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY)
+                    return Promise.resolve();
                   if (value == null || value === '' || Number(value) < 1) {
                     return Promise.reject(new Error(t('benefits.definitions.validationGetY')));
                   }

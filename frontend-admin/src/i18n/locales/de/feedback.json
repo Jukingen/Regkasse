@@ -1,0 +1,64 @@
+{
+  "fabLabel": "Feedback",
+  "fabAria": "Feedback-Formular öffnen",
+  "drawerTitle": "Feedback senden",
+  "drawerSubtitle": "Teilen Sie uns Bedienbarkeit, Leistung, Ideen oder Fehler mit. Wir prüfen Einsendungen wöchentlich.",
+  "tabs": {
+    "submit": "Neues Feedback",
+    "mine": "Mein Feedback"
+  },
+  "form": {
+    "category": "Kategorie",
+    "categoryRequired": "Bitte eine Kategorie wählen",
+    "title": "Titel",
+    "titleRequired": "Bitte einen kurzen Titel eingeben",
+    "message": "Details",
+    "messageRequired": "Bitte beschreiben Sie Ihr Feedback (mindestens 10 Zeichen)",
+    "rating": "Bewertung (optional)",
+    "ratingHelp": "1 = schlecht, 5 = ausgezeichnet (Bedienbarkeit / Leistung)",
+    "includePage": "Aktuelle Seite anhängen",
+    "submit": "Absenden",
+    "success": "Danke — Ihr Feedback wurde gesendet.",
+    "error": "Feedback konnte nicht gesendet werden. Bitte erneut versuchen."
+  },
+  "categories": {
+    "EaseOfUse": "Bedienbarkeit",
+    "Performance": "Leistung",
+    "FeatureRequest": "Funktionswunsch",
+    "Bug": "Fehler"
+  },
+  "statuses": {
+    "UnderReview": "In Prüfung",
+    "InProgress": "In Arbeit",
+    "Implemented": "Umgesetzt",
+    "Declined": "Abgelehnt",
+    "Duplicate": "Duplikat"
+  },
+  "mine": {
+    "empty": "Sie haben noch kein Feedback gesendet.",
+    "loadError": "Ihr Feedback konnte nicht geladen werden.",
+    "reviewerNote": "Team-Hinweis",
+    "updated": "Aktualisiert"
+  },
+  "inbox": {
+    "pageTitle": "Benutzer-Feedback",
+    "pageSubtitle": "Wöchentlicher Review-Posteingang — Status aktualisieren, damit Absender den Fortschritt im Widget sehen.",
+    "filterStatus": "Status",
+    "filterCategory": "Kategorie",
+    "all": "Alle",
+    "tenant": "Mandant",
+    "submitter": "Absender",
+    "created": "Erstellt",
+    "actions": "Aktionen",
+    "updateStatus": "Status aktualisieren",
+    "note": "Prüfnotiz (sichtbar für Absender)",
+    "save": "Speichern",
+    "saved": "Status aktualisiert.",
+    "loadError": "Feedback-Posteingang konnte nicht geladen werden.",
+    "empty": "Noch kein Feedback."
+  },
+  "process": {
+    "weeklyTitle": "Wöchentliches Feedback-Review",
+    "weeklyHint": "Jeden Montag: „In Prüfung“ triagieren, In Arbeit / Umgesetzt / Abgelehnt setzen und kurze Notizen für Operatoren hinterlassen."
+  }
+}

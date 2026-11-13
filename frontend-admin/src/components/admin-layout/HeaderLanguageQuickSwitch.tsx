@@ -4,11 +4,12 @@
  * Top-bar UI language: `setTextLocale` → `setStoredLanguage` (`app_language`).
  * Shows only the active locale code (de / en / tr) — no visible title or globe icon.
  */
-import { useMemo } from 'react';
-import { Button, Dropdown } from 'antd';
-import type { MenuProps } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
-import { useI18n, type TextLocale } from '@/i18n';
+import type { MenuProps } from 'antd';
+import { Button, Dropdown } from 'antd';
+import { useMemo } from 'react';
+
+import { type TextLocale, useI18n } from '@/i18n';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 
 const UI_LANGUAGE_OPTIONS: ReadonlyArray<{ code: TextLocale; name: string; flag: string }> = [
@@ -36,7 +37,7 @@ export function HeaderLanguageQuickSwitch() {
           </span>
         ),
       })),
-    [textLocale],
+    [textLocale]
   );
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {

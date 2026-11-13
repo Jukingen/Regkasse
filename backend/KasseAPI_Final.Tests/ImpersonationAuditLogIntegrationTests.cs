@@ -20,7 +20,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ImpersonationAudit_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AuditLogService CreateAuditService(AppDbContext context, ClaimsPrincipal? user = null)
@@ -36,6 +36,8 @@ public sealed class ImpersonationAuditLogIntegrationTests
 
         var actorResolver = new Mock<IActorDisplayNameResolver>();
         actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        actorResolver.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
             .ReturnsAsync(new Dictionary<string, string>());
 
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();
@@ -73,7 +75,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
             "super-1",
             Roles.SuperAdmin);
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.Equal("super-1", row.ImpersonatedBy);
         Assert.Equal(tenantId, row.ImpersonatedTenantId);
     }
@@ -91,9 +93,9 @@ public sealed class ImpersonationAuditLogIntegrationTests
             "super-2",
             Roles.SuperAdmin,
             tenantId,
-            "cafe");
+            "dev");
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.Equal(AuditLogActions.TENANT_IMPERSONATION_STARTED, row.Action);
         Assert.Equal("super-2", row.ImpersonatedBy);
         Assert.Equal(tenantId, row.ImpersonatedTenantId);

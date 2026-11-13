@@ -21,13 +21,29 @@ public sealed class TagesabschlussSchemaRequiredFilter : ISchemaFilter
 
         if (context.Type == typeof(TagesabschlussResult))
         {
-            Require(openApiSchema, "success", "closingDate", "totalAmount", "totalTaxAmount", "transactionCount", "paymentsWithoutInvoiceCount");
+            Require(
+                openApiSchema,
+                "success",
+                "closingDate",
+                "createdAt",
+                "totalAmount",
+                "totalTaxAmount",
+                "transactionCount",
+                "paymentsWithoutInvoiceCount",
+                "isBackdated",
+                "isEmpty");
             return;
         }
 
         if (context.Type == typeof(TagesabschlussCanCloseResponse))
         {
-            Require(openApiSchema, "canClose", "paymentsWithoutInvoiceCount");
+            Require(
+                openApiSchema,
+                "canClose",
+                "paymentsWithoutInvoiceCount",
+                "isBackdated",
+                "transactionCount",
+                "isEmptyDay");
             return;
         }
 

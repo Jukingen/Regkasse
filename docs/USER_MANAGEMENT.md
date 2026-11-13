@@ -1,11 +1,11 @@
 # User management (platform vs tenant)
 
-> **Audience:** Super Admin, tenant Managers, FA maintainers.  
+> **Audience:** Super Admin, Mandanten-Admins (`Manager`), FA maintainers.  
 > **UI:** German (de-AT). **Technical:** English.
 
 Explains **platform users** vs **tenant (Mandant) users**, **direct user creation** (no invitation emails), password handoff, reset, and remove-vs-delete semantics.
 
-Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API).
+Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API), [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) (SuperAdmin TOTP).
 
 ---
 
@@ -28,50 +28,57 @@ flowchart TB
 | Scope | German (UI) | Who manages | Tenant context |
 |-------|-------------|-------------|----------------|
 | **Platform** | Plattform-Benutzer | Super Admin only | None (`admin.regkasse.at`) |
-| **Tenant** | Mandanten-Benutzer | Super Admin (any tenant) or Manager (own tenant) | Fixed by host / impersonation / membership |
+| **Tenant** | Mandanten-Benutzer | Super Admin (any tenant) or Mandanten-Admin (`Manager`, own tenant) | JWT `tenant_id` / impersonation / membership on shared FA host `admin.regkasse.at` (not `{slug}` FA hosts) |
 
 **Code helper:** `isPlatformUserRole()` — only `SuperAdmin` is treated as a platform operator role (`frontend-admin/src/features/users/utils/userScope.ts`).
 
 ---
 
-## Roles and permissions (summary)
+## Roles
 
-| Role (EN) | Typical use | Tenant membership |
-|-----------|-------------|-------------------|
-| **SuperAdmin** | Regkasse operations, tenant lifecycle | Platform; not business staff |
-| **Manager** | Tenant admin, settings, users, reports | Required |
-| **Cashier** | POS / payments | Required |
-| **Accountant** | Reports, exports | Required |
-| **Waiter / Kitchen** | POS workflows (where enabled) | Optional per deployment |
+| Backend role | UI (de) | Typical use | Tenant membership |
+|--------------|---------|-------------|-------------------|
+| **SuperAdmin** | Super-Administrator | Regkasse operations, tenant lifecycle | Platform; not business staff |
+| **Manager** | **Mandanten-Admin** | Tenant administrator — users, settings, reports, **backup manage** (`backup.manage`) | Required |
+| **Cashier** | Kassierer | POS / payments | Required |
+| **Accountant** | Buchhaltung | Reports, exports | Required |
+| **Waiter** / **Kitchen** | Kellner / Küche | POS workflows (where enabled) | Optional per deployment |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports | Required when used |
+
+**Mandanten-Admin (`Manager`)** — tenant administrator:
+
+- Can create/edit/deactivate users within the tenant (when `users.manage` granted)
+- Can reset passwords for tenant users (policy-dependent)
+- Has tenant-scoped permissions via `RolePermissionMatrix` (not platform Super Admin)
 
 Authorization is **permission-first** on the API (`[HasPermission(AppPermissions.UserManage)]`); FA gates menus via `usersPolicy` and role checks.
 
-**Tenant create roles:** `Manager`, `Cashier`, `Accountant`, `Waiter`, `Kitchen` — `TENANT_CREATE_ROLES` in FA.
+**Tenant create roles (API values):** `Manager`, `Cashier`, `Accountant`, `Waiter`, `Kitchen` — `TENANT_CREATE_ROLES` in FA. UI shows **Mandanten-Admin** for `Manager`.
 
 ---
 
 ## Routes and UI surfaces
 
-### Access & roles hub (tenant Manager / Super Admin)
+### Access & roles hub (Mandanten-Admin / Super Admin)
 
 Since 2026-06, operational RBAC is grouped under **Verwaltung → Zugriff & Rollen**:
 
 | Route | German (nav) | Notes |
 |-------|--------------|-------|
 | `/admin/access` | Übersicht | Hub landing cards |
-| `/admin/users` | Benutzer | Tenant user list + lifecycle (Manager); Super Admin uses unified view at `/users` → `/admin/users` |
+| `/admin/users` | Benutzer | Tenant user list + lifecycle (Mandanten-Admin); Super Admin uses unified view at `/users` → `/admin/users` |
 | `/admin/access/roles` | Rollen & Berechtigungen | Full-page role + permission editor |
 | `/admin/access/matrix` | Berechtigungsübersicht | Read-only matrix |
 
 Technical reference: [`frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`](../frontend-admin/docs/ACCESS_AND_ROLES_HUB.md).
 
-Admin JWT/`/me` permissions are filtered for FA via `AdminAppPermissionProfile` (Cashier admin whitelist; Manager without POS-terminal keys). Menu visibility contract: `npm run test:contract` in `frontend-admin`.
+Admin JWT/`/me` permissions are filtered for FA via `AdminAppPermissionProfile` (Cashier admin whitelist; Mandanten-Admin without POS-terminal keys). Menu visibility contract: `npm run test:contract` in `frontend-admin`.
 
 ### Legacy / other surfaces
 
 | Surface | Route | Component |
 |---------|-------|-----------|
-| Combined users page | `/users` or `/admin/users` | `UnifiedAdminUsersView` (Super Admin), tenant list (Manager) |
+| Combined users page | `/users` or `/admin/users` | `UnifiedAdminUsersView` (Super Admin), tenant list (Mandanten-Admin) |
 | Tenant detail users | `/admin/tenants/{tenantId}` → Benutzer | `TenantUsersTabCore`, `TenantDetailUsersTab` |
 | Create user modal | (modal) | `CreateUserModal` — form + one-time password modal |
 | Add existing user | (modal, tenant detail) | `AddExistingUserModal` |
@@ -106,11 +113,24 @@ Backend (`TenantUserService.CreateAsync`):
 1. `POST /api/admin/users` without `tenantId` — email + role (e.g. `SuperAdmin`)
 2. Response: `AdminCreateUserResponseDto` with `generatedPassword` (shown once in FA)
 
-### Tenant Admin (Manager) — fixed tenant
+### Tenant Admin (Mandanten-Admin / `Manager`) — fixed tenant
 
-1. Open `/users` on tenant host (`{slug}.regkasse.at`)
+1. Open `/users` on FA (`https://admin.regkasse.at`) while in the mandant JWT/impersonation session
 2. **Benutzer anlegen** — same modal; tenant is implicit from JWT (no mandant picker)
 3. Cannot create users for other tenants
+
+Optional username: omit `userName` for auto-generation (`{rolePrefix}{n}`) or set an explicit username — see [`API_CONTRACTS.md`](API_CONTRACTS.md) and [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) (SuperAdmin 2FA is separate from user create).
+
+### Mandanten-Admin — backup (tenant-scoped)
+
+Mandanten-Admins (`Manager`) have **`backup.manage`** by default (not `settings.manage`). They can:
+
+- Use the backup hub at **`/backup`** (`TenantBackupView`; legacy `/settings/backup-dr` and `/admin/backup` redirect here)
+- Enqueue manual backup and edit schedule/retention for their **JWT-bound tenant**
+
+They cannot change execution mode, download deployment artifacts, or run restore drills (Super Admin / `settings.manage`).
+
+Authorization requires resolved tenant context on trigger; cross-tenant trigger is not accepted from the client. See [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
 
 ### Frontend mutation pattern
 
@@ -153,7 +173,7 @@ Use when the person already has an account (e.g. works at another mandant). Does
 | **Force change** | Same flag as create; operator delivers password securely |
 | **Onboarding admin** | Provisioning wizard still may use welcome email (`WelcomeEmailService`) — separate from day-to-day user create |
 
-SMTP is **not** required for tenant user creation or password reset. Optional `Email:Smtp` remains only for **tenant onboarding welcome** mail (see [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)).
+SMTP is **not** required for tenant user creation or password reset. Optional `Email:Smtp` is documented in [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md) (onboarding welcome, forgot-username/password, activity alerts, etc.).
 
 ---
 
@@ -167,13 +187,13 @@ SMTP is **not** required for tenant user creation or password reset. Optional `E
 
 **Important:** Removing a user from a tenant is **not** the same as deleting the Identity account.
 
-**Owner:** At most one active **Owner** per tenant (`is_owner=true` on `user_tenant_memberships`). Drives switcher 🟢/🟡 status.
+**Owner:** At most one active **Owner** per tenant (`is_owner=true` on `user_tenant_memberships`). Drives switcher 🟢/🟡 status. UI badge: **Hauptadministrator** (de) — distinct from the **Mandanten-Admin** role label (`Manager`).
 
 ---
 
-## Super Admin vs Manager capabilities
+## Super Admin vs Mandanten-Admin capabilities
 
-| Action | Super Admin | Manager (tenant) |
+| Action | Super Admin | Mandanten-Admin (`Manager`) |
 |--------|-------------|------------------|
 | List platform users | ✅ | ❌ |
 | Create user in any tenant | ✅ | Own tenant only |

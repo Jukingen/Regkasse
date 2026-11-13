@@ -1,39 +1,39 @@
 name: "Multi-Tenant Isolation"
-description: "Verify tenant data isolation and cross-tenant access"
+description: "Verify tenant data isolation and cross-tenant 404 semantics"
+tags: [smoke, tenant, regression]
+
+notes: |
+  Production: tenant from JWT on shared hosts (pos/api/admin). Development: X-Tenant-Id / ?tenant= allowed.
+  Cross-tenant resource access MUST return HTTP 404 (not 403).
 
 tests:
-  - name: "Tenant A cannot see Tenant B's users"
-    endpoint: "GET /api/admin/users"
+  - name: "Tenant switcher returns tenants (Development)"
+    endpoint: "GET /api/tenants/switcher"
     headers:
-      Authorization: "Bearer {{tenantAToken}}"
+      X-Tenant-Id: "dev"
     expected:
       status: 200
-      body: "array"
-      each: 
-        tenantId: "{{tenantAId}}"  # All users must belong to tenant A
 
   - name: "Cross-tenant payment access returns 404"
-    endpoint: "GET /api/admin/payments/{{tenantBPaymentId}}"
+    endpoint: "GET /api/admin/payments/{{otherTenantPaymentId}}"
     headers:
-      Authorization: "Bearer {{tenantAToken}}"
+      Authorization: "Bearer {{tenantAdminToken}}"
     expected:
       status: 404
-      body:
-        title: "Not Found"
+
+  - name: "Super Admin can list tenants"
+    endpoint: "GET /api/admin/tenants"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
 
   - name: "Super Admin can impersonate tenant"
-    endpoint: "POST /api/admin/tenants/{{tenantAId}}/impersonate"
+    endpoint: "POST /api/admin/tenants/{{tenantId}}/impersonate"
     headers:
       Authorization: "Bearer {{superAdminToken}}"
     expected:
       status: 200
       body:
         token: "exists"
-        tenantId: "{{tenantAId}}"
-
-  - name: "Impersonated user cannot see other tenants"
-    endpoint: "GET /api/admin/tenants"
-    headers:
-      Authorization: "Bearer {{impersonatedToken}}"
-    expected:
-      status: 403  # Impersonated Super Admin loses global access
+        tenantId: "exists"

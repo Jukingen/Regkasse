@@ -1,6 +1,6 @@
 # Access & roles hub (Zugriff & Rollen)
 
-**Audience:** Frontend-admin maintainers, QA, Super Admin / Manager operators.  
+**Audience:** Frontend-admin maintainers, QA, Super Admin / Mandanten-Admin operators.  
 **UI language:** German (de-AT). **Technical docs:** English.
 
 Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Zugriff & Rollen** instead of scattering user and role tools across unrelated menu leaves.
@@ -9,12 +9,13 @@ Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Z
 
 ## Routes
 
-| Route | Purpose | Route guard (`routePermissions.ts`) |
-|-------|---------|-------------------------------------|
-| `/admin/access` | Hub landing (overview cards) | `USER_VIEW` |
-| `/admin/users` | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW` |
-| `/admin/access/roles` | Role CRUD + permission editor (full page) | `ROLE_VIEW` |
-| `/admin/access/matrix` | Read-only role ↔ permission matrix summary | `ROLE_VIEW` |
+| Route                  | Purpose                                             | Route guard (`routePermissions.ts`) |
+| ---------------------- | --------------------------------------------------- | ----------------------------------- |
+| `/admin/access`        | Hub landing (overview cards)                        | `USER_VIEW`                         |
+| `/admin/users`         | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW`                         |
+| `/admin/sessions`      | Active Admin + POS sessions; logout (not current)   | `USER_VIEW` (logout: `USER_MANAGE`) |
+| `/admin/access/roles`  | Role CRUD + permission editor (full page)           | `ROLE_MANAGE`                       |
+| `/admin/access/matrix` | Read-only role ↔ permission matrix summary          | `ROLE_VIEW`                         |
 
 Super Admin platform mode uses **`/users`** (redirects to `/admin/users` when needed) with `UnifiedAdminUsersView`; the access hub secondary nav is hidden for Super Admin layout.
 
@@ -29,6 +30,7 @@ Sidebar registry (`src/shared/adminSidebarRegistry.ts`):
 - **Verwaltung** group contains nested **`grp-access`** (Zugriff & Rollen):
   - Overview → `/admin/access`
   - Benutzer → `/admin/users`
+  - Sitzungen → `/admin/sessions`
   - Rollen & Berechtigungen → `/admin/access/roles`
   - Berechtigungsübersicht → `/admin/access/matrix`
 
@@ -42,14 +44,14 @@ Secondary tabs on hub pages: `AccessSecondaryNav` (Settings-style horizontal nav
 
 Do **not** duplicate RBAC logic in the hub UI.
 
-| Layer | Responsibility |
-|-------|----------------|
-| Backend | `RolePermissionMatrix.cs` — canonical role → permission keys |
+| Layer              | Responsibility                                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Backend            | `RolePermissionMatrix.cs` — canonical role → permission keys                                                                      |
 | Admin login filter | `AdminAppPermissionProfile.cs` — JWT + `/me` permissions when `app_context=admin` (strips POS-only keys; Cashier admin whitelist) |
-| Frontend `/me` | Same filtered permission list as JWT |
-| Menus | `adminSidebarRegistry.ts` + `usePermissions()` |
-| Routes | `routePermissions.ts` |
-| Page actions | `usersPolicy`, `usePermissions()`, feature-level guards |
+| Frontend `/me`     | Same filtered permission list as JWT                                                                                              |
+| Menus              | `adminSidebarRegistry.ts` + `usePermissions()`                                                                                    |
+| Routes             | `routePermissions.ts`                                                                                                             |
+| Page actions       | `usersPolicy`, `usePermissions()`, feature-level guards                                                                           |
 
 Contract tests:
 
@@ -63,12 +65,14 @@ Contract tests:
 Cashier (and other POS-primary roles) may sign in to FA in controlled cases. After login:
 
 - Backend filters claims to **`AdminAppPermissionProfile`** (catalog subset for admin UI).
-- Manager: admin permissions minus explicit POS-terminal keys.
+- Mandanten-Admin (`Manager`): admin permissions minus explicit POS-terminal keys.
 - Cashier: small whitelist (`product.view`, `category.view`, `modifier.view`, `payment.view`, `report.view`).
 
 POS continues to use full matrix permissions from login without admin filter.
 
 Key files: `backend/Authorization/AdminAppPermissionProfile.cs`, `TokenClaimsService.cs`, `AuthController.cs` (`/api/Auth/login`, `/api/Auth/me`).
+
+**Backup (Mandanten-Admin):** default role includes `backup.manage` (trigger + schedule) and `settings.view` (read routes). Platform backup surfaces (execution mode, artifact download) remain `settings.manage`. Details: [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md).
 
 ---
 

@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Models;
 using System.Linq.Expressions;
+using KasseAPI_Final.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data.Repositories
 {
@@ -64,8 +64,8 @@ namespace KasseAPI_Final.Data.Repositories
         /// Sayfalama ile entity'leri getir
         /// </summary>
         public virtual async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
-            int pageNumber, 
-            int pageSize, 
+            int pageNumber,
+            int pageSize,
             Expression<Func<T, bool>>? predicate = null,
             Expression<Func<T, object>>? orderBy = null,
             bool ascending = true)

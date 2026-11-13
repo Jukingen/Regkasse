@@ -3,41 +3,55 @@
  * Generated + custom çağrıları normalize eder; query key ve hata adaptörü tek yerde.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import type {
+  CreateRoleRequest,
+  CreateUserRequest,
+  ResetPasswordRequest,
+  UpdateUserRequest,
+  UserInfo,
+} from '@/api/generated/model';
 import {
-  postApiUserManagement,
-  putApiUserManagementId,
-  putApiUserManagementIdResetPassword,
   getApiUserManagementId,
   getApiUserManagementRoles,
+  postApiUserManagement,
   postApiUserManagementRoles,
+  putApiUserManagementId,
+  putApiUserManagementIdResetPassword,
 } from '@/api/generated/user-management/user-management';
 import { customInstance } from '@/lib/axios';
-import { authStorage } from '@/features/auth/services/authStorage';
+
 import {
-  getUsersList as getUsersListFromApi,
-  deactivateUser as deactivateUserFromApi,
-  reactivateUser as reactivateUserFromApi,
-} from './usersApi';
-import type { CreateUserRequest, UpdateUserRequest, ResetPasswordRequest, UserInfo } from '@/api/generated/model';
-import type { CreateRoleRequest } from '@/api/generated/model';
-import type { UsersListParams, DeactivateUserRequest, ReactivateUserRequest } from './usersApi';
-import {
+  deleteRole as deleteRoleFromApi,
   getPermissionsCatalog as getPermissionsCatalogFromApi,
   getRolesWithPermissions as getRolesWithPermissionsFromApi,
   updateRolePermissions as updateRolePermissionsFromApi,
-  deleteRole as deleteRoleFromApi,
 } from './roleManagementApi';
-export type { PermissionCatalogItemDto, RoleWithPermissionsDto, UiCapabilitiesDto, PermissionGroupDto } from './roleManagementApi';
+import type { DeactivateUserRequest, ReactivateUserRequest, UsersListParams } from './usersApi';
+import {
+  deactivateUser as deactivateUserFromApi,
+  getUsersList as getUsersListFromApi,
+  reactivateUser as reactivateUserFromApi,
+} from './usersApi';
+
+export type {
+  PermissionCatalogItemDto,
+  PermissionGroupDto,
+  RoleWithPermissionsDto,
+  UiCapabilitiesDto,
+} from './roleManagementApi';
 
 // --- Query keys (invalidation tek yerden) ---
 export const listQueryKey = ['/api/UserManagement'] as const;
 export const rolesQueryKey = ['/api/UserManagement/roles'] as const;
 export const rolesWithPermissionsQueryKey = ['/api/UserManagement/roles/with-permissions'] as const;
-export const permissionsCatalogQueryKey = ['/api/UserManagement/roles/permissions-catalog'] as const;
+export const permissionsCatalogQueryKey = [
+  '/api/UserManagement/roles/permissions-catalog',
+] as const;
 
 // --- Liste (server-side pagination + birleşik filtre) ---
 export { getUsersListFromApi as getUsersList };
-export type { UsersListParams, UsersListResponse, UsersListPagination } from './usersApi';
+export type { UsersListPagination, UsersListParams, UsersListResponse } from './usersApi';
 
 // --- Tekil kullanıcı (edit drawer için tam DTO, Notes dahil) ---
 /** Pick first defined from possible backend key names (camelCase, PascalCase, snake_case, etc.). */
@@ -59,9 +73,12 @@ function normalizeUserInfo(raw: Record<string, unknown>): UserInfo {
     email: pick<string>(raw, 'email', 'Email') ?? undefined,
     firstName: pick<string>(raw, 'firstName', 'FirstName') ?? '',
     lastName: pick<string>(raw, 'lastName', 'LastName') ?? '',
-    employeeNumber: pick<string>(raw, 'employeeNumber', 'EmployeeNumber', 'employeeNo', 'employee_no') ?? undefined,
+    employeeNumber:
+      pick<string>(raw, 'employeeNumber', 'EmployeeNumber', 'employeeNo', 'employee_no') ??
+      undefined,
     role: pick<string>(raw, 'role', 'Role', 'roleId', 'roleName') ?? undefined,
-    taxNumber: pick<string>(raw, 'taxNumber', 'TaxNumber', 'taxNo', 'tax_no', 'vatNumber') ?? undefined,
+    taxNumber:
+      pick<string>(raw, 'taxNumber', 'TaxNumber', 'taxNo', 'tax_no', 'vatNumber') ?? undefined,
     notes: pick<string>(raw, 'notes', 'Notes', 'comment', 'description') ?? undefined,
     isActive: pick<boolean>(raw, 'isActive', 'IsActive') ?? true,
     createdAt: pick<string>(raw, 'createdAt', 'CreatedAt') ?? undefined,
@@ -97,16 +114,10 @@ export async function updateUser(id: string, data: UpdateUserRequest): Promise<v
   return putApiUserManagementId(id, data);
 }
 
-/** Reset password (admin): ensures Bearer token is sent; fails fast if not authenticated. */
+/** Reset password (admin). Session is the HttpOnly cookie (withCredentials). */
 export async function resetPassword(id: string, data: ResetPasswordRequest): Promise<void> {
-  const token = typeof window !== 'undefined' ? authStorage.getToken() : null;
-  if (!token) {
-    return Promise.reject(
-      Object.assign(new Error('Nicht angemeldet. Bitte erneut anmelden.'), { response: { status: 401, data: { message: 'Nicht angemeldet. Bitte erneut anmelden.' } } })
-    );
-  }
   return putApiUserManagementIdResetPassword(id, data, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -119,9 +130,39 @@ export interface TemporaryPasswordResponse {
   forcePasswordChangeOnNextLogin: boolean;
 }
 
-export async function generateTemporaryPassword(userId: string): Promise<TemporaryPasswordResponse> {
+function tenantUserPasswordUrl(
+  tenantId: string,
+  userId: string,
+  action: 'reset-password' | 'generate-temporary-password'
+): string {
+  const user = userId.trim();
+  if (!user) {
+    throw new Error('userId is required');
+  }
+  const tenant = tenantId.trim();
+  if (!tenant) {
+    return `/api/admin/users/${encodeURIComponent(user)}/${action}`;
+  }
+  return `/api/admin/tenants/${encodeURIComponent(tenant)}/users/${encodeURIComponent(user)}/${action}`;
+}
+
+export async function generateTemporaryPassword(
+  tenantId: string,
+  userId: string
+): Promise<TemporaryPasswordResponse> {
   return customInstance<TemporaryPasswordResponse>({
-    url: `/api/admin/users/${userId}/generate-temporary-password`,
+    url: tenantUserPasswordUrl(tenantId, userId, 'generate-temporary-password'),
+    method: 'POST',
+  });
+}
+
+/** Manager tenant-scoped password reset — generates password once; user must change on next login. */
+export async function resetUserPasswordWithGeneration(
+  tenantId: string,
+  userId: string
+): Promise<TemporaryPasswordResponse> {
+  return customInstance<TemporaryPasswordResponse>({
+    url: tenantUserPasswordUrl(tenantId, userId, 'reset-password'),
     method: 'POST',
   });
 }
@@ -130,7 +171,8 @@ export function useGenerateTemporaryPasswordMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: generateTemporaryPassword,
+    mutationFn: ({ tenantId, userId }: { tenantId: string; userId: string }) =>
+      generateTemporaryPassword(tenantId, userId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       void queryClient.invalidateQueries({ queryKey: listQueryKey });
@@ -144,10 +186,7 @@ export const getRolesWithPermissions = getRolesWithPermissionsFromApi;
 export const updateRolePermissions = updateRolePermissionsFromApi;
 export const deleteRole = deleteRoleFromApi;
 
-export {
-  deactivateUserFromApi as deactivateUser,
-  reactivateUserFromApi as reactivateUser,
-};
+export { deactivateUserFromApi as deactivateUser, reactivateUserFromApi as reactivateUser };
 export type { DeactivateUserRequest, ReactivateUserRequest } from './usersApi';
 
 // --- Hata adaptörü (backend { message } / { code, reason } tek forma) ---
@@ -170,9 +209,23 @@ function firstValidationMessage(errors: unknown): string | undefined {
   return undefined;
 }
 
-export function normalizeError(error: unknown, fallbackMessage: string = FALLBACK_MESSAGE): NormalizedError {
+export function normalizeError(
+  error: unknown,
+  fallbackMessage: string = FALLBACK_MESSAGE
+): NormalizedError {
   if (error == null) return { message: fallbackMessage };
-  const err = error as { response?: { data?: { message?: string; reason?: string; code?: string; errors?: unknown; [k: string]: unknown } }; message?: string };
+  const err = error as {
+    response?: {
+      data?: {
+        message?: string;
+        reason?: string;
+        code?: string;
+        errors?: unknown;
+        [k: string]: unknown;
+      };
+    };
+    message?: string;
+  };
   const data = err.response?.data;
   const validationMsg = data?.errors != null ? firstValidationMessage(data.errors) : undefined;
   const message =
@@ -186,4 +239,4 @@ export function normalizeError(error: unknown, fallbackMessage: string = FALLBAC
 }
 
 // Re-export tipler (sayfa sadece gateway'den import etsin)
-export type { UserInfo, CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
+export type { CreateUserRequest, UpdateUserRequest, UserInfo } from '@/api/generated/model';

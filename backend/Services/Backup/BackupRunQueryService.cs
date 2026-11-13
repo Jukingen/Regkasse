@@ -1,4 +1,3 @@
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +13,15 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         _db = db;
     }
 
-    public async Task<BackupRun?> GetLatestRunAsync(CancellationToken cancellationToken = default)
+    public async Task<BackupRun?> GetLatestRunAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default)
     {
-        return await _db.BackupRuns.AsNoTracking()
+        var q = _db.BackupRuns.AsNoTracking();
+        if (accessScope != null)
+            q = BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+
+        return await q
             .Include(r => r.Artifacts)
             .Include(r => r.Verifications)
             .OrderByDescending(r => r.RequestedAt)
@@ -34,11 +39,18 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
     public async Task<(IReadOnlyList<BackupRun> Items, int TotalCount)> GetHistoryAsync(
         int page,
         int pageSize,
+        BackupRunAccessScope? accessScope = null,
+        BackupRunHistoryFilter? filter = null,
         CancellationToken cancellationToken = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
-        var q = _db.BackupRuns.AsNoTracking().OrderByDescending(r => r.RequestedAt);
+        var q = _db.BackupRuns.AsNoTracking();
+        if (accessScope != null)
+            q = BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+        q = ApplyHistoryFilter(q, filter);
+
+        q = q.OrderByDescending(r => r.RequestedAt);
         var total = await q.CountAsync(cancellationToken);
         var items = await q
             .Include(r => r.Artifacts)
@@ -48,10 +60,52 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         return (items, total);
     }
 
-    public async Task<BackupVerification?> GetLatestVerificationAsync(CancellationToken cancellationToken = default)
+    private static IQueryable<BackupRun> ApplyHistoryFilter(
+        IQueryable<BackupRun> query,
+        BackupRunHistoryFilter? filter)
     {
+        if (filter == null)
+            return query;
+
+        if (filter.Strategy is BackupStrategyKind strategy)
+            query = query.Where(r => r.Strategy == strategy);
+
+        if (filter.FromUtc is DateTime from)
+            query = query.Where(r => r.RequestedAt >= from);
+        if (filter.ToUtc is DateTime to)
+            query = query.Where(r => r.RequestedAt <= to);
+
+        var createdBy = filter.CreatedBy?.Trim();
+        if (!string.IsNullOrWhiteSpace(createdBy))
+        {
+            if (string.Equals(createdBy, "system", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(createdBy, "cron", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r =>
+                    r.TriggerSource == BackupTriggerSource.Scheduled
+                    || r.RequestedByUserId == null
+                    || r.RequestedByUserId == string.Empty);
+            }
+            else
+            {
+                query = query.Where(r => r.RequestedByUserId == createdBy);
+            }
+        }
+
+        return query;
+    }
+
+    public async Task<BackupVerification?> GetLatestVerificationAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default)
+    {
+        var accessibleRunIds = _db.BackupRuns.AsNoTracking();
+        if (accessScope != null)
+            accessibleRunIds = BackupRunAccessEvaluator.ApplyCallerAccessFilter(accessibleRunIds, accessScope);
+
         return await _db.BackupVerifications.AsNoTracking()
             .Include(v => v.BackupRun)
+            .Where(v => accessibleRunIds.Select(r => r.Id).Contains(v.BackupRunId))
             .OrderByDescending(v => v.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -70,9 +124,9 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
     public async Task<IReadOnlyList<Guid>> GetRecentSucceededPgDumpRunIdsAsync(int maxCount, CancellationToken cancellationToken = default)
     {
         maxCount = Math.Clamp(maxCount, 1, 100);
-        var pgDump = nameof(BackupExecutionAdapterKind.PgDump);
+        var kinds = BackupLogicalDumpAdapterKinds.SqlComparableKinds;
         return await _db.BackupRuns.AsNoTracking()
-            .Where(r => r.Status == BackupRunStatus.Succeeded && r.AdapterKind == pgDump)
+            .Where(r => r.Status == BackupRunStatus.Succeeded && kinds.Contains(r.AdapterKind))
             .OrderByDescending(r => r.RequestedAt)
             .Take(maxCount)
             .Select(r => r.Id)
@@ -81,13 +135,18 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
 
     public async Task<BackupSucceededDurationStatistics> GetAverageSucceededDurationAsync(
         int maxSamples,
+        BackupRunAccessScope? accessScope = null,
         CancellationToken cancellationToken = default)
     {
         maxSamples = Math.Clamp(maxSamples, 1, 50);
-        var rows = await _db.BackupRuns.AsNoTracking()
+        var q = _db.BackupRuns.AsNoTracking()
             .Where(r => r.Status == BackupRunStatus.Succeeded
                         && r.StartedAt != null
-                        && r.CompletedAt != null)
+                        && r.CompletedAt != null);
+        if (accessScope != null)
+            q = BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+
+        var rows = await q
             .OrderByDescending(r => r.CompletedAt)
             .Take(maxSamples)
             .Select(r => new { r.StartedAt, r.CompletedAt })

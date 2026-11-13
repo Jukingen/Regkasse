@@ -1,13 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Authorization;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -30,19 +29,27 @@ namespace KasseAPI_Final.Controllers
             _settingsTenantResolver = settingsTenantResolver;
         }
 
-        // GET: api/orders
+        // GET: api/orders?page=1&pageSize=50
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             try
             {
-                var orders = await _context.Orders
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
+                var filtered = _context.Orders.AsNoTracking();
+                var totalCount = await filtered.CountAsync();
+                var items = await filtered
+                    .AsSplitQuery()
                     .Include(o => o.Items)
                     .Include(o => o.Customer)
                     .OrderByDescending(o => o.OrderDate)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                return Ok(orders);
+                return Ok(new { items, page, pageSize, totalCount });
             }
             catch (Exception ex)
             {
@@ -104,7 +111,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Benzersiz order_id oluştur
                 var orderId = GenerateOrderId();
-                
+
                 var order = new Order
                 {
                     OrderId = orderId,
@@ -112,6 +119,7 @@ namespace KasseAPI_Final.Controllers
                     WaiterName = request.WaiterName,
                     CustomerPhone = request.CustomerPhone,
                     Notes = request.Notes,
+                    LocationData = CloneLocation(request.LocationData),
                     OrderDate = DateTime.UtcNow,
                     Status = OrderStatus.Pending,
                     IdempotencyKey = key
@@ -283,7 +291,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                // TODO: scope check – branch/ownership restriction (e.g. waiter own order, manager any in branch).
+                // Order access is tenant-scoped via EF global query filters. Missing/cross-tenant ids → 404.
                 var order = await _context.Orders.FindAsync(id);
                 if (order == null)
                 {
@@ -336,6 +344,28 @@ namespace KasseAPI_Final.Controllers
         {
             return TaxTypes.GetTaxRate(taxType) / 100.0m;
         }
+
+        private static OrderLocationData? CloneLocation(OrderLocationData? source)
+        {
+            if (source is null)
+                return null;
+            var street = source.Street?.Trim();
+            var postal = source.PostalCode?.Trim();
+            var city = source.City?.Trim();
+            var notes = source.Notes?.Trim();
+            if (string.IsNullOrEmpty(street)
+                && string.IsNullOrEmpty(postal)
+                && string.IsNullOrEmpty(city)
+                && string.IsNullOrEmpty(notes))
+                return null;
+            return new OrderLocationData
+            {
+                Street = street,
+                PostalCode = postal,
+                City = city,
+                Notes = notes,
+            };
+        }
     }
 
     // DTOs
@@ -357,6 +387,7 @@ namespace KasseAPI_Final.Controllers
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? Notes { get; set; }
+        public OrderLocationData? LocationData { get; set; }
         /// <summary>Sprint 6: Optional idempotency key; retries with same key return existing order.</summary>
         [MaxLength(64)]
         public string? IdempotencyKey { get; set; }

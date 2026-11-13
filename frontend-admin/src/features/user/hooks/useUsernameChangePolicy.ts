@@ -9,30 +9,34 @@ import { customInstance } from '@/lib/axios';
 export const USERNAME_CHANGE_POLICY_QUERY_KEY = ['username-change-policy'] as const;
 
 export type UsernameChangePolicy = {
-    cooldownDays: number;
-    canChange: boolean;
-    restrictionsApply?: boolean;
-    lastChangedAtUtc?: string | null;
-    nextChangeAllowedAtUtc?: string | null;
+  cooldownDays: number;
+  canChange: boolean;
+  restrictionsApply?: boolean;
+  lastChangedAtUtc?: string | null;
+  nextChangeAllowedAtUtc?: string | null;
 };
 
 const emptySubscribe = () => () => {};
 
 async function fetchUsernameChangePolicy(): Promise<UsernameChangePolicy> {
-    return customInstance<UsernameChangePolicy>({
-        url: '/api/UserManagement/me/username-change-policy',
-        method: 'GET',
-    });
+  return customInstance<UsernameChangePolicy>({
+    url: '/api/UserManagement/me/username-change-policy',
+    method: 'GET',
+  });
 }
 
 export function useUsernameChangePolicy() {
-    const isBrowser = useSyncExternalStore(emptySubscribe, () => true, () => false);
-    const hasCredentials = isBrowser && authStorage.hasToken();
+  const isBrowser = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+  const hasCredentials = isBrowser && authStorage.hasToken();
 
-    return useQuery({
-        queryKey: USERNAME_CHANGE_POLICY_QUERY_KEY,
-        queryFn: fetchUsernameChangePolicy,
-        enabled: hasCredentials,
-        staleTime: 30_000,
-    });
+  return useQuery({
+    queryKey: USERNAME_CHANGE_POLICY_QUERY_KEY,
+    queryFn: fetchUsernameChangePolicy,
+    enabled: hasCredentials,
+    staleTime: 30_000,
+  });
 }

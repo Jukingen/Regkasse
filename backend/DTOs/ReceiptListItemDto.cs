@@ -1,5 +1,3 @@
-using System;
-
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
@@ -24,6 +22,11 @@ namespace KasseAPI_Final.DTOs
         public decimal GrandTotal { get; set; }
         public DateTime CreatedAt { get; set; }
 
+        /// <summary>
+        /// POS Belegliste status: <c>Paid</c>, <c>Storno</c>, <c>Refund</c>, or RKSV Sonderbeleg kind.
+        /// </summary>
+        public string Status { get; set; } = ReceiptListStatuses.Paid;
+
         /// <summary>RKSV Sonderbeleg marker for list UI (e.g. Nullbeleg).</summary>
         public string? RksvSpecialReceiptKind { get; set; }
 
@@ -35,5 +38,17 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>FinanzOnline/BMF submission lifecycle for Startbeleg/Jahresbeleg; null when no tracking row.</summary>
         public string? RksvFinanzOnlineSubmissionStatus { get; set; }
+
+        /// <summary>True when this Sonderbeleg was created nachträglich / past its legal deadline.</summary>
+        public bool IsLateCreated { get; set; }
+
+        /// <summary>Operator reason when <see cref="IsLateCreated"/> is true.</summary>
+        public string? LateCreationReason { get; set; }
+
+        /// <summary>Canonical end date of the RKSV period covered by this receipt.</summary>
+        public DateTime? IntendedPeriodDate { get; set; }
+
+        /// <summary>True when a persisted RKSV receipt PDF exists for download.</summary>
+        public bool HasStoredPdf { get; set; }
     }
 }

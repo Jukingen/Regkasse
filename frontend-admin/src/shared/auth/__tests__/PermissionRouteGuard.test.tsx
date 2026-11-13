@@ -2,12 +2,14 @@
  * PermissionRouteGuard: fail-closed when no permissions or insufficient permission for route.
  */
 import '@testing-library/jest-dom';
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
-import { PermissionRouteGuard } from '../PermissionRouteGuard';
 import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
+
+import { PermissionRouteGuard } from '../PermissionRouteGuard';
 
 let mockPathname = '/rksv/sonderbelege';
 
@@ -34,6 +36,15 @@ vi.mock('@/i18n', () => ({
 
 vi.mock('@/shared/auth/routeGuardConfig', () => ({
   ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS: false,
+}));
+
+vi.mock('@/features/vertical-profiles/contexts/AdminVerticalProfileContext', () => ({
+  useAdminVerticalProfile: () => ({
+    profileId: 'gastronomy',
+    posFeatures: { tables: true, kitchenDisplay: true },
+    posLayout: 'standard',
+    isLoading: false,
+  }),
 }));
 
 describe('PermissionRouteGuard', () => {
@@ -107,7 +118,7 @@ describe('PermissionRouteGuard', () => {
     expect(getByText('Payments')).toBeInTheDocument();
   });
 
-  it('Manager without tse.sign is blocked on /tagesabschluss', () => {
+  it('Manager with daily-closing.view can access /tagesabschluss', () => {
     mockPathname = '/tagesabschluss';
     mockUseAuth.mockReturnValue({
       user: {
@@ -124,7 +135,7 @@ describe('PermissionRouteGuard', () => {
         <div>Tagesabschluss</div>
       </PermissionRouteGuard>
     );
-    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
+    expect(getByText('Tagesabschluss')).toBeInTheDocument();
   });
 
   it('Manager is blocked on platform admin /admin/tenants', () => {

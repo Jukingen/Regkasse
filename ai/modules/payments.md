@@ -1,15 +1,17 @@
 # Module: Payments
 
 ## Risk surface
+
 - Amount, tax, rounding, idempotency, receipt link, cancellation/refund.
-- Payment çıktıları receipt/daily closing/fiscal zinciriyle bağlıdır.
+- Payment outputs are tied to the receipt / daily-closing / fiscal chain.
 
-## Multi-Tenant Architecture
+## Multi-tenant architecture
 
-- `PaymentDetails`, receipt sequence ve imza zinciri kiracı kapsamlıdır; ödeme/fiş ID’leri çapraz kiracıda **404**.
+- `PaymentDetails`, receipt sequence, and the signature chain are tenant-scoped; payment/receipt IDs return **404** across tenants.
 
 ## Rules
-- Para hassasiyetini ve mevcut rounding davranışını koru.
-- Payment → receipt → fiscal kayıt bağını koparma.
-- İptal/iade akışında audit ve authorization kontrollerini zayıflatma.
-- Contract değişikliği varsa OpenAPI + consumer güncellemesini birlikte yap.
+
+- Keep money precision and the current rounding behavior.
+- Do not break the Payment → receipt → fiscal record link.
+- Do not weaken audit or authorization checks on cancel/refund flows.
+- If the contract changes, update OpenAPI and consumers together.

@@ -7,6 +7,8 @@ namespace KasseAPI_Final.Services.Email;
 
 public sealed class ForgotPasswordEmailService : IForgotPasswordEmailService
 {
+    internal const string Subject = "Regkasse Admin – Passwort zurücksetzen";
+
     private readonly EmailSmtpOptions _options;
     private readonly ILogger<ForgotPasswordEmailService> _logger;
 
@@ -33,7 +35,7 @@ public sealed class ForgotPasswordEmailService : IForgotPasswordEmailService
         using var msg = new MailMessage
         {
             From = new MailAddress(_options.From!.Trim()),
-            Subject = "Regkasse Admin – Passwort zurücksetzen",
+            Subject = Subject,
             Body = BuildBody(request),
             IsBodyHtml = false,
         };
@@ -66,7 +68,7 @@ public sealed class ForgotPasswordEmailService : IForgotPasswordEmailService
         }
     }
 
-    private static string BuildBody(ForgotPasswordEmailRequest request)
+    internal static string BuildBody(ForgotPasswordEmailRequest request)
     {
         return string.Join(
             Environment.NewLine,

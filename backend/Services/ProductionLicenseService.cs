@@ -1,13 +1,11 @@
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
+using System.Security.Claims;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services;
 
@@ -85,7 +83,8 @@ public sealed class ProductionLicenseService : ILicenseService
             var permissions = TenantLicenseValidator.GetPermissions(tenant.LicenseValidUntilUtc, isSuperAdmin);
             var s = await GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
             var paid = s.IsValid && !s.IsTrial;
-            var trialActive = s.IsTrial && !s.IsExpired;
+
+            _ = s.IsTrial && !s.IsExpired;
             return new LicenseValidationResult
             {
                 IsLicenseOperational = permissions.CanAccess,

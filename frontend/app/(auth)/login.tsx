@@ -1,26 +1,43 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
   TextInput,
+  Image,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
+  ScrollView,
+  Vibration,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import { storage } from '../../utils/storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { useAuth } from '../../contexts/AuthContext';
-import { getLoginFailure } from '@/utils/loginErrorHandler';
-import { useTranslation } from 'react-i18next';
-
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { storage } from '../../utils/storage';
+import { validateUsername, validatePassword } from '../../utils/validation';
 
-const { width, height } = Dimensions.get('window');
+import { normalizeCustomerTenantSlug } from '@/services/customerApp/customerTenantSlug';
+import { tenantStorage } from '@/services/tenant/tenantStorage';
+import {
+  loadPublicPosTenantProfile,
+  bootstrapPosTenantSlug,
+} from '@/services/verticalProfiles/posTenantBootstrap';
+import { loginIndustrySubtitle } from '@/services/verticalProfiles/posOnboarding';
+import { getEnvironmentBadge } from '@/shared/config/environmentBadge';
+import { getLoginFailure } from '@/utils/loginErrorHandler';
+import { loadLicenseLockoutSnapshot } from '@/utils/licenseLockoutSnapshot';
+
+const { height } = Dimensions.get('window');
 
 interface FormErrors {
   loginIdentifier?: string;
@@ -31,57 +48,153 @@ const LAST_USERNAME_KEY = 'lastUsername';
 const SAVED_LOGIN_IDENTIFIER_KEY = 'savedLoginIdentifier';
 const LEGACY_SAVED_USERNAME_KEY = 'savedUsername';
 
+/** Illustrative usernames showing case-insensitive login (AGENTS.md). */
+const USERNAME_CASE_EXAMPLES = ['cashier1', 'MANAGER1', 'AdminUser'] as const;
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return null;
+}
+
 export default function LoginScreen() {
   const { t } = useTranslation('auth');
+  const { t: tProfiles } = useTranslation('verticalProfiles');
+  const router = useRouter();
+  const { tenant: tenantParam } = useLocalSearchParams<{ tenant?: string | string[] }>();
+  const environmentBadge = getEnvironmentBadge();
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [industryLine, setIndustryLine] = useState<string | null>(null);
+  const [prefilledTenant, setPrefilledTenant] = useState<string | null>(null);
+  const usernameInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
-  const { login } = useAuth();
+  // Auth layout redirects when authenticated. The only network call here is the
+  // anonymous public tenant profile used for the industry line.
+  const { login, isAuthenticated, isAuthReady } = useAuth();
+  const linkedTenant = normalizeCustomerTenantSlug(firstParam(tenantParam));
 
   useEffect(() => {
-    loadSavedLoginIdentifier();
-  }, []);
+    if (!isAuthReady) return;
+    setIsBootstrapping(false);
+  }, [isAuthReady, isAuthenticated]);
 
-  const loadSavedLoginIdentifier = async () => {
-    try {
-      const saved =
-        (await storage.getItem(LAST_USERNAME_KEY)) ??
-        (await storage.getItem(SAVED_LOGIN_IDENTIFIER_KEY)) ??
-        (await storage.getItem(LEGACY_SAVED_USERNAME_KEY));
-      if (saved) {
-        setLoginIdentifier(saved);
-        requestAnimationFrame(() => passwordInputRef.current?.focus());
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated) return;
+    let cancelled = false;
+
+    void (async () => {
+      const slug = linkedTenant ?? normalizeCustomerTenantSlug(await tenantStorage.getTenantSlug());
+      if (!slug || cancelled) return;
+      if (linkedTenant) {
+        await bootstrapPosTenantSlug(linkedTenant);
       }
+      if (cancelled) return;
+      setPrefilledTenant(slug);
 
-      // One-shot cleanup: remove legacy plaintext password from storage
-      await storage.removeItem('savedPassword');
-    } catch (error) {
-      // no-op
-    }
-  };
+      const profile = await loadPublicPosTenantProfile(slug);
+      if (cancelled || !profile) return;
+      setIndustryLine(
+        loginIndustrySubtitle(
+          profile.verticalProfileId,
+          (key) => tProfiles(key),
+          (key, options) => t(key, options)
+        )
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, isAuthenticated, linkedTenant, t, tProfiles]);
+
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated || isBootstrapping) return;
+    let cancelled = false;
+    void (async () => {
+      const snapshot = await loadLicenseLockoutSnapshot();
+      if (cancelled || !snapshot) return;
+      router.replace('/(auth)/license-expired');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, isAuthenticated, isBootstrapping, router]);
+
+  useEffect(() => {
+    // Form must be mounted before focusing inputs (bootstrap gate unmounts the fields).
+    if (isBootstrapping || !isAuthReady || isAuthenticated) return;
+
+    let cancelled = false;
+    const loadSavedLoginIdentifier = async () => {
+      try {
+        const saved =
+          (await storage.getItem(LAST_USERNAME_KEY)) ??
+          (await storage.getItem(SAVED_LOGIN_IDENTIFIER_KEY)) ??
+          (await storage.getItem(LEGACY_SAVED_USERNAME_KEY));
+        if (cancelled) return;
+
+        if (saved) {
+          setLoginIdentifier(saved);
+          // Returning user: skip username, focus password.
+          requestAnimationFrame(() => passwordInputRef.current?.focus());
+        } else {
+          // First visit: auto-focus username after layout settles.
+          setTimeout(() => {
+            if (!cancelled) usernameInputRef.current?.focus();
+          }, 100);
+        }
+
+        // One-shot cleanup: remove legacy plaintext password from storage (local only)
+        await storage.removeItem('savedPassword');
+      } catch {
+        if (!cancelled) {
+          setTimeout(() => usernameInputRef.current?.focus(), 100);
+        }
+      }
+    };
+
+    void loadSavedLoginIdentifier();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBootstrapping, isAuthReady, isAuthenticated]);
 
   // Validate form fields
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!loginIdentifier.trim()) {
-      newErrors.loginIdentifier = t('validation.loginIdentifierRequired');
+    const identifierResult = validateUsername(loginIdentifier);
+    if (!identifierResult.isValid) {
+      newErrors.loginIdentifier = identifierResult.message;
     }
 
-    if (!password) {
-      newErrors.password = t('validation.passwordRequired');
+    const passwordResult = validatePassword(password);
+    if (!passwordResult.isValid) {
+      newErrors.password = passwordResult.message;
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [loginIdentifier, password, t]);
+  }, [loginIdentifier, password]);
 
   // Handle login
   const handleLogin = useCallback(async () => {
+    if (isLoading) {
+      return;
+    }
+
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      Vibration.vibrate(10);
+    }
+
     Keyboard.dismiss();
 
     if (!validateForm()) {
@@ -100,8 +213,14 @@ export default function LoginScreen() {
       await storage.removeItem(LEGACY_SAVED_USERNAME_KEY);
     } catch (err: unknown) {
       const { userMessage, technicalMessage, errorCode } = getLoginFailure(err);
-      setError(userMessage);
       console.error('[Login Technical]', technicalMessage || err);
+
+      if (errorCode === 'LICENSE_ACCESS_DENIED') {
+        router.replace('/(auth)/license-expired');
+        return;
+      }
+
+      setError(userMessage);
 
       if (errorCode === 'INVALID_CREDENTIALS') {
         setErrors({ loginIdentifier: userMessage });
@@ -112,7 +231,7 @@ export default function LoginScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [loginIdentifier, password, login, validateForm, t]);
+  }, [isLoading, loginIdentifier, password, login, validateForm, router]);
 
   // Handle dismissing keyboard only on mobile (not web)
   const handleDismissKeyboard = useCallback(() => {
@@ -121,113 +240,268 @@ export default function LoginScreen() {
     }
   }, []);
 
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
+  const handlePasswordKeyPress = useCallback(
+    ({ nativeEvent }: { nativeEvent: { key: string } }) => {
+      // Soft keyboards rarely emit CapsLock; hardware keyboards on native do.
+      // Web uses getModifierState via onKeyDown instead (absolute state).
+      if (Platform.OS === 'web') return;
+      if (nativeEvent.key === 'CapsLock') {
+        setCapsLockOn((prev) => !prev);
+      }
+    },
+    []
+  );
+
+  /** Web: sync absolute Caps Lock state (avoids toggle desync). */
+  const handlePasswordKeyDownWeb = useCallback(
+    (e: {
+      getModifierState?: (key: string) => boolean;
+      nativeEvent?: { getModifierState?: (key: string) => boolean };
+    }) => {
+      const getModifierState = e.getModifierState ?? e.nativeEvent?.getModifierState;
+      if (typeof getModifierState === 'function') {
+        setCapsLockOn(getModifierState('CapsLock'));
+      }
+    },
+    []
+  );
+
+  const handlePasswordBlur = useCallback(() => {
+    setCapsLockOn(false);
+  }, []);
+
+  // Authenticated users are redirected by `(auth)/_layout`; keep a short bootstrap gate only.
+  if (isBootstrapping || !isAuthReady || isAuthenticated) {
+    return (
+      <View style={[styles.container, styles.bootstrapGate]}>
+        <StatusBar style="light" />
+        <WaveLoader size={28} color="#9B59B6" />
+      </View>
+    );
+  }
+
   return (
-    <>
+    <SafeAreaView style={styles.safeRoot} edges={['top', 'bottom']}>
       <StatusBar style="light" />
-      <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
-        <View style={styles.container}>
-          {/* Gradient Header */}
+      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}>
+          {/* Branded gradient header */}
           <LinearGradient
             colors={['#FF8C42', '#F54EA2', '#9B59B6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gradientHeader}
-          >
-            <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Registrierkasse</Text>
+            style={styles.gradientHeader}>
+            <View
+              style={styles.headerContent}
+              accessibilityRole="header"
+              accessibilityLabel={`${t('brandName')}. ${industryLine ?? t('brandSubtitle')}`}>
+              <Image
+                source={require('../../assets/images/logo.webp')}
+                style={styles.logoImage}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
+              />
+              <Text style={styles.brandText}>{t('brandName')}</Text>
+              <Text style={styles.headerSubtitle}>{industryLine ?? t('brandSubtitle')}</Text>
+              {prefilledTenant ? (
+                <Text style={styles.headerTenant}>{t('tenantPrefilled', { slug: prefilledTenant })}</Text>
+              ) : null}
+              <View style={styles.headerDivider} />
+              {__DEV__ && environmentBadge.text ? (
+                <View
+                  style={styles.devBadge}
+                  accessibilityRole="text"
+                  accessibilityLabel={environmentBadge.text}>
+                  <Text style={styles.devBadgeText}>{environmentBadge.text}</Text>
+                </View>
+              ) : null}
             </View>
           </LinearGradient>
 
-          {/* White Bottom Section */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          {/* White Bottom Section — form submit is the only API call from this screen */}
+          <ScrollView
             style={styles.formSection}
-          >
-            <View style={styles.formContainer}>
-              <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
+            contentContainerStyle={styles.formContainer}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            bounces={false}>
+            <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
 
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorBannerText}>❌ {error}</Text>
-                </View>
-              )}
-
-              {/* Email or username */}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('loginIdentifierPlaceholder')}
-                  placeholderTextColor="#999"
-                  value={loginIdentifier}
-                  onChangeText={(text) => {
-                    setLoginIdentifier(text);
-                    setError(null);
-                    setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
-                  }}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="username"
-                  textContentType="username"
-                  editable={!isLoading}
-                />
-                <View style={styles.inputLine} />
-                {errors.loginIdentifier && (
-                  <Text style={styles.errorText}>{errors.loginIdentifier}</Text>
-                )}
-                <Text style={styles.caseHint}>{t('loginIdentifierCaseHint')}</Text>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorBannerText}>❌ {error}</Text>
               </View>
+            )}
 
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
+            {/* Email or username */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={usernameInputRef}
+                style={styles.input}
+                placeholder={t('loginIdentifierPlaceholder')}
+                placeholderTextColor="#595959"
+                value={loginIdentifier}
+                onChangeText={(text) => {
+                  setLoginIdentifier(text);
+                  setError(null);
+                  setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                textContentType="username"
+                editable={!isLoading}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
+              />
+              <View style={styles.inputLine} />
+              {errors.loginIdentifier && (
+                <Text style={styles.errorText}>{errors.loginIdentifier}</Text>
+              )}
+              <View
+                style={styles.hintContainer}
+                accessibilityRole="text"
+                accessibilityLabel={t('loginIdentifierCaseHint')}>
+                <Ionicons
+                  name="information-circle"
+                  size={18}
+                  color="#475569"
+                  style={styles.hintIcon}
+                />
+                <Text style={styles.hintText}>{t('loginIdentifierCaseHint')}</Text>
+              </View>
+              <View style={styles.exampleContainer}>
+                <Text style={styles.exampleLabel}>{t('loginIdentifierExampleLabel')}</Text>
+                <View style={styles.exampleValues}>
+                  {USERNAME_CASE_EXAMPLES.map((example) => (
+                    <View key={example} style={styles.exampleTag}>
+                      <Text style={styles.exampleTagText}>{example}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.exampleNote}>{t('loginIdentifierExampleNote')}</Text>
+              </View>
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.passwordRow}>
                 <TextInput
                   ref={passwordInputRef}
-                  style={styles.input}
+                  style={[styles.input, styles.passwordInput]}
                   placeholder={t('passwordPlaceholder')}
-                  placeholderTextColor="#999"
+                  placeholderTextColor="#595959"
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
                     setError(null);
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="current-password"
+                  textContentType="password"
                   editable={!isLoading}
-                  onSubmitEditing={handleLogin}
+                  returnKeyType="go"
+                  enablesReturnKeyAutomatically
+                  onSubmitEditing={() => {
+                    void handleLogin();
+                  }}
+                  onKeyPress={handlePasswordKeyPress}
+                  onBlur={handlePasswordBlur}
+                  {...(Platform.OS === 'web'
+                    ? {
+                        // RN Web: absolute Caps Lock via DOM KeyboardEvent
+                        onKeyDown: handlePasswordKeyDownWeb,
+                      }
+                    : {})}
                 />
-                <View style={styles.inputLine} />
-                {errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                )}
+                <Pressable
+                  style={({ pressed }) => [styles.eyeButton, pressed && styles.eyeButtonPressed]}
+                  onPress={togglePasswordVisibility}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? t('hidePassword') : t('showPassword')}
+                  disabled={isLoading}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color="#666"
+                  />
+                </Pressable>
               </View>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-                onPress={handleLogin}
-                disabled={isLoading}
-                activeOpacity={0.8}
-              >
-                {isLoading ? (
-                  <WaveLoader size={20} color="#333" />
-                ) : (
-                  <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Footer Text */}
-              <Text style={styles.footerText}>{t('signinHint')}</Text>
+              <View style={styles.inputLine} />
+              {capsLockOn && (
+                <View
+                  style={styles.capsLockWarning}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite">
+                  <Text style={styles.capsLockText}>⚠️ {t('capsLockOn')}</Text>
+                </View>
+              )}
+              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
-          </KeyboardAvoidingView>
-        </View>
+
+            {/* Login Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.loginButton,
+                pressed && !isLoading && styles.loginButtonPressed,
+                isLoading && styles.loginButtonDisabled,
+              ]}
+              onPress={() => {
+                void handleLogin();
+              }}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
+              accessibilityLabel={isLoading ? t('loginButtonLoading') : t('loginButton')}>
+              {({ pressed }) =>
+                isLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <WaveLoader size={18} color="#666" />
+                    <Text style={[styles.loginButtonText, styles.loginButtonLoadingText]}>
+                      {t('loginButtonLoading')}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.loginButtonText, pressed && styles.loginButtonTextPressed]}>
+                    {t('loginButton')}
+                  </Text>
+                )
+              }
+            </Pressable>
+
+            {/* Footer Text */}
+            <Text style={styles.footerText}>{t('signinHint')}</Text>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeRoot: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  bootstrapGate: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   gradientHeader: {
     height: height * 0.35,
@@ -238,22 +512,61 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
-  headerTitle: {
-    fontSize: 32,
+  logoImage: {
+    width: 60,
+    height: 60,
+    marginBottom: 8,
+    borderRadius: 14,
+  },
+  brandText: {
+    fontSize: 30,
     fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 4,
-    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 6,
+    letterSpacing: 0.4,
+  },
+  headerTenant: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginTop: 8,
+  },
+  headerDivider: {
+    width: 56,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 2,
+    marginTop: 14,
+  },
+  devBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginTop: 8,
+  },
+  devBadgeText: {
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '600',
   },
   formSection: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
   formContainer: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 40,
     paddingTop: 40,
+    paddingBottom: 32,
     alignItems: 'center',
   },
   loginTitle: {
@@ -273,9 +586,40 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     letterSpacing: 1,
   },
+  passwordRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  eyeButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeButtonPressed: {
+    opacity: 0.6,
+  },
   inputLine: {
     height: 1,
     backgroundColor: '#DDD',
+  },
+  capsLockWarning: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  capsLockText: {
+    fontSize: 12,
+    color: '#B45309',
+    lineHeight: 16,
   },
   errorContainer: {
     width: '100%',
@@ -285,7 +629,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginTop: 12,
   },
   errorBannerText: {
     fontSize: 13,
@@ -298,15 +642,64 @@ const styles = StyleSheet.create({
     color: '#E74C3C',
     marginTop: 6,
   },
-  caseHint: {
-    fontSize: 11,
-    color: '#999',
+  hintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  hintIcon: {
+    marginRight: 8,
+  },
+  hintText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 18,
+  },
+  exampleContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  exampleLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  exampleValues: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  exampleTag: {
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  exampleTagText: {
+    fontSize: 12,
+    color: '#1E293B',
+    fontFamily: 'monospace',
+  },
+  exampleNote: {
+    fontSize: 12,
+    color: '#166534',
     marginTop: 8,
     lineHeight: 16,
   },
   loginButton: {
-    width: 180,
+    minWidth: 180,
     height: 50,
+    paddingHorizontal: 24,
     borderRadius: 25,
     borderWidth: 1.5,
     borderColor: '#333',
@@ -315,9 +708,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: 'transparent',
   },
+  loginButtonPressed: {
+    backgroundColor: '#333',
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
   loginButtonDisabled: {
     borderColor: '#CCC',
-    opacity: 0.7,
+    backgroundColor: '#F5F5F5',
+    opacity: 0.85,
   },
   loginButtonText: {
     fontSize: 16,
@@ -325,9 +724,21 @@ const styles = StyleSheet.create({
     color: '#333',
     letterSpacing: 1,
   },
+  loginButtonTextPressed: {
+    color: '#FFFFFF',
+  },
+  loginButtonLoadingText: {
+    color: '#666',
+    letterSpacing: 0.5,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   footerText: {
     fontSize: 13,
-    color: '#999',
+    color: '#595959',
     marginTop: 16,
     letterSpacing: 0.5,
   },

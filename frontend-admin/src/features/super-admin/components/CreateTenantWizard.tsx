@@ -1,262 +1,374 @@
 'use client';
 
 /**
- * Super-admin tenant onboarding wizard: form → progress → success or structured error.
+ * Two-step tenant creation wizard: Country → Tenant Form → processing → success.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Form, Modal } from 'antd';
 import { useMutation } from '@tanstack/react-query';
+import { Button, Form, Modal, Steps } from 'antd';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useI18n } from '@/i18n';
 import {
-    createAdminTenant,
-    type AdminTenantDetail,
-    type CreateAdminTenantRequest,
+  type AdminTenantDetail,
+  type CreateAdminTenantRequest,
+  createAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
+import { CreateTenantCountryDrivenFields } from '@/features/super-admin/components/CreateTenantCountryDrivenFields';
+import { CreateTenantCountryStep } from '@/features/super-admin/components/CreateTenantCountryStep';
 import { CreateTenantProcessingView } from '@/features/super-admin/components/CreateTenantProcessingView';
+import { type CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { OnboardingErrorModal } from '@/features/super-admin/components/OnboardingErrorModal';
 import {
-    OnboardingSuccessModal,
-    type TenantOnboardingSuccessState,
+  OnboardingSuccessModal,
+  type TenantOnboardingSuccessState,
 } from '@/features/super-admin/components/OnboardingSuccessModal';
 import { TenantFormFields } from '@/features/super-admin/components/TenantFormFields';
 import { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
 import { useTenantOnboardingProgress } from '@/features/super-admin/hooks/useTenantOnboardingProgress';
-import { parseTenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
-import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
-import { normalizeTenantSlugInput } from '@/features/super-admin/lib/tenantSlug';
 import type { TenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
+import { parseTenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
+import { buildDemoTenantDefaults } from '@/features/super-admin/lib/demoTenantDefaults';
+import { normalizeTenantSlugInput } from '@/features/super-admin/lib/tenantSlug';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
+import { useI18n } from '@/i18n';
+import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
 
-export type CreateTenantFormValues = {
-    name: string;
-    slug: string;
-    email: string;
-    phone?: string;
-    address?: string;
-    grantTrialLicense: boolean;
-    autoDemoSetup: boolean;
-    importDemoProducts: boolean;
-};
+export type { CreateTenantFormValues };
 
 export type CreateTenantWizardProps = {
-    open: boolean;
-    onClose: () => void;
-    onCreated?: (detail: AdminTenantDetail) => void;
-    onCreateAnother?: () => void;
-    onSwitchToTenant?: (tenantId: string) => void;
-    switchToTenantLoading?: boolean;
+  open: boolean;
+  onClose: () => void;
+  onCreated?: (detail: AdminTenantDetail) => void;
+  onCreateAnother?: () => void;
+  onSwitchToTenant?: (tenantId: string) => void;
+  switchToTenantLoading?: boolean;
+  /** Prefills an Austrian 14-day demo and sends `seedDemo: true`. */
+  demoSeed?: boolean;
 };
 
-type WizardPhase = 'form' | 'processing' | 'processingDone';
+type WizardPhase = 'country' | 'form' | 'processing' | 'processingDone';
 
-export function CreateTenantWizard({
-    open,
-    onClose,
-    onCreated,
-    onCreateAnother,
-    onSwitchToTenant,
-    switchToTenantLoading,
+const FORM_DEFAULTS = {
+  grantTrialLicense: true,
+  trialDurationDays: 14,
+  importDemoProducts: true,
+} as const;
+
+/** First catalog row from `GET /api/admin/countries`. No local country code. */
+export function initialCountryFromCatalog(
+  countries: ReadonlyArray<{ code?: string | null; allowedVatRegimes?: readonly (string | null)[] | null }>
+): { countryCode?: string; vatRegime?: string } {
+  const first = countries.find((country) => country.code);
+  if (!first?.code) return {};
+  const regime = first.allowedVatRegimes?.find((value): value is string => Boolean(value));
+  return { countryCode: first.code, vatRegime: regime };
+}
+
+export function CreateTenantWizard(props: CreateTenantWizardProps) {
+  if (!props.open) {
+    return null;
+  }
+  return <CreateTenantWizardContent {...props} />;
+}
+
+function CreateTenantWizardContent({
+  open,
+  onClose,
+  onCreated,
+  onCreateAnother,
+  onSwitchToTenant,
+  switchToTenantLoading,
+  demoSeed = false,
 }: CreateTenantWizardProps) {
-    const { t } = useI18n();
-    const baseDomain = getTenantAppBaseDomain();
-    const [form] = Form.useForm<CreateTenantFormValues & { formError?: string }>();
-    const [success, setSuccess] = useState<TenantOnboardingSuccessState | null>(null);
-    const [phase, setPhase] = useState<WizardPhase>('form');
-    const [onboardingError, setOnboardingError] = useState<TenantOnboardingError | null>(null);
-    const [errorContext, setErrorContext] = useState<{ companyName: string; slug: string } | null>(null);
-    const [processingContext, setProcessingContext] = useState<{
-        name: string;
-        slug: string;
-        contactEmail: string;
-        grantTrialLicense: boolean;
-    } | null>(null);
+  const { t } = useI18n();
+  const baseDomain = getTenantAppBaseDomain();
+  const countriesQuery = useCountries();
+  const countries = countriesQuery.data ?? [];
+  const [form] = Form.useForm<CreateTenantFormValues & { formError?: string }>();
+  const [success, setSuccess] = useState<TenantOnboardingSuccessState | null>(null);
+  const [phase, setPhase] = useState<WizardPhase>('country');
+  const [onboardingError, setOnboardingError] = useState<TenantOnboardingError | null>(null);
+  const [errorContext, setErrorContext] = useState<{ companyName: string; slug: string } | null>(
+    null
+  );
+  const [processingContext, setProcessingContext] = useState<{
+    name: string;
+    slug: string;
+    contactEmail: string;
+    grantTrialLicense: boolean;
+  } | null>(null);
 
-    const formFields = useTenantCreateFormFields(form, open);
-    const { canSubmit } = formFields;
+  const formFields = useTenantCreateFormFields(form, open && phase === 'form');
+  const { canSubmit } = formFields;
 
-    const grantTrialLicense = processingContext?.grantTrialLicense ?? true;
-    const progressPhase =
-        phase === 'processingDone' ? 'success' : phase === 'processing' ? 'running' : 'idle';
-    const { definitions, statuses } = useTenantOnboardingProgress(grantTrialLicense, progressPhase);
+  const grantTrialLicense = processingContext?.grantTrialLicense ?? true;
+  const progressPhase =
+    phase === 'processingDone' ? 'success' : phase === 'processing' ? 'running' : 'idle';
+  const { definitions, statuses } = useTenantOnboardingProgress(grantTrialLicense, progressPhase);
 
-    const resetFlow = useCallback(() => {
-        setPhase('form');
-        setProcessingContext(null);
-        setOnboardingError(null);
-        setErrorContext(null);
-    }, []);
+  const resetFlow = useCallback(() => {
+    setPhase('country');
+    setProcessingContext(null);
+    setOnboardingError(null);
+    setErrorContext(null);
+  }, []);
 
-    const createMutation = useMutation({
-        mutationFn: (body: CreateAdminTenantRequest) => createAdminTenant(body),
-        onSuccess: (created) => {
-            const contactEmail =
-                created.email?.trim() || processingContext?.contactEmail || '';
-            setPhase('processingDone');
-            window.setTimeout(() => {
-                form.resetFields();
-                resetFlow();
-                onClose();
-                onCreated?.(created);
-                setSuccess({
-                    tenantId: created.id,
-                    tenantName: created.name,
-                    slug: created.slug,
-                    contactEmail,
-                    provisioning: created.provisioning ?? null,
-                });
-            }, 500);
-        },
-        onError: (error) => {
-            const parsed = parseTenantOnboardingError(error, t('tenants.messages.saveFailed'));
-            setOnboardingError(parsed);
-            setErrorContext({
-                companyName: processingContext?.name ?? form.getFieldValue('name') ?? '',
-                slug: processingContext?.slug ?? form.getFieldValue('slug') ?? '',
-            });
-            setPhase('form');
-            setProcessingContext(null);
-        },
+  const createMutation = useMutation({
+    mutationFn: (body: CreateAdminTenantRequest) => createAdminTenant(body),
+    onSuccess: (created) => {
+      const contactEmail = created.email?.trim() || processingContext?.contactEmail || '';
+      setPhase('processingDone');
+      window.setTimeout(() => {
+        form.resetFields();
+        resetFlow();
+        onClose();
+        onCreated?.(created);
+        setSuccess({
+          tenantId: created.id,
+          tenantName: created.name,
+          slug: created.slug,
+          contactEmail,
+          provisioning: created.provisioning ?? null,
+          demoSeeded: demoSeed,
+        });
+      }, 500);
+    },
+    onError: (error) => {
+      const parsed = parseTenantOnboardingError(error, t('tenants.messages.saveFailed'));
+      setOnboardingError(parsed);
+      setErrorContext({
+        companyName: processingContext?.name ?? form.getFieldValue('name') ?? '',
+        slug: processingContext?.slug ?? form.getFieldValue('slug') ?? '',
+      });
+      setPhase('form');
+      setProcessingContext(null);
+    },
+  });
+
+  useEffect(() => {
+    if (!open) {
+      form.resetFields();
+      if (phase !== 'processing' && phase !== 'processingDone') {
+        resetFlow();
+      }
+    }
+  }, [open, form, resetFlow, phase]);
+
+  const demoDefaultsApplied = useRef(false);
+
+  useEffect(() => {
+    if (!open || !demoSeed || demoDefaultsApplied.current) return;
+    const catalog = countriesQuery.data ?? [];
+    const austria = catalog.find((country) => country.code === 'AT');
+    const regime = austria?.allowedVatRegimes?.find((value) => Boolean(value));
+    const defaults = buildDemoTenantDefaults();
+    form.setFieldsValue({
+      countryCode: 'AT',
+      vatRegime: regime ? String(regime) : 'AT_RKSV_STANDARD',
+      name: defaults.name,
+      slug: defaults.slug,
+      grantTrialLicense: true,
+      trialDurationDays: 14,
+      importDemoProducts: false,
     });
+    demoDefaultsApplied.current = true;
+  }, [open, demoSeed, form, countriesQuery.data]);
 
-    useEffect(() => {
-        if (!open) {
-            form.resetFields();
-            if (phase !== 'processing' && phase !== 'processingDone') {
-                resetFlow();
-            }
-        } else if (phase === 'form') {
-            form.setFieldsValue({
-                grantTrialLicense: true,
-                autoDemoSetup: true,
-                importDemoProducts: true,
-            });
-        }
-    }, [open, form, resetFlow, phase]);
+  useEffect(() => {
+    if (!open || demoSeed) return;
+    if (form.getFieldValue('countryCode')) return;
+    const seeded = initialCountryFromCatalog(countriesQuery.data ?? []);
+    if (seeded.countryCode) {
+      form.setFieldsValue(seeded);
+    }
+  }, [open, demoSeed, form, countriesQuery.data]);
 
-    const isProcessing = phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
+  const isProcessing =
+    phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
 
-    const handleWizardClose = () => {
-        if (phase === 'processing') {
-            return;
-        }
-        onClose();
-    };
+  const handleWizardClose = () => {
+    if (phase === 'processing') {
+      return;
+    }
+    onClose();
+  };
 
-    const submitFromForm = (values: CreateTenantFormValues) => {
-        const slug = normalizeTenantSlugInput(values.slug);
-        const grantTrial = values.grantTrialLicense ?? true;
-        setProcessingContext({
-            name: values.name.trim(),
-            slug,
-            contactEmail: values.email.trim(),
-            grantTrialLicense: grantTrial,
-        });
-        setOnboardingError(null);
-        setPhase('processing');
-        createMutation.mutate({
-            name: values.name.trim(),
-            slug,
-            email: values.email.trim(),
-            adminEmail: values.email.trim(),
-            phone: values.phone?.trim() || undefined,
-            address: values.address?.trim() || undefined,
-            grantTrialLicense: grantTrial,
-            importDemoMenu: values.importDemoProducts ?? true,
-        });
-    };
-
-    const handleDismissError = useCallback(() => {
-        setOnboardingError(null);
-        setErrorContext(null);
-    }, []);
-
-    const handleErrorCancel = useCallback(() => {
-        handleDismissError();
-        onClose();
-    }, [handleDismissError, onClose]);
-
-    const handleErrorTrySlug = useCallback(
-        (slug: string) => {
-            form.setFieldsValue({ slug: normalizeTenantSlugInput(slug) });
-            setOnboardingError(null);
-            setErrorContext(null);
-            void form.validateFields(['slug']);
-        },
-        [form],
+  const goToFormStep = () => {
+    void form.validateFields(['countryCode', 'vatRegime']).then(
+      () => setPhase('form'),
+      () => undefined
     );
+  };
 
-    const modalTitle =
-        phase === 'processing' || phase === 'processingDone'
-            ? t('tenants.create.processing.title')
-            : t('tenants.create.title');
+  const submitFromForm = (values: CreateTenantFormValues) => {
+    const slug = normalizeTenantSlugInput(values.slug);
+    const grantTrial = values.grantTrialLicense ?? true;
+    setProcessingContext({
+      name: values.name.trim(),
+      slug,
+      contactEmail: values.email.trim(),
+      grantTrialLicense: grantTrial,
+    });
+    setOnboardingError(null);
+    setPhase('processing');
+    createMutation.mutate({
+      name: values.name.trim(),
+      slug,
+      countryCode: values.countryCode,
+      vatRegime: values.vatRegime,
+      email: values.email.trim(),
+      adminEmail: values.email.trim(),
+      phone: values.phone?.trim() || undefined,
+      address: values.address?.trim() || undefined,
+      grantTrialLicense: grantTrial,
+      trialDurationDays: grantTrial ? (values.trialDurationDays ?? 14) : undefined,
+      importDemoMenu: demoSeed ? (values.importDemoProducts ?? false) : (values.importDemoProducts ?? true),
+      ...(demoSeed ? { seedDemo: true } : { seedDemo: false }),
+    });
+  };
 
-    return (
-        <>
-            <Modal
-                title={modalTitle}
-                open={open && !success && phase !== 'form' && isProcessing}
-                onCancel={handleWizardClose}
-                width={640}
-                destroyOnHidden
-                mask={{ closable: false }}
-                closable={false}
-                footer={null}
-            >
-                {processingContext ? (
-                    <CreateTenantProcessingView
-                        definitions={definitions}
-                        statuses={statuses}
-                        companyName={processingContext.name}
-                        slug={processingContext.slug}
-                        baseDomain={baseDomain}
-                        phase={phase === 'processingDone' ? 'success' : 'running'}
-                    />
-                ) : null}
-            </Modal>
+  const handleFinish = (values: CreateTenantFormValues) => {
+    if (phase === 'country') {
+      setPhase('form');
+      return;
+    }
+    submitFromForm(values);
+  };
 
-            <Modal
-                title={modalTitle}
-                open={open && !success && phase === 'form'}
-                onCancel={handleWizardClose}
-                width={640}
-                destroyOnHidden
-                footer={[
-                    <Button key="cancel" onClick={handleWizardClose}>
-                        {t('common.buttons.cancel')}
-                    </Button>,
-                    <Button key="submit" type="primary" disabled={!canSubmit} onClick={() => form.submit()}>
-                        {t('tenants.create.submit')}
-                    </Button>,
-                ]}
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    requiredMark="optional"
-                    initialValues={{ grantTrialLicense: true, autoDemoSetup: true, importDemoProducts: true }}
-                    onFinish={submitFromForm}
+  const handleDismissError = useCallback(() => {
+    setOnboardingError(null);
+    setErrorContext(null);
+  }, []);
+
+  const handleErrorCancel = useCallback(() => {
+    handleDismissError();
+    onClose();
+  }, [handleDismissError, onClose]);
+
+  const handleErrorTrySlug = useCallback(
+    (slug: string) => {
+      form.setFieldsValue({ slug: normalizeTenantSlugInput(slug) });
+      setOnboardingError(null);
+      setErrorContext(null);
+      void form.validateFields(['slug']);
+    },
+    [form]
+  );
+
+  const modalTitle =
+    phase === 'processing' || phase === 'processingDone'
+      ? t('tenants.create.processing.title')
+      : t('tenants.create.title');
+
+  const stepItems = [
+    { title: t('superadmin.tenantCreate.countryStep.title') },
+    { title: t('superadmin.tenantCreate.countryStep.tenantFormTitle') },
+  ];
+  const stepCurrent = phase === 'country' ? 0 : 1;
+  const formOpen = open && !success && (phase === 'country' || phase === 'form');
+
+  return (
+    <>
+      <Modal
+        title={modalTitle}
+        open={open && !success && phase !== 'country' && phase !== 'form' && isProcessing}
+        onCancel={handleWizardClose}
+        width={640}
+        destroyOnHidden
+        mask={{ closable: false }}
+        closable={false}
+        footer={null}
+      >
+        {processingContext ? (
+          <CreateTenantProcessingView
+            definitions={definitions}
+            statuses={statuses}
+            companyName={processingContext.name}
+            slug={processingContext.slug}
+            baseDomain={baseDomain}
+            phase={phase === 'processingDone' ? 'success' : 'running'}
+          />
+        ) : null}
+      </Modal>
+
+      <Modal
+        title={modalTitle}
+        open={formOpen}
+        onCancel={handleWizardClose}
+        width={640}
+        destroyOnHidden
+        footer={
+          phase === 'country'
+            ? [
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button key="next" type="primary" htmlType="button" onClick={goToFormStep}>
+                  {t('superadmin.tenantCreate.countryStep.next')}
+                </Button>,
+              ]
+            : [
+                <Button key="back" htmlType="button" onClick={() => setPhase('country')}>
+                  {t('superadmin.tenantCreate.countryStep.back')}
+                </Button>,
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button
+                  key="submit"
+                  type="primary"
+                  htmlType="button"
+                  disabled={!canSubmit}
+                  onClick={() => form.submit()}
                 >
-                    <TenantFormFields form={form} open={open} fieldState={formFields} />
-                </Form>
-            </Modal>
-
-            <OnboardingErrorModal
-                open={!!onboardingError}
-                error={onboardingError}
-                companyName={errorContext?.companyName}
-                attemptedSlug={errorContext?.slug}
-                onTrySlug={handleErrorTrySlug}
-                onDismiss={handleDismissError}
-                onCancel={handleErrorCancel}
+                  {t('tenants.create.submit')}
+                </Button>,
+              ]
+        }
+      >
+        <Steps current={stepCurrent} items={stepItems} style={{ marginBottom: 24 }} />
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark="optional"
+          initialValues={FORM_DEFAULTS}
+          onFinish={handleFinish}
+        >
+          <div
+            data-testid="create-tenant-country-panel"
+            style={{ display: phase === 'country' ? 'block' : 'none' }}
+          >
+            <CreateTenantCountryStep
+              countries={countries}
+              loading={Boolean(countriesQuery.isLoading)}
             />
+          </div>
+          <div
+            data-testid="create-tenant-form-panel"
+            style={{ display: phase === 'form' ? 'block' : 'none' }}
+          >
+            <TenantFormFields form={form} open={open} fieldState={formFields} />
+            <CreateTenantCountryDrivenFields countries={countries} />
+          </div>
+        </Form>
+      </Modal>
 
-            <OnboardingSuccessModal
-                success={success}
-                onClose={() => setSuccess(null)}
-                onCreateAnother={onCreateAnother}
-                onSwitchToTenant={onSwitchToTenant}
-                switchToTenantLoading={switchToTenantLoading}
-            />
-        </>
-    );
+      <OnboardingErrorModal
+        open={!!onboardingError}
+        error={onboardingError}
+        companyName={errorContext?.companyName}
+        attemptedSlug={errorContext?.slug}
+        onTrySlug={handleErrorTrySlug}
+        onDismiss={handleDismissError}
+        onCancel={handleErrorCancel}
+      />
+
+      <OnboardingSuccessModal
+        success={success}
+        onClose={() => setSuccess(null)}
+        onCreateAnother={onCreateAnother}
+        onSwitchToTenant={onSwitchToTenant}
+        switchToTenantLoading={switchToTenantLoading}
+      />
+    </>
+  );
 }

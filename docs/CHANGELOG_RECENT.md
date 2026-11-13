@@ -4,6 +4,168 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-08-08 — Production readiness wave (Audit / DEP / Dashboard widgets)
+
+**Reference:** [`RELEASE_NOTES_2026-08-08.md`](RELEASE_NOTES_2026-08-08.md) · [`FIXES.md`](FIXES.md) · [`../DEPLOYMENT.md`](../DEPLOYMENT.md)
+
+### Fixes / features
+
+- AuditLog Manager 500 (ignored `User` navigation)
+- DEP Soft TSE cert fallback (demo/sim only) + history status string enum
+- Manager dashboard widgets into existing DnD preferences pipeline (Handlungsbedarf pinned)
+- EF snapshot-only sync migration for clean `has-pending-model-changes`
+
+### Ops
+
+- Expanded Production config checklist + Staging→Canary→Production deploy notes in `DEPLOYMENT.md`
+- Pre-deploy: migrations list, snapshot gate, smoke after cutover
+
+---
+
+## 2026-07-29 — Production Docker, CI/CD docs, monitoring stack
+
+**Reference:** [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) · [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) · [`CI_CD.md`](CI_CD.md) · [`MONITORING.md`](MONITORING.md)
+
+### Ops / Compose
+
+- `docker-compose.prod.yml` + `.env.production.example` / `.env.production.local.example` (Device/Real TSE; Soft TSE only via Dev override)
+- Windows helpers: `docker-up-prod.bat` / `docker-down-prod.bat` (+ build/push/logs scripts)
+- Beginner + test + readiness guides: `DOCKER_FOR_BEGINNERS.md`, `DOCKER_TEST_PLAN.md`, `DOCKER_PRODUCTION_READINESS.md`
+
+### CI/CD & monitoring
+
+- Umbrella `ci.yml` / multi-image `deploy.yml` docs; Environments checklist under `.github/environments/`
+- Optional `monitoring/` Compose (Prometheus, Grafana, Loki, Alertmanager) + `scripts/start-monitoring.*`
+- Docs: `CI_CD.md`, `GITHUB_ACTIONS.md`, `MONITORING.md`, `ALERTING.md`, `METRICS.md`
+
+### Hygiene
+
+- `.gitignore`: local prod env, monitoring data/overrides, generated license invoice PDFs, scratch build dirs
+
+---
+
+## 2026-07-02 — Backup permissions (Manager / tenant scoping)
+
+**Reference:** [`docs/BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · AI: [`ai/modules/backup_permissions.md`](../ai/modules/backup_permissions.md)
+
+### Backend
+
+- New permission `backup.manage` (`AppPermissions.BackupManage`) — tenant-scoped manual trigger + schedule/retention
+- **Manager** default matrix: `settings.view` + `backup.manage` (not `settings.manage`)
+- `settings.manage` implies `backup.manage` (+ `settings.backup`); escalation guard — `backup.manage` alone does not imply `settings.manage`
+- `POST /api/admin/backup/trigger`, `PUT /api/admin/backup/settings`, legacy `POST /api/settings/backup/now` → `backup.manage`
+- Execution mode / artifact download remain `settings.manage`
+- Tenant guard on manual trigger: non–Super Admin without tenant context → `400 TENANT_CONTEXT_REQUIRED`
+- Tests: `RolePermissionMatrixTests`, `EndpointAuthorizationRepresentativeTests`, `AdminBackupTriggerTenantScopingTests`
+
+### Frontend Admin
+
+- `PERMISSIONS.BACKUP_MANAGE`, `permissionImplication` mirror, `useBackupPermissions` / `useBackupManagementAccess` (`canManageBackup`)
+- `BackupSettings.tsx`, `BackupDrDashboard`, `AdminBackupPage` — UI gated by `backup.manage` vs `settings.manage`
+- `routePermissions.ts` comments for `/settings/backup-dr`, `/admin/backup`
+- i18n: tenant-scoped backup copy uses *„Backups verwalten“* instead of *„Einstellungen verwalten“*
+
+### Known limitation (2026-07-02 wave)
+
+- Per-tenant **access** was JWT/idempotency-only; see **2026-07-07** for `tenant_id` column.
+
+---
+
+## 2026-07-07 — Backup tenant scoping Phase 3 (access + `tenant_id`)
+
+**Reference:** [`docs/BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md)
+
+### Backend
+
+- Migration `AddTenantIdToBackupRuns`: nullable `backup_runs.tenant_id`, backfill from idempotency keys
+- `BackupRunAccessEvaluator` centralizes read/download/trigger scope (column-first, shared scheduled runs, legacy fallback)
+- Scoped reads: `runs`, `status/latest`, `verification/latest`, `dashboard/stats`, `recoverability-summary`
+- Tenant-scoped manual queue (duplicate-active per tenant scope)
+- HTTP integration: `BackupTriggerDownloadIntegrationTests` (trigger → orchestrator → download)
+
+### Known limitation
+
+- Data plane remains one deployment-wide PostgreSQL dump; `tenant_id` is **access control**, not per-tenant dump files.
+
+---
+
+## 2026-06-27 — Offline system (full rollout)
+
+**Index:** [`docs/OFFLINE_SYSTEM_INDEX.md`](OFFLINE_SYSTEM_INDEX.md)
+
+### Wave 1 — Order snapshots + sequence reservation
+
+**Backend:**
+
+- **Table:** `offline_orders` (`20260627002059_AddOfflineOrdersTable`) — tenant-scoped full order snapshots (`order_data` JSONB), 72 h expiry, max 3 sync attempts
+- **Services:** `OfflineOrderService`, `ISequenceReservationService` / `SequenceReservationService` (batch BelegNr reserve / tail release)
+- **POS API:** `PosOfflineOrdersController` at `/api/pos/offline-orders` (save, pending, replay, status)
+- **Admin API:** `AdminOfflineOrdersController` at `/api/admin/offline-orders` (list, single replay, replay-all)
+- **Hosted:** `OfflineOrderCleanupHostedService` (6 h interval — delete expired pending rows)
+- **Payment:** `CreatePaymentRequest.ReservedReceiptNumber` for pre-reserved BelegNr on replay
+- **Tests:** `SequenceReservationServiceTests` (PostgreSQL)
+
+**Frontend POS:**
+
+- `offlineConfig.ts`, `offlineStorage.ts`, `offlineOrderManager.ts`, `offlineSyncService.ts`, `useOfflineOrderManager.ts`, `useOfflineStatus.ts`, `OfflineBanner.tsx`
+- Legacy parallel queue: `offlineOrderQueue.ts`; reconnect sync in `useApiManager.ts`
+
+**Frontend Admin:**
+
+- Page `/rksv/offline-orders` — filters, table, single/batch sync (i18n de/en/tr)
+- Page `/settings/offline` — tenant limits UI (`settings.manage`); API client targets `/api/admin/settings/offline`
+- Orval hooks: `useGetApiAdminOfflineOrders`, `usePostApiAdminOfflineOrdersIdReplay`, `usePostApiAdminOfflineOrdersReplayAll`
+- RKSV menu + route permission `payment.view`
+
+### Wave 2 — Monitoring, alerting, dashboard widget
+
+**Backend:**
+
+- **Monitoring:** `IOfflineMonitoringService` / `OfflineMonitoringService` — tenant-scoped status, stats, anomalies, sync health (orders + legacy transactions)
+- **API:** `AdminOfflineMonitoringController` at `/api/admin/offline-monitoring/*` (`payment.view`)
+- **Config:** `OfflineMonitoringOptions`, `OfflineAlertRules` in `appsettings.example.json`
+- **Alerting:** `OfflineAlertService` (background) — critical anomalies → activity feed
+- **Activity types:** `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`
+- **Dashboard catalog:** widget `offline-system-status` (`DashboardWidgetCatalog`)
+- **DTOs:** `OfflineSystemStatus`, `OfflineOrderStats`, `OfflineAnomaly`, `SyncHealth` in `BillingDtos.cs`
+- **Tests:** `OfflineMonitoringServiceTests`, `OfflineAlertServiceTests`
+
+**Frontend Admin:**
+
+- `OfflineStatusWidget` — dashboard pending counts, sync health, link to `/rksv/offline-orders`
+- `useOfflineMonitoring`, `offlineMonitoringApi.ts` (30 s refresh)
+- i18n: `dashboard.offlineStatusWidget.*` (de/en/tr)
+
+### Wave 3 — QA & operations documentation
+
+- [`docs/OFFLINE_SYSTEM_TEST_PLAN.md`](OFFLINE_SYSTEM_TEST_PLAN.md) — E2E + API test plan
+- [`docs/OFFLINE_MANUAL_TEST_CHECKLIST.md`](OFFLINE_MANUAL_TEST_CHECKLIST.md) — manual QA
+- [`docs/OFFLINE_PRODUCTION_DEPLOYMENT.md`](OFFLINE_PRODUCTION_DEPLOYMENT.md) — deploy checklist, verify gate, Day 1 / Week 1 monitoring, rollback
+- [`scripts/test-offline-system.mjs`](../scripts/test-offline-system.mjs), [`scripts/test-offline-system.sh`](../scripts/test-offline-system.sh)
+
+**Note:** Coexists with legacy `offline_transactions` / `/admin/tse/offline-transactions` — separate table, APIs, services, and admin nav. Do not merge.
+
+**OpenAPI:** Regenerated 2026-06-27 — offline **orders** routes in swagger; monitoring routes consumed via FA `customInstance` until added to OpenAPI.
+
+**Migration applied (local):** `20260627002059_AddOfflineOrdersTable` via `dotnet ef database update`.
+
+---
+
+## 2026-06-23 — Billing tenant license (license_sales)
+
+**Backend:**
+
+- `Billing.TenantLicenseService` — mandant activate/extend/status against `license_sales` + `tenants` row
+- `POST /api/admin/license/extend` for Managers (`settings.manage`)
+- Billing key format `REGK-{yyyyMMdd}-{slug}-{8chars}`; activation on `POST /api/license/activate` when format matches
+- Unit tests: `TenantLicenseServiceTests`, `AdminLicenseExtendTests`, `BillingTenantLicenseServiceTests`
+
+**Documentation:** [`docs/BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md), [`ai/modules/billing_license.md`](../ai/modules/billing_license.md).
+
+**Follow-up:** Wire FA `tenantLicense.ts` to `/api/admin/license/extend`; align permissions and rate limiting with legacy mandant extend.
+
+---
+
 ## 2026-06-12 — Access & roles hub + admin permission filter
 
 **Frontend Admin:**

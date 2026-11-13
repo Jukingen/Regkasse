@@ -1,8 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Data;
 
@@ -86,7 +84,7 @@ public static class CashRegisterBootstrapSeed
             {
                 Id = Guid.NewGuid(),
                 TenantId = t.Id,
-                RegisterNumber = "KASSE-001",
+                RegisterNumber = CashRegisterNumbers.ForTenant(t.Id, t.Slug),
                 Location = "Hauptkasse",
                 StartingBalance = 0,
                 CurrentBalance = 0,

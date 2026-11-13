@@ -23,7 +23,8 @@ public static class ReceiptReprintReasonCodes
 
     public static bool IsValid(string? code)
     {
-        if (string.IsNullOrWhiteSpace(code)) return false;
+        if (string.IsNullOrWhiteSpace(code))
+            return false;
         var t = code.Trim();
         foreach (var a in All)
         {

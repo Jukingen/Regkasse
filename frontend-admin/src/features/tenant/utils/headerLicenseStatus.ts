@@ -1,65 +1,153 @@
-import type { TenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
+import {
+  TENANT_GRACE_PERIOD_DAYS,
+  clampTenantGraceRemaining,
+} from '@/features/license/constants/licenseGracePeriod';
+import type { ResolvedLicenseStatus } from '@/features/license/utils/licenseStatus';
+import { getLicenseHoursRemaining } from '@/features/license/utils/licenseStatus';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 
 export type HeaderLicenseStatusClass = 'valid' | 'warning' | 'expired';
 
+export type HeaderLicenseStatusContext = {
+  validUntilUtc?: string | null;
+};
+
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
-export function isHeaderLicenseMissing(
-    license: TenantLicenseLabel,
-    licenseValidUntilUtc?: string | null,
-): boolean {
-    return license.kind === 'none' || !licenseValidUntilUtc?.trim();
+function isGracePhase(status: ResolvedLicenseStatus): boolean {
+  return status.kind === 'grace_write' || status.kind === 'grace_readonly';
 }
 
-export function isHeaderLicenseExpired(license: TenantLicenseLabel): boolean {
-    if (license.kind === 'expired') {
-        return true;
-    }
-    return license.daysRemaining != null && license.daysRemaining < 0;
+function isExpiringSoon(status: ResolvedLicenseStatus): boolean {
+  return (
+    isGracePhase(status) ||
+    (status.kind === 'active' && status.daysRemaining >= 0 && status.daysRemaining <= 7)
+  );
+}
+
+function formatExpiryDateTime(validUntilUtc: string | null | undefined): string {
+  const formatted = formatLicenseValidUntil(validUntilUtc);
+  return formatted === '—' ? '' : formatted;
+}
+
+export { getLicenseHoursRemaining };
+
+function isExpiredStatus(status: ResolvedLicenseStatus): boolean {
+  return status.kind === 'lockdown' || status.kind === 'expired' || status.daysRemaining < 0;
 }
 
 export function getHeaderLicenseStatusClass(
-    license: TenantLicenseLabel,
-    licenseValidUntilUtc?: string | null,
+  status: ResolvedLicenseStatus
 ): HeaderLicenseStatusClass {
-    if (isHeaderLicenseMissing(license, licenseValidUntilUtc) || isHeaderLicenseExpired(license)) {
-        return 'expired';
-    }
+  if (status.kind === 'no_license' || status.kind === 'lockdown') {
+    return 'expired';
+  }
 
-    const daysRemaining = license.daysRemaining ?? 0;
-    if (daysRemaining <= 7) {
-        return 'warning';
-    }
+  if (status.kind === 'expired') {
+    return 'expired';
+  }
 
-    return 'valid';
+  if (isGracePhase(status) || status.daysRemaining <= 7) {
+    return 'warning';
+  }
+
+  return 'valid';
 }
 
 export function getHeaderLicenseStatusText(
-    license: TenantLicenseLabel,
-    t: TranslateFn,
-    licenseValidUntilUtc?: string | null,
+  status: ResolvedLicenseStatus,
+  t: TranslateFn,
+  context?: HeaderLicenseStatusContext
 ): string {
-    if (isHeaderLicenseMissing(license, licenseValidUntilUtc)) {
-        return t('license.badge.headerShort.none');
+  if (status.kind === 'no_license') {
+    return t('license.badge.headerShort.none');
+  }
+
+  if (isGracePhase(status)) {
+    return t('license.badge.headerShort.expiringSoon');
+  }
+
+  if (isExpiredStatus(status)) {
+    return t('license.badge.headerShort.expired');
+  }
+
+  if (isExpiringSoon(status)) {
+    const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
+    if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
+      return t('license.badge.headerShort.expiringSoonWithHours', { hours: hoursRemaining });
     }
 
-    if (isHeaderLicenseExpired(license)) {
-        return t('license.badge.headerShort.expired');
-    }
+    return t('license.badge.headerShort.expiringSoonWithDays', { days: status.daysRemaining });
+  }
 
-    const daysRemaining = license.daysRemaining ?? 0;
-    if (daysRemaining <= 7) {
-        return t('license.badge.headerShort.expiringSoon');
-    }
+  if (status.daysRemaining > 0) {
+    return `${t('license.phase.labels.active')} (${t('license.badge.headerShort.daysRemaining', {
+      days: status.daysRemaining,
+    })})`;
+  }
 
-    return t('license.badge.headerShort.licensed');
+  return t('license.badge.headerShort.licensed');
+}
+
+export function getHeaderLicenseTooltipStatusLabel(
+  status: ResolvedLicenseStatus,
+  t: TranslateFn
+): string {
+  if (isGracePhase(status)) {
+    return t('license.phase.labels.graceWrite');
+  }
+
+  if (status.daysRemaining <= 0 || isExpiredStatus(status)) {
+    return t('license.phase.labels.expired');
+  }
+
+  return t('license.phase.labels.active');
+}
+
+export function hasDetailedHeaderLicenseTooltip(context?: HeaderLicenseStatusContext): boolean {
+  return Boolean(formatExpiryDateTime(context?.validUntilUtc));
 }
 
 export function getHeaderLicenseTooltip(
-    license: TenantLicenseLabel,
-    t: TranslateFn,
-    licenseValidUntilUtc?: string | null,
+  status: ResolvedLicenseStatus,
+  t: TranslateFn,
+  context?: HeaderLicenseStatusContext
 ): string {
-    const status = getHeaderLicenseStatusText(license, t, licenseValidUntilUtc);
-    return t('license.badge.headerShort.mandantTooltip', { status });
+  const dateTime = formatExpiryDateTime(context?.validUntilUtc);
+  const statusText = getHeaderLicenseStatusText(status, t, context);
+
+  if (!dateTime) {
+    return t('license.badge.headerShort.mandantTooltip', { status: statusText });
+  }
+
+  const statusLabel = getHeaderLicenseTooltipStatusLabel(status, t);
+
+  if (isGracePhase(status)) {
+    const graceRemaining = clampTenantGraceRemaining(TENANT_GRACE_PERIOD_DAYS - status.daysExpired);
+    return t('license.badge.headerShort.tooltip.ariaSummary', {
+      dateTime,
+      days: graceRemaining,
+      status: statusLabel,
+    });
+  }
+
+  // Expired / lockdown: never prefer hours-from-ValidUntil (can be a stale future stamp).
+  if (!isExpiredStatus(status)) {
+    const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
+    if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
+      return t('license.badge.headerShort.tooltip.ariaSummaryHours', {
+        dateTime,
+        hours: hoursRemaining,
+        status: statusLabel,
+      });
+    }
+  }
+
+  const daysRemaining = Math.max(0, status.daysRemaining);
+
+  return t('license.badge.headerShort.tooltip.ariaSummary', {
+    dateTime,
+    days: daysRemaining,
+    status: statusLabel,
+  });
 }

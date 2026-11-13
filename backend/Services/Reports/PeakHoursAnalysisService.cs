@@ -69,8 +69,8 @@ public sealed class PeakHoursAnalysisService : IPeakHoursAnalysisService
 
         var hourlyTotals = new int[24];
         for (var d = 0; d < 7; d++)
-        for (var h = 0; h < 24; h++)
-            hourlyTotals[h] += heatmap[d][h];
+            for (var h = 0; h < 24; h++)
+                hourlyTotals[h] += heatmap[d][h];
 
         var nonZero = hourlyTotals.Where(x => x > 0).ToList();
         var p75 = nonZero.Count > 0

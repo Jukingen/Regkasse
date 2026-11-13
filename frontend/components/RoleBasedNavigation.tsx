@@ -1,9 +1,9 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { PermissionHelper, UserRole } from '../shared/utils/PermissionHelper';
 
 interface NavigationItem {
@@ -23,7 +23,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'point-of-sale',
     screen: 'SalesScreen',
     roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.sales'
+    description: 'navigation.sales',
   },
   {
     id: 'products',
@@ -31,7 +31,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'inventory',
     screen: 'ProductListScreen',
     roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.products'
+    description: 'navigation.products',
   },
   {
     id: 'cart',
@@ -39,7 +39,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'shopping-cart',
     screen: 'CartScreen',
     roles: [UserRole.Cashier, UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.cart'
+    description: 'navigation.cart',
   },
   {
     id: 'customers',
@@ -47,7 +47,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'people',
     screen: 'CustomerScreen',
     roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.customers'
+    description: 'navigation.customers',
   },
   {
     id: 'tables',
@@ -55,7 +55,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'table-restaurant',
     screen: 'TableSelectionScreen',
     roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.tables'
+    description: 'navigation.tables',
   },
 
   // SuperAdmin only (top admin)
@@ -65,7 +65,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'admin-panel-settings',
     screen: 'UserManagementScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.users'
+    description: 'navigation.users',
   },
   {
     id: 'roles',
@@ -73,7 +73,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'security',
     screen: 'RoleManagementScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.roles'
+    description: 'navigation.roles',
   },
   {
     id: 'system',
@@ -81,7 +81,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'settings',
     screen: 'SystemSettingsScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.system'
+    description: 'navigation.system',
   },
   {
     id: 'demo',
@@ -89,7 +89,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'person-add',
     screen: 'DemoUserManagementScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.demo'
+    description: 'navigation.demo',
   },
   {
     id: 'hardware',
@@ -97,7 +97,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'devices',
     screen: 'HardwareManagementScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.hardware'
+    description: 'navigation.hardware',
   },
   {
     id: 'inventory',
@@ -105,7 +105,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'inventory-2',
     screen: 'InventoryManagementScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.inventory'
+    description: 'navigation.inventory',
   },
   {
     id: 'finanzonline',
@@ -113,7 +113,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'account-balance',
     screen: 'FinanzOnlineScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.finanzonline'
+    description: 'navigation.finanzonline',
   },
   {
     id: 'backup',
@@ -121,7 +121,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'backup',
     screen: 'BackupRestoreScreen',
     roles: [UserRole.SuperAdmin],
-    description: 'navigation.backup'
+    description: 'navigation.backup',
   },
 
   // Reports / Audit
@@ -131,7 +131,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'assessment',
     screen: 'ReportsScreen',
     roles: [UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.reports'
+    description: 'navigation.reports',
   },
   {
     id: 'audit',
@@ -139,7 +139,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'history',
     screen: 'AuditLogsScreen',
     roles: [UserRole.SuperAdmin, UserRole.Manager],
-    description: 'navigation.audit'
+    description: 'navigation.audit',
   },
   {
     id: 'staff',
@@ -147,7 +147,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'groups',
     screen: 'StaffManagementScreen',
     roles: [UserRole.Manager],
-    description: 'navigation.staff'
+    description: 'navigation.staff',
   },
   {
     id: 'schedule',
@@ -155,8 +155,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: 'schedule',
     screen: 'ScheduleScreen',
     roles: [UserRole.Manager],
-    description: 'navigation.schedule'
-  }
+    description: 'navigation.schedule',
+  },
 ];
 
 interface RoleBasedNavigationProps {
@@ -164,8 +164,11 @@ interface RoleBasedNavigationProps {
   currentScreen?: string;
 }
 
-export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleBasedNavigationProps) {
-  const { user } = React.useContext(AuthContext);
+export default function RoleBasedNavigation({
+  onNavigate,
+  currentScreen,
+}: RoleBasedNavigationProps) {
+  const { user } = useAuth();
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [accessibleItems, setAccessibleItems] = useState<NavigationItem[]>([]);
   const { t } = useTranslation();
@@ -189,7 +192,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
 
     if (usePermissionFirst && user?.permissions?.length) {
       const items = NAVIGATION_ITEMS.filter((item) =>
-        PermissionHelper.hasScreenAccessByPermission(item.screen, user.permissions!)
+        PermissionHelper.hasScreenAccessByPermission(item.screen, user.permissions ?? [])
       );
       setAccessibleItems(items);
     } else if (role) {
@@ -202,7 +205,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
 
   const hasAccess = (screen: string): boolean => {
     if (usePermissionFirst && user?.permissions?.length) {
-      return PermissionHelper.hasScreenAccessByPermission(screen, user.permissions);
+      return PermissionHelper.hasScreenAccessByPermission(screen, user.permissions ?? []);
     }
     return PermissionHelper.hasScreenAccess(screen);
   };
@@ -230,11 +233,12 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
         style={[
           styles.navItem,
           isActive && styles.activeNavItem,
-          !itemHasAccess && styles.disabledNavItem
+          !itemHasAccess && styles.disabledNavItem,
         ]}
-        onPress={() => handleNavigation(item)}
-        disabled={!itemHasAccess}
-      >
+        onPress={() => {
+          handleNavigation(item);
+        }}
+        disabled={!itemHasAccess}>
         <View style={styles.navItemContent}>
           <MaterialIcons
             name={item.icon as any}
@@ -242,23 +246,25 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
             color={isActive ? '#fff' : itemHasAccess ? '#333' : '#ccc'}
           />
           <View style={styles.navItemText}>
-            <Text style={[
-              styles.navItemTitle,
-              isActive && styles.activeNavItemTitle,
-              !itemHasAccess && styles.disabledNavItemTitle
-            ]}>
+            <Text
+              style={[
+                styles.navItemTitle,
+                isActive && styles.activeNavItemTitle,
+                !itemHasAccess && styles.disabledNavItemTitle,
+              ]}>
               {t(item.title)}
             </Text>
-            <Text style={[
-              styles.navItemDescription,
-              isActive && styles.activeNavItemDescription,
-              !itemHasAccess && styles.disabledNavItemDescription
-            ]}>
+            <Text
+              style={[
+                styles.navItemDescription,
+                isActive && styles.activeNavItemDescription,
+                !itemHasAccess && styles.disabledNavItemDescription,
+              ]}>
               {t(item.description)}
             </Text>
           </View>
         </View>
-        
+
         {!itemHasAccess && (
           <View style={styles.accessDeniedBadge}>
             <MaterialIcons name="block" size={16} color="#f44336" />
@@ -281,14 +287,12 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
       <View style={styles.header}>
         <Text style={styles.title}>{t('navigation.menu')}</Text>
         <View style={styles.roleInfo}>
-          <MaterialIcons 
-            name={userRole === UserRole.SuperAdmin ? 'admin-panel-settings' : 'person'} 
-            size={20} 
-            color="#666" 
+          <MaterialIcons
+            name={userRole === UserRole.SuperAdmin ? 'admin-panel-settings' : 'person'}
+            size={20}
+            color="#666"
           />
-          <Text style={styles.roleText}>
-            {PermissionHelper.getRoleDisplayName(userRole)}
-          </Text>
+          <Text style={styles.roleText}>{PermissionHelper.getRoleDisplayName(userRole)}</Text>
         </View>
       </View>
 
@@ -300,9 +304,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
       {PermissionHelper.isDemoUser() && (
         <View style={styles.demoInfo}>
           <MaterialIcons name="info" size={16} color="#1976d2" />
-          <Text style={styles.demoText}>
-            {t('navigation.demoUserInfo')}
-          </Text>
+          <Text style={styles.demoText}>{t('navigation.demoUserInfo')}</Text>
         </View>
       )}
     </ScrollView>
@@ -411,4 +413,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-}); 
+});

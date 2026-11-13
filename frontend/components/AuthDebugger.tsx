@@ -1,12 +1,14 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu component, auth durumunu detaylı debug etmek için kullanılır
 // Sadece development modunda görünür
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '../contexts/AuthContext';
+import { secureStorage } from '../services/secureStorage';
+import { SESSION_KEYS } from '../services/session/sessionManager';
 
 export const AuthDebugger: React.FC = () => {
   const { user, isAuthenticated, isLoading, checkAuthStatus } = useAuth();
@@ -15,20 +17,20 @@ export const AuthDebugger: React.FC = () => {
 
   // Her render'da sayacı artır
   useEffect(() => {
-    setRenderCount(prev => prev + 1);
+    setRenderCount((prev) => prev + 1);
   });
 
-  // AsyncStorage'ı kontrol et
+  // SecureStore / auth session keys
   const checkStorage = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      const storedUser = await AsyncStorage.getItem('user');
-      
+      const token = await secureStorage.getItem(SESSION_KEYS.token);
+      const refreshToken = await secureStorage.getItem(SESSION_KEYS.refreshToken);
+      const storedUser = await secureStorage.getItem(SESSION_KEYS.user);
+
       setStorageData({
         token: token ? `${token.substring(0, 20)}...` : 'None',
         refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : 'None',
-        storedUser: storedUser ? JSON.parse(storedUser) : 'None'
+        storedUser: storedUser ? JSON.parse(storedUser) : 'None',
       });
     } catch (error) {
       console.error('Storage check failed:', error);
@@ -56,14 +58,14 @@ export const AuthDebugger: React.FC = () => {
       'checkAuthStatus fonksiyonunu manuel olarak çağırmak istiyor musunuz?',
       [
         { text: 'İptal', style: 'cancel' },
-        { 
-          text: 'Evet', 
+        {
+          text: 'Evet',
           onPress: async () => {
-            console.log('🔍 Manuel auth check başlatılıyor...');
+            safeLog('🔍 Manuel auth check başlatılıyor...');
             await checkAuthStatus();
             await checkStorage(); // Storage'ı güncelle
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -71,22 +73,27 @@ export const AuthDebugger: React.FC = () => {
   const handleClearStorage = () => {
     Alert.alert(
       'Clear Storage',
-      'AsyncStorage\'daki tüm auth verilerini temizlemek istiyor musunuz?',
+      "SecureStore'daki tüm auth verilerini temizlemek istiyor musunuz?",
       [
         { text: 'İptal', style: 'cancel' },
-        { 
-          text: 'Evet', 
+        {
+          text: 'Evet',
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
-              console.log('🔴 Storage cleared');
+              await secureStorage.multiRemove([
+                SESSION_KEYS.token,
+                SESSION_KEYS.refreshToken,
+                SESSION_KEYS.user,
+                SESSION_KEYS.tokenExpiry,
+              ]);
+              safeLog('🔴 Storage cleared');
               await checkStorage(); // Storage'ı güncelle
             } catch (error) {
               console.error('Storage clear failed:', error);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -98,36 +105,24 @@ export const AuthDebugger: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔍 Auth Debugger</Text>
-      
+
       {/* Current State */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Current State</Text>
         <Text style={styles.infoText}>
           isAuthenticated: {isAuthenticated ? '✅ True' : '❌ False'}
         </Text>
-        <Text style={styles.infoText}>
-          isLoading: {isLoading ? '🔄 True' : '⏸️ False'}
-        </Text>
-        <Text style={styles.infoText}>
-          hasUser: {user ? '✅ True' : '❌ False'}
-        </Text>
-        <Text style={styles.infoText}>
-          User Email: {user?.email || 'None'}
-        </Text>
-        <Text style={styles.infoText}>
-          User Role: {user?.role || 'None'}
-        </Text>
-        <Text style={styles.infoText}>
-          Render Count: {renderCount}
-        </Text>
+        <Text style={styles.infoText}>isLoading: {isLoading ? '🔄 True' : '⏸️ False'}</Text>
+        <Text style={styles.infoText}>hasUser: {user ? '✅ True' : '❌ False'}</Text>
+        <Text style={styles.infoText}>User Email: {user?.email || 'None'}</Text>
+        <Text style={styles.infoText}>User Role: {user?.role || 'None'}</Text>
+        <Text style={styles.infoText}>Render Count: {renderCount}</Text>
       </View>
 
       {/* Storage Data */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Storage Data</Text>
-        <Text style={styles.infoText}>
-          Token: {storageData.token || 'Loading...'}
-        </Text>
+        <Text style={styles.infoText}>Token: {storageData.token || 'Loading...'}</Text>
         <Text style={styles.infoText}>
           Refresh Token: {storageData.refreshToken || 'Loading...'}
         </Text>
@@ -142,12 +137,12 @@ export const AuthDebugger: React.FC = () => {
           <Ionicons name="refresh" size={16} color="white" />
           <Text style={styles.buttonText}>Auth Check</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.button} onPress={handleCheckStorage}>
           <Ionicons name="eye" size={16} color="white" />
           <Text style={styles.buttonText}>Check Storage</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.dangerButton} onPress={handleClearStorage}>
           <Ionicons name="trash" size={16} color="white" />
           <Text style={styles.buttonText}>Clear Storage</Text>
@@ -156,9 +151,7 @@ export const AuthDebugger: React.FC = () => {
 
       {/* Warning */}
       <View style={styles.warningSection}>
-        <Text style={styles.warningText}>
-          ⚠️ Bu debugger sadece development modunda görünür
-        </Text>
+        <Text style={styles.warningText}>⚠️ Bu debugger sadece development modunda görünür</Text>
         <Text style={styles.warningText}>
           Auth durumunu ve storage verilerini izlemek için kullanın
         </Text>

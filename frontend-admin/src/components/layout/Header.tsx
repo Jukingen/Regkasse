@@ -1,269 +1,187 @@
 'use client';
 
-
-
+import { MenuFoldOutlined, MenuUnfoldOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Button, Layout } from 'antd';
-
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-
-import Image from 'next/image';
-
 import Link from 'next/link';
 
-import { useI18n } from '@/i18n';
-
-
-
-import { HeaderTenantSection } from '@/features/auth/components/HeaderTenantSection';
-
-import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
-
-import { HeaderThemeQuickSwitch } from '@/components/admin-layout/HeaderThemeQuickSwitch';
-
-import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSwitch';
-
-import { EnvironmentBadge } from '@/components/EnvironmentBadge';
-
-import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
-
-import { ActivityNotificationsBell } from '@/features/activity-notifications/components/ActivityNotificationsBell';
-
 import { AlertBell } from '@/components/AlertBell';
-
-import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
-
+import { EnvironmentBadge } from '@/components/EnvironmentBadge';
+import { openKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { SearchBar } from '@/components/SearchBar';
+import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { HeaderThemeQuickSwitch } from '@/components/admin-layout/HeaderThemeQuickSwitch';
+import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 import { AdminHeaderUserMenu } from '@/components/layout/AdminHeaderUserMenu';
-import { GlobalSearch } from '@/components/admin-layout/GlobalSearch';
-
+import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSwitch';
+import { ActivityNotificationsBell } from '@/features/activity-notifications/components/ActivityNotificationsBell';
+import { HeaderTenantSection } from '@/features/auth/components/HeaderTenantSection';
+import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
+import { SuperAdminProfileSimulationSelect } from '@/features/vertical-profiles/components/SuperAdminProfileSimulationSelect';
+import { useI18n } from '@/i18n';
 import type { AuthUser } from '@/shared/auth/types';
-
-
 
 const { Header: AntHeader } = Layout;
 
-
-
 export type AdminShellHeaderProps = {
+  background: string;
 
-    background: string;
+  isMobile: boolean;
 
-    isMobile: boolean;
+  drawerVisible: boolean;
 
-    drawerVisible: boolean;
+  collapsed: boolean;
 
-    collapsed: boolean;
+  onToggleSidebar: () => void;
 
-    onToggleSidebar: () => void;
+  user: AuthUser | null | undefined;
 
-    user: AuthUser | null | undefined;
-
-    onLogout: () => void;
-
+  onLogout: () => void;
 };
-
-
 
 /** Protected shell top bar: nav toggle, brand, tenant context, license, account menu. */
 
 export function AdminShellHeader({
+  background,
 
-    background,
+  isMobile,
 
-    isMobile,
+  drawerVisible,
 
-    drawerVisible,
+  collapsed,
 
-    collapsed,
+  onToggleSidebar,
 
-    onToggleSidebar,
+  user,
 
-    user,
-
-    onLogout,
-
+  onLogout,
 }: AdminShellHeaderProps) {
+  const { t } = useI18n();
 
-    const { t } = useI18n();
+  const navAriaLabel = isMobile
+    ? drawerVisible
+      ? t('adminShell.aria.closeNav')
+      : t('adminShell.aria.openNav')
+    : collapsed
+      ? t('adminShell.aria.expandSidebar')
+      : t('adminShell.aria.collapseSidebar');
 
-
-
-    const navAriaLabel = isMobile
-
-        ? drawerVisible
-
-            ? t('adminShell.aria.closeNav')
-
-            : t('adminShell.aria.openNav')
-
-        : collapsed
-
-          ? t('adminShell.aria.expandSidebar')
-
-          : t('adminShell.aria.collapseSidebar');
-
-
-
-    const navIcon = isMobile ? (
-
-        drawerVisible ? (
-
-            <MenuFoldOutlined />
-
-        ) : (
-
-            <MenuUnfoldOutlined />
-
-        )
-
-    ) : collapsed ? (
-
-        <MenuUnfoldOutlined />
-
+  const navIcon = isMobile ? (
+    drawerVisible ? (
+      <MenuFoldOutlined />
     ) : (
+      <MenuUnfoldOutlined />
+    )
+  ) : collapsed ? (
+    <MenuUnfoldOutlined />
+  ) : (
+    <MenuFoldOutlined />
+  );
 
-        <MenuFoldOutlined />
+  return (
+    <AntHeader
+      className="admin-shell-header"
 
-    );
+      style={{ ['--header-bg' as string]: background, ['--admin-header-bg' as string]: background }}
+    >
+      <header className="admin-header" data-compact={isMobile || undefined}>
+        <div className="admin-header-left">
+          <Button
+            type="text"
 
+            className="admin-header-nav-toggle"
 
+            aria-label={navAriaLabel}
 
-    return (
+            aria-expanded={isMobile ? drawerVisible : undefined}
 
-        <AntHeader
+            icon={navIcon}
 
-            className="admin-shell-header"
+            onClick={onToggleSidebar}
+          />
 
-            style={{ ['--header-bg' as string]: background, ['--admin-header-bg' as string]: background }}
+          <Link
+            href="/dashboard"
+            className="admin-header-logo"
+            aria-label={t('adminShell.branding.sidebarExpanded')}
+          >
+            <OptimizedImage
+              src="/logo.svg"
+              alt=""
+              width={32}
+              height={32}
+              className="admin-header-logo-image"
+              priority
+              loading="eager"
+            />
+            <span className="admin-header-logo-text">Regkasse</span>
+          </Link>
 
+          {/* Global selected cash register (name, status, quick switch) */}
+          <div
+            className="admin-header-register-context"
+            data-testid="admin-header-register-context"
+          >
+            <CashRegisterQuickSwitch isMobile={isMobile} />
+          </div>
+        </div>
+
+        <div className="admin-header-center" aria-hidden="true" />
+
+        <div
+          className="admin-header-right"
+
+          role="toolbar"
+
+          aria-label={t('adminShell.header.headerActionsAria')}
         >
+          <div className="admin-header-toolbar-scroll">
+            <span className="admin-header-env-badge">
+              <EnvironmentBadge />
+            </span>
 
-            <header className="admin-header" data-compact={isMobile || undefined}>
+            <HeaderTenantSection isMobile={isMobile} />
 
-                <div className="admin-header-left">
+            <SuperAdminProfileSimulationSelect />
 
-                    <Button
+            <LicenseStatusIndicator compact={isMobile} />
 
-                        type="text"
+            <div className="admin-header-utilities">
+              <HeaderThemeQuickSwitch />
 
-                        className="admin-header-nav-toggle"
+              <HeaderLanguageQuickSwitch />
 
-                        aria-label={navAriaLabel}
+              <Button
+                type="default"
+                size="small"
+                icon={<QuestionCircleOutlined />}
+                className="admin-header-tool-btn"
+                onClick={() => openKeyboardShortcutsHelp()}
+                aria-label={t('keyboardShortcuts.help')}
+                title={t('keyboardShortcuts.help')}
+              />
 
-                        aria-expanded={isMobile ? drawerVisible : undefined}
+              <AlertBell />
 
-                        icon={navIcon}
+              <ActivityNotificationsBell />
 
-                        onClick={onToggleSidebar}
+              <MonatsbelegGlobalBadge />
+            </div>
+          </div>
 
-                    />
+          <SearchBar isMobile={isMobile} />
 
-                    <Link
+          <AdminHeaderUserMenu
+            user={user}
 
-                        href="/dashboard"
+            fallbackLabel={t('adminShell.branding.fallbackUserName')}
 
-                        className="admin-header-logo"
+            isMobile={isMobile}
 
-                        aria-label={t('adminShell.branding.sidebarExpanded')}
-
-                    >
-
-                        <Image
-
-                            src="/logo.svg"
-
-                            alt=""
-
-                            width={32}
-
-                            height={32}
-
-                            className="admin-header-logo-image"
-
-                            priority
-
-                        />
-
-                        <span className="admin-header-logo-text">Regkasse</span>
-
-                    </Link>
-
-                </div>
-
-
-
-                <div className="admin-header-center" aria-hidden="true" />
-
-
-
-                <div
-
-                    className="admin-header-right"
-
-                    role="toolbar"
-
-                    aria-label={t('adminShell.header.headerActionsAria')}
-
-                >
-
-                    <div className="admin-header-toolbar-scroll">
-
-                        <span className="admin-header-env-badge">
-
-                            <EnvironmentBadge />
-
-                        </span>
-
-
-
-                        <HeaderTenantSection isMobile={isMobile} />
-
-
-
-                        <LicenseStatusIndicator compact={isMobile} />
-
-
-
-                        <div className="admin-header-utilities">
-
-                            <CashRegisterQuickSwitch isMobile={isMobile} />
-
-                            <HeaderThemeQuickSwitch />
-
-                            <HeaderLanguageQuickSwitch />
-
-                            <AlertBell />
-
-                            <ActivityNotificationsBell />
-
-                            <MonatsbelegGlobalBadge />
-
-                        </div>
-
-                    </div>
-
-
-
-                    <GlobalSearch isMobile={isMobile} />
-
-                    <AdminHeaderUserMenu
-
-                        user={user}
-
-                        fallbackLabel={t('adminShell.branding.fallbackUserName')}
-
-                        isMobile={isMobile}
-
-                        onLogout={onLogout}
-
-                    />
-
-                </div>
-
-            </header>
-
-        </AntHeader>
-
-    );
-
+            onLogout={onLogout}
+          />
+        </div>
+      </header>
+    </AntHeader>
+  );
 }
-

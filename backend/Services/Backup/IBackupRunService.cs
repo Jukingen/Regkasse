@@ -12,6 +12,15 @@ public interface IBackupRunService
         Guid runId,
         BackupRunDtoMappingOptions mappingOptions,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Readable list of succeeded logical dump artifacts (file name, tenant slug, download path).
+    /// Super Admin: all succeeded dumps. Mandanten-Admin: only Tenant-strategy rows for <paramref name="tenantId"/>.
+    /// </summary>
+    Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(
+        Guid? tenantId,
+        bool isSuperAdmin,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Inputs required to map a <see cref="Models.Backup.BackupRun"/> to admin API DTOs.</summary>

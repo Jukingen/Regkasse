@@ -6,86 +6,103 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+const lightColors = {
+  // Ana renkler
+  primary: '#2196F3',
+  secondary: '#FF9800',
+  success: '#4CAF50',
+  error: '#F44336',
+  warning: '#FF9800',
+  info: '#2196F3',
+  accent: '#9C27B0',
+  white: '#FFFFFF',
+  black: '#000000',
+
+  // Arka plan renkleri
+  background: '#F5F5F5',
+  surface: '#FFFFFF',
+  surfaceVariant: '#EEEEEE',
+  card: '#FFFFFF',
+
+  // Metin renkleri
+  text: '#212121',
+  textSecondary: '#757575',
+  textTertiary: '#9E9E9E',
+
+  // Kenarlık renkleri
+  border: '#E0E0E0',
+  borderLight: '#F0F0F0',
+
+  // Durum renkleri
+  online: '#4CAF50',
+  offline: '#FF9800',
+
+  // Sepet ve ödeme renkleri
+  cartBackground: '#F9F9F9',
+  paymentButton: '#4CAF50',
+  paymentButtonDisabled: '#CCCCCC',
+
+  // Kategori renkleri
+  categoryFood: '#FF5722',
+  categoryDrink: '#2196F3',
+  categoryDessert: '#E91E63',
+  categoryOther: '#9C27B0',
+} as const;
+
+const darkColors = {
+  // Ana renkler
+  primary: '#64B5F6',
+  secondary: '#FFB74D',
+  success: '#81C784',
+  error: '#E57373',
+  warning: '#FFB74D',
+  info: '#64B5F6',
+  accent: '#CE93D8',
+  white: '#FFFFFF',
+  black: '#000000',
+
+  // Arka plan renkleri
+  background: '#121212',
+  surface: '#1E1E1E',
+  surfaceVariant: '#2A2A2A',
+  card: '#2D2D2D',
+
+  // Metin renkleri
+  text: '#FFFFFF',
+  textSecondary: '#B0B0B0',
+  textTertiary: '#808080',
+
+  // Kenarlık renkleri
+  border: '#404040',
+  borderLight: '#303030',
+
+  // Durum renkleri
+  online: '#81C784',
+  offline: '#FFB74D',
+
+  // Sepet ve ödeme renkleri
+  cartBackground: '#2A2A2A',
+  paymentButton: '#81C784',
+  paymentButtonDisabled: '#666666',
+
+  // Kategori renkleri
+  categoryFood: '#FF8A65',
+  categoryDrink: '#64B5F6',
+  categoryDessert: '#F48FB1',
+  categoryOther: '#BA68C8',
+} as const;
+
+/**
+ * Theme tokens. Prefer `Colors.light` / `Colors.dark` (or `useThemeColor`).
+ * Flat keys (`Colors.primary`, …) alias the light theme for legacy call sites.
+ */
 export const Colors = {
-  light: {
-    // Ana renkler
-    primary: '#2196F3',
-    secondary: '#FF9800',
-    success: '#4CAF50',
-    error: '#F44336',
-    warning: '#FF9800',
-    info: '#2196F3',
-    
-    // Arka plan renkleri
-    background: '#F5F5F5',
-    surface: '#FFFFFF',
-    card: '#FFFFFF',
-    
-    // Metin renkleri
-    text: '#212121',
-    textSecondary: '#757575',
-    textTertiary: '#9E9E9E',
-    
-    // Kenarlık renkleri
-    border: '#E0E0E0',
-    borderLight: '#F0F0F0',
-    
-    // Durum renkleri
-    online: '#4CAF50',
-    offline: '#FF9800',
-    
-    // Sepet ve ödeme renkleri
-    cartBackground: '#F9F9F9',
-    paymentButton: '#4CAF50',
-    paymentButtonDisabled: '#CCCCCC',
-    
-    // Kategori renkleri
-    categoryFood: '#FF5722',
-    categoryDrink: '#2196F3',
-    categoryDessert: '#E91E63',
-    categoryOther: '#9C27B0',
-  },
-  dark: {
-    // Ana renkler
-    primary: '#64B5F6',
-    secondary: '#FFB74D',
-    success: '#81C784',
-    error: '#E57373',
-    warning: '#FFB74D',
-    info: '#64B5F6',
-    
-    // Arka plan renkleri
-    background: '#121212',
-    surface: '#1E1E1E',
-    card: '#2D2D2D',
-    
-    // Metin renkleri
-    text: '#FFFFFF',
-    textSecondary: '#B0B0B0',
-    textTertiary: '#808080',
-    
-    // Kenarlık renkleri
-    border: '#404040',
-    borderLight: '#303030',
-    
-    // Durum renkleri
-    online: '#81C784',
-    offline: '#FFB74D',
-    
-    // Sepet ve ödeme renkleri
-    cartBackground: '#2A2A2A',
-    paymentButton: '#81C784',
-    paymentButtonDisabled: '#666666',
-    
-    // Kategori renkleri
-    categoryFood: '#FF8A65',
-    categoryDrink: '#64B5F6',
-    categoryDessert: '#F48FB1',
-    categoryOther: '#BA68C8',
-  },
+  ...lightColors,
+  light: lightColors,
+  dark: darkColors,
 };
 
-// Spacing sistemi
+// Spacing sistemi (+ legacy aliases used by older screens)
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -93,15 +110,23 @@ export const Spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
+  // Legacy aliases
+  xsmall: 4,
+  small: 8,
+  medium: 16,
+  large: 24,
 };
 
-// Border radius sistemi
+// Border radius sistemi (+ legacy aliases)
 export const BorderRadius = {
   sm: 4,
   md: 8,
   lg: 12,
   xl: 16,
   xxl: 24,
+  small: 4,
+  medium: 8,
+  large: 12,
 };
 
 // Typography sistemi
@@ -116,6 +141,10 @@ export const Typography = {
   },
   h3: {
     fontSize: 20,
+    fontWeight: '600' as const,
+  },
+  h4: {
+    fontSize: 18,
     fontWeight: '600' as const,
   },
   body: {

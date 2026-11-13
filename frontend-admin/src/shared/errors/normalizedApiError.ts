@@ -14,6 +14,8 @@ export type NormalizedApiError = {
   code: string | undefined;
   /** Single-line server/error text (for copyable raw block) */
   rawMessage: string | undefined;
+  /** Nested Fiskaly/RKSV `error.details` (or non-code `details` string). */
+  details: string | undefined;
   /** ModelState / validation: field → message list */
   fieldErrors: Record<string, string[]> | undefined;
   severity: ApiErrorSeverity | undefined;
@@ -43,7 +45,10 @@ export function collectFieldErrors(errors: unknown): Record<string, string[]> | 
   for (const key of Object.keys(errors)) {
     const val = errors[key];
     if (Array.isArray(val)) {
-      const msgs = val.filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean);
+      const msgs = val
+        .filter((x): x is string => typeof x === 'string')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (msgs.length) out[key] = msgs;
     } else if (typeof val === 'string' && val.trim()) {
       out[key] = [val.trim()];
@@ -53,6 +58,10 @@ export function collectFieldErrors(errors: unknown): Record<string, string[]> | 
 }
 
 /** Do not use RFC7807 `type` URLs or long plain text as the machine code. */
+function isMachineErrorCode(s: string): boolean {
+  return /^[A-Z][A-Z0-9_]{2,95}$/.test(s);
+}
+
 function pickBackendCode(data: Record<string, unknown> | undefined): string | undefined {
   if (!data) return undefined;
   const keys = ['code', 'errorCode', 'error_code'] as const;
@@ -64,6 +73,11 @@ function pickBackendCode(data: Record<string, unknown> | undefined): string | un
       if (/^https?:\/\//i.test(s)) continue;
       return s;
     }
+  }
+  // Tagesabschluss (and some legacy endpoints) put SCREAMING_SNAKE codes in `details`.
+  const details = data.details;
+  if (typeof details === 'string' && details.trim() && isMachineErrorCode(details.trim())) {
+    return details.trim();
   }
   const t = data.type;
   if (typeof t === 'string' && t.trim()) {
@@ -120,6 +134,7 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
       httpStatus: undefined,
       code: undefined,
       rawMessage: undefined,
+      details: undefined,
       fieldErrors: undefined,
       severity: undefined,
       retryable: undefined,
@@ -141,6 +156,7 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
 
   const data = e.response?.data;
   const d = isRecord(data) ? data : undefined;
+  const nestedError = isRecord(d?.error) ? d.error : undefined;
 
   const normalizedMsg = e.normalized?.message;
   const normalizedTrimmed =
@@ -149,7 +165,17 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
   const fieldErrors = d && d.errors != null ? collectFieldErrors(d.errors) : undefined;
   const validationFirst = d?.errors != null ? firstValidationMessage(d.errors) : undefined;
 
+  const nestedDetails =
+    typeof nestedError?.details === 'string' && nestedError.details.trim()
+      ? nestedError.details.trim()
+      : undefined;
+  const topDetails =
+    typeof d?.details === 'string' && d.details.trim() && !isMachineErrorCode(d.details.trim())
+      ? d.details.trim()
+      : undefined;
+
   const rawMessage =
+    (typeof nestedError?.message === 'string' && nestedError.message.trim()) ||
     (typeof d?.message === 'string' && d.message.trim()) ||
     validationFirst ||
     (typeof d?.title === 'string' && d.title.trim()) ||
@@ -163,12 +189,13 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
 
   return {
     httpStatus,
-    code: pickBackendCode(d),
+    code: pickBackendCode(d) ?? pickBackendCode(nestedError),
     rawMessage: rawMessage || undefined,
+    details: nestedDetails ?? topDetails,
     fieldErrors,
-    severity: pickSeverity(d),
-    retryable: pickRetryable(d),
-    remediationHint: pickRemediation(d),
-    traceId: pickTraceId(d),
+    severity: pickSeverity(d) ?? pickSeverity(nestedError),
+    retryable: pickRetryable(d) ?? pickRetryable(nestedError),
+    remediationHint: pickRemediation(d) ?? pickRemediation(nestedError),
+    traceId: pickTraceId(d) ?? pickTraceId(nestedError),
   };
 }

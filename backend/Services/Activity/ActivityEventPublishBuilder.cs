@@ -73,16 +73,158 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened => "Cash register opened",
             ActivityEventType.CashRegisterClosed => "Cash register closed",
             ActivityEventType.CashRegisterDecommissioned => "Cash register decommissioned",
+            ActivityEventType.CashRegisterOpenRequested => "Cash register open requested",
+            ActivityEventType.CashRegisterOpenRequestApproved => "Cash register open request approved",
+            ActivityEventType.CashRegisterOpenRequestDenied => "Cash register open request denied",
             ActivityEventType.LicenseExpiringSoon => ResolveLicenseExpiringTitle(metadata),
             ActivityEventType.LicenseExpired => "License expired",
+            ActivityEventType.LimitApproaching => "Limit approaching",
+            ActivityEventType.OfflineQueueApproachingLimit => "Offline queue approaching limit",
+            ActivityEventType.LimitExceeded => "Limit exceeded",
+            ActivityEventType.RksvRuntimeConfigChanged => "RKSV runtime config changed",
+            ActivityEventType.TenantCountryChanged => "Tenant country / VAT regime changed",
             ActivityEventType.OfflineQueueGrowing => "Offline queue growing",
+            ActivityEventType.OfflineOrdersBacklogGrowing => "Offline orders backlog growing",
+            ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",
+            ActivityEventType.OfflineSyncStalled => "Offline sync stalled",
             ActivityEventType.FinanzOnlineSubmissionFailed => "FinanzOnline submission failed",
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => "FinanzOnline outbox failures",
             ActivityEventType.BackupFailed => "Backup failed",
             ActivityEventType.BackupSucceeded => "Backup succeeded",
             ActivityEventType.RestoreDrillFailed => "Restore drill failed",
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
+            ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
+            ActivityEventType.DailyClosingPendingReminder => "Daily closing pending reminder",
+            ActivityEventType.DailyClosingAutoCreated => "Automatic daily closing created",
+            ActivityEventType.DailyClosingOpenOrdersWarning => "Open orders during automatic daily closing",
+            ActivityEventType.MonatsbelegMissingReminder => "Monatsbeleg missing reminder",
+            ActivityEventType.MonatsbelegAutoCreated => "Monatsbeleg auto-created",
+            ActivityEventType.MonatsbelegCreated => "Monatsbeleg created",
+            ActivityEventType.MonatsbelegAutoCreateFailed => "Monatsbeleg auto-create failed",
+            ActivityEventType.MonatsbelegAutoCreateMissed => "Monatsbeleg auto-create missed",
+            ActivityEventType.JahresbelegFonReminder => "Jahresbeleg FinanzOnline reminder",
+            ActivityEventType.JahresbelegDeadlineReminder => "Jahresbeleg deadline",
+            ActivityEventType.MonatsbelegManagerContacted => "Monatsbeleg manager contacted",
+            ActivityEventType.DepExportDueSoon => "DEP export due soon",
+            ActivityEventType.DepExportOverdue => "DEP export overdue",
+            ActivityEventType.DepExportValidationFailed => "DEP export validation failed",
+            ActivityEventType.CanaryTenantErrors => "Canary tenant errors elevated",
+            ActivityEventType.CanaryTenantHighErrorRate => "Canary tenant high error rate",
+            ActivityEventType.OnlineOrderPushedToPos => "Online order pushed to POS",
+            ActivityEventType.OnlineOrderPaid => "Online order paid",
+            ActivityEventType.OnlineOrderStatusChanged => "Online order status changed",
+            ActivityEventType.OnlineOrderIntegrationFailed => "Online order integration failed",
+            ActivityEventType.OnlineOrderConfirmed => "Online order confirmed",
+            ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
+            ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",
+            ActivityEventType.SupportTicketCreated => "Support ticket created",
+            ActivityEventType.SupportTicketStaffReplied => "Support ticket staff reply",
+            ActivityEventType.SupportTicketTenantReplied => "Support ticket tenant reply",
+            ActivityEventType.SupportTicketResolved => "Support ticket resolved",
+            ActivityEventType.SupportTicketClosed => "Support ticket closed",
+            ActivityEventType.DataExportReady => "Data export ready",
+            ActivityEventType.RoleCreated => ResolveRoleActivityTitle(metadata, "created"),
+            ActivityEventType.RoleDeleted => ResolveRoleActivityTitle(metadata, "deleted"),
+            ActivityEventType.RolePermissionsUpdated => ResolveRoleActivityTitle(metadata, "updated"),
+            ActivityEventType.UserPermissionOverridesChanged => ResolveOverrideTitle(metadata),
+            ActivityEventType.SystemPermissionChange => ResolveRoleActivityTitle(metadata, "system"),
+            ActivityEventType.PermissionRequested => "Permission requested",
+            ActivityEventType.PermissionRequestApproved => "Permission request approved",
+            ActivityEventType.PermissionRequestRejected => "Permission request rejected",
+            ActivityEventType.UserPermissionOverrideExpiringSoon => "Temporary permission expiring soon",
+            ActivityEventType.UserPermissionOverrideExpired => "Temporary permission expired",
+            ActivityEventType.TenantSettingsChangeRequested => "Tenant settings change requested",
+            ActivityEventType.TenantSettingsChangeApproved => "Tenant settings change approved",
+            ActivityEventType.TenantSettingsChangeRejected => "Tenant settings change rejected",
+            ActivityEventType.TenantSettingsChangeReverted => "Tenant settings change reverted",
+            ActivityEventType.RiskAnomalyDetected => "Elevated risk score detected",
+            ActivityEventType.RiskScoreResolved => "Risk score resolved",
+            ActivityEventType.MaintenanceUpcoming => ResolveMaintenanceTitle(metadata, "upcoming"),
+            ActivityEventType.MaintenanceForceDisplayEnabled => ResolveMaintenanceTitle(metadata, "force"),
+            ActivityEventType.MaintenanceStarted => ResolveMaintenanceTitle(metadata, "started"),
+            ActivityEventType.TseFailoverActivated => "TSE failover activated",
+            ActivityEventType.TseFailoverNoBackup => "TSE failover — no healthy backup",
+            ActivityEventType.TseFailoverReverted => "TSE failover reverted to primary",
+            ActivityEventType.TseFailoverStarted => "TSE failover started",
+            ActivityEventType.TseFailoverFailed => "TSE failover failed",
+            ActivityEventType.TseFailoverBackupLowHealth => "TSE backup health low",
+            ActivityEventType.TseCertificateExpiringSoon => "TSE certificate expiring soon",
+            ActivityEventType.TseCertificateExpired => "TSE certificate expired",
+            ActivityEventType.TseCertificateRenewed => "TSE certificate renewed",
+            ActivityEventType.TseCertificateRenewalScheduled => "TSE certificate renewal scheduled",
+            ActivityEventType.SignaturkarteProgramReminder => "Mai 2027 Signaturkarte program reminder",
+            ActivityEventType.SignaturkarteProgramOverdue => "Mai 2027 Signaturkarte program overdue",
+            ActivityEventType.TseAusfallEnqueueSuggested => "TSE Ausfall FON enqueue suggested",
+            ActivityEventType.TseAusfallReported => "TSE Ausfall reported to FinanzOnline",
+            ActivityEventType.TseWiederinbetriebnahmeReported => "TSE Wiederinbetriebnahme reported to FinanzOnline",
+            ActivityEventType.TsePerformanceSlow => "TSE performance — slow probe response",
+            ActivityEventType.TsePerformanceHighErrorRate => "TSE performance — high probe error rate",
+            ActivityEventType.TseCostAnomaly => "TSE cost — operating cost anomaly",
+            ActivityEventType.TsePredictiveFailureRisk => "TSE predictive — elevated failure risk",
+            ActivityEventType.TseIncidentCreated => "TSE incident created",
+            ActivityEventType.TseIncidentResolved => "TSE incident resolved",
+            ActivityEventType.TseSlaViolation => "TSE SLA — target violation",
+            ActivityEventType.TseCapacityNearLimit => "TSE capacity — near utilization limit",
+            ActivityEventType.TseDrDrillCompleted => "TSE DR — simulation drill completed",
+            ActivityEventType.TseAutoScaleRecommended => "TSE auto-scaling — recommendation / soft apply",
+            ActivityEventType.TseAnomalyDetected => "TSE anomaly detected (statistical baseline)",
+            ActivityEventType.TseAutoHealExecuted => "TSE auto-healing — recovery action executed",
+            ActivityEventType.KsDeTxFinished => "DE KassenSicherheit transaction finished",
+            ActivityEventType.QrRechnungPayloadBuilt => "QR-Rechnung payload built",
+            ActivityEventType.QrRechnungPdfGenerated => "QR-Rechnung PDF generated",
+            ActivityEventType.TenantCountryChangedHistoricalPreserved => "Historical fiscal documents kept their issue-time country",
+            ActivityEventType.EinvoiceValidated => "E-invoice validated",
+            ActivityEventType.EinvoiceSubmitted => "E-invoice submitted",
+            ActivityEventType.EinvoiceSubmissionFailed => "E-invoice submission failed",
+            ActivityEventType.PeppolParticipantRegistered => "Peppol participant registered",
+            ActivityEventType.ChQrKnownGapsAccepted => "CH QR known gaps accepted",
+            ActivityEventType.ChQrKnownGapsOutstanding => "CH QR known gaps are not accepted",
+            ActivityEventType.EinvoiceAckReceived => "E-invoice acknowledged",
+            ActivityEventType.EinvoiceSubmissionRetry => "E-invoice submission retry scheduled",
+            ActivityEventType.DemoRequestReceived => "Demo request received",
             _ => type.ToString(),
         };
+
+    private static string ResolveMaintenanceTitle(IReadOnlyDictionary<string, object>? metadata, string kind)
+    {
+        var title = metadata == null ? null : TryGetString(metadata, "Title");
+        var label = string.IsNullOrWhiteSpace(title) ? "System maintenance" : title;
+        return kind switch
+        {
+            "force" => $"Maintenance force display: {label}",
+            "started" => $"Maintenance started: {label}",
+            _ => $"Upcoming maintenance: {label}",
+        };
+    }
+
+    private static string ResolveRoleActivityTitle(IReadOnlyDictionary<string, object>? metadata, string kind)
+    {
+        var roleName = metadata == null ? null : TryGetString(metadata, "RoleName");
+        var actorName = metadata == null
+            ? null
+            : TryGetString(metadata, "ActorName") ?? TryGetString(metadata, "ActorEmail");
+        var rolePart = string.IsNullOrWhiteSpace(roleName) ? "role" : $"'{roleName}'";
+        var who = string.IsNullOrWhiteSpace(actorName) ? "Admin" : actorName;
+        return kind switch
+        {
+            "created" => $"{who} created role {rolePart}",
+            "deleted" => $"{who} deleted role {rolePart}",
+            "system" => $"{who} made a system permission change on {rolePart}",
+            _ => $"{who} updated role {rolePart}",
+        };
+    }
+
+    private static string ResolveOverrideTitle(IReadOnlyDictionary<string, object>? metadata)
+    {
+        var permission = metadata == null ? null : TryGetString(metadata, "PermissionKey");
+        var actorName = metadata == null
+            ? null
+            : TryGetString(metadata, "ActorName") ?? TryGetString(metadata, "ActorEmail");
+        var who = string.IsNullOrWhiteSpace(actorName) ? "Admin" : actorName;
+        if (!string.IsNullOrWhiteSpace(permission))
+            return $"{who} changed user permission '{permission}'";
+        return $"{who} changed a user permission override";
+    }
 
     private static string ResolveLicenseExpiringTitle(IReadOnlyDictionary<string, object>? metadata)
     {
@@ -104,10 +246,78 @@ internal static class ActivityEventPublishBuilder
                 TryFormatBackup(metadata),
             ActivityEventType.LicenseExpiringSoon or ActivityEventType.LicenseExpired =>
                 TryFormatLicense(metadata),
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Description"),
+            ActivityEventType.OnlineOrderPushedToPos =>
+                TryFormatOnlineOrder(metadata),
+            ActivityEventType.OnlineOrderPaid =>
+                TryFormatOnlineOrderPaid(metadata),
+            ActivityEventType.OnlineOrderStatusChanged =>
+                TryFormatOnlineOrderStatusChanged(metadata),
+            ActivityEventType.OnlineOrderConfirmed =>
+                TryFormatOnlineOrder(metadata),
+            ActivityEventType.DigitalServiceRequested =>
+                TryGetString(metadata, "Message")
+                ?? TryFormatDigitalServiceRequest(metadata),
+            ActivityEventType.DataAccessDeleteRequested =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Subject"),
+            ActivityEventType.DataExportReady =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Subject"),
+            ActivityEventType.RoleCreated
+                or ActivityEventType.RoleDeleted
+                or ActivityEventType.RolePermissionsUpdated
+                or ActivityEventType.UserPermissionOverridesChanged
+                or ActivityEventType.SystemPermissionChange =>
+                TryGetString(metadata, "WhatChanged")
+                ?? TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Description"),
             _ => TryGetString(metadata, "ErrorMessage")
                 ?? TryGetString(metadata, "Message")
                 ?? TryGetString(metadata, "Description"),
         };
+    }
+
+    private static string? TryFormatDigitalServiceRequest(IReadOnlyDictionary<string, object> metadata)
+    {
+        var tenantName = TryGetString(metadata, "TenantName");
+        var serviceType = TryGetString(metadata, "ServiceType");
+        if (tenantName == null || serviceType == null)
+            return null;
+        return $"{tenantName} requested {serviceType} creation.";
+    }
+
+    private static string? TryFormatOnlineOrderPaid(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var total = TryGetString(metadata, "Total");
+        if (orderNumber == null)
+            return null;
+        return total == null ? orderNumber : $"{orderNumber} — {total}";
+    }
+
+    private static string? TryFormatOnlineOrderStatusChanged(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var status = TryGetString(metadata, "OrderStatus") ?? TryGetString(metadata, "NewStatus");
+        if (orderNumber == null)
+            return null;
+        return status == null ? orderNumber : $"{orderNumber} → {status}";
+    }
+
+    private static string? TryFormatOnlineOrder(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var customer = TryGetString(metadata, "CustomerName");
+        if (orderNumber == null && customer == null)
+            return null;
+        if (orderNumber != null && customer != null)
+            return $"{orderNumber} — {customer}";
+        return orderNumber ?? customer;
     }
 
     private static string? TryFormatUserCreated(IReadOnlyDictionary<string, object> metadata)
@@ -151,6 +361,10 @@ internal static class ActivityEventPublishBuilder
 
         return type switch
         {
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded
+                => ("tenant_limit", TryGetString(metadata, "LimitKey")),
             ActivityEventType.UserCreated or ActivityEventType.UserUpdated or ActivityEventType.UserDeleted
                 => ("user", TryGetString(metadata, "UserId")),
             ActivityEventType.BackupFailed or ActivityEventType.BackupSucceeded
@@ -158,7 +372,97 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened
                 or ActivityEventType.CashRegisterClosed
                 or ActivityEventType.CashRegisterDecommissioned
+                or ActivityEventType.CashRegisterOpenRequested
+                or ActivityEventType.CashRegisterOpenRequestApproved
+                or ActivityEventType.CashRegisterOpenRequestDenied
                 => ("cash_register", TryGetString(metadata, "CashRegisterId")),
+            ActivityEventType.DailyClosingBackdatedCreated
+                or ActivityEventType.DailyClosingAutoCreated
+                => ("DailyClosing", TryGetString(metadata, "ClosingId")),
+            ActivityEventType.DailyClosingPendingReminder
+                or ActivityEventType.DailyClosingOpenOrdersWarning
+                or ActivityEventType.MonatsbelegMissingReminder
+                or ActivityEventType.MonatsbelegAutoCreated
+                or ActivityEventType.MonatsbelegCreated
+                or ActivityEventType.MonatsbelegAutoCreateFailed
+                or ActivityEventType.MonatsbelegAutoCreateMissed
+                or ActivityEventType.JahresbelegFonReminder
+                or ActivityEventType.MonatsbelegManagerContacted
+                => ("cash_register", TryGetString(metadata, "cashRegisterId")),
+            ActivityEventType.JahresbelegDeadlineReminder
+                => ("tenant", TryGetString(metadata, "tenantId")),
+            ActivityEventType.DepExportDueSoon
+                or ActivityEventType.DepExportOverdue
+                => ("dep_export_requirement", TryGetString(metadata, "requirementId")),
+            ActivityEventType.DepExportValidationFailed
+                => ("dep_export_history", TryGetString(metadata, "exportId")),
+            ActivityEventType.OnlineOrderPushedToPos
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderPaid
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderStatusChanged
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderConfirmed
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.DigitalServiceRequested
+                => ("digital_service_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.DataAccessDeleteRequested
+                => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.SupportTicketCreated
+                or ActivityEventType.SupportTicketStaffReplied
+                or ActivityEventType.SupportTicketTenantReplied
+                or ActivityEventType.SupportTicketResolved
+                or ActivityEventType.SupportTicketClosed
+                => ("support_ticket", TryGetString(metadata, "TicketId")),
+            ActivityEventType.DataExportReady
+                => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.RoleCreated
+                or ActivityEventType.RoleDeleted
+                or ActivityEventType.RolePermissionsUpdated
+                or ActivityEventType.SystemPermissionChange
+                => ("role", TryGetString(metadata, "RoleName")),
+            ActivityEventType.UserPermissionOverridesChanged
+                => ("user", TryGetString(metadata, "TargetUserId")),
+            ActivityEventType.TseFailoverActivated
+                or ActivityEventType.TseFailoverNoBackup
+                or ActivityEventType.TseFailoverReverted
+                or ActivityEventType.TseFailoverStarted
+                or ActivityEventType.TseFailoverFailed
+                or ActivityEventType.TseFailoverBackupLowHealth
+                or ActivityEventType.TseCertificateExpiringSoon
+                or ActivityEventType.TseCertificateExpired
+                or ActivityEventType.TseCertificateRenewed
+                or ActivityEventType.TseCertificateRenewalScheduled
+                or ActivityEventType.SignaturkarteProgramReminder
+                or ActivityEventType.SignaturkarteProgramOverdue
+                or ActivityEventType.TseAusfallEnqueueSuggested
+                or ActivityEventType.TseAusfallReported
+                or ActivityEventType.TseWiederinbetriebnahmeReported
+                or ActivityEventType.TsePerformanceSlow
+                or ActivityEventType.TsePerformanceHighErrorRate
+                or ActivityEventType.TseCostAnomaly
+                or ActivityEventType.TsePredictiveFailureRisk
+                or ActivityEventType.TseIncidentCreated
+                or ActivityEventType.TseIncidentResolved
+                or ActivityEventType.TseSlaViolation
+                or ActivityEventType.TseCapacityNearLimit
+                or ActivityEventType.TseDrDrillCompleted
+                or ActivityEventType.TseAutoScaleRecommended
+                or ActivityEventType.TseAnomalyDetected
+                or ActivityEventType.TseAutoHealExecuted
+                => ("TseDevice",
+                    TryGetString(metadata, "DeviceId")
+                    ?? TryGetString(metadata, "PrimaryDeviceId")
+                    ?? TryGetString(metadata, "BackupDeviceId")
+                    ?? TryGetString(metadata, "IncidentId")
+                    ?? TryGetString(metadata, "RunbookId")
+                    ?? TryGetString(metadata, "TenantId")
+                    ?? TryGetString(metadata, "AnomalyId")),
+            ActivityEventType.QrRechnungPayloadBuilt or ActivityEventType.QrRechnungPdfGenerated
+                or ActivityEventType.ChQrKnownGapsOutstanding
+                => ("Invoice", TryGetString(metadata, "InvoiceId")),
+            ActivityEventType.ChQrKnownGapsAccepted
+                => ("TenantSetting", TryGetString(metadata, "acceptedBy")),
             _ => (null, null),
         };
     }

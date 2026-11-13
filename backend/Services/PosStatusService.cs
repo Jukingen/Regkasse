@@ -1,7 +1,12 @@
 using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -9,15 +14,30 @@ public sealed class PosStatusService : IPosStatusService
 {
     private readonly ILicenseService _licenseService;
     private readonly IPosCashRegisterReadinessService _cashRegisterReadiness;
+    private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IConfiguration _configuration;
+    private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly AppDbContext _db;
 
     public PosStatusService(
         ILicenseService licenseService,
         IPosCashRegisterReadinessService cashRegisterReadiness,
+        IRksvEnvironmentService rksvEnvironment,
+        IHostEnvironment hostEnvironment,
+        IConfiguration configuration,
+        IOptionsMonitor<TseOptions> tseOptions,
+        ICurrentTenantAccessor tenantAccessor,
         AppDbContext db)
     {
         _licenseService = licenseService;
         _cashRegisterReadiness = cashRegisterReadiness;
+        _rksvEnvironment = rksvEnvironment;
+        _hostEnvironment = hostEnvironment;
+        _configuration = configuration;
+        _tseOptions = tseOptions;
+        _tenantAccessor = tenantAccessor;
         _db = db;
     }
 
@@ -33,12 +53,14 @@ public sealed class PosStatusService : IPosStatusService
         await Task.WhenAll(deploymentTask, mandantTask).ConfigureAwait(false);
 
         var deployment = await deploymentTask.ConfigureAwait(false);
-        var licenseDto = LicensePublicStatusMapper.MapDeploymentStatus(deployment);
-        licenseDto = LicensePublicStatusMapper.ApplyMandantOverlay(
-            licenseDto,
-            await mandantTask.ConfigureAwait(false));
+        var mandantStatus = await mandantTask.ConfigureAwait(false);
+        var licenseDto = LicensePublicStatusMapper.ApplyMandantOverlay(
+            LicensePublicStatusMapper.MapDeploymentStatus(deployment),
+            mandantStatus,
+            language: "de");
 
         var healthSnapshot = _licenseService.GetStatus();
+        var healthLicense = BuildHealthLicenseSnapshot(healthSnapshot, licenseDto);
 
         var cashRegister = await _cashRegisterReadiness.GetReadinessSnapshotForPosAsync(
             userId,
@@ -50,21 +72,39 @@ public sealed class PosStatusService : IPosStatusService
         {
             ServerTimeUtc = DateTime.UtcNow,
             License = licenseDto,
-            HealthLicense = new PosStatusLicenseHealthDto
-            {
-                IsValid = healthSnapshot.IsValid,
-                IsTrial = healthSnapshot.IsTrial,
-                IsExpired = healthSnapshot.IsExpired,
-                DaysRemaining = healthSnapshot.DaysRemaining,
-                ExpiryDate = healthSnapshot.ExpiryDate.HasValue
-                    ? DateTime.SpecifyKind(healthSnapshot.ExpiryDate.Value, DateTimeKind.Utc)
-                    : null,
-                MachineHash = healthSnapshot.MachineHash,
-            },
+            HealthLicense = healthLicense,
             CashRegister = cashRegister,
             Settings = settings,
+            RksvEnvironment = RksvEnvironmentStatusDto.FromService(
+                _rksvEnvironment,
+                _hostEnvironment,
+                _configuration,
+                TseFiscalConfigLockEvaluator.Evaluate(
+                    _hostEnvironment,
+                    _configuration,
+                    _tseOptions.CurrentValue),
+                tenantId,
+                _tenantAccessor.TenantSlug),
         };
     }
+
+    /// <summary>
+    /// POS overview always applies mandant overlay; health subset must match license badge.
+    /// </summary>
+    private static PosStatusLicenseHealthDto BuildHealthLicenseSnapshot(
+        LicenseStatusResponse deploymentHealth,
+        LicensePublicStatusDto licenseDto) =>
+        new()
+        {
+            IsValid = licenseDto.IsValid,
+            IsTrial = string.Equals(licenseDto.LicenseType, "Trial", StringComparison.OrdinalIgnoreCase),
+            IsExpired = licenseDto.IsExpired,
+            DaysRemaining = licenseDto.DaysRemaining,
+            ExpiryDate = licenseDto.ValidUntil.HasValue
+                ? DateTime.SpecifyKind(licenseDto.ValidUntil.Value, DateTimeKind.Utc)
+                : null,
+            MachineHash = deploymentHealth.MachineHash,
+        };
 
     private async Task<PosStatusSettingsSnapshotDto> LoadSettingsSnapshotAsync(
         string userId,

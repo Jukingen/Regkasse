@@ -1,13 +1,46 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
+using System.Text.Json.Nodes;
 
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// AuditLog kolonları (varchar sınırları) ile HTTP/actor alanları arasında güvenli hizalama — SaveChanges hatası önlenir.
+/// AuditLog column alignment: truncates to varchar limits and redacts sensitive JSON property names
+/// before persistence. Truncation alone is not enough for secrets — callers should still avoid
+/// passing passwords / voucher codes; this layer is defense-in-depth.
 /// </summary>
 internal static class AuditLogPersistenceSanitizer
 {
+    public const string RedactedPlaceholder = "***REDACTED***";
+
+    /// <summary>
+    /// Property names scrubbed from serialized audit JSON (case-insensitive).
+    /// Keep in sync with <see cref="UserAuditDiffHelper.ForbiddenKeys"/> intent.
+    /// </summary>
+    private static readonly HashSet<string> SensitiveJsonKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "password",
+        "PasswordHash",
+        "passwordHash",
+        "newPassword",
+        "oldPassword",
+        "confirmPassword",
+        "generatedPassword",
+        "token",
+        "access_token",
+        "refresh_token",
+        "accessToken",
+        "refreshToken",
+        "SecurityStamp",
+        "ConcurrencyStamp",
+        "credentials",
+        "apiKey",
+        "api_key",
+        "voucherCode",
+        "VoucherCode",
+        "taxNumber",
+        "TaxNumber",
+    };
+
     public const int EndpointMaxLength = 100;
 
     /// <summary>Aligned with <c>audit_logs.user_id</c> (AspNetUsers Id length).</summary>
@@ -45,7 +78,8 @@ internal static class AuditLogPersistenceSanitizer
 
     public static string? Truncate(string? value, int maxLength)
     {
-        if (string.IsNullOrEmpty(value)) return value;
+        if (string.IsNullOrEmpty(value))
+            return value;
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
@@ -53,7 +87,8 @@ internal static class AuditLogPersistenceSanitizer
 
     public static string? TruncateEndpoint(HttpContext? httpContext)
     {
-        if (httpContext == null) return null;
+        if (httpContext == null)
+            return null;
         return Truncate(httpContext.Request.Path.Value, EndpointMaxLength);
     }
 
@@ -75,11 +110,53 @@ internal static class AuditLogPersistenceSanitizer
         return Truncate(r, UserRoleMaxLength) ?? r;
     }
 
-    /// <summary>JSON serileştirir; kolon taşmasını önlemek için keser (geçersiz JSON sonu kabul edilebilir).</summary>
+    /// <summary>
+    /// Serializes <paramref name="value"/> to JSON, redacts sensitive property names, then truncates
+    /// to the column max length (truncated JSON may be syntactically incomplete — acceptable for audit storage).
+    /// </summary>
     public static string? SerializeObjectToJsonColumn(object? value, int maxLength = JsonPayloadMaxLength)
     {
-        if (value == null) return null;
-        var json = JsonSerializer.Serialize(value);
-        return json.Length <= maxLength ? json : json[..maxLength];
+        if (value == null)
+            return null;
+        try
+        {
+            var node = JsonSerializer.SerializeToNode(value);
+            RedactSensitiveProperties(node);
+            var json = node?.ToJsonString() ?? "{}";
+            return json.Length <= maxLength ? json : json[..maxLength];
+        }
+        catch (JsonException)
+        {
+            var fallback = JsonSerializer.Serialize(value);
+            return fallback.Length <= maxLength ? fallback : fallback[..maxLength];
+        }
+    }
+
+    public static bool IsSensitiveJsonKey(string? key) =>
+        !string.IsNullOrEmpty(key) && SensitiveJsonKeys.Contains(key);
+
+    private static void RedactSensitiveProperties(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                {
+                    foreach (var prop in obj.ToList())
+                    {
+                        if (IsSensitiveJsonKey(prop.Key))
+                            obj[prop.Key] = RedactedPlaceholder;
+                        else
+                            RedactSensitiveProperties(prop.Value);
+                    }
+
+                    break;
+                }
+            case JsonArray arr:
+                {
+                    foreach (var item in arr)
+                        RedactSensitiveProperties(item);
+                    break;
+                }
+        }
     }
 }

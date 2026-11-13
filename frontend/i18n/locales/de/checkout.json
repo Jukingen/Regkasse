@@ -37,7 +37,8 @@
       "clearAll": "Alle leeren",
       "a11ySelect": "Tisch {{number}} wählen",
       "a11ySelected": "Tisch {{number}}, ausgewählt",
-      "a11yClearAll": "Alle Tische leeren"
+      "a11yClearAll": "Alle Tische leeren",
+      "loadFailed": "Die Tische konnten nicht geladen werden. Die Auswahl bleibt verfügbar."
     },
     "summaryStrip": "Tisch {{table}} · {{itemCount}} Artikel · GESAMT {{total}}",
     "personal": {
@@ -63,7 +64,7 @@
       "productAddedToTable": "{{name}} zu Tisch {{table}} hinzugefügt",
       "productAddError": "{{name}}: {{reason}}",
       "addOnAdded": "{{name}} hinzugefügt",
-      "addOnAddFailed": "Add-on konnte nicht hinzugefügt werden.",
+      "addOnAddFailed": "Zusatzartikel konnte nicht hinzugefügt werden.",
       "baseProductAdded": "{{name}} hinzugefügt",
       "addingFailed": "Fehler beim Hinzufügen",
       "invalidTableNumber": "Ungültige Tischnummer",
@@ -76,14 +77,27 @@
       "tableClearFailed": "Tisch {{table}} konnte nicht geleert werden",
       "tableCleared": "Tisch {{table}} geleert",
       "tableClearGenericFailed": "Tisch konnte nicht geleert werden",
-      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen."
+      "noOpenTables": "Keine offenen Tische.",
+      "clearAllConfirmTitle": "Alle Tische leeren?",
+      "clearAllConfirmMessage": "{{count}} offene Tische werden geleert.",
+      "tablesCleared": "{{count}} Tische geleert",
+      "tablesClearedPartial": "{{cleared}} von {{total}} Tischen geleert",
+      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.",
+      "noOrderPermission": "Keine Berechtigung für Bestellungen"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg in {{days}} Tagen fällig",
       "red": "Monatsbeleg ÜBERFÄLLIG! Bitte sofort erstellen",
       "createNow": "Jetzt erstellen",
       "dismissA11y": "Hinweis ausblenden",
-      "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…"
+      "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…",
+      "missingTitle": "Monatsbeleg fehlt",
+      "contactManager": "Manager kontaktieren",
+      "continueWithWarning": "Verkauf mit Warnung",
+      "notifySuccess": "Der Mandanten-Admin wurde benachrichtigt.",
+      "notifyAlready": "Der Mandanten-Admin wurde heute bereits benachrichtigt.",
+      "notifyFailed": "Benachrichtigung fehlgeschlagen. Bitte erneut versuchen.",
+      "allowedWithWarning": "Bitte Mandanten-Admin kontaktieren. Verkauf ist mit Warnung möglich. Fehlender Monatsbeleg wird am Monatsanfang automatisch nachgeholt."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Monatsbeleg für aktuellen Monat überfällig!",
@@ -108,8 +122,9 @@
         "cartLoadFailedRefresh": "Warenkorb konnte nicht geladen werden. Bitte Seite aktualisieren oder erneut versuchen.",
         "completeCartFailed": "Zahlung OK, Warenkorb konnte nicht abgeschlossen werden. Bitte Administrator informieren.",
         "printFailed": "Zahlung OK, Druck fehlgeschlagen.",
+        "shareUnavailable": "Teilen ist auf diesem Gerät nicht verfügbar.",
         "genericFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-        "fiscalNotConfirmed": "Zahlung nicht fiscal bestätigt",
+        "fiscalNotConfirmed": "Zahlung nicht fiskalisch bestätigt",
         "failed": "Zahlung fehlgeschlagen"
       },
       "alerts": {
@@ -121,7 +136,7 @@
         "cancelPaymentConfirm": "Möchten Sie diese Zahlung wirklich abbrechen?",
         "cancelFailed": "Stornierung fehlgeschlagen. Bitte erneut versuchen.",
         "cancelRequestFailed": "Stornierung der Zahlung fehlgeschlagen.",
-        "fiscalPending": "Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange.",
+        "fiscalPending": "Keine Verbindung zur Kasse. Die Zahlung ist nicht fiskalisch verbucht und steht in der Warteschlange.",
         "invoiceReconcileAttention": "Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit."
       },
       "buttons": {
@@ -136,6 +151,112 @@
         "retryReadiness": "Kassenbereitschaft erneut versuchen",
         "reloadRegisterList": "Kassenliste erneut laden"
       },
+      "steps": {
+        "sum": "Summe",
+        "cash": "Barzahlung",
+        "voucherRedeem": "Gutschein einlösen"
+      },
+      "cash": {
+        "receivedLabel": "Erhaltener Betrag",
+        "receivedA11y": "Erhaltener Betrag in Euro",
+        "changeLabel": "Wechselgeld:",
+        "placeholder": "0,00",
+        "optionalHint": "Optional – leer lassen für passenden Betrag",
+        "belowTotalTitle": "Betrag zu niedrig",
+        "belowTotalMessage": "Erhaltener Betrag muss mindestens {{amount}} betragen."
+      },
+      "remainingAmount": "Restbetrag",
+      "notes": {
+        "title": "Notizen",
+        "placeholder": "Optionale Notizen…",
+        "a11y": "Optionale Notizen zur Zahlung"
+      },
+      "preorder": {
+        "checkbox": "Vorbestellung (Abholung später)",
+        "hint": "Kunde zahlt jetzt. Die Abholung erzeugt keinen zweiten Kassenbeleg. Ein offener Betrag wird später als eigener Beleg bezahlt.",
+        "remainingLabel": "Offener Betrag (optional)",
+        "remainingHint": "0,00 = vollständig bezahlt. Jeder offene Betrag wird später fiskalisch als eigener Beleg erfasst.",
+        "balanceLabel": "Restzahlung zum Besorgerzettel",
+        "balancePlaceholder": "BS-Nummer oder Belegnummer",
+        "balanceFound": "{{number}} — offen {{amount}}",
+        "balanceNotFound": "Vorbestellung nicht gefunden.",
+        "balanceZero": "Kein offener Betrag mehr."
+      },
+      "benefits": {
+        "previewTitle": "Vorteile (Vorschau)",
+        "possibleSavings": "Möglicher Vorteil: ca. {{amount}}",
+        "loading": "Vorteile werden geladen…",
+        "disclaimer": "Vorschau – maßgeblich ist die Abrechnung beim Bezahlen."
+      },
+      "voucherToggle": {
+        "redeem": "Gutschein einlösen",
+        "offlineUnavailable": "Gutscheine offline nicht verfügbar",
+        "offlineNotPossible": "Gutschein ist offline nicht möglich.",
+        "offlineAlertTitle": "Offline",
+        "scanA11y": "Gutschein scannen"
+      },
+      "blockedHints": {
+        "noPaymentPermission": "Keine Berechtigung für Zahlungen",
+        "timeSyncCritical": "Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.",
+        "methodsLoading": "Zahlungsarten werden geladen…",
+        "selectMethod": "Bitte eine Zahlungsart wählen (Schritt 2).",
+        "coverageMissing": "Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.",
+        "voucherInvalid": "Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.",
+        "tseNotReady": "TSE nicht verfügbar. Zahlung nicht möglich.",
+        "voucherOffline": "Gutschein ist offline nicht möglich.",
+        "onlinePaymentOffline": "Online-Zahlung ist offline nicht möglich."
+      },
+      "tseGate": {
+        "disabled": "TSE ist deaktiviert. Zahlungen sind nicht möglich.",
+        "notInitialized": "TSE ist nicht initialisiert. Bitte Administrator kontaktieren.",
+        "unavailable": "TSE nicht verfügbar. Zahlung nicht möglich."
+      },
+      "timeSync": {
+        "banner": "SYSTEMZEIT FEHLERHAFT – Zahlungen blockiert! Bitte Admin kontaktieren",
+        "contactAdmin": "Admin kontaktieren",
+        "contactAdminA11y": "Administrator kontaktieren"
+      },
+      "footer": {
+        "registerSettingsLoading": "Kasseneinstellungen werden geladen…",
+        "processing": "Wird verarbeitet…",
+        "payA11y": "Zahlen {{amount}}",
+        "payMethodSuffix": "{{amount}} {{method}} zahlen",
+        "payGeneric": "{{amount}} zahlen",
+        "licenseHintA11y": "Lizenz-Hinweis"
+      },
+      "success": {
+        "title": "Zahlung erfolgreich",
+        "receiptPdf": "Beleg-PDF",
+        "done": "Fertig",
+        "doneA11y": "Fertig"
+      },
+      "print": {
+        "printing": "Beleg wird gedruckt…",
+        "failedTitle": "Beleg konnte nicht gedruckt werden",
+        "skip": "Überspringen",
+        "retry": "Erneut drucken"
+      },
+      "startbelegBlock": {
+        "title": "Startbeleg erforderlich",
+        "body": "Für diese Registrierkasse fehlt der fiskalische Startbeleg (RKSV). Erstellen Sie zuerst den Startbeleg, danach sind Verkäufe möglich.",
+        "understood": "Verstanden",
+        "understoodA11y": "Verstanden"
+      },
+      "registerAssignA11y": "Kasse {{register}} zuweisen",
+      "methodSelectedA11ySuffix": ", ausgewählt",
+      "onlinePayment": {
+        "kreditkarte": "Kreditkarte",
+        "paypal": "PayPal",
+        "offlineDisabled": "Online-Zahlung ist offline nicht möglich.",
+        "offlineAlertTitle": "Offline",
+        "offlineA11ySuffix": ", offline nicht verfügbar",
+        "awaitingGateway": "Zahlung im Browser abschließen…",
+        "failed": "Online-Zahlung fehlgeschlagen.",
+        "cancelled": "Online-Zahlung abgebrochen.",
+        "timeout": "Zeitüberschreitung bei der Online-Zahlung.",
+        "openFailed": "Zahlungsseite konnte nicht geöffnet werden."
+      },
+      "offlineQueued": "Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online",
       "voucher": {
         "codeLabel": "Gutscheincode",
         "checkButton": "Gutschein prüfen",
@@ -146,6 +267,16 @@
         "maskedHint": "Gutschein: {{masked}}",
         "expiresHint": "Gültig bis: {{date}}",
         "invalid": "Gutschein ungültig",
+        "invalidTitle": "Ungültiger Gutschein",
+        "scanner": {
+          "title": "Gutschein scannen",
+          "closeA11y": "Schließen",
+          "overlayHint": "Gutscheincode scannen",
+          "validating": "Gutschein wird geprüft…",
+          "cameraRequired": "Kamerazugriff wird benötigt.",
+          "allowCamera": "Kamera erlauben",
+          "webFallback": "Kamera-Scan ist im Browser nicht verfügbar. Bitte Gutscheincode manuell eingeben."
+        },
         "expired": "Gutschein abgelaufen",
         "cancelled": "Gutschein storniert",
         "redeemed": "Gutschein vollständig eingelöst",
@@ -249,6 +380,17 @@
         "selectOneLine": "Mindestens eine Position auswählen.",
         "submitFailed": "Vorgang fehlgeschlagen."
       }
+    }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg fehlt",
+      "bodyStrict": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind gesperrt, bis der Beleg erstellt ist.",
+      "bodyGrace": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind vorübergehend mit Warnung möglich.",
+      "bodyWarning": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind mit Warnung möglich.",
+      "createNow": "Monatsbeleg erstellen",
+      "contactManager": "Manager kontaktieren",
+      "dismiss": "Hinweis schließen"
     }
   }
 }

@@ -27,7 +27,7 @@ public class RefreshTokenServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"refresh_token_tests_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RefreshTokenService CreateService(AppDbContext db)
@@ -172,10 +172,43 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
+    public async Task RevokeForUserAndClientApp_OnlyRevokesMatchingApp()
+    {
+        using var db = CreateContext();
+        var service = CreateService(db);
+
+        var adminLogin = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken);
+        var posLogin = await service.IssueLoginTokensAsync("u1", "pos", BuildAccessToken);
+
+        await service.RevokeForUserAndClientAppAsync("u1", "admin", "logout");
+
+        Assert.False(await service.IsSessionActiveAsync("u1", adminLogin.SessionId));
+        Assert.True(await service.IsSessionActiveAsync("u1", posLogin.SessionId));
+
+        var posRefresh = await service.RotateAsync(posLogin.RefreshToken, BuildAccessToken);
+        Assert.True(posRefresh.Success);
+
+        var adminRefresh = await service.RotateAsync(adminLogin.RefreshToken, BuildAccessToken);
+        Assert.False(adminRefresh.Success);
+    }
+
+    [Fact]
+    public async Task RevokeForUserAndClientApp_UnknownApp_IsNoOp()
+    {
+        using var db = CreateContext();
+        var service = CreateService(db);
+
+        var login = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken);
+        await service.RevokeForUserAndClientAppAsync("u1", "unknown", "logout");
+
+        Assert.True(await service.IsSessionActiveAsync("u1", login.SessionId));
+    }
+
+    [Fact]
     public async Task Login_Persists_Session_TenantId_When_Provided()
     {
         using var db = CreateContext();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         await db.SaveChangesAsync();
 
@@ -191,7 +224,7 @@ public class RefreshTokenServiceTests
     public async Task RotateAsync_Passes_Persisted_Session_Tenant_To_BuildAccessToken()
     {
         using var db = CreateContext();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         await db.SaveChangesAsync();
 
@@ -269,5 +302,77 @@ public class RefreshTokenServiceTests
 
         Assert.True(r1.Success);
         Assert.Null(captured);
+    }
+
+    [Fact]
+    public async Task RotateAsync_With_Tenant_Override_Updates_Session_And_Passes_To_BuildAccessToken()
+    {
+        using var db = CreateContext();
+        var loginTenant = SystemTenantIds.Platform;
+        var switchTenant = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Platform", Slug = "platform" });
+        db.Tenants.Add(new Tenant { Id = switchTenant, Name = "Dev", Slug = "dev" });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        string? captured = null;
+        Task<string> Capture(
+            string userId,
+            string jti,
+            Guid sessionId,
+            DateTime expiresAtUtc,
+            string clientApp,
+            string? persistedSessionTenantId)
+        {
+            captured = persistedSessionTenantId;
+            return BuildAccessToken(userId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId);
+        }
+
+        var login = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken, sessionTenantId: loginTenant);
+        var allowed = false;
+        var r1 = await service.RotateAsync(
+            login.RefreshToken,
+            Capture,
+            sessionTenantIdOverride: switchTenant,
+            canAssignTenant: (_, tid, _) =>
+            {
+                allowed = tid == switchTenant;
+                return Task.FromResult(true);
+            });
+
+        Assert.True(r1.Success);
+        Assert.True(allowed);
+        Assert.Equal(switchTenant.ToString("D"), captured);
+
+        var session = await db.AuthSessions.SingleAsync(s => s.Id == login.SessionId);
+        Assert.Equal(switchTenant, session.TenantId);
+    }
+
+    [Fact]
+    public async Task RotateAsync_Tenant_Override_Rejected_Does_Not_Consume_Refresh_Token()
+    {
+        using var db = CreateContext();
+        var loginTenant = SystemTenantIds.Platform;
+        var switchTenant = Guid.Parse("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
+        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Platform", Slug = "platform" });
+        db.Tenants.Add(new Tenant { Id = switchTenant, Name = "Other", Slug = "other" });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var login = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken, sessionTenantId: loginTenant);
+        var r1 = await service.RotateAsync(
+            login.RefreshToken,
+            BuildAccessToken,
+            sessionTenantIdOverride: switchTenant,
+            canAssignTenant: (_, _, _) => Task.FromResult(false));
+
+        Assert.False(r1.Success);
+        Assert.Equal("tenant_switch_forbidden", r1.ErrorCode);
+
+        var refreshRow = await db.RefreshTokens.SingleAsync(t => t.SessionId == login.SessionId);
+        Assert.Null(refreshRow.ConsumedAtUtc);
+
+        var session = await db.AuthSessions.SingleAsync(s => s.Id == login.SessionId);
+        Assert.Equal(loginTenant, session.TenantId);
     }
 }

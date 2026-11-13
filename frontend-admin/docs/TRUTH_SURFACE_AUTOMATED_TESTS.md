@@ -8,18 +8,18 @@ Catch regressions where admin UI would: hide backend FK text, treat display labe
 
 ## File → behavior map
 
-| File | Semantics under test |
-|------|----------------------|
-| `truthSurfaceBehavior.test.ts` | `kassenId` never drives `finanzQueueRegisterRowId`; FO row without `cashRegisterId` has no invented link id; cross-link URL encoding; `viewReplayBatchTraceIds` audit-only vs fallback policy |
-| `adminTruthBadge.semantic.test.tsx` | `aria-label` exposes German provenance (API vs Anzeige vs Verknüpft vs Diagnose vs Ohne Link) including fiscal-negation copy |
-| `investigationNavigation.test.ts` | FO investigation href drops invalid payment UUID; Verifications href shape |
-| `foReconciliationRowTriage.test.ts` | FO status → retry UI state mirrors button contract; `Success` ≠ retry |
-| `rksvAdminTruth.test.ts` | Register view + replay trace link building |
-| `adminTruthBadges.test.ts` | Every kind has non-empty copy; no `success` color for lineage |
-| `contract/*` | `invoiceItems` unknown shaping; Axios error narrowing |
-| `invoiceListSort.test.ts` | Unknown table sort field does not pass through to API params |
-| `adminTruthFacets.test.ts` | `registerDeepLinkEligibleBadgeKind`; `invoiceProvenanceUiFacet` explicit vs contract-gap |
-| `operatorCopyDeLocaleParity.test.ts` | Documented mirrors: `OPERATOR_SHARED_COPY` ↔ `de/common.json`, selected `OPERATOR_INVOICE_COPY` ↔ `de/invoices.json` (Node fs; no app env). Run: `npm run test:operator-copy-locale-parity` |
+| File                                 | Semantics under test                                                                                                                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `truthSurfaceBehavior.test.ts`       | `kassenId` never drives `finanzQueueRegisterRowId`; FO row without `cashRegisterId` has no invented link id; cross-link URL encoding; `viewReplayBatchTraceIds` audit-only vs fallback policy |
+| `adminTruthBadge.semantic.test.tsx`  | `aria-label` exposes German provenance (API vs Anzeige vs Verknüpft vs Diagnose vs Ohne Link) including fiscal-negation copy                                                                  |
+| `investigationNavigation.test.ts`    | FO investigation href drops invalid payment UUID; Verifications href shape                                                                                                                    |
+| `foReconciliationRowTriage.test.ts`  | FO status → retry UI state mirrors button contract; `Success` ≠ retry                                                                                                                         |
+| `rksvAdminTruth.test.ts`             | Register view + replay trace link building                                                                                                                                                    |
+| `adminTruthBadges.test.ts`           | Every kind has non-empty copy; no `success` color for lineage                                                                                                                                 |
+| `contract/*`                         | `invoiceItems` unknown shaping; Axios error narrowing                                                                                                                                         |
+| `invoiceListSort.test.ts`            | Unknown table sort field does not pass through to API params                                                                                                                                  |
+| `adminTruthFacets.test.ts`           | `registerDeepLinkEligibleBadgeKind`; `invoiceProvenanceUiFacet` explicit vs contract-gap                                                                                                      |
+| `operatorCopyDeLocaleParity.test.ts` | Documented mirrors: `OPERATOR_SHARED_COPY` ↔ `de/common.json`, selected `OPERATOR_INVOICE_COPY` ↔ `de/invoices.json` (Node fs; no app env). Run: `npm run test:operator-copy-locale-parity`   |
 
 ## Not covered here (integration / E2E)
 

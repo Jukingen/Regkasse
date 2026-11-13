@@ -1,20 +1,26 @@
-"use client";
+'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { Alert, Button, Card, Descriptions, InputNumber, Space, Spin, Switch, Typography } from 'antd';
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useI18n } from "@/i18n";
-import { formatDateTime } from "@/i18n/formatting";
-import { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  apiScheduleToPlannerState,
-  buildCronFromPlannerState,
-  isPlannerStateValid,
-  plannerStateToPutSchedule,
-  type BackupSchedulePlannerState,
-} from "@/features/backup/logic/backupScheduleCronCodec";
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  InputNumber,
+  Space,
+  Spin,
+  Switch,
+  Typography,
+} from 'antd';
+import axios from 'axios';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import { FormSkeleton } from '@/components/Skeleton';
+import {
+  BACKUP_ACTIVE_POLL_MS,
+  isBackupLatestRunActiveStatus,
+} from '@/features/backup-dr/logic/backupRunDetailPollPolicy';
 import {
   type BackupSettingsPutRequestDto,
   getBackupScheduleSettings,
@@ -22,12 +28,22 @@ import {
   getBackupScheduleStatus,
   getBackupScheduleStatusQueryKey,
   putBackupScheduleSettings,
-} from "@/features/backup-dr/logic/backupScheduleSettingsApi";
-import { BACKUP_ACTIVE_POLL_MS, isBackupLatestRunActiveStatus } from "@/features/backup-dr/logic/backupRunDetailPollPolicy";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
+} from '@/features/backup-dr/logic/backupScheduleSettingsApi';
+import { BackupSchedulePlanner } from '@/features/backup/components/BackupSchedulePlanner';
+import { ScheduledBackupRunsTable } from '@/features/backup/components/ScheduledBackupRunsTable';
+import {
+  type BackupSchedulePlannerState,
+  apiScheduleToPlannerState,
+  buildCronFromPlannerState,
+  isPlannerStateValid,
+  plannerStateToPutSchedule,
+} from '@/features/backup/logic/backupScheduleCronCodec';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 
 const RETENTION_UI_MAX = 90;
-const RETENTION_UI_MIN = 1;
+const RETENTION_UI_MIN = 7;
 const BACKUP_STATUS_IDLE_POLL_MS = 60_000;
 
 export interface BackupScheduleSettingsProps {
@@ -72,7 +88,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
 
   const [enabled, setEnabled] = useState(false);
   const [planner, setPlanner] = useState<BackupSchedulePlannerState>(() =>
-    apiScheduleToPlannerState(null, "0 2 * * *"),
+    apiScheduleToPlannerState(null, '0 2 * * *')
   );
   const [retentionDays, setRetentionDays] = useState(30);
   const [serverRetentionRaw, setServerRetentionRaw] = useState<number | null>(null);
@@ -82,9 +98,11 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     const d = settingsQuery.data;
     if (!d) return;
     setEnabled(Boolean(d.enabled));
-    setPlanner(apiScheduleToPlannerState(d.schedule ?? null, d.scheduleCron || "0 2 * * *"));
-    setRetentionDays(Math.min(Math.max(d.retentionDays, RETENTION_UI_MIN), RETENTION_UI_MAX));
-    setServerRetentionRaw(d.retentionDays);
+    setPlanner(apiScheduleToPlannerState(d.schedule ?? null, d.scheduleCron || '0 2 * * *'));
+    setRetentionDays(
+      Math.min(Math.max(d.retentionDays ?? RETENTION_UI_MIN, RETENTION_UI_MIN), RETENTION_UI_MAX)
+    );
+    setServerRetentionRaw(d.retentionDays ?? null);
   }, [
     settingsQuery.data?.updatedAtUtc,
     settingsQuery.data?.enabled,
@@ -98,16 +116,18 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   const plannerOk = isPlannerStateValid(planner);
 
   const putMutation = useMutation({
-    mutationFn: putBackupScheduleSettings,
+    mutationFn: (body: BackupSettingsPutRequestDto) => putBackupScheduleSettings(body),
     onSuccess: async () => {
-      message.success(t("backupDr.scheduleSettings.saveSuccess"));
+      message.success(t('backupDr.scheduleSettings.saveSuccess'));
       await queryClient.invalidateQueries({ queryKey: getBackupScheduleSettingsQueryKey() });
       await queryClient.invalidateQueries({ queryKey: getBackupScheduleStatusQueryKey() });
     },
     onError: (err: unknown) => {
       const extra = axiosNormalizedMessage(err);
       message.error(
-        extra ? `${t("backupDr.scheduleSettings.saveError")} ${extra}` : t("backupDr.scheduleSettings.saveError"),
+        extra
+          ? `${t('backupDr.scheduleSettings.saveError')} ${extra}`
+          : t('backupDr.scheduleSettings.saveError')
       );
     },
   });
@@ -116,7 +136,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     if (!canManage) return;
     if (!plannerOk) {
       setCronTouchedInvalid(true);
-      message.error(t("backupDr.scheduleSettings.customCronInvalid"));
+      message.error(t('backupDr.scheduleSettings.customCronInvalid'));
       return;
     }
     const body: BackupSettingsPutRequestDto = {
@@ -129,7 +149,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   };
 
   const fmt = (iso: string | null | undefined) => {
-    if (!iso) return t("backupDr.scheduleSettings.noRunsYet");
+    if (!iso) return t('backupDr.scheduleSettings.noRunsYet');
     return formatDateTime(iso, formatLocale);
   };
 
@@ -140,8 +160,12 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
 
   if (settingsQuery.isError) {
     return (
-      <Card id="backup-dr-schedule-settings" size="small" title={t("backupDr.scheduleSettings.cardTitle")}>
-        <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />
+      <Card
+        id="backup-dr-schedule-settings"
+        size="small"
+        title={t('backupDr.scheduleSettings.cardTitle')}
+      >
+        <Alert type="error" showIcon title={t('backupDr.scheduleSettings.loadError')} />
       </Card>
     );
   }
@@ -150,38 +174,38 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     <Card
       id="backup-dr-schedule-settings"
       size="small"
-      title={t("backupDr.scheduleSettings.cardTitle")}
+      title={t('backupDr.scheduleSettings.cardTitle')}
       extra={
         canManage ? (
           <Button type="primary" loading={putMutation.isPending} onClick={onSave}>
-            {t("backupDr.scheduleSettings.save")}
+            {t('backupDr.scheduleSettings.save')}
           </Button>
         ) : null
       }
     >
       {settingsQuery.isLoading ? (
-        <Spin />
+        <FormSkeleton fields={5} loading />
       ) : (
-        <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            {t("backupDr.scheduleSettings.cardHint")}
+            {t('backupDr.scheduleSettings.cardHint')}
           </Typography.Paragraph>
           {!canManage ? (
-            <Typography.Text type="secondary">{t("backupDr.permission.noManage")}</Typography.Text>
+            <Typography.Text type="secondary">{t('backupDr.permission.noManage')}</Typography.Text>
           ) : null}
 
           {serverRetentionOverUi ? (
             <Alert
               type="warning"
               showIcon
-              title={t("backupDr.scheduleSettings.serverRetentionHigher", {
+              title={t('backupDr.scheduleSettings.serverRetentionHigher', {
                 days: String(serverRetentionRaw),
               })}
             />
           ) : null}
 
           <Space align="center" wrap>
-            <Typography.Text>{t("backupDr.scheduleSettings.enabled")}</Typography.Text>
+            <Typography.Text>{t('backupDr.scheduleSettings.enabled')}</Typography.Text>
             <Switch checked={enabled} onChange={setEnabled} disabled={!canManage} />
           </Space>
 
@@ -196,13 +220,15 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
           />
 
           <Typography.Text type="secondary" code style={{ fontSize: 12 }}>
-            {t("backupDr.scheduleSettings.cronPreview", { cron: effectiveCron })}
+            {t('backupDr.scheduleSettings.cronPreview', { cron: effectiveCron })}
           </Typography.Text>
 
           <div>
-            <Typography.Text strong>{t("backupDr.scheduleSettings.retentionLabel")}</Typography.Text>
+            <Typography.Text strong>
+              {t('backupDr.scheduleSettings.retentionLabel')}
+            </Typography.Text>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 8, marginTop: 4 }}>
-              {t("backupDr.scheduleSettings.retentionHint")}
+              {t('backupDr.scheduleSettings.retentionHint')}
             </Typography.Paragraph>
             <InputNumber
               min={RETENTION_UI_MIN}
@@ -210,9 +236,9 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
               value={retentionDays}
               onChange={(v) =>
                 setRetentionDays(
-                  typeof v === "number" && Number.isFinite(v)
+                  typeof v === 'number' && Number.isFinite(v)
                     ? Math.min(RETENTION_UI_MAX, Math.max(RETENTION_UI_MIN, Math.round(v)))
-                    : RETENTION_UI_MIN,
+                    : RETENTION_UI_MIN
                 )
               }
               disabled={!canManage}
@@ -220,31 +246,46 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
             />
           </div>
 
-          <Descriptions size="small" column={1} title={t("backupDr.scheduleSettings.statusTitle")} bordered>
-            <Descriptions.Item label={t("backupDr.scheduleSettings.nextRunComputed")}>
+          <Descriptions
+            size="small"
+            column={1}
+            title={t('backupDr.scheduleSettings.statusTitle')}
+            bordered
+          >
+            <Descriptions.Item label={t('backupDr.scheduleSettings.nextRunComputed')}>
               {scheduleStatusQuery.isLoading ? <Spin size="small" /> : fmt(nextDisplay)}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.scheduleSettings.nextRunStored")}>
-              {scheduleStatusQuery.isLoading ? <Spin size="small" /> : fmt(status?.storedNextRunAtUtc)}
+            <Descriptions.Item label={t('backupDr.scheduleSettings.nextRunStored')}>
+              {scheduleStatusQuery.isLoading ? (
+                <Spin size="small" />
+              ) : (
+                fmt(status?.storedNextRunAtUtc)
+              )}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.scheduleSettings.lastRunStored")}>
-              {scheduleStatusQuery.isLoading ? <Spin size="small" /> : fmt(status?.storedLastRunAtUtc)}
+            <Descriptions.Item label={t('backupDr.scheduleSettings.lastRunStored')}>
+              {scheduleStatusQuery.isLoading ? (
+                <Spin size="small" />
+              ) : (
+                fmt(status?.storedLastRunAtUtc)
+              )}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.scheduleSettings.lastScheduledRunLabel")}>
+            <Descriptions.Item label={t('backupDr.scheduleSettings.lastScheduledRunLabel')}>
               {scheduleStatusQuery.isLoading ? (
                 <Spin size="small" />
               ) : status?.latestScheduledBackupRun ? (
                 <Typography.Text>
-                  {fmt(status.latestScheduledBackupRun.requestedAt)}{" "}
-                  {t("backupDr.scheduleSettings.runStatusSuffix", {
+                  {fmt(status.latestScheduledBackupRun.requestedAt)}{' '}
+                  {t('backupDr.scheduleSettings.runStatusSuffix', {
                     status: String(status.latestScheduledBackupRun.status),
                   })}
                 </Typography.Text>
               ) : (
-                t("backupDr.scheduleSettings.noRunsYet")
+                t('backupDr.scheduleSettings.noRunsYet')
               )}
             </Descriptions.Item>
           </Descriptions>
+
+          <ScheduledBackupRunsTable />
         </Space>
       )}
     </Card>

@@ -1,165 +1,348 @@
 import { Product } from '@/api/generated/model';
 
-/** Backend TaxType enum: 1=Standard(20%), 2=Reduced(10%), 3=Special(13%), 4=ZeroRate(0%). */
+/** Backend TaxType enum: 1=Standard(20%), 2=Reduced(10%), 3=Special(13%), 4=ZeroRate(0%), 5=ReducedNew(4.9%). */
 export const TAX_TYPE_ENUM = {
-    Standard: 1,
-    Reduced: 2,
-    Special: 3,
-    ZeroRate: 4,
+  Standard: 1,
+  Reduced: 2,
+  Special: 3,
+  ZeroRate: 4,
+  ReducedNew: 5,
 } as const;
 
 /** Single source: enum id to tax rate percentage (aligned with backend TaxTypes.GetTaxRate). */
 export function taxTypeToRate(taxType: number): number {
-    switch (taxType) {
-        case 1: return 20;
-        case 2: return 10;
-        case 3: return 13;
-        case 4: return 0;
-        default: return 20;
-    }
+  switch (taxType) {
+    case 1:
+      return 20;
+    case 2:
+      return 10;
+    case 3:
+      return 13;
+    case 4:
+      return 0;
+    case 5:
+      return 4.9;
+    default:
+      return 20;
+  }
+}
+
+/** Inverse of taxTypeToRate for catalog-driven product forms. */
+export function taxRateToType(rate: number): number {
+  switch (rate) {
+    case 20:
+      return TAX_TYPE_ENUM.Standard;
+    case 10:
+      return TAX_TYPE_ENUM.Reduced;
+    case 13:
+      return TAX_TYPE_ENUM.Special;
+    case 0:
+      return TAX_TYPE_ENUM.ZeroRate;
+    case 4.9:
+      return TAX_TYPE_ENUM.ReducedNew;
+    default:
+      return TAX_TYPE_ENUM.Standard;
+  }
 }
 
 /** Translate tax type for list/tooltips; uses `products.taxLabels.*` with {{rate}}. */
 export function formatTaxTypeLabelForLocale(
-    taxType: number,
-    taxRate: number | undefined | null,
-    t: (key: string, options?: Record<string, string | number>) => string,
+  taxType: number,
+  taxRate: number | undefined | null,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
-    const rate =
-        taxRate != null && Number.isFinite(Number(taxRate)) ? Number(taxRate) : taxTypeToRate(taxType);
-    switch (taxType) {
-        case TAX_TYPE_ENUM.Standard:
-            return t('products.taxLabels.standard', { rate });
-        case TAX_TYPE_ENUM.Reduced:
-            return t('products.taxLabels.reduced', { rate });
-        case TAX_TYPE_ENUM.Special:
-            return t('products.taxLabels.special', { rate });
-        case TAX_TYPE_ENUM.ZeroRate:
-            return t('products.taxLabels.zero', { rate });
-        default:
-            return t('products.taxLabels.fallback', { rate });
-    }
+  const rate =
+    taxRate != null && Number.isFinite(Number(taxRate)) ? Number(taxRate) : taxTypeToRate(taxType);
+  switch (taxType) {
+    case TAX_TYPE_ENUM.Standard:
+      return t('products.taxLabels.standard', { rate });
+    case TAX_TYPE_ENUM.Reduced:
+      return t('products.taxLabels.reduced', { rate });
+    case TAX_TYPE_ENUM.Special:
+      return t('products.taxLabels.special', { rate });
+    case TAX_TYPE_ENUM.ZeroRate:
+      return t('products.taxLabels.zero', { rate });
+    case TAX_TYPE_ENUM.ReducedNew:
+      return t('products.taxLabels.reducedNew', { rate });
+    default:
+      return t('products.taxLabels.fallback', { rate });
+  }
 }
 
 type ProductsTranslateFn = (key: string, options?: Record<string, string | number>) => string;
 
 /** Piece-unit tokens often returned by the API in English; map to localized label without changing stored/API values. */
-const PIECE_UNIT_SYNONYMS = new Set([
-    'piece',
-    'pieces',
-    'pc',
-    'pcs',
-    'stk',
-    'stück',
-    'stueck',
-]);
+const PIECE_UNIT_SYNONYMS = new Set(['piece', 'pieces', 'pc', 'pcs', 'stk', 'stück', 'stueck']);
 
 function isPieceUnitSynonym(unit: string): boolean {
-    const u = unit.trim().toLowerCase();
-    return PIECE_UNIT_SYNONYMS.has(u);
+  const u = unit.trim().toLowerCase();
+  return PIECE_UNIT_SYNONYMS.has(u);
 }
 
 /** Stock unit for display: known piece synonyms use `products.table.unitPieces`; other values pass through (e.g. kg, custom labels). */
-export function formatProductUnitLabelForLocale(unit: string | undefined | null, t: ProductsTranslateFn): string {
-    const raw = typeof unit === 'string' ? unit.trim() : '';
-    if (!raw || isPieceUnitSynonym(raw)) {
-        return t('products.table.unitPieces');
-    }
-    return raw;
+export function formatProductUnitLabelForLocale(
+  unit: string | undefined | null,
+  t: ProductsTranslateFn
+): string {
+  const raw = typeof unit === 'string' ? unit.trim() : '';
+  if (!raw || isPieceUnitSynonym(raw)) {
+    return t('products.table.unitPieces');
+  }
+  return raw;
 }
 
-// Define the shape of the raw API response item (PascalCase)
+// Define the shape of the raw API response item (PascalCase and camelCase)
 export interface ApiProduct {
-    Id: string;
-    Name: string;
-    Description?: string | null;
-    Price: number;
-    ImageUrl?: string | null;
-    StockQuantity?: number;
-    MinStockLevel?: number;
-    Unit?: string | null;
-    Category?: string | null;
-    CategoryId?: string | null;
-    TaxType: number; // Backend: int enum 1,2,3,4
-    TaxRate?: number;
-    IsActive?: boolean;
-    Barcode?: string | null;
-    Cost?: number;
-    [key: string]: any;
+  Id?: string;
+  id?: string;
+  Name?: string;
+  name?: string;
+  NameDe?: string | null;
+  nameDe?: string | null;
+  NameEn?: string | null;
+  nameEn?: string | null;
+  NameTr?: string | null;
+  nameTr?: string | null;
+  Description?: string | null;
+  description?: string | null;
+  DescriptionDe?: string | null;
+  descriptionDe?: string | null;
+  DescriptionEn?: string | null;
+  descriptionEn?: string | null;
+  DescriptionTr?: string | null;
+  descriptionTr?: string | null;
+  Price?: number;
+  price?: number;
+  ImageUrl?: string | null;
+  imageUrl?: string | null;
+  StockQuantity?: number;
+  stockQuantity?: number;
+  MinStockLevel?: number;
+  minStockLevel?: number;
+  Unit?: string | null;
+  unit?: string | null;
+  Category?: string | null;
+  category?: string | null;
+  CategoryId?: string | null;
+  categoryId?: string | null;
+  TaxType?: number; // Backend: int enum 1,2,3,4,5
+  taxType?: number;
+  TaxRate?: number;
+  taxRate?: number;
+  TaxGroupId?: string | null;
+  taxGroupId?: string | null;
+  TaxGroup?: {
+    id?: string;
+    Id?: string;
+    name?: string;
+    Name?: string;
+    rate?: number;
+    Rate?: number;
+    color?: string | null;
+    Color?: string | null;
+    icon?: string | null;
+    Icon?: string | null;
+    austrianCode?: string | null;
+    AustrianCode?: string | null;
+    createdAt?: string;
+    CreatedAt?: string;
+  } | null;
+  taxGroup?: {
+    id?: string;
+    Id?: string;
+    name?: string;
+    Name?: string;
+    rate?: number;
+    Rate?: number;
+    color?: string | null;
+    Color?: string | null;
+    icon?: string | null;
+    Icon?: string | null;
+    austrianCode?: string | null;
+    AustrianCode?: string | null;
+    createdAt?: string;
+    CreatedAt?: string;
+  } | null;
+  IsActive?: boolean;
+  isActive?: boolean;
+  Barcode?: string | null;
+  barcode?: string | null;
+  Cost?: number;
+  cost?: number;
+  DurationMinutes?: number | null;
+  durationMinutes?: number | null;
+  StaffId?: string | null;
+  staffId?: string | null;
+  ImeiTracked?: boolean;
+  imeiTracked?: boolean;
+  IsTicket?: boolean;
+  isTicket?: boolean;
+  HasVariants?: boolean;
+  hasVariants?: boolean;
+  CreatedAt?: string;
+  createdAt?: string;
+  UpdatedAt?: string;
+  updatedAt?: string;
+  CreatedBy?: string;
+  createdBy?: string;
+  UpdatedBy?: string;
+  updatedBy?: string;
 }
 
 /** Maps API TaxType (int) and TaxRate to UI Product; taxType is kept as number. */
-export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
-    if (!apiProduct) return {} as Product;
-    const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
-    const taxRate = apiProduct.TaxRate ?? apiProduct.taxRate ?? taxTypeToRate(taxType);
+export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Product => {
+  if (!apiProduct) return {} as Product;
+  const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
+  const taxRate = apiProduct.TaxRate ?? apiProduct.taxRate ?? taxTypeToRate(taxType);
+  const taxGroupRaw = apiProduct.TaxGroup ?? apiProduct.taxGroup;
+  const taxGroupId =
+    apiProduct.TaxGroupId ??
+    apiProduct.taxGroupId ??
+    taxGroupRaw?.id ??
+    taxGroupRaw?.Id ??
+    null;
+  const taxGroup = taxGroupRaw
+    ? {
+        id: String(taxGroupRaw.id ?? taxGroupRaw.Id ?? taxGroupId ?? ''),
+        name: String(taxGroupRaw.name ?? taxGroupRaw.Name ?? ''),
+        rate: Number(taxGroupRaw.rate ?? taxGroupRaw.Rate ?? taxRate),
+        color: (taxGroupRaw.color ?? taxGroupRaw.Color ?? null) as string | null,
+        icon: (taxGroupRaw.icon ?? taxGroupRaw.Icon ?? null) as string | null,
+        austrianCode: (taxGroupRaw.austrianCode ?? taxGroupRaw.AustrianCode ?? null) as
+          | string
+          | null,
+        createdAt: taxGroupRaw.createdAt ?? taxGroupRaw.CreatedAt ?? '',
+      }
+    : undefined;
 
-    return {
-        id: apiProduct.Id || apiProduct.id,
-        name: apiProduct.Name || apiProduct.name || '',
-        nameDe: apiProduct.NameDe ?? apiProduct.nameDe ?? null,
-        nameEn: apiProduct.NameEn ?? apiProduct.nameEn ?? null,
-        nameTr: apiProduct.NameTr ?? apiProduct.nameTr ?? null,
-        description: apiProduct.Description || apiProduct.description,
-        descriptionDe: apiProduct.DescriptionDe ?? apiProduct.descriptionDe ?? null,
-        descriptionEn: apiProduct.DescriptionEn ?? apiProduct.descriptionEn ?? null,
-        descriptionTr: apiProduct.DescriptionTr ?? apiProduct.descriptionTr ?? null,
-        price: apiProduct.Price ?? apiProduct.price ?? 0,
-        imageUrl: apiProduct.ImageUrl || apiProduct.imageUrl,
-        stockQuantity: apiProduct.StockQuantity ?? apiProduct.stockQuantity ?? 0,
-        minStockLevel: apiProduct.MinStockLevel ?? apiProduct.minStockLevel ?? 0,
-        unit: apiProduct.Unit || apiProduct.unit,
-        category: apiProduct.Category || apiProduct.category,
-        categoryId: apiProduct.CategoryId || apiProduct.categoryId,
-        taxType,
-        taxRate,
-        isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
-        barcode: apiProduct.Barcode || apiProduct.barcode,
-        cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
-        createdAt: apiProduct.CreatedAt || apiProduct.createdAt || new Date().toISOString(),
-        updatedAt: apiProduct.UpdatedAt || apiProduct.updatedAt,
-        createdBy: apiProduct.CreatedBy || apiProduct.createdBy,
-        updatedBy: apiProduct.UpdatedBy || apiProduct.updatedBy,
-    };
+  return {
+    id: apiProduct.Id || apiProduct.id,
+    name: apiProduct.Name || apiProduct.name || '',
+    nameDe: apiProduct.NameDe ?? apiProduct.nameDe ?? null,
+    nameEn: apiProduct.NameEn ?? apiProduct.nameEn ?? null,
+    nameTr: apiProduct.NameTr ?? apiProduct.nameTr ?? null,
+    description: apiProduct.Description || apiProduct.description,
+    descriptionDe: apiProduct.DescriptionDe ?? apiProduct.descriptionDe ?? null,
+    descriptionEn: apiProduct.DescriptionEn ?? apiProduct.descriptionEn ?? null,
+    descriptionTr: apiProduct.DescriptionTr ?? apiProduct.descriptionTr ?? null,
+    price: apiProduct.Price ?? apiProduct.price ?? 0,
+    imageUrl: apiProduct.ImageUrl || apiProduct.imageUrl,
+    stockQuantity: apiProduct.StockQuantity ?? apiProduct.stockQuantity ?? 0,
+    minStockLevel: apiProduct.MinStockLevel ?? apiProduct.minStockLevel ?? 0,
+    unit: apiProduct.Unit || apiProduct.unit || '',
+    category: apiProduct.Category || apiProduct.category || '',
+    categoryId: apiProduct.CategoryId || apiProduct.categoryId || undefined,
+    taxType,
+    taxRate,
+    taxGroupId: taxGroupId ? String(taxGroupId) : undefined,
+    taxGroup,
+    isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
+    barcode: apiProduct.Barcode || apiProduct.barcode || '',
+    cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
+    durationMinutes: apiProduct.DurationMinutes ?? apiProduct.durationMinutes ?? null,
+    staffId: apiProduct.StaffId ?? apiProduct.staffId ?? null,
+    imeiTracked: Boolean(apiProduct.ImeiTracked ?? apiProduct.imeiTracked),
+    isTicket: Boolean(apiProduct.IsTicket ?? apiProduct.isTicket),
+    hasVariants: Boolean(apiProduct.HasVariants ?? apiProduct.hasVariants),
+    createdAt: apiProduct.CreatedAt || apiProduct.createdAt || new Date().toISOString(),
+    updatedAt: apiProduct.UpdatedAt || apiProduct.updatedAt,
+    createdBy: apiProduct.CreatedBy || apiProduct.createdBy,
+    updatedBy: apiProduct.UpdatedBy || apiProduct.updatedBy,
+  } as Product;
 };
 
 function normalizeImageUrlForApi(v: unknown): string | null {
-    if (v === undefined || v === null) return null;
-    const s = String(v).trim();
-    if (s === '') return null;
-    return s;
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (s === '') return null;
+  return s;
 }
 
-/** Payload for backend: taxType integer (1,2,3), taxRate consistent with enum. Sends both categoryId and category (name) because Product.Category is [Required]. */
-export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }): Record<string, unknown> => {
-    const taxType = Number(uiProduct.taxType ?? (uiProduct as any).taxType ?? 1);
-    const taxRate = taxTypeToRate(taxType);
-    const category = typeof uiProduct.category === 'string' && uiProduct.category.trim() ? uiProduct.category.trim() : '';
+function trimToNull(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
 
-    return {
-        id: uiProduct.id,
-        name: uiProduct.name,
-        nameDe: (uiProduct as { nameDe?: string }).nameDe ?? uiProduct.name,
-        nameEn: (uiProduct as { nameEn?: string }).nameEn ?? null,
-        nameTr: (uiProduct as { nameTr?: string }).nameTr ?? null,
-        price: Number(uiProduct.price),
-        description: uiProduct.description ?? null,
-        descriptionDe: (uiProduct as { descriptionDe?: string }).descriptionDe ?? null,
-        descriptionEn: (uiProduct as { descriptionEn?: string }).descriptionEn ?? null,
-        descriptionTr: (uiProduct as { descriptionTr?: string }).descriptionTr ?? null,
-        category,
-        categoryId: uiProduct.categoryId,
-        stockQuantity: Number(uiProduct.stockQuantity ?? 0),
-        minStockLevel: Number(uiProduct.minStockLevel ?? 0),
-        unit: uiProduct.unit || 'pcs',
-        cost: Number(uiProduct.cost ?? 0),
-        isActive: uiProduct.isActive ?? true,
-        barcode: uiProduct.barcode ?? '',
-        imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),
-        taxType, // Backend int enum bekliyor (1, 2, 3)
-        taxRate,
-        isFiscalCompliant: true,
-        isTaxable: true,
-        rksvProductType: 'Standard',
-    };
+/** First non-empty trimmed string; falls back to empty string (backend canonical description/name must not be null). */
+function firstNonEmpty(...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    if (value != null && value !== '') return value;
+  }
+  return '';
+}
+
+/** Payload for backend PUT/POST: camelCase, required category name, canonical description as string. */
+export const mapUiProductToApi = (
+  uiProduct: Product & {
+    categoryId?: string;
+    category?: string;
+    taxType?: number;
+    taxRate?: number;
+    taxGroupId?: string | null;
+  }
+): Record<string, unknown> => {
+  const taxType = Number(uiProduct.taxType ?? 1);
+  const taxRate =
+    uiProduct.taxRate != null && Number.isFinite(Number(uiProduct.taxRate))
+      ? Number(uiProduct.taxRate)
+      : taxTypeToRate(taxType);
+  const taxGroupId = uiProduct.taxGroupId ? String(uiProduct.taxGroupId) : null;
+  const category =
+    typeof uiProduct.category === 'string' && uiProduct.category.trim()
+      ? uiProduct.category.trim()
+      : '';
+
+  const localized = uiProduct as Product & {
+    nameDe?: string;
+    nameEn?: string;
+    nameTr?: string;
+    descriptionDe?: string;
+    descriptionEn?: string;
+    descriptionTr?: string;
+  };
+
+  const nameDe = trimToNull(localized.nameDe) ?? trimToNull(uiProduct.name);
+  const nameEn = trimToNull(localized.nameEn);
+  const nameTr = trimToNull(localized.nameTr);
+  const descriptionDe = trimToNull(localized.descriptionDe);
+  const descriptionEn = trimToNull(localized.descriptionEn);
+  const descriptionTr = trimToNull(localized.descriptionTr);
+  const legacyDescription = trimToNull(uiProduct.description);
+
+  return {
+    id: uiProduct.id,
+    name: firstNonEmpty(nameDe, nameEn, nameTr, trimToNull(uiProduct.name)),
+    nameDe,
+    nameEn,
+    nameTr,
+    price: Number(uiProduct.price),
+    description: firstNonEmpty(descriptionDe, descriptionEn, descriptionTr, legacyDescription),
+    descriptionDe,
+    descriptionEn,
+    descriptionTr,
+    category,
+    categoryId: uiProduct.categoryId,
+    stockQuantity: Number(uiProduct.stockQuantity ?? 0),
+    minStockLevel: Number(uiProduct.minStockLevel ?? 0),
+    unit: uiProduct.unit || 'pcs',
+    cost: Number(uiProduct.cost ?? 0),
+    durationMinutes: (() => {
+      if (uiProduct.durationMinutes == null) return null;
+      const duration = Number(uiProduct.durationMinutes);
+      return Number.isFinite(duration) && duration > 0 ? duration : null;
+    })(),
+    staffId: trimToNull(uiProduct.staffId),
+    imeiTracked: Boolean((uiProduct as Product & { imeiTracked?: boolean }).imeiTracked),
+    isTicket: Boolean((uiProduct as Product & { isTicket?: boolean }).isTicket),
+    isActive: uiProduct.isActive ?? true,
+    barcode: uiProduct.barcode ?? '',
+    imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),
+    taxType,
+    taxRate,
+    taxGroupId,
+    isFiscalCompliant: true,
+    isTaxable: true,
+    rksvProductType: 'Standard',
+  };
 };

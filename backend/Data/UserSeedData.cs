@@ -1,14 +1,55 @@
-using Microsoft.AspNetCore.Identity;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data
 {
     public static class UserSeedData
     {
-        public static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IUserTenantMembershipProvisioner tenantMembershipProvisioner)
+        internal const string DefaultAdminEmail = "admin@admin.com";
+        internal const string DefaultDemoEmail = "demo@demo.com";
+
+        private static readonly string[] DefaultSeedUserEmails =
+        [
+            DefaultAdminEmail,
+            DefaultDemoEmail,
+        ];
+
+        /// <summary>
+        /// Production safety check: warn when legacy bootstrap seed accounts are still present.
+        /// </summary>
+        public static async Task WarnIfDefaultSeedUsersExistInProductionAsync(
+            UserManager<ApplicationUser> userManager,
+            IHostEnvironment hostEnvironment,
+            ILogger logger,
+            CancellationToken cancellationToken = default)
         {
+            if (!hostEnvironment.IsProduction())
+                return;
+
+            foreach (var email in DefaultSeedUserEmails)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var user = await userManager.FindByEmailAsync(email).ConfigureAwait(false);
+                if (user == null)
+                    continue;
+
+                logger.LogWarning(
+                    "Default seed user {Email} exists in production. Change the password, deactivate the account, or remove it.",
+                    email);
+            }
+        }
+
+        public static async Task SeedUsersAsync(
+            UserManager<ApplicationUser> userManager,
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner,
+            IHostEnvironment hostEnvironment)
+        {
+            if (hostEnvironment.IsProduction())
+                return;
+
             // Eski kullanıcıları sil
             var oldAdmin = await userManager.FindByEmailAsync("admin@kasse.com");
             if (oldAdmin != null)
@@ -34,29 +75,38 @@ namespace KasseAPI_Final.Data
                     Email = "admin@admin.com",
                     FirstName = "Admin",
                     LastName = "User",
-                    EmployeeNumber = "EMP001",
+                    EmployeeNumber = "SUPER-ADMIN-001",
                     Role = Roles.SuperAdmin,
-                    TaxNumber = "ATU12345678",
+                    TaxNumber = "ATU99999901",
                     Notes = "Initial admin user",
                     IsActive = true,
                     AccountType = "Admin",
                     IsDemo = false,
+                    MustChangePasswordOnNextLogin = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(adminUser, "Admin123!");
-                if (result.Succeeded)
+                try
                 {
-                    await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
-                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
-                    Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
+                    var result = await userManager.CreateAsync(adminUser, "Admin123!");
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, SystemTenantIds.Platform);
+                        Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to create admin user:");
+                        foreach (var error in result.Errors)
+                            Console.WriteLine($"- {error.Description}");
+                    }
                 }
-                else
+                catch (DbUpdateException ex)
                 {
-                    Console.WriteLine("Failed to create admin user:");
-                    foreach (var error in result.Errors)
-                        Console.WriteLine($"- {error.Description}");
+                    Console.WriteLine($"Admin user seed skipped (database conflict): {ex.InnerException?.Message ?? ex.Message}");
+                    _ = await userManager.FindByEmailAsync("admin@admin.com");
                 }
             }
             else
@@ -74,7 +124,7 @@ namespace KasseAPI_Final.Data
                     Console.WriteLine("admin@admin.com updated to role SuperAdmin");
                 }
 
-                await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
+                await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, SystemTenantIds.Platform);
             }
 
             // Demo kasiyer kullanıcısı var mı kontrol et
@@ -86,32 +136,38 @@ namespace KasseAPI_Final.Data
                     Email = "demo@demo.com",
                     FirstName = "Demo",
                     LastName = "Cashier",
-                    EmployeeNumber = "EMP002",
+                    EmployeeNumber = "DEMO-CASHIER-001",
                     Role = Roles.Cashier,
-                    TaxNumber = "ATU87654321",
+                    TaxNumber = "ATU99999902",
                     Notes = "Demo cashier user",
                     IsActive = true,
                     AccountType = "Cashier",
                     IsDemo = true,
+                    MustChangePasswordOnNextLogin = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(demoUser, "Demo123!");
-                
-                if (result.Succeeded)
+                try
                 {
-                    await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
-                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, LegacyDefaultTenantIds.Primary);
-                    Console.WriteLine("Demo cashier user created successfully");
-                }
-                else
-                {
-                    Console.WriteLine("Failed to create demo user:");
-                    foreach (var error in result.Errors)
+                    var result = await userManager.CreateAsync(demoUser, "Demo123!");
+
+                    if (result.Succeeded)
                     {
-                        Console.WriteLine($"- {error.Description}");
+                        await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, SystemTenantIds.Platform);
+                        Console.WriteLine("Demo cashier user created successfully");
                     }
+                    else
+                    {
+                        Console.WriteLine("Failed to create demo user:");
+                        foreach (var error in result.Errors)
+                            Console.WriteLine($"- {error.Description}");
+                    }
+                }
+                catch (DbUpdateException ex)
+                {
+                    Console.WriteLine($"Demo user seed skipped (database conflict): {ex.InnerException?.Message ?? ex.Message}");
                 }
             }
 
@@ -125,7 +181,7 @@ namespace KasseAPI_Final.Data
         {
             var u = await userManager.FindByEmailAsync(email);
             if (u != null)
-                await provisioner.ProvisionActiveMembershipAsync(u.Id, LegacyDefaultTenantIds.Primary);
+                await provisioner.ProvisionActiveMembershipAsync(u.Id, SystemTenantIds.Platform);
         }
     }
 }

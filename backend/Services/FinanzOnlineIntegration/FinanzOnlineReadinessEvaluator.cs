@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -101,17 +96,21 @@ public static class FinanzOnlineReadinessEvaluator
             }
         }
 
+        var development = hostEnvironment?.IsDevelopment() == true;
+        var missingRealSoapConfigSeverity = development ? "Warning" : "Error";
+
         if (simCount == 0 && !connectivity.UseCompanySettings)
         {
             if (string.IsNullOrWhiteSpace(session.BaseUrl))
             {
                 findings.Add(new FinanzOnlineReadinessFindingDto
                 {
-                    Severity = "Error",
+                    Severity = missingRealSoapConfigSeverity,
                     Code = "FO_READINESS_SESSION_BASEURL_MISSING",
                     Category = "Transport",
-                    Message =
-                        "FinanzOnline:Session:BaseUrl is empty — real session SOAP cannot run. Action: set Session:BaseUrl or enable FinanzOnline:Connectivity:UseCompanySettings and maintain FinanzOnlineApiUrl in company_settings.",
+                    Message = development
+                        ? "FinanzOnline:Session:BaseUrl is empty — expected in Development (no BMF SOAP). Production/Staging must set Session:BaseUrl (or enable FinanzOnline:Connectivity:UseCompanySettings and FinanzOnlineApiUrl in company_settings)."
+                        : "FinanzOnline:Session:BaseUrl is empty — real session SOAP cannot run. Action: set Session:BaseUrl or enable FinanzOnline:Connectivity:UseCompanySettings and maintain FinanzOnlineApiUrl in company_settings.",
                 });
             }
 
@@ -119,11 +118,12 @@ public static class FinanzOnlineReadinessEvaluator
             {
                 findings.Add(new FinanzOnlineReadinessFindingDto
                 {
-                    Severity = "Error",
+                    Severity = missingRealSoapConfigSeverity,
                     Code = "FO_READINESS_RKDB_BASEURL_MISSING",
                     Category = "Transport",
-                    Message =
-                        "FinanzOnline:Registrierkassen:BaseUrl is empty — real rkdb SOAP cannot run. Action: set Registrierkassen:BaseUrl or use company_settings FinanzOnlineApiUrl with UseCompanySettings.",
+                    Message = development
+                        ? "FinanzOnline:Registrierkassen:BaseUrl is empty — expected in Development (no BMF SOAP). Production/Staging must set Registrierkassen:BaseUrl (or company_settings FinanzOnlineApiUrl with UseCompanySettings)."
+                        : "FinanzOnline:Registrierkassen:BaseUrl is empty — real rkdb SOAP cannot run. Action: set Registrierkassen:BaseUrl or use company_settings FinanzOnlineApiUrl with UseCompanySettings.",
                 });
             }
         }
@@ -188,22 +188,24 @@ public static class FinanzOnlineReadinessEvaluator
             {
                 findings.Add(new FinanzOnlineReadinessFindingDto
                 {
-                    Severity = "Error",
+                    Severity = missingRealSoapConfigSeverity,
                     Code = "FO_READINESS_CONFIG_SESSION_CREDENTIALS_MISSING",
                     Category = "Credentials",
-                    Message =
-                        "No FinanzOnline session username/password is configured in appsettings (DefaultCredential or ScopedCredentials). Action: set credentials or enable UseCompanySettings.",
+                    Message = development
+                        ? "No FinanzOnline session username/password in appsettings — expected in Development (do not store BMF credentials locally). Production must set FinanzOnline:Session:DefaultCredential Username/Password (user-secrets/env) or enable UseCompanySettings."
+                        : "No FinanzOnline session username/password is configured in appsettings (DefaultCredential or ScopedCredentials). Action: set credentials or enable UseCompanySettings.",
                 });
             }
             else if (!SessionConfigHasFullyUsableCredential(session))
             {
                 findings.Add(new FinanzOnlineReadinessFindingDto
                 {
-                    Severity = "Error",
+                    Severity = missingRealSoapConfigSeverity,
                     Code = "FO_READINESS_CONFIG_SESSION_PARTICIPANT_IDS_MISSING",
                     Category = "Credentials",
-                    Message =
-                        "Session credentials exist but TelematikId and/or HerstellerId is missing on every configured credential row. Action: set TelematikId and HerstellerId on DefaultCredential or a matching ScopedCredential.",
+                    Message = development
+                        ? "Session credentials exist but TelematikId and/or HerstellerId is missing — expected in Development until BMF SOAP is configured. Production must set both on DefaultCredential or a matching ScopedCredential."
+                        : "Session credentials exist but TelematikId and/or HerstellerId is missing on every configured credential row. Action: set TelematikId and HerstellerId on DefaultCredential or a matching ScopedCredential.",
                 });
             }
         }
@@ -236,11 +238,12 @@ public static class FinanzOnlineReadinessEvaluator
         {
             findings.Add(new FinanzOnlineReadinessFindingDto
             {
-                Severity = "Error",
+                Severity = development ? "Warning" : "Error",
                 Code = "FO_READINESS_OUTBOX_DISABLED",
                 Category = "Outbox",
-                Message =
-                    "FinanzOnlineOutbox:Enabled is false — the outbox background processor is not running and queued FinanzOnline messages will not advance. Action: set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline.",
+                Message = development
+                    ? "FinanzOnlineOutbox:Enabled is false — expected in Development (outbox worker is not running). Set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline."
+                    : "FinanzOnlineOutbox:Enabled is false — the outbox background processor is not running and queued FinanzOnline messages will not advance. Action: set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline.",
             });
         }
 
@@ -430,11 +433,14 @@ public static class FinanzOnlineReadinessEvaluator
     {
         using var scope = rootServices.CreateScope();
         var sp = scope.ServiceProvider;
+        var outbox = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue
+            .WithEffectiveEnabled(sp.GetService<FinanzOnlineOutboxEnabledOverrideCache>());
+        var runtime = sp.GetService<FinanzOnlineRuntimeOptionsAccessor>();
         return Evaluate(
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue,
+            runtime?.Session ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue,
+            runtime?.Registrierkassen ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue,
+            runtime?.TransmissionQuery ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue,
+            outbox,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineConnectivityOptions>>().CurrentValue,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineDevTestOptions>>().CurrentValue,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSimulationOptions>>().CurrentValue,

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -8,8 +7,8 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 using Moq;
+using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
@@ -165,10 +164,10 @@ public sealed class InvoicePdfServiceTests
             .Options;
 
         var tenantAccessor = new Mock<ICurrentTenantAccessor>();
-        tenantAccessor.Setup(x => x.TenantId).Returns(LegacyDefaultTenantIds.Primary);
+        tenantAccessor.Setup(x => x.TenantId).Returns(SystemTenantIds.Platform);
 
         var db = new AppDbContext(options, tenantAccessor.Object);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         return db;
     }
 
@@ -183,7 +182,7 @@ public sealed class InvoicePdfServiceTests
         return new Invoice
         {
             Id = id,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             InvoiceNumber = "R-1001",
             InvoiceDate = DateTime.UtcNow,
             DueDate = DateTime.UtcNow,

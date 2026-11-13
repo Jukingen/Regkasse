@@ -63,7 +63,9 @@ export const getFinanzOnlineConfig = async (): Promise<FinanzOnlineConfig> => {
 };
 
 // FinanzOnline konfigürasyonunu güncelle
-export const updateFinanzOnlineConfig = async (config: Partial<FinanzOnlineConfig>): Promise<FinanzOnlineConfig> => {
+export const updateFinanzOnlineConfig = async (
+  config: Partial<FinanzOnlineConfig>
+): Promise<FinanzOnlineConfig> => {
   try {
     const response = await apiClient.put<FinanzOnlineConfig>('/finanzonline/config', config);
     return response;
@@ -85,9 +87,14 @@ export const getFinanzOnlineStatus = async (): Promise<FinanzOnlineStatus> => {
 };
 
 // Faturayı FinanzOnline'a gönder
-export const submitInvoiceToFinanzOnline = async (request: FinanzOnlineSubmitRequest): Promise<FinanzOnlineSubmitResponse> => {
+export const submitInvoiceToFinanzOnline = async (
+  request: FinanzOnlineSubmitRequest
+): Promise<FinanzOnlineSubmitResponse> => {
   try {
-    const response = await apiClient.post<FinanzOnlineSubmitResponse>('/finanzonline/submit-invoice', request);
+    const response = await apiClient.post<FinanzOnlineSubmitResponse>(
+      '/finanzonline/submit-invoice',
+      request
+    );
     return response;
   } catch (error) {
     console.error('FinanzOnline invoice submission failed:', error);
@@ -109,7 +116,9 @@ export const getFinanzOnlineErrors = async (): Promise<FinanzOnlineError[]> => {
 // FinanzOnline bağlantı testi
 export const testFinanzOnlineConnection = async (): Promise<FinanzOnlineTestResponse> => {
   try {
-    const response = await apiClient.post<FinanzOnlineTestResponse>('/finanzonline/test-connection');
+    const response = await apiClient.post<FinanzOnlineTestResponse>(
+      '/finanzonline/test-connection'
+    );
     return response;
   } catch (error) {
     console.error('FinanzOnline connection test failed:', error);
@@ -118,11 +127,14 @@ export const testFinanzOnlineConnection = async (): Promise<FinanzOnlineTestResp
 };
 
 // FinanzOnline otomatik gönderim ayarlarını güncelle
-export const updateAutoSubmitSettings = async (autoSubmit: boolean, interval: number): Promise<FinanzOnlineConfig> => {
+export const updateAutoSubmitSettings = async (
+  autoSubmit: boolean,
+  interval: number
+): Promise<FinanzOnlineConfig> => {
   try {
     const response = await updateFinanzOnlineConfig({
       autoSubmit,
-      submitInterval: interval
+      submitInterval: interval,
     });
     return response;
   } catch (error) {
@@ -135,7 +147,7 @@ export const updateAutoSubmitSettings = async (autoSubmit: boolean, interval: nu
 export const updateRetrySettings = async (retryAttempts: number): Promise<FinanzOnlineConfig> => {
   try {
     const response = await updateFinanzOnlineConfig({
-      retryAttempts
+      retryAttempts,
     });
     return response;
   } catch (error) {
@@ -145,10 +157,12 @@ export const updateRetrySettings = async (retryAttempts: number): Promise<Finanz
 };
 
 // FinanzOnline validasyon ayarlarını güncelle
-export const updateValidationSettings = async (enableValidation: boolean): Promise<FinanzOnlineConfig> => {
+export const updateValidationSettings = async (
+  enableValidation: boolean
+): Promise<FinanzOnlineConfig> => {
   try {
     const response = await updateFinanzOnlineConfig({
-      enableValidation
+      enableValidation,
     });
     return response;
   } catch (error) {
@@ -158,7 +172,10 @@ export const updateValidationSettings = async (enableValidation: boolean): Promi
 };
 
 // FinanzOnline durumunu periyodik olarak kontrol et
-export const startFinanzOnlineMonitoring = (callback: (status: FinanzOnlineStatus) => void, intervalMs: number = 5 * 60 * 1000) => {
+export const startFinanzOnlineMonitoring = (
+  callback: (status: FinanzOnlineStatus) => void,
+  intervalMs: number = 5 * 60 * 1000
+) => {
   const checkStatus = async () => {
     try {
       const status = await getFinanzOnlineStatus();

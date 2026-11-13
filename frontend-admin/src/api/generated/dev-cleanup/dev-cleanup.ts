@@ -28,8 +28,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiDevCleanupTenantCatalog = (
     devTenantCatalogCleanupRequest: DevTenantCatalogCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<DevTenantCatalogCleanupResult>(
       {url: `/api/dev/cleanup/tenant-catalog`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -37,7 +37,7 @@ export const postApiDevCleanupTenantCatalog = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiDevCleanupTenantCatalogMutationOptions = <TError = ProblemDetails,
@@ -45,7 +45,7 @@ export const getPostApiDevCleanupTenantCatalogMutationOptions = <TError = Proble
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, TError,{data: DevTenantCatalogCleanupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, {data: DevTenantCatalogCleanupRequest}> = (props) => {
@@ -54,7 +54,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiDevCleanupTenantCatalog(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -77,16 +77,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiDevCleanupOrphanedUsers = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<DevOrphanedUserCleanupResponse>(
       {url: `/api/dev/cleanup/orphaned-users`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiDevCleanupOrphanedUsersMutationOptions = <TError = ProblemDetails,
@@ -94,22 +94,22 @@ export const getPostApiDevCleanupOrphanedUsersMutationOptions = <TError = Proble
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiDevCleanupOrphanedUsers>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiDevCleanupOrphanedUsers>>, void> = () => {
-          
+
 
           return  postApiDevCleanupOrphanedUsers(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiDevCleanupOrphanedUsersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiDevCleanupOrphanedUsers>>>
-    
+
     export type PostApiDevCleanupOrphanedUsersMutationError = ProblemDetails
 
     export const usePostApiDevCleanupOrphanedUsers = <TError = ProblemDetails,
@@ -125,4 +125,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

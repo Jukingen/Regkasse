@@ -99,9 +99,9 @@ public class AdminOfflineTransactionsController : BaseController
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
             var joined = from o in TenantScopedOfflineQuery(tenantId).AsNoTracking()
-                join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
-                where cr.TenantId == tenantId
-                select new { Offline = o, Register = cr };
+                         join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
+                         where cr.TenantId == tenantId
+                         select new { Offline = o, Register = cr };
 
             var filtered = joined.AsQueryable();
 
@@ -187,9 +187,9 @@ public class AdminOfflineTransactionsController : BaseController
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
             var joined = from o in TenantScopedOfflineQuery(tenantId).AsNoTracking()
-                join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
-                where cr.TenantId == tenantId && o.Status == OfflineTransactionStatus.Failed
-                select new { Offline = o, Register = cr };
+                         join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
+                         where cr.TenantId == tenantId && o.Status == OfflineTransactionStatus.Failed
+                         select new { Offline = o, Register = cr };
 
             var filtered = joined.AsQueryable();
 

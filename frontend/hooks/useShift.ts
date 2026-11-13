@@ -1,19 +1,32 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { usePosStatusOverview } from '../contexts/PosStatusOverviewContext';
+import i18n from '../i18n';
 import {
+  autoOpenShiftApi,
   DailyClosingApiError,
   endShiftApi,
   fetchCurrentShift,
-  fetchDailyClosingStatus,
-  performDailyClosingApi,
   startShiftApi,
   type CashierShiftDto,
   type EndShiftResponse,
   type PosDailyClosingResult,
   type PosDailyClosingStatusDto,
 } from '../services/api/shiftService';
+import {
+  getDailyClosingStatus,
+  performDailyClosing as performDailyClosingRequest,
+} from '../services/dailyClosingService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  SHIFT_AUTO_OPEN_CODES,
+  shiftAutoOpenAlertI18nKeys,
+  shiftAutoOpenNavigateHref,
+} from '../utils/shiftAutoOpenError';
 
 function readApiErrorMessage(error: unknown): string {
   const e = error as { response?: { data?: unknown }; data?: unknown; message?: string } | null;
@@ -26,6 +39,7 @@ function readApiErrorMessage(error: unknown): string {
 
 export function useShift(explicitRegisterId?: string | null) {
   const posReadiness = usePosRegisterReadiness();
+  const { refreshOverview } = usePosStatusOverview();
   const cashRegisterId =
     (explicitRegisterId?.trim() && isValidPosCashRegisterId(explicitRegisterId.trim())
       ? explicitRegisterId.trim()
@@ -35,43 +49,73 @@ export function useShift(explicitRegisterId?: string | null) {
       : null);
 
   const [activeShift, setActiveShift] = useState<CashierShiftDto | null>(null);
-  const [dailyClosingStatus, setDailyClosingStatus] = useState<PosDailyClosingStatusDto | null>(null);
+  const [dailyClosingStatus, setDailyClosingStatus] = useState<PosDailyClosingStatusDto | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dailyClosingRefreshInFlightRef = useRef(false);
+  const currentShiftRefreshInFlightRef = useRef(false);
+  const lastShiftRefreshRegisterIdRef = useRef<string | undefined>(undefined);
+  const activeShiftId = activeShift?.id ?? null;
 
   const refresh = useCallback(async () => {
+    if (currentShiftRefreshInFlightRef.current) return;
+    currentShiftRefreshInFlightRef.current = true;
     setIsLoading(true);
     try {
       const res = await fetchCurrentShift();
       setActiveShift(res.hasActiveShift && res.shift ? res.shift : null);
       setError(null);
+      lastShiftRefreshRegisterIdRef.current = cashRegisterId ?? '__none__';
     } catch (e) {
       setError(readApiErrorMessage(e));
     } finally {
       setIsLoading(false);
+      currentShiftRefreshInFlightRef.current = false;
     }
-  }, []);
+  }, [cashRegisterId]);
 
   const refreshDailyClosingStatus = useCallback(async () => {
+    if (dailyClosingRefreshInFlightRef.current) return;
+    dailyClosingRefreshInFlightRef.current = true;
     try {
-      const status = await fetchDailyClosingStatus();
+      const [status, shiftRes] = await Promise.all([getDailyClosingStatus(), fetchCurrentShift()]);
       setDailyClosingStatus(status);
+      if (shiftRes.hasActiveShift && shiftRes.shift) {
+        setActiveShift(shiftRes.shift);
+      }
     } catch {
       setDailyClosingStatus(null);
+    } finally {
+      dailyClosingRefreshInFlightRef.current = false;
     }
   }, []);
 
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), refreshDailyClosingStatus()]);
+  }, [refresh, refreshDailyClosingStatus]);
+
   useEffect(() => {
+    const registerKey = cashRegisterId ?? '__none__';
+    if (registerKey === lastShiftRefreshRegisterIdRef.current) return;
     void refresh();
   }, [refresh, cashRegisterId]);
 
   useEffect(() => {
-    if (!activeShift) {
+    if (!activeShiftId) {
       setDailyClosingStatus(null);
       return;
     }
     void refreshDailyClosingStatus();
-  }, [activeShift?.id, refreshDailyClosingStatus]);
+  }, [activeShiftId, cashRegisterId, refreshDailyClosingStatus]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!activeShiftId) return;
+      void refreshDailyClosingStatus();
+    }, [activeShiftId, refreshDailyClosingStatus])
+  );
 
   const startShift = useCallback(
     async (startBalance: number): Promise<CashierShiftDto> => {
@@ -83,7 +127,9 @@ export function useShift(explicitRegisterId?: string | null) {
       try {
         const shift = await startShiftApi(cashRegisterId, startBalance);
         setActiveShift(shift);
+        await refreshDailyClosingStatus();
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         return shift;
       } catch (e) {
         const msg = readApiErrorMessage(e);
@@ -93,7 +139,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [cashRegisterId, posReadiness]
+    [cashRegisterId, posReadiness, refreshOverview]
   );
 
   const endShift = useCallback(
@@ -104,6 +150,7 @@ export function useShift(explicitRegisterId?: string | null) {
         const result = await endShiftApi(endBalance, notes);
         setActiveShift(null);
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         return result;
       } catch (e) {
         const msg = readApiErrorMessage(e);
@@ -113,7 +160,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [posReadiness]
+    [posReadiness, refreshOverview]
   );
 
   const performDailyClosing = useCallback(
@@ -121,17 +168,15 @@ export function useShift(explicitRegisterId?: string | null) {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await performDailyClosingApi(cashCount, notes);
+        const result = await performDailyClosingRequest({ cashCount, notes });
         setActiveShift(null);
         setDailyClosingStatus(null);
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         await refresh();
         return result;
       } catch (e) {
-        const msg =
-          e instanceof DailyClosingApiError
-            ? e.message
-            : readApiErrorMessage(e);
+        const msg = e instanceof DailyClosingApiError ? e.message : readApiErrorMessage(e);
         setError(msg);
         if (e instanceof DailyClosingApiError) throw e;
         throw new Error(msg);
@@ -139,8 +184,39 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [posReadiness, refresh]
+    [posReadiness, refreshOverview, refresh]
   );
+
+  const autoOpenShift = useCallback(async (): Promise<{
+    success: boolean;
+    code: string;
+    shift: CashierShiftDto | null;
+  }> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const shift = await autoOpenShiftApi(cashRegisterId);
+      setActiveShift(shift);
+      await posReadiness.refreshAsync();
+      await refreshOverview(true);
+      return { success: true, code: SHIFT_AUTO_OPEN_CODES.SUCCESS, shift };
+    } catch (e) {
+      const parsed = parseShiftAutoOpenError(e);
+      if (parsed.code === SHIFT_AUTO_OPEN_CODES.SHIFT_ALREADY_OPEN) {
+        await refresh();
+        return { success: true, code: parsed.code, shift: activeShift };
+      }
+      setError(parsed.message);
+      const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
+      const href = shiftAutoOpenNavigateHref(parsed.code);
+      Alert.alert(i18n.t(keys.titleKey), i18n.t(keys.messageKey), href
+        ? [{ text: 'OK', onPress: () => router.replace(href) }]
+        : undefined);
+      return { success: false, code: parsed.code, shift: null };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeShift, cashRegisterId, posReadiness, refresh, refreshOverview]);
 
   return {
     activeShift,
@@ -149,9 +225,11 @@ export function useShift(explicitRegisterId?: string | null) {
     startShift,
     endShift,
     performDailyClosing,
+    autoOpenShift,
     isLoading,
     error,
     refresh,
     refreshDailyClosingStatus,
+    refreshAll,
   };
 }

@@ -5,6 +5,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -16,9 +17,10 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
+
+import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { type Customer } from '../services/api/customerService';
 import { employeeService, type EmployeeSummary } from '../services/api/employeeService';
-import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface EmployeeIdentificationSheetProps {
@@ -32,6 +34,7 @@ export default function EmployeeIdentificationSheet({
   onClose,
   onSelect,
 }: EmployeeIdentificationSheetProps) {
+  const { t } = useTranslation(['employees']);
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [showList, setShowList] = useState(false);
@@ -46,12 +49,15 @@ export default function EmployeeIdentificationSheet({
       setListEmployees(arr);
     } catch (e) {
       console.warn('[EmployeeIdentificationSheet] Failed to load employee list:', e);
-      Alert.alert('Hinweis', 'Mitarbeiterliste konnte nicht geladen werden.');
+      Alert.alert(
+        t('employees:selectionSheet.alertListFailedTitle'),
+        t('employees:selectionSheet.alertListFailedMessage')
+      );
       setListEmployees([]);
     } finally {
       setListLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (visible && showList && listEmployees.length === 0 && !listLoading) {
@@ -69,15 +75,21 @@ export default function EmployeeIdentificationSheet({
         onSelect(customer);
         onClose();
       } else {
-        Alert.alert('Nicht gefunden', 'Kein aktiver Mitarbeiter mit dieser Nummer gefunden.');
+        Alert.alert(
+          t('employees:selectionSheet.alertNotFoundTitle'),
+          t('employees:selectionSheet.alertNotFoundMessage')
+        );
       }
     } catch (e) {
       console.warn('[EmployeeIdentificationSheet] Lookup failed:', e);
-      Alert.alert('Fehler', 'Suche fehlgeschlagen. Bitte erneut versuchen.');
+      Alert.alert(
+        t('employees:selectionSheet.alertSearchFailedTitle'),
+        t('employees:selectionSheet.alertSearchFailedMessage')
+      );
     } finally {
       setLookupLoading(false);
     }
-  }, [employeeNumber, onSelect, onClose]);
+  }, [employeeNumber, onSelect, onClose, t]);
 
   const filteredList = listFilter.trim()
     ? listEmployees.filter(
@@ -104,23 +116,25 @@ export default function EmployeeIdentificationSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityLabel="Schließen">
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel={t('employees:selectionSheet.closeA11y')}>
             <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Personal</Text>
+          <Text style={styles.title}>{t('employees:selectionSheet.title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Mitarbeiter-Nr.</Text>
+          <Text style={styles.label}>{t('employees:selectionSheet.employeeNumberLabel')}</Text>
           <View style={styles.row}>
             <TextInput
               style={styles.input}
-              placeholder="Nummer eingeben"
+              placeholder={t('employees:selectionSheet.numberPlaceholder')}
               placeholderTextColor={SoftColors.textMuted}
               value={employeeNumber}
               onChangeText={setEmployeeNumber}
@@ -131,47 +145,56 @@ export default function EmployeeIdentificationSheet({
             <Pressable
               style={[styles.primaryBtn, lookupLoading && styles.btnDisabled]}
               onPress={handleSearchByNumber}
-              disabled={lookupLoading || !employeeNumber.trim()}
-            >
+              disabled={lookupLoading || !employeeNumber.trim()}>
               {lookupLoading ? (
                 <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
-                <Text style={styles.primaryBtnText}>Suchen</Text>
+                <Text style={styles.primaryBtnText}>{t('employees:selectionSheet.search')}</Text>
               )}
             </Pressable>
           </View>
-          <Text style={styles.hint}>Vorteile werden bei Zahlung angewendet.</Text>
+          <Text style={styles.hint}>{t('employees:selectionSheet.benefitsHint')}</Text>
         </View>
 
         <View style={styles.divider}>
           <View style={styles.line} />
-          <Text style={styles.dividerText}>oder</Text>
+          <Text style={styles.dividerText}>{t('employees:selectionSheet.or')}</Text>
           <View style={styles.line} />
         </View>
 
         {!showList ? (
-          <Pressable style={styles.secondaryBtn} onPress={() => setShowList(true)}>
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={() => {
+              setShowList(true);
+            }}>
             <Ionicons name="list" size={20} color={SoftColors.accent} />
-            <Text style={styles.secondaryBtnText}>Aus Liste wählen</Text>
+            <Text style={styles.secondaryBtnText}>
+              {t('employees:selectionSheet.chooseFromList')}
+            </Text>
           </Pressable>
         ) : (
           <View style={styles.listSection}>
             <View style={styles.listHeader}>
               <TextInput
                 style={styles.filterInput}
-                placeholder="Name oder Nr. filtern"
+                placeholder={t('employees:selectionSheet.filterPlaceholder')}
                 placeholderTextColor={SoftColors.textMuted}
                 value={listFilter}
                 onChangeText={setListFilter}
               />
-              <TouchableOpacity onPress={() => setShowList(false)} style={styles.backToListBtn}>
-                <Text style={styles.backToListText}>Zurück</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowList(false);
+                }}
+                style={styles.backToListBtn}>
+                <Text style={styles.backToListText}>{t('employees:selectionSheet.back')}</Text>
               </TouchableOpacity>
             </View>
             {listLoading ? (
               <View style={styles.loadingBox}>
                 <WaveLoader size={28} color={SoftColors.accent} />
-                <Text style={styles.loadingText}>Lade Liste…</Text>
+                <Text style={styles.loadingText}>{t('employees:selectionSheet.loadingList')}</Text>
               </View>
             ) : (
               <FlatList
@@ -181,17 +204,20 @@ export default function EmployeeIdentificationSheet({
                 renderItem={({ item }) => (
                   <Pressable
                     style={styles.listItem}
-                    onPress={() => handleSelectEmployee(item)}
-                  >
+                    onPress={() => {
+                      handleSelectEmployee(item);
+                    }}>
                     <Text style={styles.listItemName}>{item.name}</Text>
                     {item.employeeNumber ? (
-                      <Text style={styles.listItemNumber}>Nr. {item.employeeNumber}</Text>
+                      <Text style={styles.listItemNumber}>
+                        {t('employees:selectionSheet.numberPrefix')} {item.employeeNumber}
+                      </Text>
                     ) : null}
                   </Pressable>
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptyBox}>
-                    <Text style={styles.emptyText}>Keine Einträge</Text>
+                    <Text style={styles.emptyText}>{t('employees:selectionSheet.emptyList')}</Text>
                   </View>
                 }
               />

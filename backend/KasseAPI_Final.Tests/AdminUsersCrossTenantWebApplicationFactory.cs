@@ -1,18 +1,14 @@
 using System.Text;
-using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
@@ -27,6 +23,8 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
     internal const string TenantBSlug = "tenant-b";
     internal const string AdminAEmail = "admin-a@test.com";
     internal const string AdminAPassword = "TestPass123!";
+    internal const string ManagerAEmail = "manager-a@test.com";
+    internal const string ManagerAPassword = "TestPass123!";
     internal const string UserAId = "user-tenant-a";
     internal const string UserBId = "user-tenant-b";
     internal const string JwtIssuer = "OpenApiExport";
@@ -37,11 +35,22 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
     internal static readonly Guid TenantBId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
     private readonly string _databaseName = $"AdminUsersCrossTenant_{Guid.NewGuid():N}";
+    private readonly string? _previousOpenApiExportFlag;
+    private readonly string? _previousInMemoryDbName;
 
     public AdminUsersCrossTenantWebApplicationFactory()
     {
+        _previousOpenApiExportFlag = Environment.GetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName);
+        _previousInMemoryDbName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
         Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, "true");
         Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _databaseName);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, _previousOpenApiExportFlag);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _previousInMemoryDbName);
+        base.Dispose(disposing);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -173,6 +182,22 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
         await userManager.CreateAsync(userB, "OtherPass123!").ConfigureAwait(false);
         await userManager.AddToRoleAsync(userB, Roles.Cashier).ConfigureAwait(false);
 
+        var managerA = new ApplicationUser
+        {
+            Id = "manager-a",
+            UserName = ManagerAEmail,
+            Email = ManagerAEmail,
+            FirstName = "Manager",
+            LastName = "Tenant A",
+            Role = Roles.Manager,
+            EmployeeNumber = "MGR-A-001",
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = now,
+        };
+        await userManager.CreateAsync(managerA, ManagerAPassword).ConfigureAwait(false);
+        await userManager.AddToRoleAsync(managerA, Roles.Manager).ConfigureAwait(false);
+
         db.UserTenantMemberships.AddRange(
             new UserTenantMembership
             {
@@ -187,6 +212,14 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
                 UserId = userA.Id,
                 TenantId = TenantAId,
                 IsActive = true,
+                CreatedAtUtc = now,
+            },
+            new UserTenantMembership
+            {
+                UserId = managerA.Id,
+                TenantId = TenantAId,
+                IsActive = true,
+                IsOwner = false,
                 CreatedAtUtc = now,
             },
             new UserTenantMembership

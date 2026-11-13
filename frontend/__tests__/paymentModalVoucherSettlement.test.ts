@@ -5,52 +5,19 @@
  */
 import { describe, expect, it } from '@jest/globals';
 
+import { PAYMENT_COVERAGE_TOLERANCE_EUR, computeVoucherPlusCashCoversTotal } from '../utils/posPaymentCoverage';
 import { validateAmount } from '../utils/validation';
 
-const PAYMENT_COVERAGE_TOLERANCE_EUR = 0.02;
-
-function parseLocaleDecimal(input: string): number {
-  const s = input.trim().replace(',', '.');
-  if (!s) return NaN;
-  return parseFloat(s);
-}
-
-/** Same logic as PaymentModal `computeVoucherPlusCashCoversTotal`. */
-function computeVoucherPlusCashCoversTotal(input: {
-  voucherEnabled: boolean;
-  appliedVoucherAmount: number;
-  totalCartAmount: number;
-  settlementAmountDue: number;
-  requiresCashAmount: boolean;
-  amountReceivedStr: string;
-}): { sumPaid: number; coversTotal: boolean } {
-  const v = input.voucherEnabled ? Math.max(0, input.appliedVoucherAmount) : 0;
-  const cashParsed = parseLocaleDecimal(input.amountReceivedStr);
-  const cashReceived = Number.isFinite(cashParsed) ? Math.max(0, cashParsed) : 0;
-
-  let sumPaid: number;
-  if (!input.voucherEnabled) {
-    sumPaid = input.requiresCashAmount ? cashReceived : input.totalCartAmount;
-  } else if (input.settlementAmountDue <= PAYMENT_COVERAGE_TOLERANCE_EUR) {
-    sumPaid = v;
-  } else if (input.requiresCashAmount) {
-    sumPaid = v + cashReceived;
-  } else {
-    sumPaid = v + Math.max(0, input.settlementAmountDue);
-  }
-
-  return {
-    sumPaid,
-    coversTotal: sumPaid >= input.totalCartAmount - PAYMENT_COVERAGE_TOLERANCE_EUR,
-  };
-}
-
 /** Same logic as PaymentModal `totalAmount` IIFE (grandTotalGross + cartLineSumGross). */
-function resolveTotalAmountLikePaymentModal(grandTotalGross: number | undefined | null, cartLineSumGross: number): number {
+function resolveTotalAmountLikePaymentModal(
+  grandTotalGross: number | undefined | null,
+  cartLineSumGross: number
+): number {
   if (grandTotalGross != null && Number.isFinite(grandTotalGross)) {
     if (grandTotalGross > 0) return grandTotalGross;
     if (grandTotalGross === 0 && cartLineSumGross <= PAYMENT_COVERAGE_TOLERANCE_EUR) return 0;
-    if (grandTotalGross === 0 && cartLineSumGross > PAYMENT_COVERAGE_TOLERANCE_EUR) return cartLineSumGross;
+    if (grandTotalGross === 0 && cartLineSumGross > PAYMENT_COVERAGE_TOLERANCE_EUR)
+      return cartLineSumGross;
   }
   return cartLineSumGross;
 }
@@ -121,9 +88,13 @@ describe('PaymentModal voucher / settlement mirrors (fix regression)', () => {
     });
     expect(settlementValid).toBe(true);
 
-    expect(passesFiscalTotalGateLikePaymentModal({ totalAmount, voucherEnabled: true, voucherSettlementValid: settlementValid })).toBe(
-      true
-    );
+    expect(
+      passesFiscalTotalGateLikePaymentModal({
+        totalAmount,
+        voucherEnabled: true,
+        voucherSettlementValid: settlementValid,
+      })
+    ).toBe(true);
   });
 
   it('2) Cart 50 €, Gutschein 30 € → Restbetrag 20 €, coverage OK with card (30 + 20)', () => {
@@ -169,7 +140,13 @@ describe('PaymentModal voucher / settlement mirrors (fix regression)', () => {
     expect(coverage.sumPaid).toBe(50);
     expect(coverage.coversTotal).toBe(true);
 
-    expect(passesFiscalTotalGateLikePaymentModal({ totalAmount, voucherEnabled: false, voucherSettlementValid: true })).toBe(true);
+    expect(
+      passesFiscalTotalGateLikePaymentModal({
+        totalAmount,
+        voucherEnabled: false,
+        voucherSettlementValid: true,
+      })
+    ).toBe(true);
   });
 
   it('4) Cart total 0 € without Gutschein → fiscal total gate fails (no validateAmount bypass)', () => {

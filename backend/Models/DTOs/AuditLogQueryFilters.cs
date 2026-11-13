@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Models.DTOs;
 
 /// <summary>Query filters for audit log list, export, and scheduled reports.</summary>
@@ -19,4 +17,13 @@ public sealed class AuditLogQueryFilters
     /// <summary>When <see cref="Status"/> is null: "success" or "failure".</summary>
     public string? StatusOutcome { get; set; }
     public bool? HasChanges { get; set; }
+
+    /// <summary>
+    /// When true, omit audit rows whose actor <see cref="AuditLog.UserRole"/> is a platform operator (SuperAdmin).
+    /// Applied automatically for non–Super Admin callers on list/export endpoints.
+    /// </summary>
+    public bool ExcludePlatformOperatorActors { get; set; }
+
+    /// <summary>Case-insensitive match on action, description, entity type/name, and IP.</summary>
+    public string? Search { get; set; }
 }

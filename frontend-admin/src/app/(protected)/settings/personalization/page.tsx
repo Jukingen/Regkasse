@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from 'antd';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { PersonalizationSettings } from '@/features/settings/components/PersonalizationSettings';
 import { useI18n } from '@/i18n';
@@ -16,10 +17,7 @@ export default function PersonalizationSettingsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <AdminPageHeader
-        title={t('settings.personalization.pageTitle')}
-        breadcrumbs={breadcrumbs}
-      />
+      <AdminPageHeader title={t('settings.personalization.pageTitle')} breadcrumbs={breadcrumbs} />
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <PersonalizationSettings />
       </Card>

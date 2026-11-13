@@ -1,0 +1,170 @@
+# Dependabot version updates for the Regkasse monorepo.
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# After merge to the default branch: GitHub → Insights → Dependency graph → Dependabot,
+# or Settings → Code security → Dependabot version updates.
+
+version: 2
+
+updates:
+  # --- npm: POS (Expo) -----------------------------------------------------
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 6
+    labels:
+      - dependencies
+      - frontend-pos
+    groups:
+      frontend-pos-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - react-native
+          - 'react-native-*'
+          - expo
+          - 'expo-*'
+          - react
+          - react-dom
+
+  # --- npm: tenant websites ------------------------------------------------
+  - package-ecosystem: npm
+    directory: /frontend-sites
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 4
+    labels:
+      - dependencies
+      - frontend-sites
+    groups:
+      # One PR for the framework set, so the lockfile moves once.
+      # Auto-merge still requires the root package-lock.json.
+      frontend-sites-framework:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - '@types/*'
+        update-types:
+          - minor
+          - patch
+      frontend-sites-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
+          - '@types/*'
+
+  # npm workspaces. CI npm ci at repo root uses package-lock.json.
+  # Do NOT re-add directory: /frontend-admin — its lock is not used by root npm ci.
+  # /frontend and /frontend-sites stay: their CI runs npm ci in those directories.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      frontend-admin-types:
+        patterns:
+          - '@types/*'
+      frontend-admin-lint-format:
+        patterns:
+          - eslint*
+          - prettier
+          - '@typescript-eslint/*'
+      frontend-admin-test:
+        patterns:
+          - vitest
+          - '@vitest/*'
+          - '@testing-library/*'
+          - '@playwright/*'
+          - jsdom
+      frontend-admin-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
+          - antd
+          - '@ant-design/*'
+      root-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - react
+          - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
+          - next
+          - antd
+          - '@ant-design/*'
+    # Orval major upgrades need OpenAPI/client regen — review separately
+    ignore:
+      - dependency-name: orval
+        update-types: ['version-update:semver-major']
+
+  # --- NuGet: ASP.NET Core API ---------------------------------------------
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+    groups:
+      backend-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - Microsoft.AspNetCore.*
+          - Microsoft.EntityFrameworkCore.*
+          - Npgsql*
+  # --- GitHub Actions ------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  # --- Docker: frontend-admin image ----------------------------------------
+  - package-ecosystem: docker
+    directory: /frontend-admin
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - docker

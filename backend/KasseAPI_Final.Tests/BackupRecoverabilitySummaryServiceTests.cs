@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -55,7 +56,7 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         IBackupOperationalReadiness? readiness = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var time = new FixedUtcTimeProvider(utcNow);
         var svc = new BackupRecoverabilitySummaryService(db, time, readiness ?? StubReadiness());
         return (svc, db);
@@ -123,6 +124,47 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         Assert.Equal(now.AddHours(-2), summary.LastSuccessfulBackupAt);
         Assert.Equal(7200L, summary.BackupProofAgeSeconds);
         Assert.True(summary.LastSuccessfulBackupRunIsSimulatedExecution);
+    }
+
+    [Fact]
+    public async Task GetAsync_ManagerScope_UsesAccessibleLatestRun()
+    {
+        var now = new DateTime(2026, 7, 7, 12, 0, 0, DateTimeKind.Utc);
+        var tenantA = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        var tenantB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var dbName = $"recv_scope_{Guid.NewGuid():N}";
+        var (svc, db) = CreateSut(dbName, now);
+        var okId = Guid.NewGuid();
+
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Id = okId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantA,
+                RequestedAt = now.AddHours(-2),
+                CompletedAt = now.AddHours(-2),
+            },
+            new BackupRun
+            {
+                Status = BackupRunStatus.Failed,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantB,
+                RequestedAt = now.AddHours(-1),
+                CompletedAt = now.AddHours(-1),
+                FailureCode = "X",
+            });
+        await db.SaveChangesAsync();
+
+        var scope = new BackupRunAccessScope(IsSuperAdmin: false, tenantA, "manager-1");
+        var summary = await svc.GetAsync(scope);
+
+        Assert.Equal(BackupRunStatus.Succeeded, summary.LatestRunStatus);
+        Assert.Equal(now.AddHours(-2), summary.LatestRunAt);
+        Assert.Equal(okId, summary.LastSuccessfulBackupRunId);
     }
 
     [Fact]
@@ -336,6 +378,9 @@ public sealed class BackupRecoverabilitySummaryServiceTests
             nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSampleCount),
             nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSeconds),
             nameof(BackupLatestStatusResponseDto.ConfigurationHealth),
+            nameof(BackupLatestStatusResponseDto.EstimatedRemainingSeconds),
+            nameof(BackupLatestStatusResponseDto.EstimatedTotalSeconds),
+            nameof(BackupLatestStatusResponseDto.EstimateSource),
             nameof(BackupLatestStatusResponseDto.LatestRun),
             nameof(BackupLatestStatusResponseDto.Restore)
         };

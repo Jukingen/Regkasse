@@ -1,33 +1,58 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
+using KasseAPI_Final.Services.Trial;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>Super-admin tenant row license management (SaaS metadata + issued_licenses cross-reference).</summary>
+/// <summary>Tenant row license management (SaaS Mandantenlizenz). Managers: own tenant GET/PUT only.</summary>
 [ApiController]
 [Route("api/admin/tenants/{tenantId:guid}/license")]
-[Authorize(Roles = Roles.SuperAdmin)]
+[Authorize]
 [Produces("application/json")]
 public sealed class AdminTenantLicensesController : ControllerBase
 {
     private readonly IAdminTenantLicenseService _licenseService;
+    private readonly IAdminTenantLicenseKeyService _tenantLicenseService;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAuthorizationService _authorization;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly ITenantLicenseExtensionRateLimiter _extensionRateLimiter;
+    private readonly ITrialConversionService _trialConversion;
+    private readonly AppDbContext _db;
     private readonly ILogger<AdminTenantLicensesController> _logger;
 
     public AdminTenantLicensesController(
         IAdminTenantLicenseService licenseService,
+        IAdminTenantLicenseKeyService tenantLicenseService,
+        IUnifiedLicenseService unifiedLicenseService,
         ILicenseRenewalService licenseRenewalService,
         IAuthorizationService authorization,
+        ISettingsTenantResolver settingsTenantResolver,
+        ITenantLicenseExtensionRateLimiter extensionRateLimiter,
+        ITrialConversionService trialConversion,
+        AppDbContext db,
         ILogger<AdminTenantLicensesController> logger)
     {
         _licenseService = licenseService;
+        _tenantLicenseService = tenantLicenseService;
+        _unifiedLicenseService = unifiedLicenseService;
         _licenseRenewalService = licenseRenewalService;
         _authorization = authorization;
+        _settingsTenantResolver = settingsTenantResolver;
+        _extensionRateLimiter = extensionRateLimiter;
+        _trialConversion = trialConversion;
+        _db = db;
         _logger = logger;
     }
 
@@ -35,19 +60,70 @@ public sealed class AdminTenantLicensesController : ControllerBase
     private string? ActorRole => User.GetActorRole();
 
     [HttpGet]
+    [HasPermission(AppPermissions.LicenseManage)]
     [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TenantLicenseOverviewDto>> Get(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
         var overview = await _licenseService.GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (overview == null)
             return NotFound(new { message = "Tenant not found." });
         return Ok(overview);
     }
 
+    /// <summary>Update mandant license (REGK key and/or valid-until). Managers: both fields required.</summary>
+    [HttpPut]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantLicenseOverviewDto>> Put(
+        Guid tenantId,
+        [FromBody] ExtendTenantLicenseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
+        if (!User.IsInRole(Roles.SuperAdmin))
+        {
+            if (string.IsNullOrWhiteSpace(request.LicenseKey))
+                return BadRequest(new { message = "licenseKey is required." });
+            if (request.ValidUntilUtc.HasValue)
+                return BadRequest(new { message = "validUntilUtc is determined by the license key and cannot be set manually." });
+
+            var rateError = _extensionRateLimiter.TryAcquireOrError(ActorUserId, tenantId);
+            if (rateError != null)
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = rateError });
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.LicenseKey)
+            && !await IsLicenseKeyFormatValidAsync(request.LicenseKey, cancellationToken).ConfigureAwait(false))
+        {
+            return BadRequest(new { message = LicenseKeyFormatErrorMessage(User.IsInRole(Roles.SuperAdmin)) });
+        }
+
+        var (result, error) = await _licenseService
+            .ExtendAsync(tenantId, request, ActorUserId, ActorRole, cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+
+        _logger.LogInformation("Tenant license updated for tenant {TenantId} by {ActorUserId}", tenantId, ActorUserId);
+        return Ok(result);
+    }
+
     [HttpPost("trial")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -65,24 +141,74 @@ public sealed class AdminTenantLicensesController : ControllerBase
     }
 
     [HttpPost("extend")]
-    [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(ExtendTenantLicenseResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TenantLicenseOverviewDto>> Extend(
+    public async Task<ActionResult<ExtendTenantLicenseResultDto>> Extend(
         Guid tenantId,
         [FromBody] ExtendTenantLicenseRequest request,
         CancellationToken cancellationToken = default)
     {
-        var (result, error) = await _licenseService.ExtendAsync(tenantId, request, ActorUserId, cancellationToken)
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
+        if (!string.IsNullOrWhiteSpace(request.LicenseKey)
+            && !await IsLicenseKeyFormatValidAsync(request.LicenseKey, cancellationToken).ConfigureAwait(false))
+        {
+            return BadRequest(new { message = LicenseKeyFormatErrorMessage(User.IsInRole(Roles.SuperAdmin)) });
+        }
+
+        if (!User.IsInRole(Roles.SuperAdmin))
+        {
+            if (string.IsNullOrWhiteSpace(request.LicenseKey))
+                return BadRequest(new { message = "licenseKey is required." });
+            if (request.ValidUntilUtc.HasValue)
+                return BadRequest(new { message = "validUntilUtc is determined by the license key and cannot be set manually." });
+
+            var rateError = _extensionRateLimiter.TryAcquireOrError(ActorUserId, tenantId);
+            if (rateError != null)
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = rateError });
+        }
+
+        var (result, error) = await _licenseService
+            .ExtendAsync(tenantId, request, ActorUserId, ActorRole, cancellationToken)
             .ConfigureAwait(false);
         if (error == "Tenant not found.")
             return NotFound(new { message = error });
         if (error != null)
             return BadRequest(new { message = error });
+
+        _logger.LogInformation("Tenant license extended for tenant {TenantId} by {ActorUserId}", tenantId, ActorUserId);
+        return Ok(ExtendTenantLicenseResultDto.FromOverview(result!));
+    }
+
+    [HttpPost("preview")]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(LicensePreviewResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LicensePreviewResult>> Preview(
+        Guid tenantId,
+        [FromBody] PreviewTenantLicenseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var key = request.LicenseKey.Trim();
+        var result = await _unifiedLicenseService
+            .PreviewLicenseAsync(key, tenantId, cancellationToken)
+            .ConfigureAwait(false);
         return Ok(result);
     }
 
     [HttpPost("renew")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(LicenseRenewalResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -108,7 +234,46 @@ public sealed class AdminTenantLicensesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Convert an open trial to a paid license sale (Super Admin or Manager of this tenant).
+    /// Cross-tenant Manager access returns 404.
+    /// </summary>
+    [HttpPost("convert-to-paid")]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(TrialConversionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrialConversionResult>> ConvertToPaid(
+        Guid tenantId,
+        [FromBody] ConvertToPaidRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
+        if (request.LicenseSaleId == Guid.Empty)
+            return BadRequest(new { message = "licenseSaleId is required." });
+
+        var (result, error) = await _trialConversion
+            .ConvertToPaidAsync(
+                tenantId,
+                request.LicenseSaleId,
+                request.AddRemainingTrialDays ?? true,
+                request.Notes,
+                ActorUserId,
+                ActorRole,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
     [HttpPost("reminder")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(TenantLicenseReminderResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -129,6 +294,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
     }
 
     [HttpPost("tier")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -155,6 +321,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
     /// Compares mandant <c>license_valid_until_utc</c> with linked <c>issued_licenses</c> rows (key, name, or <c>[tenant:guid]</c> marker).
     /// </summary>
     [HttpPost("sync")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(TenantLicenseConsistencyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -177,6 +344,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
 
     /// <summary>Issues a floating deployment JWT in <c>issued_licenses</c> aligned to the mandant end date.</summary>
     [HttpPost("sync/issue")]
+    [Authorize(Roles = Roles.SuperAdmin)]
     [ProducesResponseType(typeof(TenantLicenseIssueDeploymentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -208,6 +376,41 @@ public sealed class AdminTenantLicensesController : ControllerBase
         }
     }
 
+    private async Task<ActionResult?> EnsureTenantLicenseAccessAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (tenantId == Guid.Empty)
+            return NotFound(new { message = "Tenant not found." });
+
+        var exists = await _db.Tenants.AsNoTracking()
+            .AnyAsync(t => t.Id == tenantId && t.DeletedAtUtc == null, cancellationToken)
+            .ConfigureAwait(false);
+        if (!exists)
+            return NotFound(new { message = "Tenant not found." });
+
+        if (User.IsInRole(Roles.SuperAdmin))
+            return null;
+
+        Guid effectiveTenantId;
+        try
+        {
+            effectiveTenantId = await _settingsTenantResolver
+                .ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to resolve effective tenant for license API");
+            return NotFound(new { message = "Tenant not found." });
+        }
+
+        if (effectiveTenantId != tenantId)
+            return NotFound(new { message = "Tenant not found." });
+
+        return null;
+    }
+
     private async Task<bool> CanSyncDeploymentLicenseAsync()
     {
         if (User.IsInRole(Roles.SuperAdmin))
@@ -218,4 +421,20 @@ public sealed class AdminTenantLicensesController : ControllerBase
             .ConfigureAwait(false);
         return auth.Succeeded;
     }
+
+    private async Task<bool> IsLicenseKeyFormatValidAsync(string licenseKey, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(licenseKey))
+            return false;
+
+        var validation = await _unifiedLicenseService
+            .ValidateLicenseAsync(licenseKey, cancellationToken)
+            .ConfigureAwait(false);
+        return validation.IsFormatValid;
+    }
+
+    private static string LicenseKeyFormatErrorMessage(bool isSuperAdmin) =>
+        isSuperAdmin
+            ? RegkTenantLicenseKeyFormat.InvalidFormatMessage
+            : LicenseKeyGenerator.InvalidFormatMessage;
 }

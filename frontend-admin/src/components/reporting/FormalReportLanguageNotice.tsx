@@ -5,6 +5,7 @@
  * Turkish, that prose is not Turkish. General chrome still follows `useI18n` / `TextLocale`.
  */
 import { Alert, Typography } from 'antd';
+
 import { useI18n } from '@/i18n';
 
 export function FormalReportLanguageNotice() {

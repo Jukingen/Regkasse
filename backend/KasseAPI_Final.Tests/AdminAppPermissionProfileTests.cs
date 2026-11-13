@@ -6,11 +6,25 @@ namespace KasseAPI_Final.Tests;
 public class AdminAppPermissionProfileTests
 {
     [Fact]
-    public void Filter_PosContext_ReturnsUnchanged()
+    public void Filter_PosContext_ReturnsFullCashierPosPermissions()
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
         var result = AdminAppPermissionProfile.Filter(ClientAppPolicy.Pos, new[] { Roles.Cashier }, effective);
-        Assert.Equal(effective.Count, result.Count);
+
+        foreach (var permission in AdminAppPermissionProfile.CashierPosPermissions)
+            Assert.Contains(permission, result);
+    }
+
+    [Fact]
+    public void Filter_PosContext_Cashier_MergesMatrixWhenEffectiveSubset()
+    {
+        var subset = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ProductView };
+        var result = AdminAppPermissionProfile.Filter(ClientAppPolicy.Pos, new[] { Roles.Cashier }, subset);
+
+        Assert.Contains(AppPermissions.ProductView, result);
+        Assert.Contains(AppPermissions.CartManage, result);
+        Assert.Contains(AppPermissions.PaymentTake, result);
+        Assert.Contains(AppPermissions.LicenseView, result);
     }
 
     [Fact]
@@ -34,6 +48,24 @@ public class AdminAppPermissionProfileTests
     }
 
     [Fact]
+    public void CashierPosPermissions_IncludesLicenseView_ForPosMandantGate()
+    {
+        Assert.Contains(AppPermissions.LicenseView, AdminAppPermissionProfile.CashierPosPermissions);
+    }
+
+    [Fact]
+    public void Filter_Admin_Cashier_IncludesLicenseView()
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Cashier },
+            effective);
+
+        Assert.Contains(AppPermissions.LicenseView, result);
+    }
+
+    [Fact]
     public void Filter_Admin_Manager_StripsPosOperationalWriteOnly()
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
@@ -42,11 +74,19 @@ public class AdminAppPermissionProfileTests
             new[] { Roles.Manager },
             effective);
 
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterView, result));
         Assert.Contains(AppPermissions.CashRegisterManage, result);
+        Assert.Contains(AppPermissions.CashRegisterDecommission, result);
         Assert.Contains(AppPermissions.ReportExport, result);
         Assert.Contains(AppPermissions.UserView, result);
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserResetPassword, result));
         Assert.Contains(AppPermissions.TableView, result);
         Assert.Contains(AppPermissions.SaleView, result);
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, result));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersView, result));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DailyClosingView, result));
+        Assert.Contains(AppPermissions.DailyClosingView, result);
+        Assert.Contains(AppPermissions.DailyClosingExecute, result);
         Assert.DoesNotContain(AppPermissions.PaymentTake, result);
         Assert.DoesNotContain(AppPermissions.CartManage, result);
         Assert.DoesNotContain(AppPermissions.TseSign, result);
@@ -60,6 +100,42 @@ public class AdminAppPermissionProfileTests
     public void Filter_Admin_Manager_PreservesOversightViewPermissions(string permission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.True(PermissionImplication.IsSatisfied(permission, effective));
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.True(PermissionImplication.IsSatisfied(permission, result));
+    }
+
+    public static IEnumerable<object[]> ManagerOversightViewPermissionCases() =>
+        AdminAppPermissionProfile.ManagerOversightViewPermissions.Select(p => new object[] { p });
+
+    [Theory]
+    [MemberData(nameof(ManagerCashRegisterAdminPermissionCases))]
+    public void Filter_Admin_Manager_PreservesCashRegisterAdminPermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.True(PermissionImplication.IsSatisfied(permission, effective));
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.True(PermissionImplication.IsSatisfied(permission, result));
+    }
+
+    public static IEnumerable<object[]> ManagerCashRegisterAdminPermissionCases() =>
+        AdminAppPermissionProfile.ManagerCashRegisterAdminPermissions.Select(p => new object[] { p });
+
+    [Theory]
+    [MemberData(nameof(ManagerRksvSonderbelegCreatePermissionCases))]
+    public void Filter_Admin_Manager_PreservesRksvSonderbelegCreatePermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
         Assert.Contains(permission, effective);
 
         var result = AdminAppPermissionProfile.Filter(
@@ -70,15 +146,35 @@ public class AdminAppPermissionProfileTests
         Assert.Contains(permission, result);
     }
 
-    public static IEnumerable<object[]> ManagerOversightViewPermissionCases() =>
-        AdminAppPermissionProfile.ManagerOversightViewPermissions.Select(p => new object[] { p });
+    public static IEnumerable<object[]> ManagerRksvSonderbelegCreatePermissionCases() =>
+        AdminAppPermissionProfile.ManagerRksvSonderbelegCreatePermissions.Select(p => new object[] { p });
+
+    [Theory]
+    [MemberData(nameof(ManagerFiskalyOperationsPermissionCases))]
+    public void Filter_Admin_Manager_PreservesFiskalyOperationsPermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.Contains(permission, effective);
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.Contains(permission, result);
+        Assert.DoesNotContain(AppPermissions.FiskalyOperationsConfig, result);
+    }
+
+    public static IEnumerable<object[]> ManagerFiskalyOperationsPermissionCases() =>
+        AdminAppPermissionProfile.ManagerFiskalyOperationsPermissions.Select(p => new object[] { p });
 
     [Theory]
     [InlineData(AppPermissions.PaymentTake)]
     [InlineData(AppPermissions.SaleCreate)]
     [InlineData(AppPermissions.OrderUpdate)]
     [InlineData(AppPermissions.TseSign)]
-    [InlineData(AppPermissions.RksvStartbelegCreate)]
+    [InlineData(AppPermissions.ShiftOpen)]
+    [InlineData(AppPermissions.ShiftClose)]
     public void Filter_Admin_Manager_StripsOperationalWritePermissions(string writePermission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });

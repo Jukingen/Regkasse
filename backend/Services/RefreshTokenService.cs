@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
@@ -79,6 +80,8 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
     public async Task<RefreshResult> RotateAsync(
         string refreshToken,
         Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
+        Guid? sessionTenantIdOverride = null,
+        Func<string, Guid, CancellationToken, Task<bool>>? canAssignTenant = null,
         CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(refreshToken);
@@ -106,6 +109,17 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
                 token.UserId,
                 token.SessionId);
             return new RefreshResult(false, false, null, "refresh_token_already_used");
+        }
+
+        if (sessionTenantIdOverride is Guid overrideTenantId && overrideTenantId != Guid.Empty)
+        {
+            if (canAssignTenant == null
+                || !await canAssignTenant(token.UserId, overrideTenantId, cancellationToken).ConfigureAwait(false))
+            {
+                return new RefreshResult(false, false, null, "tenant_switch_forbidden");
+            }
+
+            session.TenantId = overrideTenantId;
         }
 
         var consumedAt = DateTime.UtcNow;
@@ -177,6 +191,33 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
             .Where(x => x.UserId == userId && x.RevokedAtUtc == null)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
+
+        foreach (var sessionId in sessionIds)
+            await LogoutSessionAsync(sessionId, reason, cancellationToken);
+    }
+
+    public async Task RevokeForUserAndClientAppAsync(
+        string userId,
+        string? clientApp,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || !ClientAppPolicy.IsKnownApp(clientApp))
+            return;
+
+        var app = clientApp!.Trim().ToLowerInvariant();
+        List<Guid> sessionIds;
+        try
+        {
+            sessionIds = await _db.AuthSessions
+                .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ClientApp == app)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex) when (IsMissingAuthSchemaException(ex))
+        {
+            throw new InvalidOperationException(MissingAuthSchemaMessage, ex);
+        }
 
         foreach (var sessionId in sessionIds)
             await LogoutSessionAsync(sessionId, reason, cancellationToken);

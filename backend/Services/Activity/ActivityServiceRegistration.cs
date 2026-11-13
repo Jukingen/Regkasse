@@ -1,7 +1,4 @@
 using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Services;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Activity;
 

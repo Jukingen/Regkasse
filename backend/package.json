@@ -1,0 +1,13 @@
+{
+  "name": "@regkasse/backend",
+  "private": true,
+  "license": "UNLICENSED",
+  "version": "1.0.0",
+  "description": "ASP.NET Core API workspace wrapper (dotnet scripts; not an npm library)",
+  "scripts": {
+    "dev": "dotnet run --project KasseAPI_Final.csproj --launch-profile http",
+    "build": "dotnet build KasseAPI_Final.csproj",
+    "test": "dotnet test KasseAPI_Final.sln",
+    "lint": "dotnet build KasseAPI_Final.csproj --verbosity quiet"
+  }
+}

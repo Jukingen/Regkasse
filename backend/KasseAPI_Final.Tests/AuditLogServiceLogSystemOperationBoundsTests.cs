@@ -21,7 +21,7 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AuditBounds_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -33,6 +33,10 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
         var httpContextAccessor = new Mock<IHttpContextAccessor>();
         httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
         var actorResolver = new Mock<IActorDisplayNameResolver>();
+        actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        actorResolver.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();
         retentionOptions.Setup(x => x.Value).Returns(new AuditRetentionOptions());
 
@@ -56,7 +60,7 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
             responseData: new { echo = huge },
             correlationIdOverride: null);
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.NotNull(row.RequestData);
         Assert.NotNull(row.ResponseData);
         Assert.True(row.RequestData!.Length <= AuditLogPersistenceSanitizer.JsonPayloadMaxLength);

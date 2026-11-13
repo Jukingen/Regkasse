@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Risk Dashboard",
+  "pageSubtitle": "Kiracı aksiyonları için anomali ve risk skorları (Süper Admin).",
+  "statCritical": "Kritik",
+  "statHigh": "Yüksek",
+  "statMedium": "Orta",
+  "statLow": "Düşük",
+  "colTenant": "Kiracı",
+  "colUser": "Kullanıcı",
+  "colAction": "Aksiyon",
+  "colRiskLevel": "Risk seviyesi",
+  "colScore": "Skor",
+  "colReason": "Neden",
+  "colCreated": "Tespit",
+  "colActions": "İşlemler",
+  "resolve": "Çöz",
+  "resolveTitle": "Riski çöz",
+  "resolvePrompt": "Lütfen kısa bir çözüm notu girin.",
+  "resolvePlaceholder": "örn. Yanlış pozitif / incelendi",
+  "resolveSuccess": "Risk çözüldü olarak işaretlendi.",
+  "blockUser": "Kullanıcıyı deaktif et",
+  "blockUserTitle": "Kullanıcı deaktif edilsin mi?",
+  "blockUserContent": "Kullanıcı deaktif edilir; tekrar giriş için yeniden aktifleştirilmesi gerekir.",
+  "blockUserReason": "Risk dashboard üzerinden deaktif edildi",
+  "blockUserSuccess": "Kullanıcı deaktif edildi.",
+  "empty": "Açık risk skoru yok.",
+  "levels": {
+    "Critical": "Kritik",
+    "High": "Yüksek",
+    "Medium": "Orta",
+    "Low": "Düşük"
+  }
+}

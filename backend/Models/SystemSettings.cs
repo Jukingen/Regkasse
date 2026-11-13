@@ -95,7 +95,7 @@ namespace KasseAPI_Final.Models
         /// <summary>Warn users this many minutes before idle logout.</summary>
         [Range(1, 60)]
         [Column("session_warning_before_timeout_minutes")]
-        public int SessionWarningBeforeTimeoutMinutes { get; set; } = 1;
+        public int SessionWarningBeforeTimeoutMinutes { get; set; } = 5;
 
         /// <summary>When true, POS keeps cart state after idle logout (client-side).</summary>
         [Column("keep_cart_after_timeout")]
@@ -104,5 +104,13 @@ namespace KasseAPI_Final.Models
         /// <summary>When false, idle auto-logout and warning modal are disabled for the tenant.</summary>
         [Column("session_idle_timeout_enabled")]
         public bool SessionIdleTimeoutEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Comma-separated online checkout methods (card, paypal, bank, cash, online).
+        /// Stripe/platform keys remain in <c>PaymentGateway</c> config — not stored here.
+        /// </summary>
+        [MaxLength(100)]
+        [Column("online_checkout_payment_methods")]
+        public string? OnlineCheckoutPaymentMethods { get; set; } = "card,cash,online";
     }
 }

@@ -2,9 +2,11 @@
  * Modifier Groups API. Product modifier-group assignment uses api/admin/products;
  * modifier-groups list and CRUD use /api/modifier-groups (shared endpoint).
  */
-
+import {
+  getAdminProductModifierGroups,
+  setAdminProductModifierGroups as setAdminProductModifierGroupsApi,
+} from '@/api/admin/products';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { getAdminProductModifierGroups, setAdminProductModifierGroups as setAdminProductModifierGroupsApi } from '@/api/admin/products';
 
 export interface ModifierDto {
   id: string;
@@ -53,8 +55,11 @@ export async function getModifierGroups(): Promise<ModifierGroupDto[]> {
 }
 
 /** Assigned modifier groups for a product (admin API). Phase D PR-D: returns products-only; used for assigned group IDs. Full details (incl. modifiers) from getModifierGroups(). */
-export async function getProductModifierGroups(productId: string): Promise<ModifierGroupDto[]> {
-  const data = await getAdminProductModifierGroups(productId);
+export async function getProductModifierGroups(
+  productId: string,
+  signal?: AbortSignal
+): Promise<ModifierGroupDto[]> {
+  const data = await getAdminProductModifierGroups(productId, undefined, signal);
   return Array.isArray(data) ? data : [];
 }
 
@@ -82,7 +87,13 @@ export async function createModifierGroup(body: {
 /** Update modifier group metadata (name, sortOrder, min/maxSelections, isRequired). PUT /api/modifier-groups/{id} */
 export async function updateModifierGroup(
   groupId: string,
-  body: { name: string; minSelections?: number; maxSelections?: number | null; isRequired?: boolean; sortOrder?: number }
+  body: {
+    name: string;
+    minSelections?: number;
+    maxSelections?: number | null;
+    isRequired?: boolean;
+    sortOrder?: number;
+  }
 ): Promise<void> {
   await AXIOS_INSTANCE.put(`/api/modifier-groups/${groupId}`, body);
 }
@@ -90,7 +101,16 @@ export async function updateModifierGroup(
 /** Add product to group: existing product (productId) or new add-on (createNewAddOnProduct). */
 export type AddProductToGroupBody =
   | { productId: string; createNewAddOnProduct?: never }
-  | { productId?: never; createNewAddOnProduct: { name: string; price: number; taxType: number; categoryId?: string; sortOrder: number } };
+  | {
+      productId?: never;
+      createNewAddOnProduct: {
+        name: string;
+        price: number;
+        taxType: number;
+        categoryId?: string;
+        sortOrder: number;
+      };
+    };
 
 export async function addProductToGroup(
   groupId: string,

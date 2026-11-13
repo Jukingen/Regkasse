@@ -6,34 +6,34 @@ This note defines **who owns which strings** so German operator wording does not
 
 ## Layers (do not merge)
 
-| Layer | Location | Role |
-|-------|----------|------|
+| Layer                           | Location                                                   | Role                                                                                                                                                                          |
+| ------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Canonical operator (German)** | `src/shared/operatorTruthCopy.ts` (`OPERATOR_*` constants) | Long-form RKSV / investigation / badge / truth copy. Many `/rksv/*` pages render these literals **directly** — fixed German until a route is explicitly migrated to `t(...)`. |
-| **Runtime UI (de / en / tr)** | `src/i18n/locales/{de,en,tr}/*.json` | Source for translatable admin UI (`useI18n` / `t('namespace.key')`). |
-| **Raw backend** | `BackendRawTextBlock`, `extractRawApiErrorMessage`, etc. | Untranslated server text; keep separate from translated summaries. |
-| **Technical logs** | `technicalConsole` | English only. |
+| **Runtime UI (de / en / tr)**   | `src/i18n/locales/{de,en,tr}/*.json`                       | Source for translatable admin UI (`useI18n` / `t('namespace.key')`).                                                                                                          |
+| **Raw backend**                 | `BackendRawTextBlock`, `extractRawApiErrorMessage`, etc.   | Untranslated server text; keep separate from translated summaries.                                                                                                            |
+| **Technical logs**              | `technicalConsole`                                         | English only.                                                                                                                                                                 |
 
 ## Shared “list / toolbar / incident empty” strings
 
 `OPERATOR_SHARED_COPY` in `operatorTruthCopy.ts` is a **reference mirror** of German entries in `de/common.json` (same spelling, including ASCII transliterations like `verfuegbar`, `fuer`). It is **not** imported by feature code today; use **`t('common.*')`** in components.
 
-| Canonical field (`OPERATOR_SHARED_COPY`) | Runtime key (`de` catalog) |
-|------------------------------------------|----------------------------|
-| `unknownErrorDetail` | `common.messages.noTechnicalDetail` |
-| `loadFailedList` | `common.loadErrors.list` |
-| `loadFailedBatch` | `common.loadErrors.batch` |
-| `loadFailedIncident` | `common.loadErrors.incidentAggregate` |
-| `notFoundIncidentTitle` | `common.incident.aggregateNotFoundTitle` |
-| `notFoundIncidentDescription` | `common.incident.aggregateNotFoundDescription` |
-| `loadingIncident` | `common.loading.incidentAggregate` |
-| `loadingBatchDetail` | `common.loading.batchDetail` |
-| `loadingInvoiceDetail` | `common.loading.invoiceDetail` |
-| `emptyBatchForCorrelation` | `common.empty.batchDetailsForCorrelation` |
-| `refetchHintToolbar` | `common.toolbar.refetchHint` |
-| `investigateFurtherLabel` | `common.investigation.furtherLabel` |
-| `retryLoadShort` | `common.buttons.reload` |
-| `toolbarRefresh` | `common.buttons.refresh` |
-| `retryAfterError` | `common.buttons.retry` |
+| Canonical field (`OPERATOR_SHARED_COPY`) | Runtime key (`de` catalog)                     |
+| ---------------------------------------- | ---------------------------------------------- |
+| `unknownErrorDetail`                     | `common.messages.noTechnicalDetail`            |
+| `loadFailedList`                         | `common.loadErrors.list`                       |
+| `loadFailedBatch`                        | `common.loadErrors.batch`                      |
+| `loadFailedIncident`                     | `common.loadErrors.incidentAggregate`          |
+| `notFoundIncidentTitle`                  | `common.incident.aggregateNotFoundTitle`       |
+| `notFoundIncidentDescription`            | `common.incident.aggregateNotFoundDescription` |
+| `loadingIncident`                        | `common.loading.incidentAggregate`             |
+| `loadingBatchDetail`                     | `common.loading.batchDetail`                   |
+| `loadingInvoiceDetail`                   | `common.loading.invoiceDetail`                 |
+| `emptyBatchForCorrelation`               | `common.empty.batchDetailsForCorrelation`      |
+| `refetchHintToolbar`                     | `common.toolbar.refetchHint`                   |
+| `investigateFurtherLabel`                | `common.investigation.furtherLabel`            |
+| `retryLoadShort`                         | `common.buttons.reload`                        |
+| `toolbarRefresh`                         | `common.buttons.refresh`                       |
+| `retryAfterError`                        | `common.buttons.retry`                         |
 
 When you change German wording for these concepts, update **both** the table row above (if you keep `OPERATOR_SHARED_COPY` in sync) and `de/common.json`.
 

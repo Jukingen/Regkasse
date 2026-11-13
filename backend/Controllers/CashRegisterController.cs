@@ -1,22 +1,21 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Authorization;
-using Microsoft.Extensions.Logging;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Time;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services.AdminCashRegisters;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Localization;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -41,6 +40,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ICashRegisterManagementService _cashRegisterManagement;
         private readonly ICashRegisterListEnrichmentService _enrichment;
         private readonly IApiMessageLocalizer _messages;
+        private readonly ICashRegisterPermissionService _permissions;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
@@ -51,7 +51,8 @@ namespace KasseAPI_Final.Controllers
             ICurrentTenantAccessor tenantAccessor,
             ICashRegisterManagementService cashRegisterManagement,
             ICashRegisterListEnrichmentService enrichment,
-            IApiMessageLocalizer messages)
+            IApiMessageLocalizer messages,
+            ICashRegisterPermissionService permissions)
         {
             _logger = logger;
             _context = context;
@@ -62,7 +63,29 @@ namespace KasseAPI_Final.Controllers
             _cashRegisterManagement = cashRegisterManagement;
             _enrichment = enrichment;
             _messages = messages;
+            _permissions = permissions;
         }
+
+        /// <summary>
+        /// Maps a denied <see cref="ICashRegisterPermissionService"/> decision to its HTTP response, or null when allowed.
+        /// Cross-tenant registers surface as 404 so mandants cannot probe each other's inventory.
+        /// </summary>
+        private ActionResult? DenialResult(CashRegisterPermissionResult permission) => permission.Decision switch
+        {
+            CashRegisterPermissionDecision.Allowed => null,
+            CashRegisterPermissionDecision.NotFound =>
+                NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound), code = permission.Code }),
+            _ => StatusCode(
+                StatusCodes.Status403Forbidden,
+                new
+                {
+                    message = _messages.Get(
+                        permission.Code == CashRegisterPermissionCodes.RegisterHeldByOtherUser
+                            ? ApiMessageKeys.RegisterHeldByOtherUser
+                            : ApiMessageKeys.RegisterOperationNotPermitted),
+                    code = permission.Code,
+                }),
+        };
 
         /// <summary>Tenant register inventory with TSE/offline/sync telemetry (admin FA).</summary>
         [HasPermission(AppPermissions.CashRegisterView)]
@@ -104,10 +127,31 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
+                // Project to DTO — serializing CashRegister + CurrentUser causes circular JSON and truncated responses.
                 var registers = await _context.CashRegisters
-                    .Include(cr => cr.CurrentUser)
                     .AsNoTracking()
                     .Where(cr => cr.TenantId == tenantId)
+                    .OrderBy(cr => cr.RegisterNumber)
+                    .Select(cr => new CashRegisterDto
+                    {
+                        Id = cr.Id,
+                        TenantId = cr.TenantId,
+                        RegisterNumber = cr.RegisterNumber,
+                        Location = cr.Location,
+                        Status = cr.Status,
+                        StartingBalance = cr.StartingBalance,
+                        CurrentBalance = cr.CurrentBalance,
+                        LastBalanceUpdate = cr.LastBalanceUpdate,
+                        CurrentUserId = cr.CurrentUserId,
+                        IsActive = cr.IsActive,
+                        IsDefaultForTenant = cr.IsDefaultForTenant,
+                        DecommissionedAtUtc = cr.DecommissionedAtUtc,
+                        DecommissionReason = cr.DecommissionReason,
+                        CreatedAt = cr.CreatedAt,
+                        CreatedBy = cr.CreatedBy,
+                        UpdatedAt = cr.UpdatedAt,
+                        UpdatedBy = cr.UpdatedBy,
+                    })
                     .ToListAsync();
 
                 return Ok(new { message = _messages.Get(ApiMessageKeys.RegistersFetchSuccess), registers });
@@ -242,11 +286,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // JwtBearer runs with MapInboundClaims=false, so NameIdentifier is absent on
+                // compact tokens; GetActorUserId also reads the `userId` / `sub` claims.
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
                 }
+
+                var permission = await _permissions.CanOpenAsync(id, User, cancellationToken).ConfigureAwait(false);
+                if (DenialResult(permission) is { } denied)
+                    return denied;
 
                 var result = await _cashRegisterShift.TryOpenCashRegisterAsync(
                     id,
@@ -307,6 +357,10 @@ namespace KasseAPI_Final.Controllers
                     return Forbid();
                 }
 
+                var permission = await _permissions.CanCloseAsync(id, User, cancellationToken).ConfigureAwait(false);
+                if (DenialResult(permission) is { } denied)
+                    return denied;
+
                 var result = await _cashRegisterShift.TryCloseCashRegisterAsync(
                     id,
                     userId,
@@ -322,7 +376,13 @@ namespace KasseAPI_Final.Controllers
                     CashRegisterCloseKind.FailedAlreadyClosed =>
                         BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterAlreadyClosed) }),
                     CashRegisterCloseKind.FailedForbidden =>
-                        Forbid(),
+                        StatusCode(
+                            StatusCodes.Status403Forbidden,
+                            new
+                            {
+                                message = _messages.Get(ApiMessageKeys.RegisterHeldByOtherUser),
+                                code = CashRegisterPermissionCodes.RegisterHeldByOtherUser,
+                            }),
                     _ => StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCloseError) })
                 };
             }
@@ -339,6 +399,12 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var permission = await _permissions
+                    .CanViewAsync(id, User, HttpContext?.RequestAborted ?? default)
+                    .ConfigureAwait(false);
+                if (DenialResult(permission) is { } denied)
+                    return denied;
+
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
                 var registerOk = await _context.CashRegisters.AsNoTracking()
                     .AnyAsync(r => r.Id == id && r.TenantId == tenantId);

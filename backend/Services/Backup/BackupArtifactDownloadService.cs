@@ -2,7 +2,6 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -66,6 +65,8 @@ public sealed class BackupArtifactDownloadService : IBackupArtifactDownloadServi
         var raw = Path.GetFileName(artifact.StorageDescriptor.Trim());
         if (string.IsNullOrEmpty(raw))
             raw = $"{artifact.ArtifactType}_{artifact.Id:N}";
+
+        raw = BackupArtifactFileNameBuilder.InsertSizeHint(raw, artifact.ByteSize);
 
         foreach (var c in Path.GetInvalidFileNameChars())
             raw = raw.Replace(c, '_');

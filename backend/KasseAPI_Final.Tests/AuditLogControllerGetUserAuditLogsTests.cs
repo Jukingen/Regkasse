@@ -1,10 +1,13 @@
 using System.Security.Claims;
 using KasseAPI_Final.Controllers;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -24,7 +27,19 @@ public class AuditLogControllerGetUserAuditLogsTests
         var logger = new Mock<ILogger<AuditLogController>>().Object;
         var resolver = actorDisplayNameResolver ?? CreateDefaultResolver();
         var export = new Mock<IAuditExportService>();
-        var controller = new AuditLogController(auditLogService, export.Object, resolver, logger);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"audit_log_ctrl_{Guid.NewGuid():N}")
+            .Options;
+        var db = new AppDbContext(options, tenantAccessor);
+        var controller = new AuditLogController(
+            auditLogService,
+            export.Object,
+            resolver,
+            tenantAccessor,
+            new FileNamingService(tenantAccessor),
+            db,
+            logger);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId ?? ""),
@@ -41,6 +56,8 @@ public class AuditLogControllerGetUserAuditLogsTests
     {
         var mock = new Mock<IActorDisplayNameResolver>();
         mock.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        mock.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
             .ReturnsAsync(new Dictionary<string, string>());
         return mock.Object;
     }

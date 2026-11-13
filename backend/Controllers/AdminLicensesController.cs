@@ -1,7 +1,10 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -12,11 +15,21 @@ namespace KasseAPI_Final.Controllers;
 [Produces("application/json")]
 public sealed class AdminLicensesController : ControllerBase
 {
+    private readonly ILicenseExportService _licenseExport;
     private readonly ILicenseExportReportService _exportReportService;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly AppDbContext _db;
 
-    public AdminLicensesController(ILicenseExportReportService exportReportService)
+    public AdminLicensesController(
+        ILicenseExportService licenseExport,
+        ILicenseExportReportService exportReportService,
+        ISettingsTenantResolver settingsTenantResolver,
+        AppDbContext db)
     {
+        _licenseExport = licenseExport;
         _exportReportService = exportReportService;
+        _settingsTenantResolver = settingsTenantResolver;
+        _db = db;
     }
 
     private static LicenseExportFilters ParseFilters(
@@ -30,7 +43,30 @@ public sealed class AdminLicensesController : ControllerBase
             includeActivationHistory ?? false,
             maskLicenseKeys ?? true);
 
-    /// <summary>CSV export: issued licenses, matching activations, optional activation attempts (JWT never included).</summary>
+    private async Task<string?> ResolveTenantSlugAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (tenantId == Guid.Empty)
+                return null;
+            return await _db.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// CSV export: issued licenses, matching activations, optional activation attempts.
+    /// Filename: <c>licenses_{tenantSlug}_{stamp}.csv</c>.
+    /// </summary>
     [HttpGet("export/csv")]
     [HasPermission(AppPermissions.SettingsManage)]
     public async Task<IActionResult> ExportCsv(
@@ -41,12 +77,17 @@ public sealed class AdminLicensesController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var filters = ParseFilters(fromUtc, toUtc, includeActivationHistory, maskLicenseKeys);
-        var bytes = await _exportReportService.BuildCsvAsync(filters, cancellationToken).ConfigureAwait(false);
-        var fileName = $"licenses_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}_UTC.csv";
-        return File(bytes, "text/csv; charset=utf-8", fileName);
+        var tenantSlug = await ResolveTenantSlugAsync(cancellationToken).ConfigureAwait(false);
+        var result = await _licenseExport
+            .ExportMultipleAsync(tenantSlug, "csv", filters, cancellationToken)
+            .ConfigureAwait(false);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
-    /// <summary>JSON backup export (same filter semantics as CSV).</summary>
+    /// <summary>
+    /// JSON backup export (same filter semantics as CSV).
+    /// Filename: <c>licenses_{tenantSlug}_{stamp}.json</c>.
+    /// </summary>
     [HttpGet("export/json")]
     [HasPermission(AppPermissions.SettingsManage)]
     public async Task<IActionResult> ExportJson(
@@ -57,9 +98,11 @@ public sealed class AdminLicensesController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var filters = ParseFilters(fromUtc, toUtc, includeActivationHistory, maskLicenseKeys);
-        var (bytes, contentType) = await _exportReportService.BuildJsonAsync(filters, cancellationToken).ConfigureAwait(false);
-        var fileName = $"licenses_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}_UTC.json";
-        return File(bytes, contentType, fileName);
+        var tenantSlug = await ResolveTenantSlugAsync(cancellationToken).ConfigureAwait(false);
+        var result = await _licenseExport
+            .ExportMultipleAsync(tenantSlug, "json", filters, cancellationToken)
+            .ConfigureAwait(false);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     /// <summary>Summary counts for dashboard / scheduled mail (issued date filter optional).</summary>

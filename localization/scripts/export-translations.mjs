@@ -12,6 +12,7 @@ import {
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   tupleKey,
   writeReport,
 } from './_shared.mjs';
@@ -23,7 +24,7 @@ const dryRun = args['dry-run'] === 'true';
 const selectedApp = args.app;
 const appIds =
   !selectedApp || selectedApp === 'all'
-    ? Object.keys(manifest.apps).sort((a, b) => a.localeCompare(b))
+    ? listActiveAppIds(manifest)
     : [selectedApp];
 
 const rows = [];
@@ -34,6 +35,10 @@ const missingByLocale = Object.fromEntries(locales.map((locale) => [locale, 0]))
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const validators = createValidators(manifest, app);
 
   let existingIndex = new Map();

@@ -1,5 +1,5 @@
-// Türkçe Açıklama: Sepet alt bilgi (footer) component'i. Toplam, KDV ve servis bedelini gerçek zamanlı gösterir.
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 
 interface CartFooterProps {
@@ -10,22 +10,24 @@ interface CartFooterProps {
 }
 
 const CartFooter: React.FC<CartFooterProps> = ({ subtotal, vat, serviceFee, grandTotal }) => {
+  const { t } = useTranslation(['cart']);
+
   return (
     <View style={styles.footerBox}>
       <View style={styles.row}>
-        <Text style={styles.label}>Ara Toplam:</Text>
+        <Text style={styles.label}>{t('cart:footer.subtotal')}</Text>
         <Text style={styles.value}>{subtotal.toFixed(2)} €</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>KDV:</Text>
+        <Text style={styles.label}>{t('cart:footer.vat')}</Text>
         <Text style={styles.value}>{vat.toFixed(2)} €</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Servis Bedeli:</Text>
+        <Text style={styles.label}>{t('cart:footer.serviceFee')}</Text>
         <Text style={styles.value}>{serviceFee.toFixed(2)} €</Text>
       </View>
       <View style={styles.rowTotal}>
-        <Text style={styles.totalLabel}>Genel Toplam:</Text>
+        <Text style={styles.totalLabel}>{t('cart:footer.grandTotal')}</Text>
         <Text style={styles.totalValue}>{grandTotal.toFixed(2)} €</Text>
       </View>
     </View>
@@ -76,4 +78,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CartFooter; 
+export default CartFooter;

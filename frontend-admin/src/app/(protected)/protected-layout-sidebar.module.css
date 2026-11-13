@@ -1,58 +1,300 @@
-/* Sidebar menu: ellipsis for long German labels; leaf link structure */
+/* Sidebar menu: ellipsis for long German labels; leaf link + subtitle structure */
 .siderMenu :global(.ant-menu-item .ant-menu-title-content),
 .siderMenu :global(.ant-menu-submenu-title .ant-menu-title-content) {
-    overflow: hidden;
+  overflow: hidden;
+}
+
+/* Allow two-line labels (title + subtitle) without clipping. */
+.siderMenu :global(.ant-menu-item),
+.siderMenu :global(.ant-menu-submenu-title) {
+  height: auto !important;
+  line-height: 1.3 !important;
+  padding-block: 8px !important;
 }
 
 .siderMenu :global(.admin-sidebar-leaf-link) {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    color: inherit;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
 }
 
 .siderMenu :global(.admin-sidebar-leaf-link__text) {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.siderMenu :global(.admin-sidebar-item-label) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.siderMenu :global(.admin-sidebar-item-title) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.siderMenu :global(.admin-sidebar-item-subtitle) {
+  display: block;
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 400;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Collapsed Menu applies `.ant-menu-inline-collapsed` on the same root as `.siderMenu`
+ * (not a descendant). Subtitles must hide so only icons remain.
+ */
+.siderMenu:global(.ant-menu-inline-collapsed) :global(.admin-sidebar-item-subtitle) {
+  display: none;
+}
+
+/* Narrow drawers / mobile still show subtitles when the menu is expanded. */
+
+.licenseLockdownFooter {
+  margin-top: 12px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  border-top: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.quickAccess {
+  padding: 0 12px 10px;
+  flex-shrink: 0;
+}
+
+.recentList {
+  margin-top: 8px;
+}
+
+.recentTitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  margin-bottom: 4px;
+}
+
+.recentList ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recentList li {
+  margin: 0;
+}
+
+.recentLink {
+  display: block;
+  padding: 4px 6px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentLink:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.favorites {
+  margin-top: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.favoritesTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  margin-bottom: 4px;
+}
+
+.favoritesEmpty {
+  margin: 0;
+  padding: 4px 6px 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.favorites ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.favoriteItem {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.favoriteDragHandle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25));
+}
+
+.favoriteLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 4px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.favoriteLink:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.favoriteItemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.favoriteItemLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favoriteUnpin {
+  flex-shrink: 0;
+}
+
+.favoriteRemove {
+  flex-shrink: 0;
+  opacity: 0;
+  font-size: 12px;
+  padding-inline: 6px;
+}
+
+.favoriteItem:hover .favoriteRemove,
+.favoriteItem:focus-within .favoriteRemove {
+  opacity: 1;
+}
+
+.favoriteLabelRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.favoriteLabelMain {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.favoriteStar {
+  flex-shrink: 0;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.favoriteStarPinned {
+  opacity: 1;
+}
+
+.siderMenu :global(.ant-menu-item:hover) .favoriteStar,
+.siderMenu :global(.ant-menu-submenu-title:hover) .favoriteStar,
+.siderMenu :global(.ant-menu-item-active) .favoriteStar,
+.siderMenu :global(.ant-menu-submenu-title:active) .favoriteStar {
+  opacity: 1;
+}
+
+.filterEmpty {
+  padding: 8px 16px 16px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
 }
 
 .siderRoot :global(.ant-layout-sider-children) {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    /* Reserve a sliver so the resize handle does not overlap the last few pixels of menu labels. */
-    padding-right: 2px;
-    box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* Reserve a sliver so the resize handle does not overlap the last few pixels of menu labels. */
+  padding-right: 2px;
+  box-sizing: border-box;
 }
 
 .siderRoot {
-    position: relative;
+  position: relative;
 }
 
 /* Resize handle: desktop only (component is not mounted on mobile) */
 .siderRoot :global(.admin-desktop-sider-resize-handle) {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 50;
-    touch-action: none;
-    background: transparent;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 50;
+  touch-action: none;
+  background: transparent;
 }
 
 .siderRoot :global(.admin-desktop-sider-resize-handle:hover),
 .siderRoot :global(.admin-desktop-sider-resize-handle:focus-visible) {
-    background: rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .siderRoot :global(.admin-desktop-sider-resize-handle:active) {
-    background: rgba(24, 144, 255, 0.15);
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.siderMenu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .siderMenu :global(.ant-menu-item-divider) {
-    margin: 10px 12px;
+  margin: 10px 12px;
 }

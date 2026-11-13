@@ -6,6 +6,6 @@ namespace KasseAPI_Final.Tse;
 public record SignatureDiagnosticStep(
     int StepId,
     string Name,
-    string Status,  // "PASS" | "FAIL"
+    string Status,  // "PASS" | "FAIL" | "WARN" | "SIMULATED"
     string? Evidence = null
 );

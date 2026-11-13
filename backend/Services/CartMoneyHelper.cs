@@ -1,6 +1,4 @@
 using KasseAPI_Final.Models;
-using Microsoft.Extensions.Logging;
-using System.Runtime.CompilerServices;
 
 namespace KasseAPI_Final.Services
 {
@@ -26,9 +24,12 @@ namespace KasseAPI_Final.Services
         public static int VatPercentToTaxType(decimal vatRatePercent)
         {
             var pct = Math.Round(vatRatePercent, 2);
-            if (pct <= 0) return TaxTypes.ZeroRate;
-            if (pct <= 10) return TaxTypes.Reduced;
-            if (pct <= 13) return TaxTypes.Special;
+            if (pct <= 0)
+                return TaxTypes.ZeroRate;
+            if (pct <= 10)
+                return TaxTypes.Reduced;
+            if (pct <= 13)
+                return TaxTypes.Special;
             return TaxTypes.Standard;
         }
 
@@ -78,7 +79,8 @@ namespace KasseAPI_Final.Services
         /// <param name="rate">0.20 gibi decimal oran</param>
         public static (decimal LineTax, decimal LineGross) ComputeGrossFromNet(decimal lineNet, decimal rate)
         {
-            if (rate <= 0) return (0, lineNet);
+            if (rate <= 0)
+                return (0, lineNet);
             var lineTax = Round(lineNet * rate);
             var lineGross = Round(lineNet + lineTax);
             return (lineTax, lineGross);

@@ -1,23 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
 import { AUTH_KEYS } from '@/features/auth/hooks/useAuth';
 import { AUTH_SESSION_CLEARED_EVENT } from '@/features/auth/services/authStorage';
+import { useFavoritesStore } from '@/features/menu/favoritesStore';
+import { useUiPreferencesStore } from '@/stores/uiPreferencesStore';
 
 /**
  * Keeps TanStack Query auth state aligned when tokens are cleared outside React (e.g. axios refresh failure).
  */
 export function AuthSessionInvalidationListener() {
-    const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-    useEffect(() => {
-        const onCleared = () => {
-            queryClient.setQueryData(AUTH_KEYS.user, null);
-        };
-        window.addEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
-        return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
-    }, [queryClient]);
+  useEffect(() => {
+    const onCleared = () => {
+      queryClient.setQueryData(AUTH_KEYS.user, null);
+      useUiPreferencesStore.getState().resetToDefaultsOnLogout();
+      useFavoritesStore.getState().resetSession();
+    };
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
+    return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
+  }, [queryClient]);
 
-    return null;
+  return null;
 }

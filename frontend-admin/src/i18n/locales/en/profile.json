@@ -10,11 +10,23 @@
   "fields": {
     "userName": "Username",
     "role": "Role",
+    "userId": "User ID",
     "employeeNumber": "Employee number",
     "phoneNumber": "Phone",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email"
+  },
+  "technicalDetails": {
+    "title": "Technical details",
+    "description": "Rarely needed identifiers for support and troubleshooting. Values are shown in full and are copyable.",
+    "userId": "User ID",
+    "tenantId": "Tenant ID",
+    "tenantSlug": "Tenant slug",
+    "branchId": "Branch ID",
+    "selectedCashRegisterId": "Selected cash register ID (quick switch)",
+    "backendRole": "Backend role(s)",
+    "appContext": "App context"
   },
   "validation": {
     "firstNameRequired": "First name is required.",

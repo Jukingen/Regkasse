@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
@@ -17,10 +11,7 @@ interface FavoritesSectionProps {
   onAddToCart: (product: Product) => void;
 }
 
-const FavoritesSection: React.FC<FavoritesSectionProps> = ({
-  favoriteProducts,
-  onAddToCart,
-}) => {
+const FavoritesSection: React.FC<FavoritesSectionProps> = ({ favoriteProducts, onAddToCart }) => {
   const { t } = useTranslation();
 
   if (favoriteProducts.length === 0) {
@@ -30,24 +21,22 @@ const FavoritesSection: React.FC<FavoritesSectionProps> = ({
   return (
     <View style={styles.favoritesSection}>
       <Text style={styles.sectionTitleSmall}>{t('cashRegister.quickAdd')}</Text>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.favoritesContainer}
-      >
-        {favoriteProducts.map(product => (
+        contentContainerStyle={styles.favoritesContainer}>
+        {favoriteProducts.map((product) => (
           <TouchableOpacity
             key={product.id}
             style={styles.favoriteProductCard}
-            onPress={() => onAddToCart(product)}
-          >
+            onPress={() => {
+              onAddToCart(product);
+            }}>
             <View style={styles.favoriteProductContent}>
               <Text style={styles.favoriteProductName} numberOfLines={2}>
                 {product.name}
               </Text>
-              <Text style={styles.favoriteProductPrice}>
-                €{product.price.toFixed(2)}
-              </Text>
+              <Text style={styles.favoriteProductPrice}>€{product.price.toFixed(2)}</Text>
               <View style={styles.addIconContainer}>
                 <Ionicons name="add" size={14} color="white" />
               </View>
@@ -119,4 +108,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FavoritesSection; 
+export default FavoritesSection;

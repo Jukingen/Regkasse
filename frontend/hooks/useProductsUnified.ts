@@ -2,13 +2,24 @@
 // Duplicate hook'ları kaldırır ve consistent API kullanımı sağlar
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Product, getAllProducts, getAllCategories, clearProductCache, getProductCatalog } from '../services/api/productService';
+
+import { useAuth } from '../contexts/AuthContext';
+import {
+  Product,
+  ProductCategory,
+  getAllProducts,
+  getAllCategories,
+  clearProductCache,
+  getProductCatalog,
+  CatalogAuthRequiredError,
+} from '../services/api/productService';
+import { sessionManager } from '../services/session/sessionManager';
+import { subscribeDevTenantSlug, resolveEffectiveTenantSlug } from '../services/tenant/devTenant';
+import { tenantStorage } from '../services/tenant/tenantStorage';
+import { safeLog } from '../utils/loggingUtils';
 import { productMatchesSearchQuery } from '../utils/productLocalization';
 
-export interface CatalogCategory {
-  id: string;
-  name: string;
-}
+export type CatalogCategory = ProductCategory;
 
 interface UseProductsUnifiedState {
   products: Product[];
@@ -18,18 +29,31 @@ interface UseProductsUnifiedState {
   initialized: boolean;
 }
 
-// Singleton cache instance
+const emptyState = (): UseProductsUnifiedState => ({
+  products: [],
+  categories: [],
+  loading: false,
+  error: null,
+  initialized: false,
+});
+
+function scopeKeyFor(userId: string, tenantSlug: string): string {
+  return `${userId}\u0000${tenantSlug}`;
+}
+
+function isSettledCatalog(state: UseProductsUnifiedState): boolean {
+  return state.initialized && (state.products.length > 0 || state.categories.length > 0);
+}
+
+// Singleton cache. Entries are valid only for the user + tenant slug that loaded them.
 class ProductCache {
   private static instance: ProductCache;
-  private state: UseProductsUnifiedState = {
-    products: [],
-    categories: [],
-    loading: false,
-    error: null,
-    initialized: false
-  };
-  private listeners = new Set<() => void>();
+  private state: UseProductsUnifiedState = emptyState();
+  private readonly listeners = new Set<() => void>();
   private loadingPromise: Promise<void> | null = null;
+  private scopeKey: string | null = null;
+  /** Scope whose last response contained categories or products. Empty/failed loads stay unset. */
+  private settledScopeKey: string | null = null;
 
   static getInstance(): ProductCache {
     if (!ProductCache.instance) {
@@ -38,13 +62,24 @@ class ProductCache {
     return ProductCache.instance;
   }
 
-  // State güncellemesi ve listener'ları bilgilendirme
-  private updateState(newState: Partial<UseProductsUnifiedState>) {
-    this.state = { ...this.state, ...newState };
-    this.listeners.forEach(listener => listener());
+  /** Test-only. Drops the in-memory catalog so cases do not leak into each other. */
+  resetForTests(): void {
+    this.loadingPromise = null;
+    this.scopeKey = null;
+    this.settledScopeKey = null;
+    this.state = emptyState();
+    this.listeners.forEach((listener) => {
+      listener();
+    });
   }
 
-  // Listener ekle/kaldır
+  private updateState(newState: Partial<UseProductsUnifiedState>) {
+    this.state = { ...this.state, ...newState };
+    this.listeners.forEach((listener) => {
+      listener();
+    });
+  }
+
   addListener(listener: () => void) {
     this.listeners.add(listener);
   }
@@ -53,127 +88,171 @@ class ProductCache {
     this.listeners.delete(listener);
   }
 
-  // Mevcut state'i al
   getState(): UseProductsUnifiedState {
     return { ...this.state };
   }
 
-  // Verileri yükle (duplicate çağrıları önler)
-  async loadData(): Promise<void> {
-    // Eğer zaten yükleniyorsa aynı promise'i döndür
-    if (this.loadingPromise) {
-      return this.loadingPromise;
-    }
+  /** Logout or a signed-out screen: drop the previous cashier's catalog. */
+  clearSession(): void {
+    clearProductCache();
+    this.loadingPromise = null;
+    this.scopeKey = null;
+    this.settledScopeKey = null;
+    this.state = emptyState();
+    this.updateState(this.state);
+  }
 
-    // Eğer zaten yüklenmişse yüklemez
-    if (this.state.initialized && this.state.products.length > 0) {
-      console.log('📦 Products already loaded, skipping...');
-      return Promise.resolve();
-    }
-
-    console.log('🔄 Loading products and categories...');
-    
-    this.loadingPromise = this._performLoad();
-    
-    try {
-      await this.loadingPromise;
-    } finally {
+  /**
+   * Load the catalog for this cashier and tenant. A different scope drops the previous
+   * payload first. A settled non-empty catalog for the same scope is reused.
+   */
+  async ensureScope(userId: string, tenantSlug: string): Promise<void> {
+    const key = scopeKeyFor(userId, tenantSlug);
+    if (this.scopeKey !== key) {
+      clearProductCache();
       this.loadingPromise = null;
+      this.scopeKey = key;
+      this.settledScopeKey = null;
+      this.state = emptyState();
+      this.updateState(this.state);
+    }
+    await this.loadData();
+  }
+
+  async loadData(): Promise<void> {
+    if (this.loadingPromise) {
+      await this.loadingPromise;
+    }
+
+    if (this.settledScopeKey === this.scopeKey && isSettledCatalog(this.state)) {
+      safeLog('📦 Products already loaded, skipping...');
+      return;
+    }
+
+    const scopeAtStart = this.scopeKey;
+    const promise = this._performLoad(scopeAtStart);
+    this.loadingPromise = promise;
+
+    try {
+      await promise;
+    } finally {
+      if (this.loadingPromise === promise) {
+        this.loadingPromise = null;
+      }
     }
   }
 
-  private async _performLoad(): Promise<void> {
+  private async _performLoad(scopeAtStart: string | null): Promise<void> {
+    if (this.scopeKey !== scopeAtStart) return;
+
+    const token = await sessionManager.getAccessToken();
+    if (this.scopeKey !== scopeAtStart) return;
+    if (!token) {
+      safeLog('⏭️ Skipping product catalog: no access token');
+      this.settledScopeKey = null;
+      this.updateState({ loading: false, error: null, initialized: false });
+      return;
+    }
+
     try {
       this.updateState({ loading: true, error: null });
 
-      console.log('🔄 Loading products and categories via catalog...');
-      
-      // Katalog endpoint'i ile tek çağrıda hem kategori hem ürün al
+      safeLog('🔄 Loading products and categories via catalog...');
+
       try {
         const catalog = await getProductCatalog();
-        const products = catalog.products;
-        const categories: CatalogCategory[] = (catalog.categories ?? []).map(c => ({
+        if (this.scopeKey !== scopeAtStart) return;
+
+        const products = Array.isArray(catalog.products) ? catalog.products : [];
+        const categories: CatalogCategory[] = (catalog.categories ?? []).map((c) => ({
           id: c.id ?? '',
-          name: c.name ?? ''
+          name: c.name ?? '',
+          icon: c.icon,
+          color: c.color,
+          sortOrder: c.sortOrder,
+          vatRate: c.vatRate,
         }));
 
-        console.log(`📦 Catalog data received:`, {
-          productsCount: products.length,
-          categoriesCount: categories.length,
-          sampleProduct: products[0] ? {
-            id: products[0].id,
-            name: products[0].name,
-            categoryId: products[0].categoryId
-          } : null,
-        });
-
-        this.updateState({
-          products: Array.isArray(products) ? products : [],
-          categories,
-          loading: false,
-          initialized: true,
-          error: null
-        });
-
-        console.log(`✅ Loaded ${products.length} products and ${categories.length} categories from catalog`);
+        this.applyCatalog(scopeAtStart, products, categories);
       } catch (catalogError) {
-        console.error('❌ Catalog loading failed, falling back to separate endpoints:', catalogError);
-        
-        // Fallback: ayrı endpoint'lerden yükle
+        if (catalogError instanceof CatalogAuthRequiredError) {
+          if (this.scopeKey !== scopeAtStart) return;
+          this.settledScopeKey = null;
+          this.updateState({ loading: false, error: null, initialized: false });
+          return;
+        }
+
+        console.error(
+          '❌ Catalog loading failed, falling back to separate endpoints:',
+          catalogError
+        );
+
         const [productsResponse, categoriesResponse] = await Promise.all([
           getAllProducts(1, 1000),
-          getAllCategories()
+          getAllCategories(),
         ]);
+        if (this.scopeKey !== scopeAtStart) return;
 
         const products = Array.isArray(productsResponse) ? productsResponse : [];
-        const categoryNames = Array.isArray(categoriesResponse) ? categoriesResponse : [] as string[];
-        const categories: CatalogCategory[] = categoryNames.map((name, i) => ({
-          id: `fallback-${i}-${name}`,
-          name: name ?? ''
-        }));
+        const rawCategories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+        const categories: CatalogCategory[] = rawCategories.map((c, i) =>
+          typeof c === 'string'
+            ? { id: `fallback-${i}-${c}`, name: c }
+            : {
+                id: c.id || `fallback-${i}-${c.name}`,
+                name: c.name ?? '',
+                icon: c.icon,
+                color: c.color,
+                sortOrder: c.sortOrder,
+              }
+        );
 
-        this.updateState({
-          products: Array.isArray(products) ? products : [],
-          categories,
-          loading: false,
-          initialized: true,
-          error: null
-        });
-
-        console.log(`✅ Fallback loaded ${products.length} products and ${categories.length} categories`);
+        this.applyCatalog(scopeAtStart, products, categories);
       }
     } catch (error) {
+      if (this.scopeKey !== scopeAtStart) return;
       const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
+      this.settledScopeKey = null;
       this.updateState({
         loading: false,
         error: errorMessage,
-        initialized: true
+        initialized: false,
       });
       console.error('❌ Error loading products/categories:', error);
       throw error;
     }
   }
 
-  // Cache'i temizle ve yeniden yükle
-  async refreshData(): Promise<void> {
-    console.log('🔄 Refreshing all product data...');
-    
-    // Frontend cache'i temizle
-    clearProductCache();
-    
-    // Local state'i sıfırla
-    this.state = {
-      products: [],
-      categories: [],
+  /** Empty and failed catalogs stay unsettled so the next load for this scope can retry. */
+  private applyCatalog(
+    scopeAtStart: string | null,
+    products: Product[],
+    categories: CatalogCategory[]
+  ) {
+    if (this.scopeKey !== scopeAtStart) return;
+    const settled = products.length > 0 || categories.length > 0;
+    this.settledScopeKey = settled ? scopeAtStart : null;
+    this.updateState({
+      products,
+      categories,
       loading: false,
+      initialized: settled,
       error: null,
-      initialized: false
-    };
-    
+    });
+    safeLog(
+      `✅ Loaded ${products.length} products and ${categories.length} categories from catalog`
+    );
+  }
+
+  async refreshData(): Promise<void> {
+    safeLog('🔄 Refreshing all product data...');
+
+    clearProductCache();
+    this.settledScopeKey = null;
     this.loadingPromise = null;
+    this.state = emptyState();
     this.updateState(this.state);
-    
-    // Yeniden yükle
+
     await this.loadData();
   }
 
@@ -182,18 +261,17 @@ class ProductCache {
     if (categoryId == null || categoryId === '') {
       return this.state.products;
     }
-    return this.state.products.filter(p => {
+    return this.state.products.filter((p) => {
       const id = (p as Product & { categoryId?: string }).categoryId;
       return id != null && id === categoryId;
     });
   }
 
-  // Ürün arama
   searchProducts(query: string): Product[] {
     if (!query.trim()) {
       return this.state.products;
     }
-    
+
     const searchTerm = query.toLowerCase();
     return this.state.products.filter((product) => {
       const productCategory = product.productCategory || product.category;
@@ -205,16 +283,30 @@ class ProductCache {
   }
 }
 
+export function resetProductsUnifiedCacheForTests(): void {
+  ProductCache.getInstance().resetForTests();
+}
+
 /**
  * Unified Product Hook - Tüm ürün işlemlerini tek noktada yönetir
  * Duplicate API çağrılarını önler ve consistent state yönetimi sağlar
  */
 export const useProductsUnified = () => {
   const cache = ProductCache.getInstance();
+  const { user } = useAuth();
   const [, forceUpdate] = useState({});
   const isMountedRef = useRef(true);
+  const [slugEpoch, setSlugEpoch] = useState(0);
+  const userId = user?.id ?? null;
+  const userTenantId = user?.tenantId ?? null;
+  const userTenantSlug = user?.tenantSlug ?? null;
 
-  // Cache değişikliklerini dinle
+  useEffect(() => {
+    return subscribeDevTenantSlug(() => {
+      setSlugEpoch((epoch) => epoch + 1);
+    });
+  }, []);
+
   useEffect(() => {
     const listener = () => {
       if (isMountedRef.current) {
@@ -222,34 +314,67 @@ export const useProductsUnified = () => {
       }
     };
 
+    isMountedRef.current = true;
     cache.addListener(listener);
-    
-    // İlk yüklemeyi başlat
-    cache.loadData().catch(console.error);
-
     return () => {
       isMountedRef.current = false;
       cache.removeListener(listener);
     };
   }, [cache]);
 
-  // State'i al
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!userId) {
+      cache.clearSession();
+      return;
+    }
+
+    (async () => {
+      const slug =
+        (await resolveEffectiveTenantSlug(await tenantStorage.getTenantSlug())) ??
+        userTenantSlug ??
+        '';
+      if (cancelled) return;
+
+      const loadOnce = async () => {
+        try {
+          await cache.ensureScope(userId, slug);
+        } catch (error: unknown) {
+          console.error(error);
+        }
+      };
+
+      await loadOnce();
+      if (cancelled) return;
+      // A missing token, a failed call, or an empty first payload must not stick.
+      if (!isSettledCatalog(cache.getState())) {
+        await loadOnce();
+      }
+    })().catch((error: unknown) => {
+      console.error(error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cache, userId, userTenantId, userTenantSlug, slugEpoch]);
+
   const state = cache.getState();
 
-  // Fonksiyonları memoize et
   const refreshData = useCallback(() => cache.refreshData(), [cache]);
-  const getProductsByCategory = useCallback((categoryId: string | null) =>
-    cache.getProductsByCategory(categoryId), [cache]);
-  const searchProducts = useCallback((query: string) => 
-    cache.searchProducts(query), [cache]);
+  const getProductsByCategory = useCallback(
+    (categoryId: string | null) => cache.getProductsByCategory(categoryId),
+    [cache]
+  );
+  const searchProducts = useCallback((query: string) => cache.searchProducts(query), [cache]);
 
   return {
     ...state,
     refreshData,
     getProductsByCategory,
     searchProducts,
-    
-    // Geriye uyumluluk için eski isimleri de export et
+
     loadProducts: refreshData,
     loadCategories: refreshData,
   };

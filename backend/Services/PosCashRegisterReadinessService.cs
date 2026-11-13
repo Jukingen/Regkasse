@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -17,6 +16,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private readonly AppDbContext _context;
     private readonly ICashRegisterResolutionService _resolution;
     private readonly ICashRegisterShiftService _shift;
+    private readonly IPosShiftService _posShift;
     private readonly ICashRegisterSettingsService _cashRegisterSettings;
     private readonly ILogger<PosCashRegisterReadinessService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
@@ -27,6 +27,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         AppDbContext context,
         ICashRegisterResolutionService resolution,
         ICashRegisterShiftService shift,
+        IPosShiftService posShift,
         ICashRegisterSettingsService cashRegisterSettings,
         ILogger<PosCashRegisterReadinessService> logger,
         ISettingsTenantResolver settingsTenantResolver,
@@ -36,6 +37,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         _context = context;
         _resolution = resolution;
         _shift = shift;
+        _posShift = posShift;
         _cashRegisterSettings = cashRegisterSettings;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
@@ -80,7 +82,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
 
         var operationalRegisterCount = CashRegisterPosOperationalCardinality.CountOperationalRegisters(registers);
 
-        var (effectiveRegister, resolution) = ResolveEffectiveRegister(userSettings, registers);
+        var (effectiveRegister, resolution) = ResolveEffectiveRegister(userId, userSettings, registers);
 
         if (registers.Count == 0 || operationalRegisterCount == 0)
         {
@@ -145,15 +147,14 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 return StampPreferred(dto, userSettings);
             }
 
-            if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+            if (await TryApplyMonatsbelegGateAsync(effectiveRegister.Id, dto, cancellationToken).ConfigureAwait(false))
             {
-                dto.NextAction = "monatsbeleg_required";
-                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
                 return StampPreferred(dto, userSettings);
             }
 
             dto.NextAction = "ready";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
+            await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
             return StampPreferred(dto, userSettings);
         }
 
@@ -181,10 +182,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             return StampPreferred(dto, userSettings);
         }
 
-        if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+        if (await TryApplyMonatsbelegGateAsync(effectiveRegister.Id, dto, cancellationToken).ConfigureAwait(false))
         {
-            dto.NextAction = "monatsbeleg_required";
-            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -232,6 +231,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "ready";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterAutoOpened;
                 await PersistAssignmentAfterOpenAsync(userSettings, effectiveRegister.Id, userId, cancellationToken);
+                await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
                 _logger.LogInformation(
                     "POS auto-opened cash register {RegisterId} for user {UserId} ({Mode})",
                     effectiveRegister.Id,
@@ -245,6 +245,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "ready";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
                 await PersistAssignmentAfterOpenAsync(userSettings, effectiveRegister.Id, userId, cancellationToken);
+                await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
                 return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedConflictOtherUser:
@@ -279,6 +280,33 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "open_register";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
                 return StampPreferred(dto, userSettings);
+        }
+    }
+
+    private async Task TryAutoOpenCashierShiftAsync(
+        string userId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _posShift.AutoOpenShiftAsync(userId, string.Empty, cashRegisterId, cancellationToken);
+            if (!result.Success)
+            {
+                _logger.LogWarning(
+                    "Auto-open CashierShift declined for user {UserId} on register {RegisterId}: {Code}",
+                    userId,
+                    cashRegisterId,
+                    result.Code);
+            }
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Auto-open CashierShift failed for user {UserId} on register {RegisterId} (non-blocking)",
+                userId,
+                cashRegisterId);
         }
     }
 
@@ -326,7 +354,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             }, userSettings);
         }
 
-        var (effective, resolution) = ResolveEffectiveRegister(userSettings, registers);
+        var (effective, resolution) = ResolveEffectiveRegister(userId, userSettings, registers);
         if (effective == null)
         {
             return StampPreferred(new PosCashRegisterContextDto
@@ -372,10 +400,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 return StampPreferred(dto, userSettings);
             }
 
-            if (await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+            if (await TryApplyMonatsbelegGateAsync(effective.Id, dto, cancellationToken).ConfigureAwait(false))
             {
-                dto.NextAction = "monatsbeleg_required";
-                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
                 return StampPreferred(dto, userSettings);
             }
 
@@ -394,10 +420,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         }
 
         if (effective.Status == RegisterStatus.Closed &&
-            await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+            await TryApplyMonatsbelegGateAsync(effective.Id, dto, cancellationToken).ConfigureAwait(false))
         {
-            dto.NextAction = "monatsbeleg_required";
-            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -418,15 +442,27 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private static string? NormalizePersistedPreferenceRegisterId(string? raw)
     {
         var t = raw?.Trim();
-        if (string.IsNullOrEmpty(t)) return null;
-        if (!Guid.TryParse(t, out var g) || g == Guid.Empty) return null;
+        if (string.IsNullOrEmpty(t))
+            return null;
+        if (!Guid.TryParse(t, out var g) || g == Guid.Empty)
+            return null;
         return g.ToString("D");
     }
 
+    /// <summary>
+    /// Picks the register this session should act on: explicit preference first, then sole operational register, then
+    /// tenant default. Registers assigned to another cashier (<see cref="CashRegister.AssignedUserId"/>) are removed up
+    /// front — they are invisible in the POS picker, so no resolution path may hand one back and auto-open it.
+    /// </summary>
     private static (CashRegister? Register, string Resolution) ResolveEffectiveRegister(
+        string userId,
         UserSettings? userSettings,
         List<CashRegister> registers)
     {
+        var candidates = registers
+            .Where(r => !CashRegisterAssignment.IsAssignedToOtherUser(userId, r.AssignedUserId))
+            .ToList();
+
         CashRegister? effective = null;
         var resolution = "none";
 
@@ -435,18 +471,31 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             Guid.TryParse(assignedRaw, out var ag) &&
             ag != Guid.Empty)
         {
-            effective = registers.FirstOrDefault(r => r.Id == ag);
+            effective = candidates.FirstOrDefault(r => r.Id == ag);
             if (effective != null)
                 resolution = "settings";
         }
 
         if (effective == null)
         {
-            var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
+            var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(candidates);
             if (singleOperational != null)
             {
                 effective = singleOperational;
                 resolution = "sole_register";
+            }
+        }
+
+        // Align with FA auto-select: prefer tenant default when settings/sole do not resolve.
+        if (effective == null)
+        {
+            var tenantDefault = candidates.FirstOrDefault(r =>
+                r.IsDefaultForTenant &&
+                CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(r));
+            if (tenantDefault != null)
+            {
+                effective = tenantDefault;
+                resolution = "tenant_default";
             }
         }
 
@@ -464,12 +513,25 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             _ => null
         };
 
-    private async Task<bool> RequiresMonatsbelegAsync(Guid registerId, CancellationToken cancellationToken)
+    private async Task<bool> TryApplyMonatsbelegGateAsync(
+        Guid registerId,
+        PosCashRegisterContextDto dto,
+        CancellationToken cancellationToken)
     {
-        if (!_rksvMonatsbelegPolicy.SessionGateApplies)
-            return false;
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        return !await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
+        var decision = await _rksvMonatsbelegPolicy
+            .EvaluateSalesGateAsync(registerId, cancellationToken)
             .ConfigureAwait(false);
+        dto.MonatsbelegBlockingMode = MonatsbelegBlockingModeNames.ToPersisted(decision.Mode);
+        dto.MonatsbelegWarningLevel = decision.WarningLevel;
+        dto.MonatsbelegSalesBlocked = decision.BlocksSales;
+        dto.MonatsbelegCanContinueWithWarning = decision.CanContinueWithWarning;
+        dto.MonatsbelegViennaDayOfMonth = decision.ViennaDayOfMonth;
+        dto.MonatsbelegWarningMessageDe = decision.WarningMessageDe;
+        if (!decision.BlocksSales)
+            return false;
+
+        dto.NextAction = "monatsbeleg_required";
+        dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
+        return true;
     }
 }

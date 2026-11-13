@@ -27,33 +27,51 @@ export async function createCardPaymentIntent(params: {
   amount: number;
   cashRegisterId: string;
   receiptNumber?: string;
+  returnUrl?: string;
+  idempotencyKey?: string;
 }): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>('/api/pos/card-payment/intent', params);
-  return res.data;
+  const headers: Record<string, string> = {};
+  if (params.idempotencyKey) {
+    headers['Idempotency-Key'] = params.idempotencyKey;
+  }
+  return await apiClient.post<CardPaymentIntentResponse>(
+    '/api/pos/card-payment/intent',
+    {
+      amount: params.amount,
+      cashRegisterId: params.cashRegisterId,
+      receiptNumber: params.receiptNumber,
+      returnUrl: params.returnUrl,
+    },
+    Object.keys(headers).length > 0 ? { headers } : undefined
+  );
 }
 
 export async function confirmCardPayment(params: {
   paymentIntentId: string;
   paymentMethodId?: string;
 }): Promise<CardPaymentConfirmResponse> {
-  const res = await apiClient.post<CardPaymentConfirmResponse>('/api/pos/card-payment/confirm', params);
-  return res.data;
+  return await apiClient.post<CardPaymentConfirmResponse>(
+    '/api/pos/card-payment/confirm',
+    params
+  );
 }
 
 export async function confirmCardPaymentIntent(
   intentId: string,
-  paymentMethodId: string,
+  paymentMethodId: string
 ): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>(
+  return await apiClient.post<CardPaymentIntentResponse>(
     `/api/pos/payment/card/${intentId}/confirm`,
-    { paymentMethodId },
+    { paymentMethodId }
   );
-  return res.data;
 }
 
-export async function cancelCardPaymentIntent(intentId: string): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>(`/api/pos/payment/card/${intentId}/cancel`);
-  return res.data;
+export async function cancelCardPaymentIntent(
+  intentId: string
+): Promise<CardPaymentIntentResponse> {
+  return await apiClient.post<CardPaymentIntentResponse>(
+    `/api/pos/payment/card/${intentId}/cancel`
+  );
 }
 
 /** Stripe-style test card simulation: create + confirm in one step. */

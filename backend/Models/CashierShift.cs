@@ -78,6 +78,14 @@ public class CashierShift : BaseEntity, ITenantEntity
     /// <summary>Physically counted cash at daily closing (operational).</summary>
     [Column("cash_count", TypeName = "decimal(18,2)")]
     public decimal? CashCount { get; set; }
+
+    /// <summary>True when opened by auto-open (login / ensure-ready), not manual StartShift.</summary>
+    [Column("is_auto_opened")]
+    public bool IsAutoOpened { get; set; }
+
+    /// <summary>True when closed by auto-close (logout / soft complete), not manual EndShift.</summary>
+    [Column("is_auto_closed")]
+    public bool IsAutoClosed { get; set; }
 }
 
 public static class CashierShiftStatuses

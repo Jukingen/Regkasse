@@ -2,8 +2,9 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
-using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -21,22 +22,28 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
 
     private readonly AppDbContext _db;
     private readonly IAuditLogService _audit;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupAlertPublisher _alerts;
     private readonly ILogger<BackupManualTriggerService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public BackupManualTriggerService(
         AppDbContext db,
         IAuditLogService audit,
+        ICurrentTenantAccessor tenantAccessor,
         IOptionsMonitor<BackupOptions> options,
         IBackupAlertPublisher alerts,
-        ILogger<BackupManualTriggerService> logger)
+        ILogger<BackupManualTriggerService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _audit = audit;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
         _options = options;
         _alerts = alerts;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     public async Task<BackupManualTriggerOutcome> RequestManualBackupAsync(
@@ -44,9 +51,15 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         string requestedByRole,
         string? idempotencyKey,
         string? correlationId,
-        CancellationToken cancellationToken = default)
+        BackupStrategyKind? strategy = null,
+        bool deploymentWide = false,
+        CancellationToken cancellationToken = default,
+        DateTime? incrementalSinceUtc = null,
+        string? requestedFromIp = null)
     {
-        var normalizedIdempotency = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+        var normalizedIdempotency = deploymentWide
+            ? (string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim())
+            : NormalizeIdempotencyKeyForTenantScope(idempotencyKey);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         await TryAcquirePostgresManualEnqueueSerializationAsync(_db, cancellationToken);
@@ -70,7 +83,15 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             }
         }
 
-        var activeManual = await _db.BackupRuns.AsNoTracking()
+        var manualScopeTenantId = deploymentWide
+            ? null
+            : BackupRunAccessEvaluator.ResolveManualTriggerScopeTenantId(
+                _tenantAccessor.TenantId,
+                normalizedIdempotency);
+
+        var activeManual = await BackupRunAccessEvaluator.ApplyActiveManualConflictScope(
+                _db.BackupRuns.AsNoTracking(),
+                manualScopeTenantId)
             .Where(r => r.TriggerSource == BackupTriggerSource.Manual)
             .Where(r =>
                 r.Status == BackupRunStatus.Queued
@@ -108,22 +129,79 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         var adminMode = pref?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
         var effectiveKind = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminMode);
         var adapterKind = effectiveKind.ToString();
+
+        Guid? runTenantId = null;
+        if (!deploymentWide)
+        {
+            runTenantId = _tenantAccessor.TenantId is Guid ambientTenantId && ambientTenantId != Guid.Empty
+                ? ambientTenantId
+                : BackupRunTenantSlugResolver.TryParseTenantIdFromIdempotencyKey(
+                    normalizedIdempotency,
+                    out var parsedTenantId)
+                    ? parsedTenantId
+                    : null;
+        }
+
+        var resolvedStrategy = deploymentWide
+            ? BackupStrategyKind.System
+            : BackupStrategyPolicy.Resolve(runTenantId, strategy);
+
+        if (resolvedStrategy == BackupStrategyKind.Tenant
+            && (runTenantId is null || runTenantId == Guid.Empty))
+        {
+            throw new InvalidOperationException(
+                "Tenant strategy requires a resolved tenant id (JWT tenant context or manual-tenant idempotency key).");
+        }
+
+        if (resolvedStrategy == BackupStrategyKind.System)
+            runTenantId = deploymentWide ? null : runTenantId;
+
+        if (incrementalSinceUtc.HasValue && resolvedStrategy != BackupStrategyKind.Tenant)
+        {
+            throw new InvalidOperationException(
+                "Incremental package watermark is only valid for Tenant strategy backups.");
+        }
+
+        if (resolvedStrategy == BackupStrategyKind.Tenant
+            && runTenantId is Guid tenantLimitId
+            && tenantLimitId != Guid.Empty
+            && _tenantLimitGuard != null)
+        {
+            await _tenantLimitGuard
+                .EnsureCanCreateBackupAsync(tenantLimitId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var configJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
+            opts,
+            "backup_manual_enqueue",
+            DateTime.UtcNow,
+            effectiveKind,
+            adminMode,
+            resolvedStrategy);
+        if (incrementalSinceUtc.HasValue)
+        {
+            configJson = BackupIncrementalPackageMetadata.MergeIntoConfigSnapshot(
+                configJson,
+                incrementalSinceUtc.Value);
+        }
+
         var run = new BackupRun
         {
             Status = BackupRunStatus.Queued,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = adapterKind,
             IdempotencyKey = normalizedIdempotency,
+            TenantId = resolvedStrategy == BackupStrategyKind.System && deploymentWide
+                ? null
+                : runTenantId,
+            Strategy = resolvedStrategy,
             RequestedByUserId = requestedByUserId,
+            RequestedFromIp = string.IsNullOrWhiteSpace(requestedFromIp) ? null : requestedFromIp.Trim(),
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
             CorrelationId = correlationId,
-            ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
-                opts,
-                "backup_manual_enqueue",
-                DateTime.UtcNow,
-                effectiveKind,
-                adminMode)
+            ConfigSnapshotJson = configJson
         };
 
         _db.BackupRuns.Add(run);
@@ -155,20 +233,42 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         await transaction.CommitAsync(cancellationToken);
 
         var actorId = requestedByUserId ?? "system";
+        var auditTenantId = run.TenantId ?? _tenantAccessor.TenantId;
         await _audit.LogSystemOperationAsync(
             action: "BACKUP_MANUAL_ENQUEUED",
             entityType: "BackupRun",
             userId: actorId,
             userRole: requestedByRole,
-            description: $"Manual backup run {run.Id} enqueued (adapter={adapterKind}).",
+            description:
+            $"Manual backup run {run.Id} enqueued (adapter={adapterKind}, strategy={run.Strategy}).",
             notes: null,
             status: AuditLogStatus.Success,
             errorDetails: null,
-            requestData: new { run.Id, run.IdempotencyKey, correlationId },
+            requestData: new { run.Id, run.IdempotencyKey, correlationId, strategy = run.Strategy.ToString() },
             responseData: new { run.Status },
-            correlationIdOverride: correlationId);
+            correlationIdOverride: correlationId,
+            actionType: AuditEventType.BackupCreated,
+            entityId: run.Id,
+            tenantId: auditTenantId);
 
         return new BackupManualTriggerOutcome { Run = run, Kind = BackupManualTriggerResultKind.NewRunQueued };
+    }
+
+    /// <summary>
+    /// When ambient tenant context exists, ensure manual runs encode tenant in the idempotency key
+    /// so tenant-scoped download ACL can resolve deployment-wide <see cref="BackupRun"/> rows.
+    /// </summary>
+    private string? NormalizeIdempotencyKeyForTenantScope(string? idempotencyKey)
+    {
+        var normalized = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+        var ambientTenantId = _tenantAccessor.TenantId;
+        if (!ambientTenantId.HasValue || ambientTenantId.Value == Guid.Empty)
+            return normalized;
+
+        if (BackupRunTenantSlugResolver.EncodesTenantScope(normalized))
+            return normalized;
+
+        return $"manual-tenant-{ambientTenantId.Value:D}-{DateTime.UtcNow.Ticks}";
     }
 
     private static async Task TryAcquirePostgresManualEnqueueSerializationAsync(

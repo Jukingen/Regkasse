@@ -10,12 +10,14 @@ import {
 } from '@ant-design/icons';
 import { Card, Form, Radio, Select, Switch, Typography } from 'antd';
 import { useMemo } from 'react';
+
 import { useDensity } from '@/hooks/useDensity';
+import { useExportDownloadNotifications } from '@/hooks/useExportDownloadNotifications';
 import { useTheme } from '@/hooks/useTheme';
 import { useI18n } from '@/i18n';
 import { useUserPreferences } from '@/lib/personalization/hooks/useUserPreferences';
-import { DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
 import type { DensityMode, ThemeMode } from '@/lib/personalization/types';
+import { DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
 
 const { Option } = Select;
 
@@ -25,6 +27,8 @@ export function AppearanceSettings() {
   const { themeMode, setThemeMode } = useTheme();
   const { densityMode, setDensityMode } = useDensity();
   const { preferences, updatePreferences, isSyncing } = useUserPreferences();
+  const exportNotify = useExportDownloadNotifications();
+  const exportNotifyPrefs = exportNotify.prefs;
 
   const landingOptions = useMemo(
     () =>
@@ -32,7 +36,7 @@ export function AppearanceSettings() {
         value: path,
         label: t(`settings.personalization.landing.${path.replace(/^\//, '').replace(/\//g, '_')}`),
       })),
-    [t],
+    [t]
   );
 
   return (
@@ -90,9 +94,46 @@ export function AppearanceSettings() {
           label={t('settings.personalization.appearance.dateFormatLabel')}
           extra={t('settings.personalization.appearance.dateFormatDescription')}
         >
-          <Typography.Text>
-            {t('settings.personalization.appearance.dateFormatOptions.DD_MM_YYYY')}
-          </Typography.Text>
+          <Select
+            value={preferences.dateFormat}
+            onChange={(value) => updatePreferences({ dateFormat: value })}
+            style={{ maxWidth: 360, width: '100%' }}
+            options={[
+              {
+                value: 'DD.MM.YYYY',
+                label: t('settings.personalization.appearance.dateFormatOptions.DD_MM_YYYY'),
+              },
+              {
+                value: 'MM/DD/YYYY',
+                label: t('settings.personalization.appearance.dateFormatOptions.MM_DD_YYYY'),
+              },
+              {
+                value: 'YYYY-MM-DD',
+                label: t('settings.personalization.appearance.dateFormatOptions.YYYY_MM_DD'),
+              },
+            ]}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.personalization.appearance.timeZone')}
+          extra={t('settings.personalization.appearance.timeZoneHint')}
+        >
+          <Select
+            showSearch
+            value={preferences.timeZone}
+            onChange={(value) => updatePreferences({ timeZone: value })}
+            style={{ maxWidth: 360, width: '100%' }}
+            options={[
+              { value: 'Europe/Vienna', label: 'Europe/Vienna (UTC+1/+2)' },
+              { value: 'Europe/Berlin', label: 'Europe/Berlin (UTC+1/+2)' },
+              { value: 'Europe/Zurich', label: 'Europe/Zurich (UTC+1/+2)' },
+              { value: 'Europe/London', label: 'Europe/London (UTC+0/+1)' },
+              { value: 'Europe/Istanbul', label: 'Europe/Istanbul (UTC+3)' },
+              { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
+              { value: 'UTC', label: 'UTC' },
+            ]}
+          />
         </Form.Item>
 
         <Form.Item label={t('settings.personalization.appearance.timeFormat')}>
@@ -100,8 +141,12 @@ export function AppearanceSettings() {
             value={preferences.timeFormat}
             onChange={(e) => updatePreferences({ timeFormat: e.target.value })}
           >
-            <Radio.Button value="24h">{t('settings.personalization.timeFormat.h24Example')}</Radio.Button>
-            <Radio.Button value="12h">{t('settings.personalization.timeFormat.h12Example')}</Radio.Button>
+            <Radio.Button value="24h">
+              {t('settings.personalization.timeFormat.h24Example')}
+            </Radio.Button>
+            <Radio.Button value="12h">
+              {t('settings.personalization.timeFormat.h12Example')}
+            </Radio.Button>
           </Radio.Group>
         </Form.Item>
 
@@ -114,6 +159,33 @@ export function AppearanceSettings() {
             />
             <Typography.Text type="secondary">
               {t('settings.personalization.appearance.reducedMotionHint')}
+            </Typography.Text>
+          </div>
+        </Form.Item>
+
+        <Form.Item label={t('settings.personalization.appearance.notifyOnExports')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Switch
+              checked={exportNotifyPrefs.notifyOnExports}
+              onChange={(checked) => exportNotify.updatePrefs({ notifyOnExports: checked })}
+              aria-label={t('settings.personalization.appearance.notifyOnExports')}
+            />
+            <Typography.Text type="secondary">
+              {t('settings.personalization.appearance.notifyOnExportsHint')}
+            </Typography.Text>
+          </div>
+        </Form.Item>
+
+        <Form.Item label={t('settings.personalization.appearance.exportSound')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Switch
+              checked={exportNotifyPrefs.playSound}
+              disabled={!exportNotifyPrefs.notifyOnExports}
+              onChange={(checked) => exportNotify.updatePrefs({ playSound: checked })}
+              aria-label={t('settings.personalization.appearance.exportSound')}
+            />
+            <Typography.Text type="secondary">
+              {t('settings.personalization.appearance.exportSoundHint')}
             </Typography.Text>
           </div>
         </Form.Item>

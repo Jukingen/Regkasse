@@ -1,6 +1,7 @@
 // Soft minimal product list with grid/list view modes.
 // POS: Tek tıkla sepete ekleme; Extras tıklanabilir chip ile seçilir (onAddProduct + onToggleModifier).
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -10,18 +11,66 @@ import {
   RefreshControl,
   useWindowDimensions,
   Platform,
+  type DimensionValue,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { Product } from '../services/api/productService';
-import { useProductsUnified } from '../hooks/useProductsUnified';
-import { SoftColors, SoftSpacing, SoftRadius, SoftState, SoftTypography, SoftShadows } from '../constants/SoftTheme';
-import { getContentPaddingHorizontal } from '../constants/breakpoints';
-import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
+
 import { ProductGridCard } from './ProductGridCard';
+import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
+import {
+  SoftColors,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+  SoftShadows,
+} from '../constants/SoftTheme';
+import { getContentPaddingHorizontal } from '../constants/breakpoints';
+import { useProductsUnified } from '../hooks/useProductsUnified';
+import { Product } from '../services/api/productService';
+import { PosListSkeleton } from './PosListSkeleton';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import {
+  categoryColorTint,
+  isCategoryColor,
+  resolveCategoryIcon,
+} from '../utils/categoryDisplay';
 
 /** Breakpoint: tablet = 768+ for grid columns. */
 const TABLET_MIN_WIDTH = 768;
+
+/**
+ * Pixel width of one grid cell. Percentage fallbacks collapse inside a flex row;
+ * an explicit width keeps cards side by side in the catalog column.
+ */
+export function catalogGridItemWidth(
+  paneWidth: number,
+  columns: number,
+  horizontalPadding: number
+): number {
+  if (paneWidth <= 0 || columns <= 0) return 0;
+  const inner = paneWidth - horizontalPadding * 2;
+  if (inner <= 0) return 0;
+  return Math.floor(inner / columns);
+}
+
+function gridCellLayout(paneWidth: number, columns: number, horizontalPadding: number) {
+  const measured = catalogGridItemWidth(paneWidth, columns, horizontalPadding);
+  if (measured > 0) {
+    return {
+      width: measured,
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: measured,
+    };
+  }
+  const share = `${100 / columns}%` as DimensionValue;
+  return {
+    width: share,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: share,
+  };
+}
 
 /** Ürün satırına tıklanınca (eski modal akışı – artık kullanılmıyor, onAddProduct tercih edilir) */
 export type OnProductSelect = (product: Product) => void;
@@ -63,7 +112,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
-  ListFooterComponent
+  ListFooterComponent,
 }) => {
   const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
@@ -77,14 +126,17 @@ export const ProductList: React.FC<ProductListProps> = ({
     error: cacheError,
     refreshData,
     searchProducts,
-    getProductsByCategory
+    getProductsByCategory,
   } = useProductsUnified();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [paneWidth, setPaneWidth] = useState(0);
 
-  const getGridColumns = () => isTablet ? 3 : 2;
+  const getGridColumns = () => (isTablet ? 3 : 2);
+  const gridColumns = getGridColumns();
+  const gridCellStyle = gridCellLayout(paneWidth, gridColumns, contentPaddingH);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -93,22 +145,28 @@ export const ProductList: React.FC<ProductListProps> = ({
       if (searchQuery) {
         productsData = searchProducts(searchQuery);
         if (categoryFilterId != null && categoryFilterId !== '') {
-          productsData = productsData.filter(p => (p as Product & { categoryId?: string }).categoryId === categoryFilterId);
+          productsData = productsData.filter(
+            (p) => (p as Product & { categoryId?: string }).categoryId === categoryFilterId
+          );
         }
       } else if (categoryFilterId != null && categoryFilterId !== '') {
         productsData = getProductsByCategory(categoryFilterId);
       } else if (categoryFilter) {
-        productsData = cachedProducts.filter(p => {
+        productsData = cachedProducts.filter((p) => {
           const productCategory = p.productCategory || p.category;
           return productCategory === categoryFilter;
         });
       } else if (stockStatusFilter) {
-        productsData = cachedProducts.filter(p => {
+        productsData = cachedProducts.filter((p) => {
           switch (stockStatusFilter) {
-            case 'in-stock': return p.stockQuantity > (p.minStockLevel || 0);
-            case 'out-of-stock': return p.stockQuantity === 0;
-            case 'low-stock': return p.stockQuantity <= (p.minStockLevel || 0) && p.stockQuantity > 0;
-            default: return true;
+            case 'in-stock':
+              return p.stockQuantity > (p.minStockLevel || 0);
+            case 'out-of-stock':
+              return p.stockQuantity === 0;
+            case 'low-stock':
+              return p.stockQuantity <= (p.minStockLevel || 0) && p.stockQuantity > 0;
+            default:
+              return true;
           }
         });
       } else {
@@ -119,20 +177,29 @@ export const ProductList: React.FC<ProductListProps> = ({
     } catch (err) {
       console.error('Error loading products:', err);
     }
-  }, [categoryFilterId, categoryFilter, stockStatusFilter, searchQuery, cachedProducts, searchProducts, getProductsByCategory]);
+  }, [
+    categoryFilterId,
+    categoryFilter,
+    stockStatusFilter,
+    searchQuery,
+    cachedProducts,
+    searchProducts,
+    getProductsByCategory,
+  ]);
 
   useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts();
-  }, [cachedProducts.length, loadProducts]);
-
-  useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts();
-  }, [categoryFilterId, categoryFilter, cachedProducts.length, loadProducts]);
+    loadProducts().catch((err: unknown) => {
+      console.error('Error loading products:', err);
+    });
+  }, [cachedProducts, loadProducts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshData();
-    setRefreshing(false);
+    try {
+      await refreshData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshData]);
 
   const handleProductSelect = (product: Product) => {
@@ -148,46 +215,48 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   // Grid product card: inline Extras + Add veya eski tek tıkla seçim
   const renderGridProduct = ({ item }: { item: Product }) => {
-    if (useInlineExtras && onAddProduct) {
-      return (
+    const card =
+      useInlineExtras && onAddProduct ? (
         <ProductGridCard
           product={item}
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
           onAdd={onAddProduct}
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
-          getCategoryEmoji={getCategoryEmoji}
         />
-      );
-    }
-    return (
+      ) : (
       <Pressable
-        style={({ pressed }) => [
-          styles.gridCard,
-          pressed && styles.cardPressed,
-        ]}
-        onPress={() => handleProductSelect(item)}
-      >
-        <View style={styles.gridImageWrapper}>
-          <Text style={styles.gridImageEmoji}>
-            {getCategoryEmoji(item.productCategory || item.category)}
-          </Text>
+        style={({ pressed }) => [styles.gridCard, pressed && styles.cardPressed]}
+        onPress={() => {
+          handleProductSelect(item);
+        }}>
+        <View
+          style={[
+            styles.gridImageWrapper,
+            isCategoryColor(item.categoryColor)
+              ? { backgroundColor: categoryColorTint(item.categoryColor, 0.22) }
+              : null,
+          ]}>
+          <Text style={styles.gridImageEmoji}>{resolveCategoryIcon(item.categoryIcon)}</Text>
         </View>
         <View style={styles.gridContent}>
-          <Text style={styles.gridCategory}>
+          <Text
+            style={[
+              styles.gridCategory,
+              isCategoryColor(item.categoryColor) ? { color: item.categoryColor } : null,
+            ]}>
             {item.productCategory || item.category}
           </Text>
           <Text style={styles.gridName} numberOfLines={2}>
             {item.name}
           </Text>
           <View style={styles.priceBadge}>
-            <Text style={styles.priceText}>
-              €{item.price?.toFixed(2) || '0.00'}
-            </Text>
+            <Text style={styles.priceText}>€{item.price?.toFixed(2) || '0.00'}</Text>
           </View>
         </View>
       </Pressable>
-    );
+      );
+    return <View style={[styles.gridCell, gridCellStyle]}>{card}</View>;
   };
 
   // List product card: inline Extras (Zutaten) + Add butonu veya eski tek tıkla seçim
@@ -201,25 +270,28 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
           onLongPressProduct={onLongPressProduct}
-          getCategoryEmoji={getCategoryEmoji}
         />
       );
     }
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.listCard,
-          pressed && styles.cardPressed,
-        ]}
-        onPress={() => handleProductSelect(item)}
-      >
-        <View style={styles.listThumbnail}>
-          <Text style={styles.listEmoji}>
-            {getCategoryEmoji(item.productCategory || item.category)}
-          </Text>
+        style={({ pressed }) => [styles.listCard, pressed && styles.cardPressed]}
+        onPress={() => {
+          handleProductSelect(item);
+        }}>
+        <View
+          style={[
+            styles.listThumbnail,
+            isCategoryColor(item.categoryColor)
+              ? { backgroundColor: categoryColorTint(item.categoryColor, 0.22) }
+              : null,
+          ]}>
+          <Text style={styles.listEmoji}>{resolveCategoryIcon(item.categoryIcon)}</Text>
         </View>
         <View style={styles.listInfo}>
-          <Text style={styles.listName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.listName} numberOfLines={1}>
+            {item.name}
+          </Text>
           {item.description && (
             <Text style={styles.listDescription} numberOfLines={1}>
               {item.description}
@@ -240,35 +312,35 @@ export const ProductList: React.FC<ProductListProps> = ({
     <View style={styles.viewToggleContainer}>
       <View style={styles.viewToggle} accessibilityRole="tablist">
         <Pressable
-          style={({ pressed, focused }) => [
+          style={({ pressed }) => [
             styles.toggleBtn,
             viewMode === 'list' && styles.toggleBtnActive,
             pressed && SoftState.pressedScale,
-            focused && SoftState.focusVisible,
           ]}
-          onPress={() => setViewMode('list')}
+          onPress={() => {
+            setViewMode('list');
+          }}
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'list' }}
           accessibilityLabel={viewMode === 'list' ? 'Listenansicht, ausgewählt' : 'Listenansicht'}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
             Liste
           </Text>
         </Pressable>
         <Pressable
-          style={({ pressed, focused }) => [
+          style={({ pressed }) => [
             styles.toggleBtn,
             viewMode === 'grid' && styles.toggleBtnActive,
             pressed && SoftState.pressedScale,
-            focused && SoftState.focusVisible,
           ]}
-          onPress={() => setViewMode('grid')}
+          onPress={() => {
+            setViewMode('grid');
+          }}
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'grid' }}
           accessibilityLabel={viewMode === 'grid' ? 'Rasteransicht, ausgewählt' : 'Rasteransicht'}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
             Raster
           </Text>
@@ -278,7 +350,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   );
 
   const renderFooter = () => {
-    if (!cacheLoading) return null;
+    if (!cacheLoading || products.length === 0) return null;
     return (
       <View style={styles.loadingFooter}>
         <WaveLoader size={18} color={SoftColors.accent} />
@@ -287,27 +359,40 @@ export const ProductList: React.FC<ProductListProps> = ({
     );
   };
 
-  if (cacheError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{cacheError}</Text>
-        <Pressable style={styles.retryButton} onPress={() => refreshData()}>
-          <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const listNumColumns = viewMode === 'grid' ? gridColumns : 1;
 
-  const listNumColumns = viewMode === 'grid' ? getGridColumns() : 1;
+  const catalogError = cacheError ? (
+    <View style={styles.errorBanner} testID="pos-catalog-error">
+      <Text style={styles.errorText}>{cacheError}</Text>
+      <Pressable
+        style={styles.retryButton}
+        onPress={() => {
+          refreshData().catch((err: unknown) => {
+            console.error('Error refreshing products:', err);
+          });
+        }}
+        testID="pos-catalog-retry"
+        accessibilityRole="button">
+        <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+      </Pressable>
+    </View>
+  ) : null;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(event) => {
+        const next = Math.round(event.nativeEvent.layout.width);
+        setPaneWidth((prev) => (prev === next ? prev : next));
+      }}>
       <FlatList
+        style={styles.list}
         data={products}
         renderItem={viewMode === 'grid' ? renderGridProduct : renderListProduct}
         keyExtractor={(item) => item.id || Math.random().toString()}
         numColumns={listNumColumns}
         key={`products-${viewMode}-${listNumColumns}`}
+        columnWrapperStyle={listNumColumns > 1 ? styles.gridRow : undefined}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
         contentContainerStyle={[
@@ -327,12 +412,16 @@ export const ProductList: React.FC<ProductListProps> = ({
           <View
             style={styles.listHeaderWrap}
             pointerEvents="box-none"
-            collapsable={Platform.OS === 'android' ? false : undefined}
-          >
-            {ListHeaderComponent}
+            collapsable={Platform.OS === 'android' ? false : undefined}>
+            {typeof ListHeaderComponent === 'function'
+              ? React.createElement(ListHeaderComponent)
+              : ListHeaderComponent}
+            {catalogError}
             <View style={styles.productsSectionHeader}>
               <Text style={styles.stepLabel}>3</Text>
-              <Text style={styles.productsSectionTitle} accessibilityRole="header">Produkte</Text>
+              <Text style={styles.productsSectionTitle} accessibilityRole="header">
+                Produkte
+              </Text>
             </View>
             {renderViewModeToggle()}
           </View>
@@ -344,7 +433,9 @@ export const ProductList: React.FC<ProductListProps> = ({
           </>
         }
         ListEmptyComponent={
-          !cacheLoading ? (
+          cacheLoading && !cacheError ? (
+            <PosListSkeleton testID="pos-product-skeleton" />
+          ) : !cacheLoading && !cacheError ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {searchQuery ? t('noSearchResults') : t('noProductsFound')}
@@ -358,30 +449,13 @@ export const ProductList: React.FC<ProductListProps> = ({
   );
 };
 
-// Helper: category emoji mapping
-const getCategoryEmoji = (category?: string): string => {
-  const map: Record<string, string> = {
-    'Getränke': '🍹',
-    'Speisen': '🍽️',
-    'Desserts': '🍰',
-    'Snacks': '🍿',
-    'Kaffee & Tee': '☕',
-    'Hauptgerichte': '🍛',
-    'Alkoholische Getränke': '🍷',
-    'Suppen': '🥣',
-    'Vorspeisen': '🥗',
-    'Salate': '🥗',
-    'Süßigkeiten': '🍬',
-    'Spezialitäten': '⭐',
-    'Brot & Gebäck': '🥐',
-  };
-  return map[category || ''] || '📦';
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
+  },
+  list: {
+    flex: 1,
   },
   listHeaderWrap: {
     zIndex: 1,
@@ -394,12 +468,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SoftSpacing.sm,
   },
 
+  gridRow: {
+    width: '100%',
+    alignItems: 'stretch',
+  },
+  gridCell: {
+    paddingHorizontal: SoftSpacing.xs,
+    paddingBottom: SoftSpacing.xs,
+  },
   // Grid Card
   gridCard: {
-    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.xl,
-    margin: SoftSpacing.xs,
     overflow: 'hidden',
     ...SoftShadows.sm,
   },
@@ -571,12 +653,10 @@ const styles = StyleSheet.create({
     marginLeft: SoftSpacing.sm,
     color: SoftColors.textMuted,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  errorBanner: {
     alignItems: 'center',
-    padding: SoftSpacing.xxl,
-    backgroundColor: SoftColors.bgPrimary,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
   },
   errorText: {
     ...SoftTypography.body,
@@ -606,4 +686,4 @@ const styles = StyleSheet.create({
     color: SoftColors.textMuted,
     textAlign: 'center',
   },
-}); 
+});

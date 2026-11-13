@@ -50,7 +50,11 @@ async function updateProfile(payload: UpdateProfilePayload): Promise<UpdateProfi
 }
 
 export function useProfile() {
-  const isBrowser = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isBrowser = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   const hasCredentials = isBrowser && authStorage.hasToken();
 
   return useQuery({

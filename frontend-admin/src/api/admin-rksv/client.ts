@@ -1,23 +1,35 @@
-import { listCashRegistersByTenant } from '@/features/cash-registers/api/cashRegisters';
-import type {
-  GetApiAdminFiscalExportParams,
-} from '@/api/generated/model';
+import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
+import { listAdminCashRegisters } from '@/features/cash-registers/api/cashRegisters';
 import type {
   RksvComplianceReport,
   RksvComplianceReportQueryParams,
 } from '@/features/rksv/compliance/types';
+import { normalizeRksvBackendEnvironment } from '@/features/rksv/normalizeRksvBackendEnvironment';
+import type { RksvBackendEnvironmentStatus } from '@/features/rksv/types/rksvBackendEnvironment';
+import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import {
-  normalizeCashRegisterListBody,
-  type CashRegisterRow,
-} from '@/features/tagesabschluss/normalizers';
+
+/**
+ * GET /api/rksv/environment — rich RKSV snapshot (Demo/Production, ShowDemoLabel, FON sim, production lock).
+ * Do not use slim GET /api/rksv/status here; it omits lock/host fields used by FA banners.
+ */
+export async function getRksvBackendEnvironment(
+  signal?: AbortSignal
+): Promise<RksvBackendEnvironmentStatus> {
+  const response = await AXIOS_INSTANCE.get<unknown>('/api/rksv/environment', { signal });
+  const normalized = normalizeRksvBackendEnvironment(response.data);
+  if (!normalized) {
+    throw new Error('RKSV environment response was empty or invalid');
+  }
+  return normalized;
+}
 
 /** Must match backend FiscalExportDisclaimerHeaders — export requests fail without acknowledgment when required. */
 export const FISCAL_EXPORT_DISCLAIMER_ACK_HEADER = 'X-Disclaimer-Acknowledged';
 export const FISCAL_EXPORT_DISCLAIMER_ACK_VALUE = 'true';
 
 export function fiscalExportDisclaimerAckHeaders(): Record<string, string> {
-    return { [FISCAL_EXPORT_DISCLAIMER_ACK_HEADER]: FISCAL_EXPORT_DISCLAIMER_ACK_VALUE };
+  return { [FISCAL_EXPORT_DISCLAIMER_ACK_HEADER]: FISCAL_EXPORT_DISCLAIMER_ACK_VALUE };
 }
 
 /**
@@ -27,9 +39,14 @@ export function fiscalExportDisclaimerAckHeaders(): Record<string, string> {
  * - If an endpoint is available in `@/api/generated/*`, call it directly from the page/hook layer.
  * - Every new manual wrapper must include a short WHY comment and a removal condition.
  */
+/** Canonical admin register list for RKSV pickers (JWT tenant scope). */
 export async function getAdminCashRegisters(): Promise<CashRegisterRow[]> {
-  const response = await listCashRegistersByTenant();
-  return normalizeCashRegisterListBody(response);
+  const page = await listAdminCashRegisters({ page: 1, pageSize: 200 });
+  return page.items.map((register) => ({
+    id: register.id,
+    registerNumber: register.registerNumber,
+    location: register.location,
+  }));
 }
 
 export function downloadOfflinePayloadHashExportCsv(params: {
@@ -67,7 +84,9 @@ export function getFiscalExportPreview(params: GetApiAdminFiscalExportParams) {
   }).then((response) => unwrapFiscalExportEnvelope(response.data));
 }
 
-export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportParams): Promise<Blob> {
+export async function downloadFiscalExportJson(
+  params: GetApiAdminFiscalExportParams
+): Promise<Blob> {
   const response = await AXIOS_INSTANCE.get<Blob>('/api/admin/fiscal-export', {
     params: { ...params, format: 'jsonDownload' },
     responseType: 'blob',
@@ -81,7 +100,7 @@ export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportPa
  * Removal: regenerate client after swagger exposes `RksvComplianceReportDto` as JSON 200.
  */
 export function getRksvComplianceReportJson(
-  params?: RksvComplianceReportQueryParams,
+  params?: RksvComplianceReportQueryParams
 ): Promise<RksvComplianceReport> {
   return AXIOS_INSTANCE.get<RksvComplianceReport>('/api/admin/rksv/compliance-report', {
     params: { ...params, format: 'json' },
@@ -89,7 +108,7 @@ export function getRksvComplianceReportJson(
 }
 
 export async function downloadRksvComplianceReportPdf(
-  params?: RksvComplianceReportQueryParams,
+  params?: RksvComplianceReportQueryParams
 ): Promise<Blob> {
   const response = await AXIOS_INSTANCE.get<Blob>('/api/admin/rksv/compliance-report', {
     params: { ...params, format: 'pdf' },

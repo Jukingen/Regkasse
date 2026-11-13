@@ -25,7 +25,9 @@ public class RksvSchlussbelegServiceTests
             .UseInMemoryDatabase($"Schlussbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -51,7 +53,7 @@ public class RksvSchlussbelegServiceTests
             tseMock.Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         return new RksvSpecialReceiptService(
             context,
@@ -63,7 +65,10 @@ public class RksvSchlussbelegServiceTests
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
-            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object),
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IOptionsMonitor<FinanzOnlineModeOptions>>(o => o.CurrentValue == new FinanzOnlineModeOptions { Mode = "Test" }),
+            Mock.Of<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>(o => o.CurrentValue == new FinanzOnlineCutoverGuardOptions()));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<ITseService> Tse, Mock<IReceiptSequenceService> Seq)> SeedAsync(
@@ -71,7 +76,7 @@ public class RksvSchlussbelegServiceTests
         RegisterStatus status,
         string? currentUserId = null)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -83,7 +88,7 @@ public class RksvSchlussbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -107,7 +112,7 @@ public class RksvSchlussbelegServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<string?>(),
                 It.IsAny<IDbContextTransaction?>()))
-            .ReturnsAsync(new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.schluss", "chain-prev-schluss"));
+            .ReturnsAsync(new TseSignatureResult(RksvTestSignatures.CreateDemoCompactJws(), "chain-prev-schluss"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 

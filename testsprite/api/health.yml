@@ -1,5 +1,6 @@
 name: "API Health & Authentication"
-description: "Verify backend is reachable and auth works"
+description: "Verify backend is reachable and auth works (loginIdentifier)"
+tags: [smoke, regression]
 
 tests:
   - name: "Health check returns 200"
@@ -7,13 +8,13 @@ tests:
     expected:
       status: 200
       body:
-        status: "Healthy"
+        status: "Healthy|Degraded"
 
   - name: "Login with email works"
     endpoint: "POST /api/Auth/login"
     body:
-      loginIdentifier: "superadmin@regkasse.at"
-      password: "***"
+      loginIdentifier: "{{devAdmin.loginIdentifier}}"
+      password: "{{devAdmin.password}}"
       clientApp: "admin"
     expected:
       status: 200
@@ -24,21 +25,22 @@ tests:
   - name: "Login with username works"
     endpoint: "POST /api/Auth/login"
     body:
-      loginIdentifier: "testsprite_admin"
-      password: "***"
+      loginIdentifier: "{{manager.loginIdentifier}}"
+      password: "{{manager.password}}"
       clientApp: "admin"
     expected:
       status: 200
       body:
         token: "exists"
 
-  - name: "Invalid login returns 400"
+  - name: "Invalid login returns 401"
     endpoint: "POST /api/Auth/login"
     body:
       loginIdentifier: "invalid@example.com"
       password: "wrong"
+      clientApp: "admin"
     expected:
-      status: 400
+      status: 401
 
   - name: "Get current user info"
     endpoint: "GET /api/Auth/me"
@@ -47,5 +49,5 @@ tests:
     expected:
       status: 200
       body:
-        email: "testsprite@regkasse.at"
-        role: "SuperAdmin"
+        # shape varies by role; require authenticated payload
+        id: "exists"

@@ -1,23 +1,24 @@
 // POS table tile — touch-friendly card; selection uses border + fill, not focus ring.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Platform,
-  type ViewStyle,
-} from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, type ViewStyle } from 'react-native';
 
-import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
+import {
+  SoftColors,
+  SoftShadows,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
-/** Web-only: no default browser focus outline on these tiles (semantic styles show selection). */
+/**
+ * Web-only: suppress default browser outline; keyboard focus uses {@link styles.tileKeyboardFocus}.
+ * Pointer/touch selection still uses border + fill (tileSelected), not the focus ring.
+ */
 export const webTablePressableOutlineOff: ViewStyle =
-  Platform.OS === 'web'
-    ? ({ outlineStyle: 'none', outlineWidth: 0 } as unknown as ViewStyle)
-    : {};
+  Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as unknown as ViewStyle) : {};
 
 export interface TableSelectorTileProps {
   tableNumber: number;
@@ -25,6 +26,8 @@ export interface TableSelectorTileProps {
   isSelected: boolean;
   isLoading: boolean;
   onPress: () => void;
+  /** Smaller tile for the desktop order column. */
+  compact?: boolean;
 }
 
 export function TableSelectorTile({
@@ -33,6 +36,7 @@ export function TableSelectorTile({
   isSelected,
   isLoading,
   onPress,
+  compact = false,
 }: TableSelectorTileProps) {
   const { t } = useTranslation(['checkout']);
   const hasItems = itemCount > 0;
@@ -46,32 +50,35 @@ export function TableSelectorTile({
 
   return (
     <Pressable
-      style={({ pressed }) => [
+      style={(state) => [
         styles.tile,
+        compact && styles.tileCompact,
         webTablePressableOutlineOff,
         !isSelected && !hasItems && styles.tileFree,
         !isSelected && hasItems && styles.tileOccupied,
         isSelected && styles.tileSelected,
         isLoading && styles.tileDisabled,
-        pressed && !isLoading && styles.tilePressed,
+        state.pressed && !isLoading && styles.tilePressed,
+        // RN Web: hover affordance for mouse; (state as { focused?: boolean }).focused for Tab keyboard navigation
+        Platform.OS === 'web' && (state as { hovered?: boolean }).hovered && !state.pressed && !isLoading && styles.tileHovered,
+        Platform.OS === 'web' && (state as { focused?: boolean }).focused && !isLoading && styles.tileKeyboardFocus,
       ]}
       onPress={onPress}
       disabled={isLoading}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      accessibilityState={{ selected: isSelected, disabled: isLoading }}
-    >
-      <View style={styles.inner} pointerEvents="none">
+      accessibilityState={{ selected: isSelected, disabled: isLoading }}>
+      <View style={[styles.inner, compact && styles.innerCompact]} pointerEvents="none">
         <Text
           style={[
             styles.number,
+            compact && styles.numberCompact,
             !isSelected && !hasItems && styles.numberFree,
             !isSelected && hasItems && styles.numberOccupied,
             isSelected && styles.numberSelected,
           ]}
-          maxFontSizeMultiplier={1.4}
-        >
+          maxFontSizeMultiplier={1.4}>
           {tableNumber}
         </Text>
         <Text
@@ -83,17 +90,13 @@ export function TableSelectorTile({
             isSelected && !hasItems && styles.statusSelectedFree,
           ]}
           numberOfLines={1}
-          maxFontSizeMultiplier={1.2}
-        >
+          maxFontSizeMultiplier={1.2}>
           {statusLabel}
         </Text>
 
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <WaveLoader
-              size={18}
-              color={isSelected ? SoftColors.accentDark : SoftColors.accent}
-            />
+            <WaveLoader size={18} color={isSelected ? SoftColors.accentDark : SoftColors.accent} />
           </View>
         )}
 
@@ -119,6 +122,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...SoftShadows.sm,
   },
+  tileCompact: {
+    width: 64,
+    minHeight: 56,
+    marginRight: 0,
+  },
   tileFree: {
     backgroundColor: SoftColors.bgCard,
     borderWidth: 1,
@@ -141,6 +149,17 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   tilePressed: SoftState.pressedScale,
+  tileHovered: {
+    opacity: 0.92,
+  },
+  /** Keyboard focus ring (web) — distinct from selection fill. */
+  tileKeyboardFocus: {
+    borderWidth: 2,
+    borderColor: SoftColors.accent,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: `0 0 0 3px ${SoftColors.accentLight}` } as ViewStyle)
+      : {}),
+  },
   inner: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -149,11 +168,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     minHeight: TILE_H - 4,
   },
+  innerCompact: {
+    minHeight: 52,
+    paddingVertical: 4,
+  },
   number: {
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
     lineHeight: 28,
+  },
+  numberCompact: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   numberFree: {
     color: SoftColors.textPrimary,
@@ -184,7 +211,7 @@ const styles = StyleSheet.create({
     color: SoftColors.success,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: SoftRadius.lg,

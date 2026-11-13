@@ -1,23 +1,62 @@
 'use client';
 
 /**
- * Admin products API – all calls use /api/admin/products (legacy api/Product is not used).
+ * Admin products API – all calls use /api/admin/products (/api/Product alias was removed).
  * PUT update: safe parsing workaround when backend returns huge graphs (avoid JSON cycle / network error).
  */
+import type {
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { customInstance, AXIOS_INSTANCE } from '@/lib/axios';
-import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+
 import type { Product } from '@/api/generated/model';
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import type { ModifierGroupDto } from '@/lib/api/modifierGroups';
+import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
+import { mapUiProductToApi } from '@/features/products/utils/productMapper';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 
 const ADMIN_PRODUCTS = '/api/admin/products';
 
 /** Shallow keys only – never store categoryNavigation, modifierGroupAssignments, or any nested graph in cache. */
 const SHALLOW_PRODUCT_KEYS = [
-  'id', 'name', 'price', 'description', 'barcode', 'categoryId', 'category', 'taxType', 'taxRate',
-  'isActive', 'unit', 'stockQuantity', 'minStockLevel', 'cost', 'imageUrl',
-  'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
-  'isFiscalCompliant', 'isTaxable', 'fiscalCategoryCode', 'taxExemptionReason', 'rksvProductType',
+  'id',
+  'name',
+  'nameDe',
+  'nameEn',
+  'nameTr',
+  'price',
+  'description',
+  'descriptionDe',
+  'descriptionEn',
+  'descriptionTr',
+  'barcode',
+  'categoryId',
+  'category',
+  'taxType',
+  'taxRate',
+  'isActive',
+  'unit',
+  'stockQuantity',
+  'minStockLevel',
+  'cost',
+  'durationMinutes',
+  'staffId',
+  'imageUrl',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'isFiscalCompliant',
+  'isTaxable',
+  'fiscalCategoryCode',
+  'taxExemptionReason',
+  'rksvProductType',
 ] as const;
 
 function pickShallowProduct(obj: unknown): Partial<Product> | null {
@@ -34,14 +73,17 @@ function pickShallowProduct(obj: unknown): Partial<Product> | null {
   return Object.keys(out).length ? (out as Partial<Product>) : null;
 }
 
-export type UpdateProductResult = { success: true; product?: Partial<Product>; fromPayload?: boolean };
-
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
+export type UpdateProductResult = {
+  success: true;
+  product?: Partial<Product>;
+  fromPayload?: boolean;
+};
 
 /** Omit or 'true': active only (API default). 'false': inactive only. 'all': both. */
 export type AdminProductsListIsActiveParam = 'true' | 'false' | 'all';
 
-export type AdminProductsStockStatusParam = 'InStock' | 'OutOfStock' | 'LowStock' | 'Overstock' | 'All';
+export type AdminProductsStockStatusParam =
+  'InStock' | 'OutOfStock' | 'LowStock' | 'Overstock' | 'All';
 
 export interface AdminProductsListParams {
   pageNumber?: number;
@@ -69,14 +111,14 @@ export interface AdminProductsListParams {
 }
 
 export interface ProductFilterSummaryResponse {
-    activeFilterCount?: number;
-    appliedFilters?: Record<string, unknown>;
-    availableTaxTypes?: number[];
+  activeFilterCount?: number;
+  appliedFilters?: Record<string, unknown>;
+  availableTaxTypes?: number[];
 }
 
 export interface ProductAvailableFiltersResponse {
-    taxTypes?: number[];
-    categories?: Array<{ id: string; name: string }>;
+  taxTypes?: number[];
+  categories?: Array<{ id: string; name: string }>;
 }
 
 export interface AdminProductsListResponse {
@@ -89,11 +131,6 @@ export interface AdminProductsListResponse {
   };
   activeFilters?: ProductFilterSummaryResponse;
   availableFilters?: ProductAvailableFiltersResponse;
-}
-
-function unwrapData<T>(res: any): T {
-  if (res?.data !== undefined) return res.data as T;
-  return res as T;
 }
 
 /** Builds GET query object for list endpoint (stable contract for tests and axios). */
@@ -147,17 +184,66 @@ export function getAdminProductsList(
   ).then((res) => unwrapData(res) as AdminProductsListResponse);
 }
 
-export function getAdminProductById(id: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal): Promise<Product> {
-  return customInstance<Product>({ url: `${ADMIN_PRODUCTS}/${id}`, method: 'GET', signal }, options).then((res) => unwrapData(res) as Product);
+export function getAdminProductById(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<Product> {
+  return customInstance<Product>(
+    { url: `${ADMIN_PRODUCTS}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData(res) as Product);
 }
 
-export function createAdminProduct(data: Product, options?: SecondParameter<typeof customInstance>): Promise<{ id?: string } & Product> {
-  return customInstance<{ id?: string } & Product>({ url: ADMIN_PRODUCTS, method: 'POST', headers: { 'Content-Type': 'application/json' }, data }, options).then((res) => unwrapData(res) as { id?: string } & Product);
+export function createAdminProduct(
+  data: Product,
+  options?: SecondParameter<typeof customInstance>
+): Promise<{ id?: string } & Product> {
+  const payload = prepareAdminProductWritePayload(data);
+  return customInstance<{ id?: string } & Product>(
+    {
+      url: ADMIN_PRODUCTS,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: payload,
+    },
+    options
+  ).then((res) => unwrapData(res) as { id?: string } & Product);
+}
+
+/** Normalizes UI/form product into a stable admin write payload (canonical description never null/undefined). */
+export function prepareAdminProductWritePayload(
+  data: Product & { categoryId?: string; category?: string },
+  id?: string
+): Record<string, unknown> {
+  const payload = mapUiProductToApi(data);
+  if (id) payload.id = id;
+  else if (data.id) payload.id = data.id;
+  if (payload.description === undefined || payload.description === null) {
+    payload.description = '';
+  }
+  if (payload.barcode === undefined || payload.barcode === null) {
+    payload.barcode = '';
+  }
+  return payload;
 }
 
 /** Raw PUT – use updateAdminProductSafe for safe parsing and no giant graph in cache. */
-export function updateAdminProduct(id: string, data: Product, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<void>({ url: `${ADMIN_PRODUCTS}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
+export function updateAdminProduct(
+  id: string,
+  data: Product,
+  options?: SecondParameter<typeof customInstance>
+) {
+  const payload = prepareAdminProductWritePayload(data, id);
+  return customInstance<void>(
+    {
+      url: `${ADMIN_PRODUCTS}/${id}`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: payload,
+    },
+    options
+  );
 }
 
 /**
@@ -169,23 +255,28 @@ export async function updateAdminProductSafe(
   data: Product,
   submittedPayload?: Partial<Product>
 ): Promise<UpdateProductResult> {
+  const payload = prepareAdminProductWritePayload(
+    data as Product & { categoryId?: string; category?: string },
+    id
+  );
+  const cachePayload = (submittedPayload ?? payload) as Partial<Product>;
   try {
     const res = await AXIOS_INSTANCE.request({
       url: `${ADMIN_PRODUCTS}/${id}`,
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      data,
+      data: payload,
     });
     if (res.status === 200 || res.status === 204) {
       const shallow = pickShallowProduct(res.data);
       if (shallow) return { success: true, product: shallow };
-      return { success: true, product: submittedPayload ?? undefined, fromPayload: true };
+      return { success: true, product: cachePayload, fromPayload: true };
     }
     throw new Error(res.status ? `HTTP ${res.status}` : 'Update failed');
-  } catch (err: any) {
-    const status = err?.response?.status;
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === 200 || status === 204) {
-      return { success: true, product: submittedPayload ?? undefined, fromPayload: true };
+      return { success: true, product: cachePayload, fromPayload: true };
     }
     throw err;
   }
@@ -211,7 +302,7 @@ export type DeactivateAllAdminProductsResult = {
 
 export function bulkDeactivateAdminProducts(
   productIds: string[],
-  options?: SecondParameter<typeof customInstance>,
+  options?: SecondParameter<typeof customInstance>
 ) {
   return customInstance<BulkDeactivateAdminProductsResult>(
     {
@@ -220,13 +311,13 @@ export function bulkDeactivateAdminProducts(
       headers: { 'Content-Type': 'application/json' },
       data: { productIds },
     },
-    options,
-  ).then(unwrapData);
+    options
+  ).then((res) => unwrapData(res) as BulkDeactivateAdminProductsResult);
 }
 
 export function deactivateAllAdminProducts(
   confirmPhrase: string = DEACTIVATE_ALL_PRODUCTS_CONFIRM_PHRASE,
-  options?: SecondParameter<typeof customInstance>,
+  options?: SecondParameter<typeof customInstance>
 ) {
   return customInstance<DeactivateAllAdminProductsResult>(
     {
@@ -235,8 +326,8 @@ export function deactivateAllAdminProducts(
       headers: { 'Content-Type': 'application/json' },
       data: { confirmPhrase },
     },
-    options,
-  ).then(unwrapData);
+    options
+  ).then((res) => unwrapData(res) as DeactivateAllAdminProductsResult);
 }
 
 export const DEV_PURGE_CATALOG_CONFIRM_PHRASE = 'DEV-PURGE-CATALOG';
@@ -258,7 +349,7 @@ export type DevPurgeAdminCatalogRequest = {
 
 export function devPurgeAdminCatalog(
   request: DevPurgeAdminCatalogRequest,
-  options?: SecondParameter<typeof customInstance>,
+  options?: SecondParameter<typeof customInstance>
 ) {
   return customInstance<DevPurgeAdminCatalogResult>(
     {
@@ -272,17 +363,33 @@ export function devPurgeAdminCatalog(
         confirmPhrase: request.confirmPhrase,
       },
     },
-    options,
-  ).then(unwrapData);
+    options
+  ).then((res) => unwrapData(res) as DevPurgeAdminCatalogResult);
 }
 
-export function getAdminProductModifierGroups(productId: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<any>({ url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminProductModifierGroups(
+  productId: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<ModifierGroupDto[]> {
+  return customInstance<ModifierGroupDto[]>(
+    { url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<ModifierGroupDto[]>(res));
 }
 
-export function setAdminProductModifierGroups(productId: string, modifierGroupIds: string[], options?: SecondParameter<typeof customInstance>) {
+export function setAdminProductModifierGroups(
+  productId: string,
+  modifierGroupIds: string[],
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<void>(
-    { url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: { modifierGroupIds } },
+    {
+      url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { modifierGroupIds },
+    },
     options
   );
 }
@@ -292,7 +399,10 @@ export function searchAdminProducts(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<Product[]> {
-  return customInstance<Product[]>({ url: `${ADMIN_PRODUCTS}/search`, method: 'GET', params, signal }, options).then((res) => unwrapData(res) as Product[]);
+  return customInstance<Product[]>(
+    { url: `${ADMIN_PRODUCTS}/search`, method: 'GET', params, signal },
+    options
+  ).then((res) => unwrapData(res) as Product[]);
 }
 
 export function updateAdminProductStock(
@@ -300,7 +410,15 @@ export function updateAdminProductStock(
   data: { quantity: number },
   options?: SecondParameter<typeof customInstance>
 ) {
-  return customInstance<void>({ url: `${ADMIN_PRODUCTS}/stock/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
+  return customInstance<void>(
+    {
+      url: `${ADMIN_PRODUCTS}/stock/${id}`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+    options
+  );
 }
 
 const MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -333,8 +451,7 @@ export async function uploadAdminProductImage(
   });
   const payload = res.data as { data?: { imageUrl?: string }; Data?: { ImageUrl?: string } };
   const url =
-    payload?.data?.imageUrl ??
-    (payload as { Data?: { ImageUrl?: string } })?.Data?.ImageUrl;
+    payload?.data?.imageUrl ?? (payload as { Data?: { ImageUrl?: string } })?.Data?.ImageUrl;
   if (!url || typeof url !== 'string') {
     throw new Error('MISSING_IMAGE_URL');
   }
@@ -344,13 +461,16 @@ export async function uploadAdminProductImage(
 export { MAX_PRODUCT_IMAGE_BYTES };
 
 export const adminProductsQueryKeys = {
-  all: (tenantSlug: string) => ['admin', 'products', tenantSlug] as const,
-  lists: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'list'] as const,
-  list: (tenantSlug: string, params?: AdminProductsListParams) =>
+  all: (tenantSlug: string | null | undefined) => ['admin', 'products', tenantSlug ?? ''] as const,
+  lists: (tenantSlug: string | null | undefined) =>
+    [...adminProductsQueryKeys.all(tenantSlug), 'list'] as const,
+  list: (tenantSlug: string | null | undefined, params?: AdminProductsListParams) =>
     [...adminProductsQueryKeys.lists(tenantSlug), params] as const,
-  details: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'detail'] as const,
-  detail: (tenantSlug: string, id: string) => [...adminProductsQueryKeys.details(tenantSlug), id] as const,
-  search: (tenantSlug: string, params: { name?: string }) =>
+  details: (tenantSlug: string | null | undefined) =>
+    [...adminProductsQueryKeys.all(tenantSlug), 'detail'] as const,
+  detail: (tenantSlug: string | null | undefined, id: string) =>
+    [...adminProductsQueryKeys.details(tenantSlug), id] as const,
+  search: (tenantSlug: string | null | undefined, params: { name?: string }) =>
     [...adminProductsQueryKeys.all(tenantSlug), 'search', params] as const,
 };
 
@@ -443,7 +563,9 @@ export function useUpdateAdminProduct(
   });
 }
 
-export function useDeleteAdminProduct(opts?: UseMutationOptions<void, Error, { id: string }>): UseMutationResult<void, Error, { id: string }> {
+export function useDeleteAdminProduct(
+  opts?: UseMutationOptions<void, Error, { id: string }>
+): UseMutationResult<void, Error, { id: string }> {
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
   return useMutation({
@@ -454,7 +576,7 @@ export function useDeleteAdminProduct(opts?: UseMutationOptions<void, Error, { i
 }
 
 export function useBulkDeactivateAdminProducts(
-  opts?: UseMutationOptions<BulkDeactivateAdminProductsResult, Error, { productIds: string[] }>,
+  opts?: UseMutationOptions<BulkDeactivateAdminProductsResult, Error, { productIds: string[] }>
 ): UseMutationResult<BulkDeactivateAdminProductsResult, Error, { productIds: string[] }> {
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
@@ -466,7 +588,7 @@ export function useBulkDeactivateAdminProducts(
 }
 
 export function useDeactivateAllAdminProducts(
-  opts?: UseMutationOptions<DeactivateAllAdminProductsResult, Error, void>,
+  opts?: UseMutationOptions<DeactivateAllAdminProductsResult, Error, void>
 ): UseMutationResult<DeactivateAllAdminProductsResult, Error, void> {
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
@@ -478,7 +600,7 @@ export function useDeactivateAllAdminProducts(
 }
 
 export function useDevPurgeAdminCatalog(
-  opts?: UseMutationOptions<DevPurgeAdminCatalogResult, Error, DevPurgeAdminCatalogRequest>,
+  opts?: UseMutationOptions<DevPurgeAdminCatalogResult, Error, DevPurgeAdminCatalogRequest>
 ): UseMutationResult<DevPurgeAdminCatalogResult, Error, DevPurgeAdminCatalogRequest> {
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
@@ -495,7 +617,8 @@ export function useSetAdminProductModifierGroups(
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
   return useMutation({
-    mutationFn: ({ productId, modifierGroupIds }) => setAdminProductModifierGroups(productId, modifierGroupIds),
+    mutationFn: ({ productId, modifierGroupIds }) =>
+      setAdminProductModifierGroups(productId, modifierGroupIds),
     onSuccess: (_, { productId }) =>
       qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(tenantSlug, productId) }),
     ...opts,
@@ -580,18 +703,18 @@ export type DemoImportCatalog = {
 /** Demo menu catalog for import selection UI. */
 export function getDemoImportCatalog(
   options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<DemoImportCatalog> {
   return customInstance<DemoImportCatalog>(
     { url: `${ADMIN_PRODUCTS}/demo/catalog`, method: 'GET', signal },
-    options,
+    options
   ).then((res) => unwrapData<DemoImportCatalog>(res));
 }
 
 /** Import demo menu for the current tenant (JWT / dev tenant context). */
 export function importDemoProducts(
   request: DemoImportRequest = {},
-  options?: SecondParameter<typeof customInstance>,
+  options?: SecondParameter<typeof customInstance>
 ): Promise<DemoProductImportResult> {
   return customInstance<DemoProductImportResult>(
     {
@@ -600,6 +723,29 @@ export function importDemoProducts(
       headers: { 'Content-Type': 'application/json' },
       data: request,
     },
-    options,
+    options
   ).then((res) => unwrapData<DemoProductImportResult>(res));
+}
+
+export type AdminProductExportFormat = 'csv' | 'json';
+
+/** Download product catalog export; prefers Content-Disposition filename from the API. */
+export async function downloadAdminProductExport(
+  format: AdminProductExportFormat,
+  options?: { isActive?: boolean }
+): Promise<void> {
+  const res = await AXIOS_INSTANCE.get<Blob>(`${ADMIN_PRODUCTS}/export`, {
+    params: { format, isActive: options?.isActive },
+    responseType: 'blob',
+  });
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const fileName =
+    match?.[1] ?? buildProductExportFileName(getEffectiveTenantSlug(), format);
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
 }

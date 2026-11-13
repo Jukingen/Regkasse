@@ -4,10 +4,11 @@
  * Legal Compliance profile (or frozen Periodenbericht context): shows backend legal-export-completeness.
  * OperationalPreview / DiagnosticPackage do not use this gate (no query).
  */
-import { Alert, Spin, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { AXIOS_INSTANCE } from '@/lib/axios';
+import { Alert, Spin, Typography } from 'antd';
+
 import { useI18n } from '@/i18n/I18nProvider';
+import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 export type LegalExportCompletenessResult = {
@@ -33,7 +34,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
     queryKey: ['legal-export-completeness', reportKind, reportId],
     queryFn: async () => {
       const { data } = await AXIOS_INSTANCE.get<LegalExportCompletenessResult>(
-        `/api/reports/legal-export-completeness/${reportKind}/${reportId}`,
+        `/api/reports/legal-export-completeness/${reportKind}/${reportId}`
       );
       return data;
     },
@@ -45,7 +46,9 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
     return (
       <div style={{ marginTop: 8 }}>
         <Spin size="small" />{' '}
-        <Typography.Text type="secondary">{t('reporting.legalExportCompleteness.loading')}</Typography.Text>
+        <Typography.Text type="secondary">
+          {t('reporting.legalExportCompleteness.loading')}
+        </Typography.Text>
       </div>
     );
   }
@@ -73,7 +76,8 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
     );
   }
 
-  const alertType = gate === 'blocked' ? 'error' : gate === 'allowed_with_warnings' ? 'warning' : 'success';
+  const alertType =
+    gate === 'blocked' ? 'error' : gate === 'allowed_with_warnings' ? 'warning' : 'success';
   const title =
     gate === 'blocked'
       ? t('reporting.legalExportCompleteness.titleBlocked')

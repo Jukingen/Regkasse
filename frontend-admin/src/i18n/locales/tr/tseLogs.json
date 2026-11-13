@@ -1,0 +1,28 @@
+{
+  "title": "TSE logları",
+  "subtitle": "Activity, failover, olay ve health probe kaynaklarından merkezi TSE operasyonel log toplama.",
+  "emptySelect": "TSE loglarını görmek için kiracı seçin.",
+  "forbidden": "Bu sayfayı görüntüleme izniniz yok.",
+  "refresh": "Yenile",
+  "errors": "Hatalar",
+  "warnings": "Uyarılar",
+  "info": "Bilgi",
+  "filters": {
+    "dateRange": "Tarih aralığı",
+    "level": "Seviye",
+    "source": "Kaynak"
+  },
+  "table": {
+    "time": "Zaman",
+    "level": "Seviye",
+    "source": "Kaynak",
+    "message": "İleti"
+  },
+  "aggregate": {
+    "title": "Özet",
+    "count": "Adet",
+    "errorRate": "Hata oranı"
+  },
+  "empty": "Filtrelerle eşleşen log yok.",
+  "error": "Loglar yüklenemedi."
+}

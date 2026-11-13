@@ -1,5 +1,5 @@
 /** @deprecated Import from `@/components/admin-layout/LicenseStatusIndicator` */
 export {
-    LicenseStatusIndicator,
-    LicenseStatusBadge,
+  LicenseStatusBadge,
+  LicenseStatusIndicator,
 } from '@/components/admin-layout/LicenseStatusIndicator';

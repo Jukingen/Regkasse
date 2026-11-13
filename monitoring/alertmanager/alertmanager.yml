@@ -1,0 +1,16 @@
+# Placeholder — null receiver so local compose does not spam Slack/email.
+# Production: render alertmanager.yml.example (see render-alertmanager-config.ps1)
+# and mount the host-only file. Never commit webhooks or SMTP passwords.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: null
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+receivers:
+  - name: 'null'

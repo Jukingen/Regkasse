@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -41,15 +40,19 @@ namespace KasseAPI_Final.Models
         public int TaxType { get; set; } = 1; // 1: Standard, 2: Reduced, etc.
 
         [Column("description")]
+        [MaxLength(2000)]
         public string? Description { get; set; }
 
         [Column("description_de")]
+        [MaxLength(2000)]
         public string? DescriptionDe { get; set; }
 
         [Column("description_en")]
+        [MaxLength(2000)]
         public string? DescriptionEn { get; set; }
 
         [Column("description_tr")]
+        [MaxLength(2000)]
         public string? DescriptionTr { get; set; }
 
         [Required]
@@ -58,6 +61,7 @@ namespace KasseAPI_Final.Models
         public string Category { get; set; } = string.Empty;
 
         [Column("image_url")]
+        [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
         [Required]
@@ -79,6 +83,34 @@ namespace KasseAPI_Final.Models
         [MaxLength(20)]
         public string Unit { get; set; } = string.Empty;
 
+        /// <summary>Optional service duration used by appointment-oriented verticals.</summary>
+        [Column("duration_minutes")]
+        [Range(1, 1440)]
+        public int? DurationMinutes { get; set; }
+
+        /// <summary>
+        /// Optional default staff Identity id for this service. Kept as a scalar reference:
+        /// staff membership/tenant authorization is resolved at booking time.
+        /// </summary>
+        [Column("staff_id")]
+        [MaxLength(450)]
+        public string? StaffId { get; set; }
+
+        /// <summary>When true, each sold unit must pick a unique IMEI from <see cref="Imeis"/>.</summary>
+        [Column("imei_tracked")]
+        public bool ImeiTracked { get; set; }
+
+        /// <summary>When true, a ticket-sales sale issues a redeemable ticket code (hash stored only).</summary>
+        [Column("is_ticket")]
+        public bool IsTicket { get; set; }
+
+        /// <summary>
+        /// When true, a sale of this product needs a prescription reference.
+        /// Enforced only by <c>prescription_required</c> when that extension is enabled.
+        /// </summary>
+        [Column("requires_prescription")]
+        public bool RequiresPrescription { get; set; }
+
         [Column("cost")]
         [Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative")]
         public decimal Cost { get; set; }
@@ -87,16 +119,23 @@ namespace KasseAPI_Final.Models
         [Range(0, 100, ErrorMessage = "Tax rate must be between 0 and 100")]
         public decimal TaxRate { get; set; }
 
-        [Required]
+        /// <summary>FK to tenant <see cref="TaxGroup"/> catalog; drives <see cref="TaxRate"/> / <see cref="TaxType"/>.</summary>
+        [Column("tax_group_id")]
+        public Guid TaxGroupId { get; set; }
+
+        /// <summary>Optional retail lookup code. Not part of RKSV, TSE, or DEP.</summary>
         [Column("barcode")]
-        [MaxLength(50)]
-        public string Barcode { get; set; } = string.Empty;
+        [MaxLength(64)]
+        public string? Barcode { get; set; }
 
         [Column("category_id")]
         public Guid CategoryId { get; set; }
 
         /// <summary>Kategori adı (gösterim için; Category navigation'dan senkron tutulur).</summary>
         public virtual Category? CategoryNavigation { get; set; }
+
+        [ForeignKey(nameof(TaxGroupId))]
+        public virtual TaxGroup? TaxGroup { get; set; }
 
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }
@@ -124,11 +163,38 @@ namespace KasseAPI_Final.Models
         [Column("is_sellable_addon")]
         public bool IsSellableAddOn { get; set; }
 
+        /// <summary>
+        /// Catalog version number for RKSV-safe supersession (1 = original).
+        /// When a product with fiscal sales history gets a price/tax change, a new product row is created
+        /// with <c>Version = previous + 1</c> and the old row is archived.
+        /// </summary>
+        [Column("version")]
+        public int Version { get; set; } = 1;
+
+        /// <summary>Immediate predecessor product id when this row was created via catalog versioning.</summary>
+        [Column("original_product_id")]
+        public Guid? OriginalProductId { get; set; }
+
+        /// <summary>UTC timestamp when the product was archived after being superseded by a newer catalog version.</summary>
+        [Column("archived_at")]
+        public DateTime? ArchivedAt { get; set; }
+
+        [ForeignKey(nameof(OriginalProductId))]
+        public virtual Product? OriginalProduct { get; set; }
+
         // Navigation properties
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
         /// <summary>Bu ürüne atanmış modifier grupları (Extra Zutaten).</summary>
         public virtual ICollection<ProductModifierGroupAssignment> ModifierGroupAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
+
+        public virtual ICollection<ProductImei> Imeis { get; set; } = new List<ProductImei>();
+
+        public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+
+        /// <summary>List payload only. Not stored. Detail variants stay on the variants endpoint.</summary>
+        [NotMapped]
+        public bool HasVariants { get; set; }
     }
 
     /// <summary>
@@ -141,9 +207,10 @@ namespace KasseAPI_Final.Models
         public const int Reduced = 2;     // %10 (gıda, kitap, vb.)
         public const int Special = 3;     // %13 (konaklama, vb.)
         public const int ZeroRate = 4;    // %0 (Österreich 2026 - 0% MwSt., nicht Exempt)
-        
-        public static readonly int[] All = { Standard, Reduced, Special, ZeroRate };
-        
+        public const int ReducedNew = 5;  // %4.9 (E-Books / spesifik gıda)
+
+        public static readonly int[] All = { Standard, Reduced, Special, ZeroRate, ReducedNew };
+
         public static decimal GetTaxRate(int taxType)
         {
             return taxType switch
@@ -152,9 +219,39 @@ namespace KasseAPI_Final.Models
                 Reduced => 10.0m,
                 Special => 13.0m,
                 ZeroRate => 0.0m,
+                ReducedNew => 4.9m,
                 _ => 20.0m
             };
         }
+
+        /// <summary>Maps a catalog tax group rate / kind onto legacy product <see cref="TaxType"/> ints.</summary>
+        public static int FromTaxGroup(TaxGroup group)
+        {
+            if (group.GroupType is TaxGroupType gt)
+            {
+                return gt switch
+                {
+                    TaxGroupType.Standard => Standard,
+                    TaxGroupType.Reduced => Reduced,
+                    TaxGroupType.ReducedNew => ReducedNew,
+                    TaxGroupType.Middle => Special,
+                    TaxGroupType.Zero => ZeroRate,
+                    _ => FromRate(group.Rate),
+                };
+            }
+
+            return FromRate(group.Rate);
+        }
+
+        public static int FromRate(decimal rate) => rate switch
+        {
+            20m => Standard,
+            10m => Reduced,
+            13m => Special,
+            0m => ZeroRate,
+            4.9m => ReducedNew,
+            _ => Standard,
+        };
 
         public static bool IsValidTaxType(int taxType)
         {
@@ -173,9 +270,9 @@ namespace KasseAPI_Final.Models
         public const string Exempt = "Exempt";            // Vergi muaf
         public const string Service = "Service";          // Hizmet
         public const string Digital = "Digital";          // Dijital ürün
-        
+
         public static readonly string[] All = { Standard, Reduced, Special, Exempt, Service, Digital };
-        
+
         public static bool IsValidRksvType(string rksvType)
         {
             return All.Contains(rksvType);

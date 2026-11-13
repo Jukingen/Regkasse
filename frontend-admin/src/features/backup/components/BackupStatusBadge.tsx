@@ -1,16 +1,21 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Tag } from "antd";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   SyncOutlined,
-} from "@ant-design/icons";
-import { useI18n } from "@/i18n";
-import { resolveBackupRunStatusUiKey } from "@/features/backup/logic/backupRunTablePresentation";
+} from '@ant-design/icons';
+import { Tag } from 'antd';
+import React from 'react';
+
+import {
+  backupRunTrafficLightTagColor,
+  resolveBackupRunTrafficLight,
+} from '@/features/backup/logic/backupRunTrafficLight';
+import { resolveBackupRunStatusUiKey } from '@/features/backup/logic/backupRunTablePresentation';
+import { useI18n } from '@/i18n';
 
 export interface BackupStatusBadgeProps {
   status: number | undefined;
@@ -20,45 +25,41 @@ export function BackupStatusBadge({ status }: BackupStatusBadgeProps) {
   const { t } = useI18n();
   const uiKey = resolveBackupRunStatusUiKey(status);
   const label =
-    uiKey === "unknown"
-      ? t("backupDr.summary.unknown")
+    uiKey === 'unknown'
+      ? t('backupDr.summary.unknown')
       : t(`backupDr.runsTable.statusLabels.${uiKey}`);
+  const color = backupRunTrafficLightTagColor(resolveBackupRunTrafficLight(status));
 
   switch (uiKey) {
-    case "succeeded":
+    case 'succeeded':
       return (
-        <Tag color="success" icon={<CheckCircleOutlined />}>
+        <Tag color={color} icon={<CheckCircleOutlined />}>
           {label}
         </Tag>
       );
-    case "failed":
+    case 'failed':
+    case 'verificationFailed':
       return (
-        <Tag color="error" icon={<CloseCircleOutlined />}>
+        <Tag color={color} icon={uiKey === 'failed' ? <CloseCircleOutlined /> : <ExclamationCircleOutlined />}>
           {label}
         </Tag>
       );
-    case "verificationFailed":
+    case 'running':
+    case 'awaitingVerification':
       return (
-        <Tag color="warning" icon={<ExclamationCircleOutlined />}>
+        <Tag color={color} icon={<SyncOutlined spin />}>
           {label}
         </Tag>
       );
-    case "running":
-    case "awaitingVerification":
+    case 'queued':
       return (
-        <Tag color="processing" icon={<SyncOutlined spin />}>
+        <Tag color={color} icon={<ClockCircleOutlined />}>
           {label}
         </Tag>
       );
-    case "queued":
+    case 'cancelled':
       return (
-        <Tag color="default" icon={<ClockCircleOutlined />}>
-          {label}
-        </Tag>
-      );
-    case "cancelled":
-      return (
-        <Tag color="default" icon={<CloseCircleOutlined />}>
+        <Tag color={color} icon={<CloseCircleOutlined />}>
           {label}
         </Tag>
       );

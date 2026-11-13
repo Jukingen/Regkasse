@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +34,7 @@ public sealed class AdminBackupPutExecutionModeTests
             .UseInMemoryDatabase($"admin_backup_exec_mode_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static IOptionsMonitor<BackupOptions> OptionsMonitor(BackupOptions value)
@@ -87,9 +88,20 @@ public sealed class AdminBackupPutExecutionModeTests
             db,
             Mock.Of<IBackupSettingsAdminService>(),
             Mock.Of<IBackupDashboardStatsService>(),
+            Mock.Of<IBackupComplianceStatusService>(),
+            Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
-            Mock.Of<ICurrentTenantAccessor>());
+            Mock.Of<IBackupChecksumVerificationService>(),
+            Mock.Of<IBackupContentValidationService>(),
+            Mock.Of<IRestoreVerificationManualTriggerService>(),
+            Mock.Of<ICurrentTenantAccessor>(),
+            Mock.Of<IBackupRunTenantAccessService>(),
+            Mock.Of<IBackupArtifactImportService>(),
+            Mock.Of<IBackupTimeEstimator>(),
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var http = new DefaultHttpContext
         {

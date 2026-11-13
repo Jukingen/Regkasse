@@ -8,12 +8,21 @@
  * - Group open-state: `ADMIN_SIDEBAR_GROUP_ROUTES[grp-verwaltung]` includes these after `/users`.
  */
 export const SETTINGS_AREA_ROUTE_PATHS = [
-    '/settings/company',
-    '/settings/session',
-    '/settings/personalization',
-    '/settings/payment-methods',
-    '/settings/backup-dr',
-    '/settings/development-mode',
+  '/settings',
+  '/settings/company',
+  '/settings/receipt',
+  '/settings/working-hours',
+  '/settings/tax-groups',
+  '/settings/tax-history',
+  '/settings/tse',
+  '/settings/finanzonline',
+  '/settings/session',
+  '/settings/sessions',
+  '/settings/offline',
+  '/settings/personalization',
+  '/settings/payment-methods',
+  '/settings/payment',
+  '/settings/development-mode',
 ] as const;
 
 export type SettingsAreaRoutePath = (typeof SETTINGS_AREA_ROUTE_PATHS)[number];

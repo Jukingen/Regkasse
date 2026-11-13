@@ -1,7 +1,4 @@
-using System;
-using System.Threading.Tasks;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace KasseAPI_Final.Services
@@ -15,14 +12,15 @@ namespace KasseAPI_Final.Services
         /// <param name="registerNumber">Fiscal Kassen-ID string (CashRegister.RegisterNumber), not the UUID.</param>
         /// <param name="dbTransaction">When set, signature + chain update participate in this transaction (caller commits). Required for atomic payment/reversal with receipt persistence.</param>
         Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null, IDbContextTransaction? dbTransaction = null);
-        Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
-        Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
-        Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
+        /// <param name="dbTransaction">When set, closing signature + chain enlist in the caller TX (atomic with DailyClosing row persistence).</param>
+        Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount, IDbContextTransaction? dbTransaction = null);
+        Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount, IDbContextTransaction? dbTransaction = null);
+        Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount, IDbContextTransaction? dbTransaction = null);
         Task<bool> ValidateTseSignatureAsync(string signature);
         Task<TseCertificateInfo> GetTseCertificateInfoAsync(string deviceId);
         Task<bool> BackupTseDataAsync(string deviceId);
         Task<bool> RestoreTseDataAsync(string deviceId, byte[] backupData);
-        
+
         // Yeni metodlar
         Task<TseStatus> GetDeviceStatusAsync();
         Task<bool> CancelInvoiceSignatureAsync(string signature);
@@ -35,6 +33,7 @@ namespace KasseAPI_Final.Services
         public string DeviceId { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public bool IsOperational { get; set; }
+        public bool CanCreateInvoices { get; set; }
         public string Status { get; set; } = string.Empty; // Connected, Disconnected, Error, Maintenance
         public DateTime LastConnectionTime { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
@@ -53,5 +52,7 @@ namespace KasseAPI_Final.Services
     public record TseSignatureResult(
         string CompactJws,
         string PrevSignatureValueUsed,
-        string? CertificateThumbprint = null);
+        string? CertificateThumbprint = null,
+        string? FiskalyQrCodeData = null,
+        string SigningProvider = "local");
 }

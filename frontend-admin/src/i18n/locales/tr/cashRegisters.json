@@ -4,11 +4,20 @@
   "columns": {
     "name": "Kasa",
     "status": "Durum",
+    "shiftStatus": "Vardiya durumu",
+    "currentCashier": "Aktif kasiyer",
+    "lastShift": "Son vardiya",
     "operations": "Operasyon",
     "compliance": "RKSV",
     "activity": "Aktivite",
     "balance": "Bakiye",
+    "assignedTo": "Atanan kişi",
     "actions": "İşlemler"
+  },
+  "assignment": {
+    "unassigned": "Atanmamış",
+    "assignedToMe": "Bana atanmış",
+    "assignedToOther": "Başkasına atanmış"
   },
   "tseHealth": {
     "healthy": "TSE OK",
@@ -62,7 +71,21 @@
     "quickActions": "İşlemler",
     "openRegister": "Kasayı aç",
     "closeRegister": "Kasayı kapat",
-    "viewReceipts": "Fişleri göster"
+    "openShift": "Vardiya aç",
+    "closeShift": "Vardiya kapat",
+    "dailyClosing": "Gün sonu kapanışı",
+    "delete": "Sil",
+    "viewReceipts": "Fişleri göster",
+    "exportReport": "Raporu dışa aktar",
+    "exportData": "Verileri dışa aktar",
+    "createSpecialReceipt": "Sonderbeleg oluştur",
+    "decommissionedCannotOpen": "Bu kasa stillgelegt edildi ve artık açılamaz.",
+    "decommissionedCannotCreateSpecialReceipts": "Bu kasa stillgelegt edildi. Yeni Sonderbeleg oluşturulamaz.",
+    "viewReports": "Raporları göster"
+  },
+  "permission": {
+    "denied": "Bu kasayı görüntüleme yetkiniz yok.",
+    "decommissioned": "Bu kasa stillgelegt edildi ve artık açılamaz."
   },
   "statusBadge": {
     "open": {
@@ -110,9 +133,28 @@
     "decommissioned": "Kapatıldı",
     "unknown": "Durum {{status}}"
   },
+  "lifecycle": {
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "maintenance": "Bakım",
+    "disabled": "Devre dışı",
+    "decommissioned": "Kapatıldı"
+  },
+  "shiftOccupancy": {
+    "open": "🟢 Açık",
+    "closed": "🔴 Kapalı",
+    "none": "⚠️ Vardiya yok",
+    "unavailable": "—"
+  },
   "shift": {
-    "openSuccess": "Kasa açıldı.",
-    "closeSuccess": "Kasa kapatıldı."
+    "openSuccess": "Kasa açıldı. Vardiya sizin kullanıcınız altında çalışıyor.",
+    "closeSuccess": "Kasa kapatıldı.",
+    "closeHeldByOther": "Bu kasa başka bir vardiyada açık. Yalnızca vardiya sahibi kapatabilir.",
+    "unknownHolder": "başka bir kullanıcı",
+    "forceCloseTitle": "Kasa yine de kapatılsın mı?",
+    "forceCloseContent": "Güncel vardiya {{holder}} adlı kullanıcıda. Kasa kapanır; kasiyer ardından satış yapamaz.",
+    "takeShiftTitle": "Vardiyayı devral",
+    "takeShiftContent": "Aktif vardiyayı siz alıyorsunuz. Atanan kasiyer, kasa kapatıldıktan sonra bu kasayı seçebilir."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Vardiya ve RKSV: kasa durumu rehberi",
@@ -187,18 +229,46 @@
     "cancel": "İptal",
     "confirm": "Yine de kapat",
     "mustCloseFirst": "Endbeleg için kasa kapalı olmalıdır (açık vardiya yok).",
+    "defaultReason": "Kasa yönetiminden devre dışı bırakma",
     "success": "Schlussbeleg oluşturuldu — kasa kapatıldı. Yeni ödeme yok.",
     "restoreTooltip": "RKSV: Schlussbeleg ile kapatma geri alınamaz."
   },
   "detail": {
-    "title": "Kasa",
+    "title": "Kasa ayrıntıları",
     "titleWithNumber": "Kasa: {{number}}",
+    "name": "Ad",
+    "description": "Açıklama",
+    "status": "Durum",
     "registerNumber": "Kasa numarası",
     "location": "Ad / konum",
     "createdAt": "Oluşturulma",
+    "updatedAt": "Son değişiklik",
+    "statistics": "İstatistik",
+    "history": "Geçmiş",
+    "actions": "İşlemler",
+    "notFound": "Kasa bulunamadı.",
+    "statTransactions": "İşlemler",
+    "statRevenue": "Ciro",
+    "statShifts": "Vardiyalar",
+    "statLastTransaction": "Son işlem",
+    "historyShifts": "Vardiyalar",
+    "historyPayments": "Ödemeler",
+    "historySonderbelege": "Sonderbelege",
+    "historyAudit": "Denetim günlüğü",
+    "decommissionedTitle": "Bu kasa stillgelegt edildi",
+    "decommissionedDescription": "Bu kasa artık açılamaz. Tüm geçmiş veriler görüntülenebilir.",
+    "openReports": "Kasa raporlarını aç",
     "currentBalance": "Güncel bakiye",
     "startingBalance": "Başlangıç bakiyesi",
     "currentUser": "Açan kullanıcı",
+    "assignedUser": "Atanmış kasiyer",
+    "assignedUserNone": "Atanmamış",
+    "assignedUserPlaceholder": "Kasiyer seçin",
+    "assignedUserHint": "Kasayı POS seçim listesinde yalnızca bu kasiyer görür. Ödeme yetkisi açık vardiyaya bağlı kalır.",
+    "assignedUserHintUnassigned": "Atama yapılmadığında kasa, mandantın tüm kasiyerlerine görünür.",
+    "assignedUserSaved": "Kasiyer kasaya atandı.",
+    "assignedUserCleared": "Atama kaldırıldı.",
+    "assignedUserFailed": "Atama kaydedilemedi.",
     "lastBalanceUpdate": "Son bakiye güncellemesi",
     "startbelegCreatedAt": "Startbeleg oluşturulma",
     "lastMonatsbelegUtc": "Son Monatsbeleg",
@@ -217,7 +287,7 @@
     "deviceOs": "İşletim sistemi",
     "deviceApp": "Uygulama sürümü",
     "offlineQueueTransactions": "{{count}} işlem",
-    "noCashier": "Kimse yok",
+    "noCashier": "Kasiyer yok",
     "deviceUnknown": "Bilinmiyor"
   },
   "hardDelete": {
@@ -265,17 +335,82 @@
     "statsTotal": "Toplam kasa",
     "selectTenant": "Kiracı",
     "selectTenantHint": "Kasa listesi için bir kiracı seçin.",
+    "platformScopeTag": "Tüm kiracılar",
     "managerIntro": "Mandant kasa yönetimine geçmek için bir kasa seçin.",
     "openKassenverwaltung": "Kasa yönetimine git"
   },
+  "tenantSelector": {
+    "allTenants": "Tüm kiracılar",
+    "placeholder": "Tüm kiracıları göster",
+    "tenantOption": "{{name}} ({{slug}})"
+  },
   "selector": {
     "placeholder": "Kasa seçin…",
+    "label": "Kasa",
     "noTenant": "Kiracı seçilmedi",
     "noLocation": "Konum yok",
     "loadError": "Yükleme hatası",
+    "loadErrorTitle": "Kasalar yüklenemedi",
     "loadErrorTooltip": "Kasa listesi yüklenemedi",
     "empty": "Kasa yok",
+    "activeContextLabel": "Geçerli kasa",
+    "activeTag": "Aktif",
+    "autoSelectedTag": "Otomatik seçildi",
+    "autoSelectedHint": "Bu kasa otomatik seçildi (tek kullanılabilir kasa).",
+    "currentTag": "Seçili",
+    "idLabel": "ID: {{shortId}}",
+    "tsePrefix": "TSE:",
+    "lastActivityLabel": "Son aktivite: {{date}}",
+    "tooltip": {
+      "kasse": "Kasa",
+      "id": "ID",
+      "mandantId": "Mandant ID",
+      "status": "Durum",
+      "tse": "TSE",
+      "balance": "Bakiye",
+      "unavailable": "—",
+      "copyValue": "Değeri kopyala",
+      "copyAll": "Tümünü kopyala",
+      "copied": "Kopyalandı"
+    },
     "mandantHeader": "Kiracı: {{name}} ({{slug}})",
     "defaultTag": "Varsayılan"
+  },
+  "reports": {
+    "title": "Kasa raporları",
+    "intro": "Kasa bazında ciro, işlem, vardiya ve Sonderbeleg raporları — stillgelegt kasalar dahil.",
+    "filterRegister": "Kasa",
+    "selectRegister": "Lütfen bir kasa seçin.",
+    "types": {
+      "revenue": "Ciro raporu",
+      "transactions": "İşlem raporu",
+      "shifts": "Vardiya raporu",
+      "specialReceipts": "Sonderbeleg raporu"
+    },
+    "userActivityCard": "Kullanıcı aktivitesi"
+  },
+  "openRequests": {
+    "title": "Açılış talepleri",
+    "refresh": "Yenile",
+    "denyReasonLabel": "Red nedeni (isteğe bağlı)",
+    "denyReasonPlaceholder": "Kasiyer için isteğe bağlı not",
+    "hint": "Vardiya yetkisi olan kasiyerler kapalı kasayı POS’ta kendileri açar. Yetki yoksa talep burada görünür — onay, kasayı talep eden kasiyer adına açar.",
+    "empty": "Bekleyen talep yok.",
+    "loadFailed": "Talepler yüklenemedi.",
+    "approve": "Onayla",
+    "deny": "Reddet",
+    "approved": "Kasa açılışı onaylandı. Kasiyer kasayı artık seçebilir.",
+    "denied": "Talep reddedildi.",
+    "resolveFailed": "Talep işlenemedi.",
+    "status": {
+      "pending": "Bekliyor"
+    },
+    "columns": {
+      "register": "Kasa",
+      "cashier": "Kasiyer",
+      "requestedAt": "Talep",
+      "status": "Durum",
+      "actions": "İşlemler"
+    }
   }
 }

@@ -1,7 +1,17 @@
 import { formatUserDate, formatUserDateTime, formatUserTime } from '../utils/dateFormatter';
 
 export interface ValidationRule {
-  type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'email' | 'phone' | 'number' | 'decimal' | 'range' | 'custom';
+  type:
+    | 'required'
+    | 'minLength'
+    | 'maxLength'
+    | 'pattern'
+    | 'email'
+    | 'phone'
+    | 'number'
+    | 'decimal'
+    | 'range'
+    | 'custom';
   value?: any;
   message: string;
   customValidator?: (value: any) => boolean;
@@ -23,7 +33,7 @@ export class ValidationService {
   private static instance: ValidationService;
 
   // Common patterns
-  private static patterns = {
+  private static readonly patterns = {
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     phone: /^[\+]?[1-9][\d]{0,15}$/,
     austrianPhone: /^(\+43|0)[1-9][0-9]{3,14}$/,
@@ -43,7 +53,7 @@ export class ValidationService {
     integer: /^\d+$/,
     alphanumeric: /^[a-zA-Z0-9]+$/,
     alphabetic: /^[a-zA-Z\s]+$/,
-    numeric: /^[0-9]+$/
+    numeric: /^[0-9]+$/,
   };
 
   public static getInstance(): ValidationService {
@@ -59,7 +69,7 @@ export class ValidationService {
 
     for (const rule of rules) {
       const validation = this.validateRule(value, rule);
-      
+
       if (!validation.isValid) {
         errors.push(validation.message);
       } else if (validation.warning) {
@@ -70,7 +80,7 @@ export class ValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -88,12 +98,12 @@ export class ValidationService {
 
     for (const field of fields) {
       const result = this.validateField(field.field, field.value, field.rules);
-      
+
       if (result.errors.length > 0) {
         fieldErrors.set(field.field, result.errors);
         allErrors.push(...result.errors);
       }
-      
+
       if (result.warnings.length > 0) {
         fieldWarnings.set(field.field, result.warnings);
         allWarnings.push(...result.warnings);
@@ -105,42 +115,45 @@ export class ValidationService {
       fieldErrors,
       fieldWarnings,
       allErrors,
-      allWarnings
+      allWarnings,
     };
   }
 
-  private validateRule(value: any, rule: ValidationRule): { isValid: boolean; message: string; warning?: boolean } {
+  private validateRule(
+    value: any,
+    rule: ValidationRule
+  ): { isValid: boolean; message: string; warning?: boolean } {
     switch (rule.type) {
       case 'required':
         return this.validateRequired(value, rule.message);
-      
+
       case 'minLength':
         return this.validateMinLength(value, rule.value, rule.message);
-      
+
       case 'maxLength':
         return this.validateMaxLength(value, rule.value, rule.message);
-      
+
       case 'pattern':
         return this.validatePattern(value, rule.value, rule.message);
-      
+
       case 'email':
         return this.validateEmail(value, rule.message);
-      
+
       case 'phone':
         return this.validatePhone(value, rule.message);
-      
+
       case 'number':
         return this.validateNumber(value, rule.message);
-      
+
       case 'decimal':
         return this.validateDecimal(value, rule.message);
-      
+
       case 'range':
         return this.validateRange(value, rule.value, rule.message);
-      
+
       case 'custom':
         return this.validateCustom(value, rule.customValidator!, rule.message);
-      
+
       default:
         return { isValid: true, message: '' };
     }
@@ -151,19 +164,31 @@ export class ValidationService {
     return { isValid, message: isValid ? '' : message };
   }
 
-  private validateMinLength(value: any, minLength: number, message: string): { isValid: boolean; message: string } {
+  private validateMinLength(
+    value: any,
+    minLength: number,
+    message: string
+  ): { isValid: boolean; message: string } {
     if (!value) return { isValid: true, message: '' };
     const isValid = String(value).length >= minLength;
     return { isValid, message: isValid ? '' : message };
   }
 
-  private validateMaxLength(value: any, maxLength: number, message: string): { isValid: boolean; message: string } {
+  private validateMaxLength(
+    value: any,
+    maxLength: number,
+    message: string
+  ): { isValid: boolean; message: string } {
     if (!value) return { isValid: true, message: '' };
     const isValid = String(value).length <= maxLength;
     return { isValid, message: isValid ? '' : message };
   }
 
-  private validatePattern(value: any, pattern: RegExp, message: string): { isValid: boolean; message: string } {
+  private validatePattern(
+    value: any,
+    pattern: RegExp,
+    message: string
+  ): { isValid: boolean; message: string } {
     if (!value) return { isValid: true, message: '' };
     const isValid = pattern.test(String(value));
     return { isValid, message: isValid ? '' : message };
@@ -193,16 +218,25 @@ export class ValidationService {
     return { isValid, message: isValid ? '' : message };
   }
 
-  private validateRange(value: any, range: { min?: number; max?: number }, message: string): { isValid: boolean; message: string } {
+  private validateRange(
+    value: any,
+    range: { min?: number; max?: number },
+    message: string
+  ): { isValid: boolean; message: string } {
     if (!value) return { isValid: true, message: '' };
     const numValue = Number(value);
-    const isValid = !isNaN(numValue) && 
-      (range.min === undefined || numValue >= range.min) && 
+    const isValid =
+      !isNaN(numValue) &&
+      (range.min === undefined || numValue >= range.min) &&
       (range.max === undefined || numValue <= range.max);
     return { isValid, message: isValid ? '' : message };
   }
 
-  private validateCustom(value: any, validator: (value: any) => boolean, message: string): { isValid: boolean; message: string } {
+  private validateCustom(
+    value: any,
+    validator: (value: any) => boolean,
+    message: string
+  ): { isValid: boolean; message: string } {
     const isValid = validator(value);
     return { isValid, message: isValid ? '' : message };
   }
@@ -212,143 +246,155 @@ export class ValidationService {
     return {
       required: (message: string = 'This field is required'): ValidationRule => ({
         type: 'required',
-        message
+        message,
       }),
 
       email: (message: string = 'Please enter a valid email address'): ValidationRule => ({
         type: 'email',
-        message
+        message,
       }),
 
       phone: (message: string = 'Please enter a valid phone number'): ValidationRule => ({
         type: 'phone',
-        message
+        message,
       }),
 
-      austrianPhone: (message: string = 'Please enter a valid Austrian phone number'): ValidationRule => ({
+      austrianPhone: (
+        message: string = 'Please enter a valid Austrian phone number'
+      ): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.austrianPhone,
-        message
+        message,
       }),
 
-      austrianTaxNumber: (message: string = 'Please enter a valid Austrian tax number (ATU12345678)'): ValidationRule => ({
+      austrianTaxNumber: (
+        message: string = 'Please enter a valid Austrian tax number (ATU12345678)'
+      ): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.austrianTaxNumber,
-        message
+        message,
       }),
 
-      austrianDate: (message: string = 'Please enter a valid Austrian date (DD.MM.YYYY)'): ValidationRule => ({
+      austrianDate: (
+        message: string = 'Please enter a valid Austrian date (DD.MM.YYYY)'
+      ): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.austrianDate,
-        message
+        message,
       }),
 
-      austrianTime: (message: string = 'Please enter a valid Austrian time (HH:MM:SS)'): ValidationRule => ({
+      austrianTime: (
+        message: string = 'Please enter a valid Austrian time (HH:MM:SS)'
+      ): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.austrianTime,
-        message
+        message,
       }),
 
       postalCode: (message: string = 'Please enter a valid postal code'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.postalCode,
-        message
+        message,
       }),
 
       iban: (message: string = 'Please enter a valid IBAN'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.iban,
-        message
+        message,
       }),
 
       barcode: (message: string = 'Please enter a valid barcode'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.barcode,
-        message
+        message,
       }),
 
       uuid: (message: string = 'Please enter a valid UUID'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.uuid,
-        message
+        message,
       }),
 
       date: (message: string = 'Please enter a valid date (YYYY-MM-DD)'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.date,
-        message
+        message,
       }),
 
       time: (message: string = 'Please enter a valid time (HH:MM:SS)'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.time,
-        message
+        message,
       }),
 
       decimal: (message: string = 'Please enter a valid decimal number'): ValidationRule => ({
         type: 'decimal',
-        message
+        message,
       }),
 
       integer: (message: string = 'Please enter a valid integer'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.integer,
-        message
+        message,
       }),
 
-      alphanumeric: (message: string = 'Only alphanumeric characters are allowed'): ValidationRule => ({
+      alphanumeric: (
+        message: string = 'Only alphanumeric characters are allowed'
+      ): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.alphanumeric,
-        message
+        message,
       }),
 
       alphabetic: (message: string = 'Only alphabetic characters are allowed'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.alphabetic,
-        message
+        message,
       }),
 
       numeric: (message: string = 'Only numeric characters are allowed'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.numeric,
-        message
+        message,
       }),
 
       minLength: (min: number, message?: string): ValidationRule => ({
         type: 'minLength',
         value: min,
-        message: message || `Minimum length is ${min} characters`
+        message: message || `Minimum length is ${min} characters`,
       }),
 
       maxLength: (max: number, message?: string): ValidationRule => ({
         type: 'maxLength',
         value: max,
-        message: message || `Maximum length is ${max} characters`
+        message: message || `Maximum length is ${max} characters`,
       }),
 
       range: (min: number, max: number, message?: string): ValidationRule => ({
         type: 'range',
         value: { min, max },
-        message: message || `Value must be between ${min} and ${max}`
+        message: message || `Value must be between ${min} and ${max}`,
       }),
 
       positiveNumber: (message: string = 'Please enter a positive number'): ValidationRule => ({
         type: 'range',
         value: { min: 0 },
-        message
+        message,
       }),
 
-      percentage: (message: string = 'Please enter a valid percentage (0-100)'): ValidationRule => ({
+      percentage: (
+        message: string = 'Please enter a valid percentage (0-100)'
+      ): ValidationRule => ({
         type: 'range',
         value: { min: 0, max: 100 },
-        message
+        message,
       }),
 
       custom: (validator: (value: any) => boolean, message: string): ValidationRule => ({
         type: 'custom',
         customValidator: validator,
-        message
-      })
+        message,
+      }),
     };
   }
 
@@ -357,14 +403,18 @@ export class ValidationService {
     return this.validateField('amount', amount, [
       ValidationService.getCommonRules().required('Invoice amount is required'),
       ValidationService.getCommonRules().positiveNumber('Invoice amount must be positive'),
-      ValidationService.getCommonRules().range(0.01, 999999.99, 'Invoice amount must be between €0.01 and €999,999.99')
+      ValidationService.getCommonRules().range(
+        0.01,
+        999999.99,
+        'Invoice amount must be between €0.01 and €999,999.99'
+      ),
     ]);
   }
 
   public validateProductBarcode(barcode: string): ValidationResult {
     return this.validateField('barcode', barcode, [
       ValidationService.getCommonRules().required('Product barcode is required'),
-      ValidationService.getCommonRules().barcode('Please enter a valid barcode (8-13 digits)')
+      ValidationService.getCommonRules().barcode('Please enter a valid barcode (8-13 digits)'),
     ]);
   }
 
@@ -372,14 +422,16 @@ export class ValidationService {
     return this.validateField('email', email, [
       ValidationService.getCommonRules().required('Customer email is required'),
       ValidationService.getCommonRules().email('Please enter a valid email address'),
-      ValidationService.getCommonRules().maxLength(100, 'Email address is too long')
+      ValidationService.getCommonRules().maxLength(100, 'Email address is too long'),
     ]);
   }
 
   public validateAustrianTaxNumber(taxNumber: string): ValidationResult {
     return this.validateField('taxNumber', taxNumber, [
       ValidationService.getCommonRules().required('Tax number is required'),
-      ValidationService.getCommonRules().austrianTaxNumber('Please enter a valid Austrian tax number (ATU12345678)')
+      ValidationService.getCommonRules().austrianTaxNumber(
+        'Please enter a valid Austrian tax number (ATU12345678)'
+      ),
     ]);
   }
 
@@ -387,7 +439,11 @@ export class ValidationService {
     const rules: ValidationRule[] = [
       ValidationService.getCommonRules().required('Payment amount is required'),
       ValidationService.getCommonRules().positiveNumber('Payment amount must be positive'),
-      ValidationService.getCommonRules().range(0.01, 999999.99, 'Payment amount must be between €0.01 and €999,999.99')
+      ValidationService.getCommonRules().range(
+        0.01,
+        999999.99,
+        'Payment amount must be between €0.01 and €999,999.99'
+      ),
     ];
 
     // Add custom validation for payment amount
@@ -395,7 +451,7 @@ export class ValidationService {
       rules.push({
         type: 'custom',
         customValidator: () => false,
-        message: `Payment amount (€${amount.toFixed(2)}) is less than invoice amount (€${invoiceAmount.toFixed(2)})`
+        message: `Payment amount (€${amount.toFixed(2)}) is less than invoice amount (€${invoiceAmount.toFixed(2)})`,
       });
     }
 
@@ -406,7 +462,7 @@ export class ValidationService {
     return this.validateField('quantity', quantity, [
       ValidationService.getCommonRules().required('Quantity is required'),
       ValidationService.getCommonRules().integer('Quantity must be a whole number'),
-      ValidationService.getCommonRules().range(1, 9999, 'Quantity must be between 1 and 9999')
+      ValidationService.getCommonRules().range(1, 9999, 'Quantity must be between 1 and 9999'),
     ]);
   }
 
@@ -414,13 +470,17 @@ export class ValidationService {
     return this.validateField('price', price, [
       ValidationService.getCommonRules().required('Price is required'),
       ValidationService.getCommonRules().positiveNumber('Price must be positive'),
-      ValidationService.getCommonRules().range(0.01, 99999.99, 'Price must be between €0.01 and €99,999.99')
+      ValidationService.getCommonRules().range(
+        0.01,
+        99999.99,
+        'Price must be between €0.01 and €99,999.99'
+      ),
     ]);
   }
 
   public sanitizeInput(input: string): string {
     if (!input) return '';
-    
+
     // Remove potentially dangerous characters
     return input
       .replace(/[<>]/g, '') // Remove < and >
@@ -431,18 +491,18 @@ export class ValidationService {
 
   public sanitizeNumber(input: string): number {
     if (!input) return 0;
-    
+
     // Remove non-numeric characters except decimal point
     const sanitized = input.replace(/[^\d.]/g, '');
     const number = parseFloat(sanitized);
-    
+
     return isNaN(number) ? 0 : number;
   }
 
   public formatCurrency(amount: number): string {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'EUR',
     }).format(amount);
   }
 
@@ -467,4 +527,4 @@ export class ValidationService {
 }
 
 // Export singleton instance
-export const validationService = ValidationService.getInstance(); 
+export const validationService = ValidationService.getInstance();

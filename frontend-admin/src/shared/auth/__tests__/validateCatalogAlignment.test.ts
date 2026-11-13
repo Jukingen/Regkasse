@@ -1,7 +1,8 @@
 /**
  * validateCatalogAlignment – menu/route keys not in catalog trigger warning result.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { validateCatalogAlignment } from '../validateCatalogAlignment';
 
 describe('validateCatalogAlignment', () => {
@@ -24,7 +25,9 @@ describe('validateCatalogAlignment', () => {
       'sale.view',
       'finanzonline.manage',
     ];
-    const { unknownKeys, hasWarnings } = validateCatalogAlignment(catalogKeys, { warnUnknown: false });
+    const { unknownKeys, hasWarnings } = validateCatalogAlignment(catalogKeys, {
+      warnUnknown: false,
+    });
     expect(hasWarnings).toBe(unknownKeys.length > 0);
   });
 
@@ -39,7 +42,9 @@ describe('validateCatalogAlignment', () => {
     validateCatalogAlignment([], { warnUnknown: true });
     expect(warnSpy).toHaveBeenCalled();
     const firstCall = warnSpy.mock.calls[0];
-    const flattened = firstCall.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+    const flattened = firstCall
+      .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+      .join(' ');
     expect(flattened).toContain('validateCatalogAlignment');
     warnSpy.mockRestore();
   });

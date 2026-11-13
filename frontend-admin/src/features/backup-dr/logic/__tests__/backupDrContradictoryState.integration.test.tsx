@@ -9,31 +9,34 @@
  * 3) HealthBanner: kritik > uyarı > bilgi (banner modelinde ayrı sıralanır)
  * 4) İlerleme bandı (`BackupRunProgressBanner`): başlıkta simüle > son drill başarısız > recoverability kanıtsız > düz başarı
  */
-
-import { describe, expect, it } from 'vitest';
 import '@testing-library/jest-dom';
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { buildBackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import React from 'react';
+import { describe, expect, it } from 'vitest';
+
+import { BackupRunStatus } from '@/api/generated/model';
+import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 import {
-  bundleLatestSuccessWeakLastKnownGoodProof,
-  bundleLatestSuccessFailedLatestDrill,
-  bundleSimulatedSuccessHealthyApiCapsReadiness,
-  bundleExternalLifecycleOkButRecoverabilityProofGaps,
-  bundleProofGapsAndFailedDrill,
-  bundleVerificationRunMismatch,
   bundleEmptyEffectiveAdapterKind,
-  bundleUnknownAdapterKindPartialDto,
+  bundleExternalLifecycleOkButRecoverabilityProofGaps,
+  bundleLatestSuccessFailedLatestDrill,
+  bundleLatestSuccessWeakLastKnownGoodProof,
+  bundleProofGapsAndFailedDrill,
+  bundleSimulatedSuccessHealthyApiCapsReadiness,
   bundleStaleLatestVersusDetailRunId,
+  bundleUnknownAdapterKindPartialDto,
+  bundleVerificationRunMismatch,
 } from '@/features/backup-dr/logic/__tests__/fixtures/backupDrContradictoryBundles';
 import {
   mapEvidenceHeadlineToneToAlertType,
   mapExternalCopyVariantToAlertType,
   mapOperatorValidityStripToAlertType,
 } from '@/features/backup-dr/logic/backupDrGlancePresentation';
-import { SERVER_PIPELINE_PROJECTION_VERSION, resolveBackupPipelineStepsForUi } from '@/features/backup-dr/logic/backupPipelineDerived';
-import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
-import { BackupRunResponseDtoStatus } from '@/api/generated/model';
+import { buildBackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import {
+  SERVER_PIPELINE_PROJECTION_VERSION,
+  resolveBackupPipelineStepsForUi,
+} from '@/features/backup-dr/logic/backupPipelineDerived';
 
 const eightSteps = [
   { key: 'queued', status: 'success' },
@@ -71,8 +74,12 @@ describe('Backup & DR — çelişkili durum entegrasyonu (operatör görünür s
     const m = buildBackupOperatorTruthModel(bundleSimulatedSuccessHealthyApiCapsReadiness());
     expect(m.run.simulatedEvidence).toBe(true);
     expect(m.operatorValidity?.severity).not.toBe('success');
-    expect(m.summaryPresentation.summaryBackupFootnoteKey).toBe('backupDr.summary.backupHealthFootnoteFake');
-    expect(m.summaryPresentation.summaryRestoreFootnoteKey).toBe('backupDr.summary.restoreReadinessFootnoteFake');
+    expect(m.summaryPresentation.summaryBackupFootnoteKey).toBe(
+      'backupDr.summary.backupHealthFootnoteFake'
+    );
+    expect(m.summaryPresentation.summaryRestoreFootnoteKey).toBe(
+      'backupDr.summary.restoreReadinessFootnoteFake'
+    );
     expect(m.restore.apiReadinessLevel).toBe('healthy');
     expect(m.restore.effectiveReadinessLevel).toBe('degraded');
     expect(m.restore.readinessCapped).toBe(true);
@@ -132,14 +139,14 @@ describe('Backup & DR — çelişkili durum entegrasyonu (operatör görünür s
 
   it('sunucu projeksiyonu eksik/uyumsuz + istemci geri dönüş kapalı: resmi adım listesi boş (yanlış tam pipeline yok)', () => {
     const r = resolveBackupPipelineStepsForUi(
-      { id: 'a', status: BackupRunResponseDtoStatus.NUMBER_3 } as never,
+      { id: 'a', status: BackupRunStatus.Succeeded } as never,
       {
         id: 'a',
-        status: BackupRunResponseDtoStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         pipeline: { projectionVersion: '2099-unsupported', steps: [...eightSteps] },
       } as never,
       {},
-      { allowClientFallback: false },
+      { allowClientFallback: false }
     );
     expect(r.source).toBe('client_fallback_blocked');
     expect(r.steps).toHaveLength(0);
@@ -147,14 +154,14 @@ describe('Backup & DR — çelişkili durum entegrasyonu (operatör görünür s
 
   it('desteklenen projeksiyon sürümü: sunucu projeksiyonu kullanılır', () => {
     const r = resolveBackupPipelineStepsForUi(
-      { id: 'a', status: BackupRunResponseDtoStatus.NUMBER_3 } as never,
+      { id: 'a', status: BackupRunStatus.Succeeded } as never,
       {
         id: 'a',
-        status: BackupRunResponseDtoStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         pipeline: { projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION, steps: [...eightSteps] },
       } as never,
       {},
-      { allowClientFallback: false },
+      { allowClientFallback: false }
     );
     expect(r.source).toBe('server_projection');
     expect(r.steps.length).toBeGreaterThan(0);
@@ -170,7 +177,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never
@@ -182,7 +189,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
         formatDt={formatDt}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(screen.getByText('backupDr.progress.finishedOkUnproven')).toBeTruthy();
@@ -193,7 +200,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never
@@ -206,7 +213,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
         formatDt={formatDt}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(screen.getByText('backupDr.progress.finishedOkLatestDrillFailed')).toBeTruthy();
@@ -218,7 +225,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never
@@ -230,7 +237,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
         formatDt={formatDt}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
     expect(screen.getByText('backupDr.progress.finishedSimulatedOk')).toBeTruthy();

@@ -1,12 +1,6 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tse;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -46,10 +40,13 @@ public sealed class TseHealthCheckService : BackgroundService
             var opts = _tseOptions.CurrentValue;
             var interval = TimeSpan.FromSeconds(Math.Clamp(opts.HealthCheckIntervalSeconds, 5, 600));
 
+            // Not a hard-coded IsDevelopment() skip. Bypass is opt-in (default false) and
+            // RKSV overlay TseMode=Real always runs real probes. See TseDevelopmentBypassEvaluator.
             if (_developmentModeService.ShouldBypassTseCheck())
             {
                 if (Interlocked.Exchange(ref _developmentTseBypassLogged, 1) == 0)
-                    _logger.LogWarning("Development mode active: {BypassType} bypassed", "TSE");
+                    _logger.LogWarning(
+                        "TSE health probe bypassed (DevelopmentOptions.BypassTseInDevelopment, development-mode BypassTseCheck, or RKSV overlay). Overlay TseMode=Real never bypasses.");
                 var beforeDev = _state.Snapshot;
                 _state.ApplyProbeResult(pingSucceeded: true, errorSafe: null);
                 await TryPersistHealthChangeAuditAsync(beforeDev, _state.Snapshot, stoppingToken).ConfigureAwait(false);

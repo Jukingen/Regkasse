@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
 

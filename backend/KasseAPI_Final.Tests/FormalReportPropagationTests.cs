@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

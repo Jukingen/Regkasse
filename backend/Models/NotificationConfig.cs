@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace KasseAPI_Final.Models;
 
 /// <summary>Tenant-scoped notification channels and per-event-type rules (FA admin).</summary>
@@ -23,5 +21,17 @@ public sealed class NotificationConfig
     /// <summary>Minimum severity per event type (Info, Warning, Error, Critical). Omitted types use event default only.</summary>
     public Dictionary<ActivityEventType, string> SeverityThreshold { get; set; } = new();
 
-    public static NotificationConfig CreateDefault() => new();
+    /// <summary>Mobile push toggles for DEP export reminders (FA card + reminder sweep).</summary>
+    public DepExportMobilePushSettings DepExportMobilePush { get; set; } =
+        DepExportMobilePushSettings.CreateDefault();
+
+    public static NotificationConfig CreateDefault() => new()
+    {
+        // Opt-in: high-noise / platform-sensitive system permission alerts stay off until enabled.
+        EnabledEvents =
+        {
+            [ActivityEventType.SystemPermissionChange] = false,
+        },
+        DepExportMobilePush = DepExportMobilePushSettings.CreateDefault(),
+    };
 }

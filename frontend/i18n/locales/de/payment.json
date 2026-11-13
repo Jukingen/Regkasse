@@ -36,6 +36,8 @@
   "methods": {
     "cash": "Bargeld",
     "card": "Kreditkarte",
+    "credit_card": "Kreditkarte",
+    "paypal": "PayPal",
     "voucher": "Gutschein",
     "transfer": "Überweisung",
     "contactless": "Kontaktlos"
@@ -68,8 +70,18 @@
     "generalError": "Ein Fehler ist aufgetreten",
     "demoRestricted": "Demo-Benutzer können keine echten Zahlungen erstellen. Bitte fahren Sie mit einem autorisierten Benutzer fort.",
     "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
-    "unknown": "Zahlungsvorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
-    "nonFiscalQueued": "Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht als fiscal verbucht. Vor einer erneuten Zahlung bitte Einstellungen → Offline-Warteschlange prüfen; eine zweite Zahlung kann sonst zu doppelten Buchungen führen."
+    "unknown": "Fehler bei der Zahlung. Bitte erneut versuchen.",
+    "retry": "Fehler bei der Zahlung. Bitte erneut versuchen.",
+    "tseUnavailable": "TSE nicht verfügbar. Zahlung nicht möglich.",
+    "licenseLockedTitle": "Lizenz gesperrt",
+    "licenseLocked": "Lizenz gesperrt. Bitte Administrator kontaktieren.",
+    "monatsbelegRequired": "Monatsbeleg erforderlich",
+    "limitExceeded": "Mandanten-Limit erreicht.",
+    "limitDailyTransactions": "Tägliches Transaktionslimit ({{limit}}) erreicht. Aktuell: {{current}}. Bitte warten Sie bis morgen.",
+    "limitTransactionAmount": "Maximaler Transaktionsbetrag ({{limit}} €) überschritten. Bitte reduzieren Sie den Betrag.",
+    "limitDailyRevenue": "Tägliches Umsatzlimit ({{limit}} €) erreicht. Aktuell: {{current}} €. Bitte warten Sie bis morgen.",
+    "limitOfflineQueue": "Offline-Warteschlange voll ({{current}}/{{limit}}). Bitte synchronisieren Sie die Warteschlange.",
+    "nonFiscalQueued": "Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht fiskalisch verbucht. Vor einer erneuten Zahlung bitte Einstellungen → Offline-Warteschlange prüfen; eine zweite Zahlung kann sonst zu doppelten Buchungen führen."
   },
   "cancellation": {
     "title": "Zahlung stornieren",
@@ -80,5 +92,18 @@
     "reason": "Stornierungsgrund",
     "cancelledBy": "Storniert von",
     "cancelledAt": "Storniert am"
+  },
+  "cardPayment": {
+    "title": "Kartenzahlung",
+    "testHint": "Test: 4242424242424242 = Erfolg",
+    "cardNumberPlaceholder": "Kartennummer",
+    "expiryPlaceholder": "MM/JJ",
+    "cvcPlaceholder": "CVC",
+    "pay": "Bezahlen",
+    "cancel": "Abbrechen",
+    "invalidCardNumber": "Bitte geben Sie eine gültige Kartennummer ein.",
+    "noRegisterAssigned": "Keine Kasse zugewiesen.",
+    "declined": "Kartenzahlung abgelehnt.",
+    "failed": "Kartenzahlung fehlgeschlagen."
   }
 }

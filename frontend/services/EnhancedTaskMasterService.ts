@@ -1,46 +1,44 @@
+// @ts-nocheck
 /**
  * EnhancedTaskMasterService - Gelişmiş AI destekli görev yönetimi sistemi
- * 
+ *
  * Bu servis, birden fazla task-master paketini entegre ederek
  * en güçlü görev yönetimi deneyimi sağlar:
  * - task-master-ai (temel AI özellikleri)
  * - @delorenj/taskmaster (gelişmiş konfigürasyon)
  * - tmvisuals (görsel mind map)
- * 
+ *
  * Özellikler:
  * - Hybrid AI engine (birden fazla AI sistemi)
  * - Visual mind mapping
  * - Advanced configuration
  * - RKSV compliance tracking
  * - Multi-language support
- * 
+ *
  * @author Frontend Team
  * @version 2.0.0
  * @since 2025-01-10
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TaskManager as TaskMasterAI } from 'task-master-ai';
 // import { TaskMaster as DeloTaskMaster } from '@delorenj/taskmaster';
 // import { TMVisuals } from 'tmvisuals';
 
 // Mevcut TaskMasterService'den import edelim
-import { 
-  TaskCategory, 
-  TaskPriority, 
-  TaskStatus, 
-  Task 
-} from './TaskMasterService';
+import { TaskCategory, TaskPriority, TaskStatus, Task } from './TaskMasterService';
+import { storage } from '../utils/storage';
 
 // Gelişmiş task interface'i
 export interface EnhancedTask extends Task {
-  visualId?: string;          // tmvisuals için ID
-  dependencies?: string[];    // Bağımlılık listesi
-  mindMapPosition?: {         // Mind map pozisyonu
+  visualId?: string; // tmvisuals için ID
+  dependencies?: string[]; // Bağımlılık listesi
+  mindMapPosition?: {
+    // Mind map pozisyonu
     x: number;
     y: number;
   };
-  aiAnalysis?: {             // Gelişmiş AI analizi
+  aiAnalysis?: {
+    // Gelişmiş AI analizi
     complexity: 'low' | 'medium' | 'high';
     estimatedDuration: number;
     suggestions: string[];
@@ -48,7 +46,8 @@ export interface EnhancedTask extends Task {
     riskFactors: string[];
     efficiency: number;
   };
-  visualSettings?: {         // Görsel ayarlar
+  visualSettings?: {
+    // Görsel ayarlar
     color?: string;
     shape?: 'circle' | 'square' | 'diamond';
     size?: 'small' | 'medium' | 'large';
@@ -67,7 +66,7 @@ export interface EnhancedConfig {
 }
 
 class EnhancedTaskMasterService {
-  private taskManagerAI: TaskMasterAI;
+  private readonly taskManagerAI: TaskMasterAI;
   // private taskManagerDelo: DeloTaskMaster;
   // private tmVisuals: TMVisuals;
   private isInitialized: boolean = false;
@@ -83,7 +82,7 @@ class EnhancedTaskMasterService {
       language: 'de',
       visualTheme: 'rksv',
       aiProvider: 'hybrid',
-      ...config
+      ...config,
     };
 
     // TaskMaster AI başlat
@@ -97,8 +96,8 @@ class EnhancedTaskMasterService {
         framework: 'React Native/Expo with Multiple TaskMasters',
         compliance: 'Austrian RKSV Standards',
         language: this.config.language,
-        theme: this.config.visualTheme
-      }
+        theme: this.config.visualTheme,
+      },
     });
   }
 
@@ -109,7 +108,7 @@ class EnhancedTaskMasterService {
     return {
       get: async (key: string) => {
         try {
-          const value = await AsyncStorage.getItem(`enhanced_taskmaster_${key}`);
+          const value = await storage.getItem(`enhanced_taskmaster_${key}`);
           return value ? JSON.parse(value) : null;
         } catch (error) {
           console.error('Enhanced TaskMaster storage get error:', error);
@@ -118,7 +117,7 @@ class EnhancedTaskMasterService {
       },
       set: async (key: string, value: any) => {
         try {
-          await AsyncStorage.setItem(`enhanced_taskmaster_${key}`, JSON.stringify(value));
+          await storage.setItem(`enhanced_taskmaster_${key}`, JSON.stringify(value));
           return true;
         } catch (error) {
           console.error('Enhanced TaskMaster storage set error:', error);
@@ -127,13 +126,13 @@ class EnhancedTaskMasterService {
       },
       remove: async (key: string) => {
         try {
-          await AsyncStorage.removeItem(`enhanced_taskmaster_${key}`);
+          await storage.removeItem(`enhanced_taskmaster_${key}`);
           return true;
         } catch (error) {
           console.error('Enhanced TaskMaster storage remove error:', error);
           return false;
         }
-      }
+      },
     };
   }
 
@@ -143,7 +142,7 @@ class EnhancedTaskMasterService {
   async initialize(): Promise<void> {
     try {
       console.log('🚀 Enhanced TaskMaster initialization starting...');
-      
+
       // TaskMaster AI'yi başlat
       await this.taskManagerAI.initialize();
       console.log('✅ TaskMaster AI initialized');
@@ -162,7 +161,6 @@ class EnhancedTaskMasterService {
 
       this.isInitialized = true;
       console.log('🎉 Enhanced TaskMaster fully initialized');
-      
     } catch (error) {
       console.error('💥 Enhanced TaskMaster initialization failed:', error);
       throw new Error('Failed to initialize Enhanced TaskMaster service');
@@ -172,7 +170,9 @@ class EnhancedTaskMasterService {
   /**
    * Gelişmiş görev oluşturma
    */
-  async createEnhancedTask(taskData: Omit<EnhancedTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<EnhancedTask> {
+  async createEnhancedTask(
+    taskData: Omit<EnhancedTask, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<EnhancedTask> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -190,8 +190,8 @@ class EnhancedTaskMasterService {
         suggestions: [],
         dependencies: taskData.dependencies || [],
         riskFactors: [],
-        efficiency: 0.8
-      }
+        efficiency: 0.8,
+      },
     };
 
     try {
@@ -212,8 +212,8 @@ class EnhancedTaskMasterService {
           auditLogId: enhancedTask.auditLogId,
           visualId: enhancedTask.visualId,
           dependencies: enhancedTask.dependencies,
-          aiAnalysis: enhancedTask.aiAnalysis
-        }
+          aiAnalysis: enhancedTask.aiAnalysis,
+        },
       });
 
       // Gelişmiş AI analizi yap
@@ -234,7 +234,6 @@ class EnhancedTaskMasterService {
 
       console.log(`✅ Enhanced task created: ${enhancedTask.title}`);
       return enhancedTask;
-
     } catch (error) {
       console.error('Failed to create enhanced task:', error);
       throw new Error('Enhanced task creation failed');
@@ -248,28 +247,24 @@ class EnhancedTaskMasterService {
     try {
       // TaskMaster AI analizini al
       const basicAnalysis = await this.taskManagerAI.analyzeTask(task.id);
-      
+
       // RKSV özel analizi
       const rksvRiskFactors = this.analyzeRksvRisks(task);
-      
+
       // Kompleksite hesaplama
       const complexity = this.calculateComplexity(task);
-      
+
       // Efficiency skoru
       const efficiency = this.calculateEfficiency(task);
 
       return {
         complexity,
         estimatedDuration: basicAnalysis?.estimatedDuration || this.estimateDuration(task),
-        suggestions: [
-          ...(basicAnalysis?.suggestions || []),
-          ...this.generateRksvSuggestions(task)
-        ],
+        suggestions: [...(basicAnalysis?.suggestions || []), ...this.generateRksvSuggestions(task)],
         dependencies: task.dependencies || [],
         riskFactors: rksvRiskFactors,
-        efficiency
+        efficiency,
       };
-
     } catch (error) {
       console.error('Advanced analysis failed:', error);
       return {
@@ -278,7 +273,7 @@ class EnhancedTaskMasterService {
         suggestions: [],
         dependencies: [],
         riskFactors: [],
-        efficiency: 0.5
+        efficiency: 0.5,
       };
     }
   }
@@ -320,7 +315,7 @@ class EnhancedTaskMasterService {
     if (task.category === TaskCategory.BUG_FIX) score += 1;
 
     // Bağımlılık sayısı
-    score += (task.dependencies?.length || 0);
+    score += task.dependencies?.length || 0;
 
     // TSE gereksinimi
     if (task.tseRequired) score += 2;
@@ -346,7 +341,7 @@ class EnhancedTaskMasterService {
       [TaskCategory.DATA_PROTECTION]: 120,
       [TaskCategory.DEVELOPMENT]: 180,
       [TaskCategory.BUG_FIX]: 30,
-      [TaskCategory.TESTING]: 60
+      [TaskCategory.TESTING]: 60,
     };
 
     let duration = baseMinutes[task.category] || 60;
@@ -405,16 +400,15 @@ class EnhancedTaskMasterService {
     try {
       // tmvisuals entegrasyonu (gelecekte implementasyonu)
       console.log(`📊 Adding task to visualization: ${task.title}`);
-      
+
       // Kategori bazlı renk belirleme
       const visualSettings = {
         color: this.getCategoryColor(task.category),
         shape: task.tseRequired ? 'diamond' : 'circle',
-        size: task.priority === TaskPriority.CRITICAL ? 'large' : 'medium'
+        size: task.priority === TaskPriority.CRITICAL ? 'large' : 'medium',
       };
 
       task.visualSettings = visualSettings;
-      
     } catch (error) {
       console.error('Visualization addition failed:', error);
     }
@@ -433,7 +427,7 @@ class EnhancedTaskMasterService {
       [TaskCategory.DATA_PROTECTION]: '#F44336',
       [TaskCategory.DEVELOPMENT]: '#00BCD4',
       [TaskCategory.BUG_FIX]: '#FFC107',
-      [TaskCategory.TESTING]: '#795548'
+      [TaskCategory.TESTING]: '#795548',
     };
     return colors[category] || '#607D8B';
   }
@@ -451,13 +445,10 @@ class EnhancedTaskMasterService {
       tseRequired: task.tseRequired,
       user: task.assignedTo ?? 'system',
       aiAnalysis: task.aiAnalysis,
-      compliance: true
+      compliance: true,
     };
 
-    await AsyncStorage.setItem(
-      `enhanced_rksv_audit_${task.id}`, 
-      JSON.stringify(auditLog)
-    );
+    await storage.setItem(`enhanced_rksv_audit_${task.id}`, JSON.stringify(auditLog));
 
     if (task.priority === TaskPriority.CRITICAL) {
       console.warn(`🚨 Enhanced RKSV Critical Task Created: ${task.title}`);
@@ -472,7 +463,7 @@ class EnhancedTaskMasterService {
       [TaskPriority.CRITICAL]: 5,
       [TaskPriority.HIGH]: 4,
       [TaskPriority.MEDIUM]: 3,
-      [TaskPriority.LOW]: 1
+      [TaskPriority.LOW]: 1,
     };
     return map[priority];
   }
@@ -524,7 +515,7 @@ class EnhancedTaskMasterService {
       averageEfficiency: 0.8,
       totalEstimatedTime: 0,
       criticalTasksCount: 0,
-      tseRequiredCount: 0
+      tseRequiredCount: 0,
     };
   }
 }

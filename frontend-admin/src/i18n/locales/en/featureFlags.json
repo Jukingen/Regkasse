@@ -1,0 +1,28 @@
+{
+  "pageTitle": "Feature Flags",
+  "accessDenied": "Only Super Admins can manage feature flags.",
+  "introTitle": "Gradual rollout",
+  "introBody": "Global defaults come from appsettings (FeatureFlags). Tenant overrides are stored in tenant_settings. Ship code with features off, then enable per tenant.",
+  "tenantScope": "Tenant scope (optional)",
+  "tenantIdInputPlaceholder": "Tenant UUID for overrides (empty = global)",
+  "tenantIdPasteHint": "Leave empty for global overrides. A valid UUID switches to tenant scope.",
+  "saved": "Feature flag saved.",
+  "saveFailed": "Could not save feature flag.",
+  "clearOverride": "Clear override",
+  "bool": {
+    "true": "Yes",
+    "false": "No"
+  },
+  "columns": {
+    "name": "Flag",
+    "enabled": "Enabled",
+    "configDefault": "Config default",
+    "source": "Source",
+    "actions": "Actions"
+  },
+  "source": {
+    "config": "Config",
+    "global_override": "Global override",
+    "tenant_override": "Tenant override"
+  }
+}

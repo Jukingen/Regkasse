@@ -1,23 +1,34 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useParams, useRouter } from 'next/navigation';
 /**
  * Tagesbericht-Detail: Snapshot, Profile (Betrieb/Buchhaltung/Compliance), Finalisieren, FinanzOnline, Korrektur.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import {
+  FormalReportLanguageNotice,
+  FormalReportProfileLanguageCue,
+} from '@/components/reporting/FormalReportLanguageNotice';
+import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
+import { TagesberichtReconciliationFlags } from '@/features/reporting/tagesbericht/TagesberichtReconciliationFlags';
+import { TagesberichtSummaryCards } from '@/features/reporting/tagesbericht/TagesberichtSummaryCards';
+import { printTagesberichtSummary } from '@/features/reporting/tagesbericht/tagesberichtPrint';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { formatCurrency, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice, FormalReportProfileLanguageCue } from '@/components/reporting/FormalReportLanguageNotice';
-import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
-import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type TagesberichtDto = {
@@ -39,7 +50,12 @@ type TagesberichtDto = {
     salePaymentRowCount: number;
     refundRowCount: number;
     stornoRowCount: number;
-    paymentMethodBreakdown: { methodKey: string; displayLabel?: string; rowCount: number; totalAmount: number }[];
+    paymentMethodBreakdown: {
+      methodKey: string;
+      displayLabel?: string;
+      rowCount: number;
+      totalAmount: number;
+    }[];
     taxBreakdown: { taxBucketKey: string; taxAmount: number }[];
     reconciliation: {
       paymentsWithoutInvoiceCount: number;
@@ -59,7 +75,12 @@ type TagesberichtDto = {
   submissionEnvelope?: {
     submissionVersusReportNoteDe?: string;
     submissionVersusReportNoteEn?: string | null;
-    attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
+    attempts?: {
+      attemptCount: number;
+      status?: string;
+      nextAttemptAtUtc?: string;
+      failureCategory?: string;
+    }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
@@ -127,7 +148,9 @@ export default function TagesberichtDetailPage() {
 
   const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
 
-  const [profile, setProfile] = useState<'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'>('operationalPreview');
+  const [profile, setProfile] = useState<
+    'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'
+  >('operationalPreview');
 
   const detailQ = useQuery({
     queryKey: ['tagesbericht', id],
@@ -141,7 +164,9 @@ export default function TagesberichtDetailPage() {
   const historyQ = useQuery({
     queryKey: ['report-history', 'tagesbericht', id],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(`/api/reports/history/tagesbericht/${id}`);
+      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(
+        `/api/reports/history/tagesbericht/${id}`
+      );
       return data;
     },
     enabled: !!id,
@@ -155,7 +180,7 @@ export default function TagesberichtDetailPage() {
       message.success(td('messages.finalizeSuccess'));
       qc.invalidateQueries({ queryKey: ['tagesbericht', id] });
     },
-    onError: () => message.error(td('messages.finalizeError')),
+    onError: () => message.error(t('reporting.tagesbericht.error.finalize')),
   });
 
   const submitMut = useMutation({
@@ -171,11 +196,14 @@ export default function TagesberichtDetailPage() {
 
   const correctionMut = useMutation({
     mutationFn: async () => {
-      const { data } = await AXIOS_INSTANCE.post<TagesberichtDto>('/api/reports/tagesbericht/correction', {
-        supersedesReportId: id,
-        // API sözleşmesi: backend şu an Almanca sabit bekliyor olabilir — davranış korunur.
-        reason: 'Korrektur',
-      });
+      const { data } = await AXIOS_INSTANCE.post<TagesberichtDto>(
+        '/api/reports/tagesbericht/correction',
+        {
+          supersedesReportId: id,
+          // API sözleşmesi: backend şu an Almanca sabit bekliyor olabilir — davranış korunur.
+          reason: 'Korrektur',
+        }
+      );
       return data;
     },
     onSuccess: (data) => {
@@ -196,7 +224,7 @@ export default function TagesberichtDetailPage() {
         render: (v: number) => formatCurrency(v ?? 0, formatLocale),
       },
     ],
-    [td, formatLocale],
+    [td, formatLocale]
   );
 
   const taxColumns: ColumnsType<TagesberichtDto['summary']['taxBreakdown'][0]> = useMemo(
@@ -206,17 +234,22 @@ export default function TagesberichtDetailPage() {
         title: td('labels.taxAmount'),
         dataIndex: 'taxAmount',
         render: (v: number) =>
-          formatNumber(v ?? 0, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+          formatNumber(v ?? 0, formatLocale, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          }),
       },
     ],
-    [td, formatLocale],
+    [td, formatLocale]
   );
 
   if (detailQ.isLoading) {
     return <Typography.Paragraph>{td('loading')}</Typography.Paragraph>;
   }
   if (detailQ.isError || !detailQ.data) {
-    return <Typography.Paragraph type="danger">{td('loadError')}</Typography.Paragraph>;
+    return (
+      <Alert type="error" showIcon title={t('reporting.tagesbericht.error.detail')} />
+    );
   }
 
   const d = detailQ.data;
@@ -226,9 +259,12 @@ export default function TagesberichtDetailPage() {
 
   const reportVsSubmissionNote = resolveFiscal(
     d.submissionEnvelope?.submissionVersusReportNoteDe,
-    d.submissionEnvelope?.submissionVersusReportNoteEn,
+    d.submissionEnvelope?.submissionVersusReportNoteEn
   );
-  const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
+  const operatorHintResolved = resolveFiscal(
+    d.submission.operatorHintDe,
+    d.submission.operatorHintEn
+  );
   const remediationResolved = joinRemediationHints(d.submissionEnvelope?.remediationHintsDe, ' | ');
 
   return (
@@ -241,9 +277,65 @@ export default function TagesberichtDetailPage() {
           { title: id },
         ]}
         actions={
-          <Space wrap>
+          <Space wrap align="start">
+            <PeriodSalesSummaryCard
+              periodLabel={`Tag: ${businessDate.split('-').reverse().join('.')}`}
+              receiptCount={d.summary.salePaymentRowCount ?? 0}
+              totalRevenue={d.summary.grossSalesAmount ?? 0}
+              zeroSales={(d.summary.salePaymentRowCount ?? 0) === 0 || (d.summary.grossSalesAmount ?? 0) === 0}
+            />
+            {canExport ? (
+              <Button
+                onClick={() => {
+                  const ok = printTagesberichtSummary({
+                    title: t('reporting.tagesbericht.detail.pageTitle', { date: businessDate }),
+                    dateLabel: businessDate,
+                    gross: `${td('labels.gross')}: ${formatCurrency(d.summary.grossSalesAmount, formatLocale)}`,
+                    tax: `${td('labels.taxTotal')}: ${formatCurrency(d.summary.taxTotalAmount, formatLocale)}`,
+                    payments: d.summary.paymentMethodBreakdown
+                      .map(
+                        (row) =>
+                          `${row.displayLabel || row.methodKey}: ${formatCurrency(row.totalAmount, formatLocale)}`
+                      )
+                      .join(', '),
+                  });
+                  if (!ok) message.error(t('reporting.tagesbericht.error.pdfGenerate'));
+                }}
+              >
+                {td('actions.generatePdf')}
+              </Button>
+            ) : null}
+            {canExport ? (
+              <Button
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const lang = (formatLocale ?? 'de').split('-')[0] || 'de';
+                      const blob = await downloadReportPdf('tagesbericht', id, { language: lang });
+                      triggerReportPdfBlobDownload(
+                        blob,
+                        buildReportFileName({
+                          reportType: 'tagesbericht',
+                          tenantSlug: getEffectiveTenantSlug(),
+                          businessDate,
+                        })
+                      );
+                      message.success(t('reporting.storedPdf.success'));
+                    } catch {
+                      message.error(t('reporting.tagesbericht.error.pdfNotStored'));
+                    }
+                  })();
+                }}
+              >
+                {td('actions.downloadPdf')}
+              </Button>
+            ) : null}
             {canExport && d.reportStatus === 'Provisional' ? (
-              <Button type="primary" loading={finalizeMut.isPending} onClick={() => finalizeMut.mutate()}>
+              <Button
+                type="primary"
+                loading={finalizeMut.isPending}
+                onClick={() => finalizeMut.mutate()}
+              >
                 {td('actions.finalize')}
               </Button>
             ) : null}
@@ -257,7 +349,9 @@ export default function TagesberichtDetailPage() {
                 {td('actions.correction')}
               </Button>
             ) : null}
-            <Button onClick={() => router.push('/reporting/tagesbericht')}>{td('actions.backToList')}</Button>
+            <Button onClick={() => router.push('/reporting/tagesbericht')}>
+              {td('actions.backToList')}
+            </Button>
           </Space>
         }
       />
@@ -292,7 +386,7 @@ export default function TagesberichtDetailPage() {
       <Card title={td('cards.status')} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small" bordered>
           <Descriptions.Item label={td('labels.report')}>
-            {/* TODO(adapter): reportStatus — sunucu enum’u; locale map backend’de yok */}
+            {/* Server enum shown as-is (no FA locale map). */}
             <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'} title={backendApiTooltip}>
               {d.reportStatus}
             </Tag>
@@ -322,7 +416,10 @@ export default function TagesberichtDetailPage() {
           ) : null}
           {reportVsSubmissionNote ? (
             <Descriptions.Item label={td('labels.reportVsSubmission')}>
-              <Typography.Text type="secondary" title={fiscalTooltip(reportVsSubmissionNote.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(reportVsSubmissionNote.contentLang)}
+              >
                 {reportVsSubmissionNote.text}
               </Typography.Text>
             </Descriptions.Item>
@@ -330,7 +427,10 @@ export default function TagesberichtDetailPage() {
           <Descriptions.Item label={td('labels.submission')}>
             <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>{' '}
             {operatorHintResolved ? (
-              <Typography.Text type="secondary" title={fiscalTooltip(operatorHintResolved.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(operatorHintResolved.contentLang)}
+              >
                 {operatorHintResolved.text}
               </Typography.Text>
             ) : null}
@@ -343,7 +443,7 @@ export default function TagesberichtDetailPage() {
           ) : null}
           {d.submissionEnvelope?.rejectionReasons?.length ? (
             <Descriptions.Item label={td('labels.rejection')}>
-              {/* TODO(adapter): rejectionReasons — ham API dizisi */}
+              {/* Server rejection reasons shown as-is. */}
               <Typography.Text title={backendApiTooltip}>
                 {d.submissionEnvelope.rejectionReasons.join(', ')}
               </Typography.Text>
@@ -357,13 +457,35 @@ export default function TagesberichtDetailPage() {
             </Descriptions.Item>
           ) : null}
           {d.submission.externalReferenceId ? (
-            <Descriptions.Item label={td('labels.reference')}>{d.submission.externalReferenceId}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.reference')}>
+              {d.submission.externalReferenceId}
+            </Descriptions.Item>
           ) : null}
           {showHashes ? (
-            <Descriptions.Item label={td('labels.snapshotHash')}>{d.snapshotHash}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.snapshotHash')}>
+              {d.snapshotHash}
+            </Descriptions.Item>
           ) : null}
         </Descriptions>
       </Card>
+
+      <div style={{ marginBottom: 16 }}>
+        <TagesberichtSummaryCards
+          grossLabel={td('labels.gross')}
+          taxLabel={td('cards.taxBreakdown')}
+          paymentsLabel={td('cards.paymentMethods')}
+          grossAmount={d.summary.grossSalesAmount}
+          taxTotalAmount={d.summary.taxTotalAmount}
+          paymentRows={d.summary.paymentMethodBreakdown}
+          taxRows={d.summary.taxBreakdown}
+          formatLocale={formatLocale}
+          methodColumn={td('labels.method')}
+          linesColumn={td('labels.lines')}
+          sumColumn={td('labels.sum')}
+          taxBucketColumn={td('labels.taxBucket')}
+          taxAmountColumn={td('labels.taxAmount')}
+        />
+      </div>
 
       <Card title={td('cards.sums')} style={{ marginBottom: 16 }}>
         <Descriptions column={2} size="small" bordered>
@@ -376,13 +498,44 @@ export default function TagesberichtDetailPage() {
           <Descriptions.Item label={td('labels.refunds')}>
             {formatCurrency(d.summary.refundAmountTotal, formatLocale)}
           </Descriptions.Item>
-          <Descriptions.Item label={td('labels.saleLines')}>{d.summary.salePaymentRowCount}</Descriptions.Item>
-          <Descriptions.Item label={td('labels.refundLines')}>{d.summary.refundRowCount}</Descriptions.Item>
-          <Descriptions.Item label={td('labels.stornoLines')}>{d.summary.stornoRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.saleLines')}>
+            {d.summary.salePaymentRowCount}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.refundLines')}>
+            {d.summary.refundRowCount}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.stornoLines')}>
+            {d.summary.stornoRowCount}
+          </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
+      <Card title={td('cards.finanzOnline')} style={{ marginBottom: 16 }}>
+        <Descriptions column={1} size="small" bordered>
+          <Descriptions.Item label={td('labels.submission')}>
+            <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>
+            {d.submission.outboxStatus ? (
+              <Tag title={backendApiTooltip}>{d.submission.outboxStatus}</Tag>
+            ) : null}
+          </Descriptions.Item>
+          {operatorHintResolved ? (
+            <Descriptions.Item label={td('labels.remediation')}>
+              <Typography.Text title={fiscalTooltip(operatorHintResolved.contentLang)}>
+                {operatorHintResolved.text}
+              </Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.submission.externalReferenceId ? (
+            <Descriptions.Item label={td('labels.reference')}>
+              {d.submission.externalReferenceId}
+            </Descriptions.Item>
+          ) : null}
+        </Descriptions>
+      </Card>
+
+      {(profile === 'accountingReport' ||
+        profile === 'legalComplianceExport' ||
+        profile === 'diagnosticPackage') && (
         <Card title={td('cards.taxBreakdown')} style={{ marginBottom: 16 }}>
           <Table
             rowKey="taxBucketKey"
@@ -395,37 +548,46 @@ export default function TagesberichtDetailPage() {
       )}
 
       <Card title={td('cards.paymentMethods')} style={{ marginBottom: 16 }}>
-        <Table rowKey="methodKey" size="small" pagination={false} dataSource={d.summary.paymentMethodBreakdown} columns={pmCols} />
+        <Table
+          rowKey="methodKey"
+          size="small"
+          pagination={false}
+          dataSource={d.summary.paymentMethodBreakdown}
+          columns={pmCols}
+        />
       </Card>
 
-      <Card title={td('cards.reconciliation')} style={{ marginBottom: 16 }}>
-        <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label={td('labels.paymentsWithoutInvoice')}>
-            {d.summary.reconciliation.paymentsWithoutInvoiceCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.unknownMethodLines')}>
-            {d.summary.reconciliation.unknownPaymentMethodRowCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.offlineLinked')}>
-            {d.summary.reconciliation.offlineLinkedPaymentCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.dayClosedRksv')}>
-            {d.summary.reconciliation.dayClosedInRksv ? td('labels.yes') : td('labels.no')}
-          </Descriptions.Item>
-        </Descriptions>
-        {d.summary.warnings?.length ? (
-          <ul>
-            {d.summary.warnings.map((w) => (
-              <li key={w}>
-                {/* TODO(adapter): warnings[] — sunucu metni */}
-                <Typography.Text type="warning" title={backendApiTooltip}>
-                  {w}
-                </Typography.Text>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </Card>
+      <TagesberichtReconciliationFlags
+        title={td('cards.reconciliation')}
+        warningTooltip={backendApiTooltip}
+        warnings={d.summary.warnings}
+        flags={[
+          {
+            key: 'paymentsWithoutInvoice',
+            label: td('labels.paymentsWithoutInvoice'),
+            tooltip: td('reconciliationTooltips.paymentsWithoutInvoice'),
+            value: String(d.summary.reconciliation.paymentsWithoutInvoiceCount),
+          },
+          {
+            key: 'unknownMethod',
+            label: td('labels.unknownMethodLines'),
+            tooltip: td('reconciliationTooltips.unknownMethodLines'),
+            value: String(d.summary.reconciliation.unknownPaymentMethodRowCount),
+          },
+          {
+            key: 'offlineLinked',
+            label: td('labels.offlineLinked'),
+            tooltip: td('reconciliationTooltips.offlineLinked'),
+            value: String(d.summary.reconciliation.offlineLinkedPaymentCount),
+          },
+          {
+            key: 'dayClosed',
+            label: td('labels.dayClosedRksv'),
+            tooltip: td('reconciliationTooltips.dayClosedRksv'),
+            value: d.summary.reconciliation.dayClosedInRksv ? td('labels.yes') : td('labels.no'),
+          },
+        ]}
+      />
 
       {showTrace ? (
         <Card title={td('cards.trace')}>
@@ -433,21 +595,25 @@ export default function TagesberichtDetailPage() {
         </Card>
       ) : null}
 
-      <Card title={td('cards.history')} style={{ marginTop: 16 }}>
+      <Card title={td('cards.auditTrail')} style={{ marginTop: 16 }}>
         {historyQ.isLoading ? (
           <Typography.Text type="secondary">{td('history.loading')}</Typography.Text>
         ) : historyQ.data?.items?.length ? (
           <Timeline
             items={historyQ.data.items.map((item) => ({
-              color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
-              children: (
+              color: item.isCurrentActiveVersion
+                ? 'green'
+                : item.reportStatus === 'Superseded'
+                  ? 'orange'
+                  : 'blue',
+              content: (
                 <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
                   </Typography.Text>
                   <Space size={[4, 4]} wrap>
                     {item.labelKeys.map((k) => (
-                      // TODO(adapter): labelKeys — ham anahtarlar
+                      // Server label keys shown as-is.
                       <Tag key={`${item.reportId}-${k}`} title={backendApiTooltip}>
                         {k}
                       </Tag>
@@ -464,7 +630,9 @@ export default function TagesberichtDetailPage() {
                     {item.submission.outboxMessageId
                       ? ` · ${td('history.outbox')} ${item.submission.outboxMessageId.slice(0, 8)}`
                       : ''}
-                    {item.submission.hasMissingOutboxReference ? ` · ${td('history.missingOutboxRef')}` : ''}
+                    {item.submission.hasMissingOutboxReference
+                      ? ` · ${td('history.missingOutboxRef')}`
+                      : ''}
                   </Typography.Text>
                   {item.submission.lastErrorMessage ? (
                     <BackendRawTextBlock

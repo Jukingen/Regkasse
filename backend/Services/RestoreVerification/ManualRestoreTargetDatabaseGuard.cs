@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 

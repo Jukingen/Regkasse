@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { safeLog } from '../../utils/loggingUtils';
 
 // Türkçe Açıklama: Infinite loop tespiti için debug component'i
 // RKSV uyumlu güvenlik kontrolü ile birlikte render count tracking
@@ -11,7 +12,7 @@ interface InfiniteLoopDetectorProps {
 
 export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
   threshold = 100,
-  showInProduction = false
+  showInProduction = false,
 }) => {
   const renderCountRef = useRef(0);
   const lastCheckTimeRef = useRef(Date.now());
@@ -21,16 +22,15 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
 
   // Production mode kontrolü
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
+  const shouldRender = isDevelopment || showInProduction;
 
-  if (!isDevelopment && !showInProduction) {
-    return null; // Production'da gösterme (showInProduction false ise)
-  }
-
-  // Her render'da count'u artır
+  // Her render'da count'u artır (hooks must run unconditionally)
   renderCountRef.current += 1;
   const currentCount = renderCountRef.current;
 
   useEffect(() => {
+    if (!shouldRender) return;
+
     const now = Date.now();
     const timeSinceLastCheck = now - lastCheckTimeRef.current;
 
@@ -48,7 +48,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
           renderCount: currentCount,
           threshold,
           timeElapsed: timeSinceLastCheck,
-          component: 'InfiniteLoopDetector'
+          component: 'InfiniteLoopDetector',
         });
 
         // Alert göster (sadece bir kez)
@@ -65,9 +65,9 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
                 setIsLoopDetected(false);
                 setStatus('normal');
                 lastCheckTimeRef.current = Date.now();
-                console.log('🔄 Loop detector reset');
-              }
-            }
+                safeLog('🔄 Loop detector reset');
+              },
+            },
           ]
         );
       }
@@ -79,11 +79,11 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
 
     // Her 10 saniyede bir log yaz (debug için)
     if (timeSinceLastCheck > 10000) {
-      console.log('🔍 Loop Detector Stats:', {
+      safeLog('🔍 Loop Detector Stats:', {
         renderCount: currentCount,
         renderRate: currentCount / (timeSinceLastCheck / 1000),
         status,
-        isLoopDetected
+        isLoopDetected,
       });
       lastCheckTimeRef.current = now;
     }
@@ -96,25 +96,35 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
     setIsLoopDetected(false);
     setStatus('normal');
     lastCheckTimeRef.current = Date.now();
-    console.log('🔄 Loop detector manually reset');
+    safeLog('🔄 Loop detector manually reset');
   };
 
   // Style belirleme
   const getStatusColor = () => {
     switch (status) {
-      case 'critical': return '#FF4444';
-      case 'warning': return '#FFA500';
-      default: return '#4CAF50';
+      case 'critical':
+        return '#FF4444';
+      case 'warning':
+        return '#FFA500';
+      default:
+        return '#4CAF50';
     }
   };
 
   const getStatusText = () => {
     switch (status) {
-      case 'critical': return 'LOOP DETECTED!';
-      case 'warning': return 'High Render Count';
-      default: return 'Normal';
+      case 'critical':
+        return 'LOOP DETECTED!';
+      case 'warning':
+        return 'High Render Count';
+      default:
+        return 'Normal';
     }
   };
+
+  if (!shouldRender) {
+    return null;
+  }
 
   return (
     <View style={[styles.container, { borderColor: getStatusColor() }]}>
@@ -126,25 +136,15 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.count, { color: getStatusColor() }]}>
-          {renderCount} renders
-        </Text>
-        <Text style={[styles.status, { color: getStatusColor() }]}>
-          {getStatusText()}
-        </Text>
-        <Text style={styles.threshold}>
-          Threshold: {threshold}
-        </Text>
+        <Text style={[styles.count, { color: getStatusColor() }]}>{renderCount} renders</Text>
+        <Text style={[styles.status, { color: getStatusColor() }]}>{getStatusText()}</Text>
+        <Text style={styles.threshold}>Threshold: {threshold}</Text>
       </View>
 
       {isLoopDetected && (
         <View style={styles.warning}>
-          <Text style={styles.warningText}>
-            ⚠️ Potential infinite loop detected!
-          </Text>
-          <Text style={styles.helpText}>
-            Check useEffect dependencies and state updates
-          </Text>
+          <Text style={styles.warningText}>⚠️ Potential infinite loop detected!</Text>
+          <Text style={styles.helpText}>Check useEffect dependencies and state updates</Text>
         </View>
       )}
     </View>

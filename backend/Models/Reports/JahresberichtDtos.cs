@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Models.Reports;
 
 public sealed class JahresberichtDto

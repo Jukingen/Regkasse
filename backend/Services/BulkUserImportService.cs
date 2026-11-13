@@ -20,8 +20,6 @@ public interface IBulkUserImportService
 public sealed class BulkUserImportService : IBulkUserImportService
 {
     public const int BatchSize = 100;
-    private const int MaxErrorsInPollPayload = 100;
-
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Manager,
@@ -70,7 +68,7 @@ public sealed class BulkUserImportService : IBulkUserImportService
         {
             var tenantsBySlug = await _db.Tenants
                 .AsNoTracking()
-                .Where(t => t.IsActive && t.Slug != "admin" && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
+                .Where(t => t.IsActive && t.Slug != "admin" && t.Slug != SystemTenantIds.PlatformSlug)
                 .ToDictionaryAsync(t => t.Slug, StringComparer.OrdinalIgnoreCase, cancellationToken)
                 .ConfigureAwait(false);
 

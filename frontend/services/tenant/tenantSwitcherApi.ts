@@ -1,3 +1,4 @@
+import { isHiddenSwitcherTenantSlug } from '../../constants/devTenantCatalog';
 import { apiClient } from '../api/config';
 
 /** Row from GET /api/tenants/switcher (aligned with FA AdminTenantListItem). */
@@ -11,9 +12,10 @@ export type TenantSwitcherListItem = {
 
 /** Active tenants for dev header switcher (excludes soft-deleted unless includeDeleted). */
 export async function fetchTenantSwitcherList(
-  includeDeleted = false,
+  includeDeleted = false
 ): Promise<TenantSwitcherListItem[]> {
-  return apiClient.get<TenantSwitcherListItem[]>('/tenants/switcher', {
+  const rows = await apiClient.get<TenantSwitcherListItem[]>('/tenants/switcher', {
     params: { includeDeleted },
   });
+  return rows.filter((row) => !isHiddenSwitcherTenantSlug(row.slug));
 }

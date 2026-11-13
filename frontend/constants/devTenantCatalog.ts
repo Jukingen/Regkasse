@@ -1,28 +1,39 @@
 /**
  * Dev/demo tenant presets — aligned with FA devTenantCatalog (display + preset slugs).
- * API calls resolve preset slugs (e.g. test-cafe) to DB slugs (cafe) via canonicalDevTenantSlug.
  */
 export const DEV_TENANT_PRESETS = [
-  { name: 'Default', slug: 'default' },
   { name: 'Development', slug: 'dev' },
-  { name: 'Test Cafe', slug: 'test-cafe' },
-  { name: 'Test Bar', slug: 'test-bar' },
-  { name: 'Test Tenant', slug: 'test' },
+  { name: 'Production', slug: 'prod' },
 ] as const;
 
 export type DevTenantPresetSlug = (typeof DEV_TENANT_PRESETS)[number]['slug'];
 
 const SLUG_ALIASES: Record<string, string> = {
-  test_cafe: 'cafe',
-  'test-cafe': 'cafe',
-  cafe: 'cafe',
-  test_bar: 'bar',
-  'test-bar': 'bar',
-  bar: 'bar',
+  test_cafe: 'dev',
+  'test-cafe': 'dev',
+  cafe: 'dev',
+  test_bar: 'prod',
+  'test-bar': 'prod',
+  bar: 'prod',
   dev: 'dev',
-  default: 'default',
-  test: 'test',
+  prod: 'prod',
 };
+
+/** Wave-0 system sentinel row: not a mandant, never selectable in switchers. */
+export const PLATFORM_TENANT_SLUG = 'platform';
+
+const PRESET_SLUGS = new Set<string>(DEV_TENANT_PRESETS.map((row) => row.slug));
+
+/** Platform sentinel plus legacy demo slugs that survive only as aliases (test-cafe, bar, …). */
+const HIDDEN_SWITCHER_SLUGS = new Set<string>([
+  PLATFORM_TENANT_SLUG,
+  ...Object.keys(SLUG_ALIASES).filter((alias) => !PRESET_SLUGS.has(alias)),
+]);
+
+/** Matches the raw slug, not the canonical one, so aliased leftovers stay hidden. */
+export function isHiddenSwitcherTenantSlug(slug: string): boolean {
+  return HIDDEN_SWITCHER_SLUGS.has(slug.trim().toLowerCase());
+}
 
 export function canonicalDevTenantSlug(slug: string): string {
   const trimmed = slug.trim();
@@ -34,7 +45,7 @@ export function canonicalDevTenantSlug(slug: string): string {
 }
 
 const DISPLAY_NAME_BY_CANONICAL = new Map<string, string>(
-  DEV_TENANT_PRESETS.map((row) => [canonicalDevTenantSlug(row.slug), row.name]),
+  DEV_TENANT_PRESETS.map((row) => [canonicalDevTenantSlug(row.slug), row.name])
 );
 
 export function getDevTenantPresetName(slug: string): string | null {
@@ -48,11 +59,13 @@ export const getDevTenantPresetLabel = getDevTenantPresetName;
 export function formatDisplaySlug(slug: string): string {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
   const preset = DEV_TENANT_PRESETS.find(
-    (row) => canonicalDevTenantSlug(row.slug).toLowerCase() === canonical,
+    (row) => canonicalDevTenantSlug(row.slug).toLowerCase() === canonical
   );
   return preset?.slug ?? slug.trim().replace(/_/g, '-');
 }
 
 export function isSameDevTenantPreset(slugA: string, slugB: string): boolean {
-  return canonicalDevTenantSlug(slugA).toLowerCase() === canonicalDevTenantSlug(slugB).toLowerCase();
+  return (
+    canonicalDevTenantSlug(slugA).toLowerCase() === canonicalDevTenantSlug(slugB).toLowerCase()
+  );
 }

@@ -1,11 +1,12 @@
 'use client';
 
+import { Space, Tag } from 'antd';
 import React from 'react';
-import { Tag, Space } from 'antd';
+
 import {
+  type AntTagColor,
   documentStatusVisual,
   submissionLifecycleVisual,
-  type AntTagColor,
 } from '@/components/reporting/reportWorkspaceLabels';
 
 type TFn = (key: string) => string;

@@ -33,4 +33,4 @@ public sealed class EmailSmtpOptions
     /// </summary>
     public string? LicenseReportRecipients { get; set; }
 }
-
+

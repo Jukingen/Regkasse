@@ -2,8 +2,6 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.DTOs;
 
@@ -58,16 +56,32 @@ public sealed class BackupPipelineSnapshotDto
 }
 
 /// <summary>İsteğe bağlı: admin detay uçlarında artefakt dosyası diskte mi (indirme ile aynı çözümleyici).</summary>
-public sealed record BackupDownloadEnrichment(BackupOptions Options, IHostEnvironment HostEnvironment, ILogger Logger);
+public sealed record BackupDownloadEnrichment(
+    BackupOptions Options,
+    IHostEnvironment HostEnvironment,
+    ILogger Logger,
+    bool CallerMayDownloadArtifacts = true);
 
 public sealed class BackupRunResponseDto
 {
     public Guid Id { get; init; }
     public BackupRunStatus Status { get; init; }
+    /// <summary>Tenant vs System strategy (drives sensitive download gates for System).</summary>
+    public BackupStrategyKind Strategy { get; init; }
     public BackupTriggerSource TriggerSource { get; init; }
     public string AdapterKind { get; init; } = string.Empty;
     public string? IdempotencyKey { get; init; }
     public string? RequestedByUserId { get; init; }
+    public string? RequestedByDisplayName { get; init; }
+    public string? RequestedByEmail { get; init; }
+    public string RequestedByLabel { get; init; } = string.Empty;
+    public string? RequestedFromIp { get; init; }
+    public Guid? TenantId { get; init; }
+    public string? TenantName { get; init; }
+    public string? TenantSlug { get; init; }
+    public int DownloadCount { get; init; }
+    public Guid? PrimaryArtifactId { get; init; }
+    public string? PrimaryDownloadFileName { get; init; }
     public DateTime RequestedAt { get; init; }
     public DateTime? StartedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
@@ -133,6 +147,14 @@ public sealed class BackupRunResponseDto
     /// </summary>
     public double? CompressionRatio { get; init; }
 
+    public BackupStorageTier? StorageTier { get; init; }
+    public bool LegalHold { get; init; }
+    public DateTime? LegalHoldUntilUtc { get; init; }
+    public string? LegalHoldReason { get; init; }
+    public DateTime? RetentionExpiresAtUtc { get; init; }
+    public string? RetentionStatus { get; init; }
+    public bool InColdStorage { get; init; }
+
     public IReadOnlyList<BackupArtifactResponseDto>? Artifacts { get; init; }
     public IReadOnlyList<BackupVerificationResponseDto>? Verifications { get; init; }
 }
@@ -167,6 +189,11 @@ public sealed class BackupArtifactResponseDto
     /// <summary>Redacted external key after successful archive copy (e.g. archive/runId/file).</summary>
     public string? ExternalRedactedLocator { get; init; }
 
+    public BackupStorageTier StorageTier { get; init; }
+    public string? CloudLocator { get; init; }
+    public DateTime? MovedToColdAtUtc { get; init; }
+    public bool LegalHoldProtected { get; init; }
+
     /// <summary>
     /// When <see cref="BackupDownloadEnrichment"/> was applied for this response: true if a file exists at the resolved path (same check as download).
     /// Otherwise false (unknown / not computed — e.g. history list without enrichment).
@@ -200,6 +227,64 @@ public sealed class BackupTriggerRequestDto
 {
     /// <summary>Optional idempotency key (reuse returns same run).</summary>
     public string? IdempotencyKey { get; init; }
+}
+
+/// <summary>Compact backup file row for admin list UI (logical dump artifacts only).</summary>
+public sealed class BackupListItemResponseDto
+{
+    public Guid BackupRunId { get; init; }
+
+    public Guid ArtifactId { get; init; }
+
+    public string FileName { get; init; } = string.Empty;
+
+    public long? FileSize { get; init; }
+
+    public DateTime CreatedAt { get; init; }
+
+    public string TenantSlug { get; init; } = string.Empty;
+
+    public bool IsFake { get; init; }
+
+    /// <summary>Parent backup run status (list currently returns succeeded dumps only).</summary>
+    public BackupRunStatus Status { get; init; }
+
+    /// <summary>Tenant vs System strategy for role-aware UI filtering.</summary>
+    public BackupStrategyKind Strategy { get; init; }
+
+    /// <summary>Run duration in seconds when started/completed timestamps are present.</summary>
+    public int? DurationSeconds { get; init; }
+
+    /// <summary>English human-readable duration (e.g. "2m 30s").</summary>
+    public string? DurationFormatted { get; init; }
+
+    /// <summary>Relative admin download path; requires <c>backup.manage</c> (tenant-scoped) or <c>settings.manage</c>.</summary>
+    public string? DownloadUrl { get; init; }
+
+    public Guid? ManifestArtifactId { get; init; }
+
+    public string? ManifestFileName { get; init; }
+
+    public long? ManifestFileSize { get; init; }
+
+    /// <summary>Sibling verification manifest for the same backup run.</summary>
+    public string? ManifestDownloadUrl { get; init; }
+}
+
+/// <summary>Operator-uploaded backup registration (no automatic database restore).</summary>
+public sealed class BackupArtifactImportResponseDto
+{
+    public Guid BackupRunId { get; init; }
+
+    public Guid ArtifactId { get; init; }
+
+    public string FileName { get; init; } = string.Empty;
+
+    public long ByteSize { get; init; }
+
+    public Guid? ManifestArtifactId { get; init; }
+
+    public string? ManifestFileName { get; init; }
 }
 
 /// <summary>Per-tenant backup automation knobs (<see cref="Models.Backup.BackupScheduleConfiguration"/>).</summary>
@@ -305,6 +390,20 @@ public sealed class BackupLatestStatusResponseDto
 
     /// <summary><see cref="AverageSucceededBackupDurationSeconds"/> için kullanılan başarılı çalıştırma sayısı.</summary>
     public int AverageSucceededBackupDurationSampleCount { get; init; }
+
+    /// <summary>
+    /// Indicative total duration estimate (seconds) for the latest run context.
+    /// Prefer historical average when samples exist; otherwise size+step heuristic.
+    /// </summary>
+    public double? EstimatedTotalSeconds { get; init; }
+
+    /// <summary>
+    /// Indicative remaining seconds while the latest run is queued/running/awaiting verification; otherwise null.
+    /// </summary>
+    public double? EstimatedRemainingSeconds { get; init; }
+
+    /// <summary><c>historical</c> or <c>heuristic</c> — how <see cref="EstimatedTotalSeconds"/> was derived.</summary>
+    public string? EstimateSource { get; init; }
 }
 
 /// <summary>
@@ -645,12 +744,28 @@ public static class BackupRunMapper
         bool materializedChildren = false,
         int? automaticRetryMaxAttemptsBudget = null,
         BackupDownloadEnrichment? downloadEnrichment = null,
-        long? estimatedOriginalDatabaseBytes = null)
+        long? estimatedOriginalDatabaseBytes = null,
+        BackupRunDisplayLookup? display = null)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
             && BackupCompletenessSuccessPolicy.CompletenessRequiredForSucceededRun(adapterKind);
         var durationSeconds = BackupRunMetricsFormatter.ComputeDurationSeconds(run.StartedAt, run.CompletedAt);
+        var retention = BackupRetentionStatusEvaluator.FromRun(run);
+        var userInfo = display?.UserFor(run.RequestedByUserId) ?? (null, null);
+        var tenantInfo = display?.TenantFor(run.TenantId) ?? (null, null);
+        var primaryArtifact = run.Artifacts
+            .OrderBy(a => a.ArtifactType == BackupArtifactType.LogicalDump ? 0 : 1)
+            .ThenBy(a => a.CreatedAt)
+            .FirstOrDefault();
+        var downloadExt = Path.GetExtension(primaryArtifact?.StorageDescriptor ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(downloadExt))
+            downloadExt = run.Strategy == BackupStrategyKind.Tenant ? ".zip" : ".dump";
+        var operatorFileName = BackupArtifactFileNameBuilder.BuildOperatorDownloadFileName(
+            run.Strategy,
+            tenantInfo.Slug,
+            run.CompletedAt ?? run.RequestedAt,
+            downloadExt.TrimStart('.'));
         long? totalSizeBytes = null;
         double? compressionRatio = null;
         if (run.Artifacts.Count > 0)
@@ -672,10 +787,24 @@ public static class BackupRunMapper
         {
             Id = run.Id,
             Status = run.Status,
+            Strategy = run.Strategy,
             TriggerSource = run.TriggerSource,
             AdapterKind = run.AdapterKind,
             IdempotencyKey = run.IdempotencyKey,
             RequestedByUserId = run.RequestedByUserId,
+            RequestedByDisplayName = userInfo.Name,
+            RequestedByEmail = userInfo.Email,
+            RequestedByLabel = BackupRunActorLabels.Resolve(
+                run.TriggerSource,
+                userInfo.Name,
+                run.RequestedByUserId),
+            RequestedFromIp = run.RequestedFromIp,
+            TenantId = run.TenantId,
+            TenantName = tenantInfo.Name,
+            TenantSlug = tenantInfo.Slug,
+            DownloadCount = run.DownloadCount,
+            PrimaryArtifactId = primaryArtifact?.Id,
+            PrimaryDownloadFileName = operatorFileName,
             RequestedAt = run.RequestedAt,
             StartedAt = run.StartedAt,
             CompletedAt = run.CompletedAt,
@@ -699,6 +828,13 @@ public static class BackupRunMapper
             DurationSeconds = durationSeconds,
             DurationFormatted = BackupRunMetricsFormatter.FormatDuration(durationSeconds),
             CompressionRatio = compressionRatio,
+            StorageTier = retention.StorageTier,
+            LegalHold = run.LegalHold,
+            LegalHoldUntilUtc = run.LegalHoldUntilUtc,
+            LegalHoldReason = run.LegalHoldReason,
+            RetentionExpiresAtUtc = retention.RetentionExpiresAtUtc,
+            RetentionStatus = retention.Status,
+            InColdStorage = retention.InColdStorage,
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
                 {
@@ -713,6 +849,10 @@ public static class BackupRunMapper
                     ContentHashSha256 = a.ContentHashSha256,
                     LifecycleState = a.LifecycleState,
                     ExternalRedactedLocator = a.ExternalRedactedLocator,
+                    StorageTier = a.StorageTier,
+                    CloudLocator = a.CloudLocator,
+                    MovedToColdAtUtc = a.MovedToColdAtUtc,
+                    LegalHoldProtected = run.LegalHold,
                     IsFilePresentForDownload = ComputeArtifactFilePresentForDownload(
                         run,
                         a,
@@ -751,6 +891,9 @@ public static class BackupRunMapper
         BackupDownloadEnrichment? enrichment)
     {
         if (!materializedChildren || enrichment == null || run.Status != BackupRunStatus.Succeeded)
+            return false;
+
+        if (!enrichment.CallerMayDownloadArtifacts)
             return false;
 
         return BackupArtifactOnDiskResolver.TryResolveForSingleRun(

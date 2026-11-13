@@ -1,29 +1,29 @@
-import { useContext, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert } from 'react-native';
 
-import { AuthContext } from '../contexts/AuthContext';
-import { UsePermissionReturn, UserRole, ROLES } from '../types/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { PERMISSIONS } from '../shared/utils/PermissionHelper';
+import { UsePermissionReturn, UserRole, ROLES } from '../types/auth';
 
 /**
  * Gelişmiş yetki kontrol hook'u - Rol ve kaynak bazlı erişim kontrolü sağlar
  * Türkçe açıklama: Bu hook kullanıcının yetkilerini kontrol eder ve güvenli erişim sağlar
  */
 export const usePermission = (): UsePermissionReturn => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const { t } = useTranslation();
 
   // Kullanıcının tüm yetkilerini memoize et
   const userPermissions = useMemo(() => {
     if (!user?.permissions) return new Set<string>();
-    return new Set(user.permissions);
+    return new Set<string>(user.permissions);
   }, [user?.permissions]);
 
   // Kullanıcının rollerini memoize et
   const userRoles = useMemo(() => {
     if (!user?.role) return new Set<string>();
-    return new Set([user.role]);
+    return new Set<string>([user.role]);
   }, [user?.role]);
 
   /**
@@ -32,7 +32,7 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user || !userPermissions.size) return false;
-    
+
     const requiredPermission = `${resource}.${action}`;
     return userPermissions.has(requiredPermission);
   };
@@ -52,7 +52,7 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const hasAnyRole = (roles: UserRole[]): boolean => {
     if (!user || !userRoles.size) return false;
-    return roles.some(role => userRoles.has(role));
+    return roles.some((role) => userRoles.has(role));
   };
 
   /**
@@ -61,7 +61,7 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const hasAllRoles = (roles: UserRole[]): boolean => {
     if (!user || !userRoles.size) return false;
-    return roles.every(role => userRoles.has(role));
+    return roles.every((role) => userRoles.has(role));
   };
 
   /**
@@ -70,7 +70,7 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const checkPermissionWithAlert = (resource: string, action: string): boolean => {
     const hasAccess = hasPermission(resource, action);
-    
+
     if (!hasAccess) {
       Alert.alert(
         t('errors.unauthorized', 'Yetkisiz Erişim'),
@@ -78,7 +78,7 @@ export const usePermission = (): UsePermissionReturn => {
         [{ text: t('common.ok', 'Tamam') }]
       );
     }
-    
+
     return hasAccess;
   };
 
@@ -88,7 +88,7 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const checkRoleWithAlert = (role: UserRole): boolean => {
     const hasAccess = hasRole(role);
-    
+
     if (!hasAccess) {
       Alert.alert(
         t('errors.unauthorized', 'Yetkisiz Erişim'),
@@ -96,7 +96,7 @@ export const usePermission = (): UsePermissionReturn => {
         [{ text: t('common.ok', 'Tamam') }]
       );
     }
-    
+
     return hasAccess;
   };
 
@@ -115,7 +115,9 @@ export const usePermission = (): UsePermissionReturn => {
    * Kullanıcının aktif olup olmadığını kontrol eder
    * Türkçe açıklama: Kullanıcı durumu kontrolü
    */
-  const isActiveUser = user?.isActive || false;
+  const isActiveUser = Boolean(
+    (user as { isActive?: boolean } | null)?.isActive ?? user != null
+  );
 
   // Role shortcuts – use ROLES.* constants; prefer permission when available.
   const isAdmin = hasRole(ROLES.SuperAdmin);
@@ -133,15 +135,13 @@ export const usePermission = (): UsePermissionReturn => {
    * Kullanıcının sistem ayarlarını değiştirme yetkisi var mı kontrol eder (permission-first: settings.manage)
    * Türkçe açıklama: Sistem ayarları yetkisi
    */
-  const canManageSystemSettings =
-    hasPermission('settings', 'manage') || isAdmin;
+  const canManageSystemSettings = hasPermission('settings', 'manage') || isAdmin;
 
   /**
    * Kullanıcının raporları görüntüleme yetkisi var mı kontrol eder (permission-first: report.view)
    * Türkçe açıklama: Rapor görüntüleme yetkisi
    */
-  const canViewReports =
-    hasPermission('report', 'view') || isAdmin || isManager;
+  const canViewReports = hasPermission('report', 'view') || isAdmin || isManager;
 
   /**
    * Kullanıcının kullanıcı yönetimi yapma yetkisi var mı kontrol eder (permission-first: user.manage)
@@ -160,21 +160,21 @@ export const usePermission = (): UsePermissionReturn => {
     isSuperAdmin,
     isCashier,
     isManager,
-    
+
     // Kullanıcı durumu
     isDemoUser,
     isRealUser,
     isActiveUser,
-    
+
     // İşlem yetkileri
     canPerformCriticalOperations,
     canManageSystemSettings,
     canViewReports,
     canManageUsers,
-    
+
     // Kullanıcı bilgileri
-    user,
+    user: user as unknown as UsePermissionReturn['user'],
     userPermissions: Array.from(userPermissions),
-    userRoles: Array.from(userRoles)
+    userRoles: Array.from(userRoles),
   };
-}; 
+};

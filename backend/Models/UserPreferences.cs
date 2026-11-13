@@ -40,6 +40,16 @@ public class UserPreferences
     [Column("time_format")]
     public string? TimeFormat { get; set; }
 
+    /// <summary>IANA timezone id used for FA date/time display (e.g. Europe/Vienna).</summary>
+    [StringLength(64)]
+    [Column("time_zone")]
+    public string? TimeZone { get; set; }
+
+    /// <summary>Admin UI text locale: de | en | tr.</summary>
+    [StringLength(10)]
+    [Column("language")]
+    public string? Language { get; set; }
+
     [Column("reduced_animations")]
     public bool ReducedAnimations { get; set; }
 

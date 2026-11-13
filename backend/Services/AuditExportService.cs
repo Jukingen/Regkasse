@@ -64,7 +64,8 @@ public sealed class AuditExportService : IAuditExportService
             var first = true;
             await foreach (var log in StreamRowsAsync(filters, cancellationToken).ConfigureAwait(false))
             {
-                if (!first) await writer.WriteAsync(",").ConfigureAwait(false);
+                if (!first)
+                    await writer.WriteAsync(",").ConfigureAwait(false);
                 first = false;
                 await writer.WriteAsync(JsonSerializer.Serialize(log, JsonExportOptions)).ConfigureAwait(false);
             }
@@ -91,7 +92,7 @@ public sealed class AuditExportService : IAuditExportService
     }
 
     private IQueryable<AuditLog> BuildQuery(AuditLogQueryFilters filters) =>
-        _context.AuditLogs.AsNoTracking().ApplyFilters(filters).OrderByDescending(a => a.Timestamp);
+        _context.AuditLogs.AsNoTracking().ApplyFilters(filters, _context).OrderByDescending(a => a.Timestamp);
 
     private async IAsyncEnumerable<AuditLog> StreamRowsAsync(
         AuditLogQueryFilters filters,
@@ -142,7 +143,8 @@ public sealed class AuditExportService : IAuditExportService
     {
         string Esc(string? v)
         {
-            if (string.IsNullOrEmpty(v)) return "";
+            if (string.IsNullOrEmpty(v))
+                return "";
             var s = v.Replace("\"", "\"\"");
             return $"\"{s}\"";
         }

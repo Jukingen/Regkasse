@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+
+import { secureStorage } from '../services/secureStorage';
 
 interface DemoUser {
   username: string;
@@ -13,7 +14,10 @@ interface DemoUser {
 
 export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => void }) {
   const isDev = __DEV__;
-  const [demoUsers, setDemoUsers] = useState<{ Cashiers: DemoUser[], Admins: DemoUser[] }>({ Cashiers: [], Admins: [] });
+  const [demoUsers, setDemoUsers] = useState<{ Cashiers: DemoUser[]; Admins: DemoUser[] }>({
+    Cashiers: [],
+    Admins: [],
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,13 +38,37 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
       // Fallback demo kullanıcıları
       setDemoUsers({
         Cashiers: [
-          { username: "demo.cashier1", password: "Demo123!", role: "Cashier", description: "Demo Kasiyer 1", permissions: ["Satış", "Sepet", "Ödeme", "Fatura"] },
-          { username: "demo.cashier2", password: "Demo123!", role: "Cashier", description: "Demo Kasiyer 2", permissions: ["Satış", "Sepet", "Ödeme", "Fatura"] }
+          {
+            username: 'demo.cashier1',
+            password: 'Demo123!',
+            role: 'Cashier',
+            description: 'Demo Kasiyer 1',
+            permissions: ['Satış', 'Sepet', 'Ödeme', 'Fatura'],
+          },
+          {
+            username: 'demo.cashier2',
+            password: 'Demo123!',
+            role: 'Cashier',
+            description: 'Demo Kasiyer 2',
+            permissions: ['Satış', 'Sepet', 'Ödeme', 'Fatura'],
+          },
         ],
         Admins: [
-          { username: "demo.admin1", password: "Admin123!", role: "SuperAdmin", description: "Demo SuperAdmin 1", permissions: ["Tüm özellikler"] },
-          { username: "demo.admin2", password: "Admin123!", role: "SuperAdmin", description: "Demo SuperAdmin 2", permissions: ["Tüm özellikler"] }
-        ]
+          {
+            username: 'demo.admin1',
+            password: 'Admin123!',
+            role: 'SuperAdmin',
+            description: 'Demo SuperAdmin 1',
+            permissions: ['Tüm özellikler'],
+          },
+          {
+            username: 'demo.admin2',
+            password: 'Admin123!',
+            role: 'SuperAdmin',
+            description: 'Demo SuperAdmin 2',
+            permissions: ['Tüm özellikler'],
+          },
+        ],
       });
     }
   };
@@ -52,7 +80,7 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
     }
 
     setLoading(true);
-    
+
     try {
       // Demo giriş simülasyonu
       const loginResponse = await fetch('http://localhost:5000/api/auth/login', {
@@ -60,28 +88,38 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: user.username,
-          password: user.password
-        })
+          password: user.password,
+        }),
       });
 
       if (loginResponse.ok) {
         const userData = await loginResponse.json();
-        
-        // Kullanıcı bilgilerini kaydet
-        await AsyncStorage.setItem('userToken', userData.token);
-        await AsyncStorage.setItem('userRole', user.role);
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        
+
+        // Kullanıcı bilgilerini kaydet (SecureStore)
+        await secureStorage.setItem('userToken', userData.token);
+        await secureStorage.setItem('userRole', user.role);
+        await secureStorage.setItem('userData', JSON.stringify(userData));
+
         Alert.alert(
           'Demo Giriş Başarılı',
           `${user.description} olarak giriş yapıldı.\nRol: ${user.role}`,
-          [{ text: 'Tamam', onPress: () => onLogin(userData) }]
+          [
+            {
+              text: 'Tamam',
+              onPress: () => {
+                onLogin(userData);
+              },
+            },
+          ]
         );
       } else {
         throw new Error('Giriş başarısız');
       }
     } catch (error) {
-      Alert.alert('Hata', 'Demo giriş yapılamadı. Lütfen backend servisinin çalıştığından emin olun.');
+      Alert.alert(
+        'Hata',
+        'Demo giriş yapılamadı. Lütfen backend servisinin çalıştığından emin olun.'
+      );
     } finally {
       setLoading(false);
     }
@@ -92,16 +130,15 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
       key={index}
       style={[
         styles.userCard,
-        { backgroundColor: user.role === 'SuperAdmin' ? '#e3f2fd' : '#f3e5f5' }
+        { backgroundColor: user.role === 'SuperAdmin' ? '#e3f2fd' : '#f3e5f5' },
       ]}
       onPress={() => handleDemoLogin(user)}
-      disabled={loading}
-    >
+      disabled={loading}>
       <View style={styles.userInfo}>
-        <MaterialIcons 
-          name={user.role === 'SuperAdmin' ? 'admin-panel-settings' : 'person'} 
-          size={32} 
-          color={user.role === 'SuperAdmin' ? '#1976d2' : '#7b1fa2'} 
+        <MaterialIcons
+          name={user.role === 'SuperAdmin' ? 'admin-panel-settings' : 'person'}
+          size={32}
+          color={user.role === 'SuperAdmin' ? '#1976d2' : '#7b1fa2'}
         />
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{user.username}</Text>
@@ -109,7 +146,7 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
           <Text style={styles.userRole}>Rol: {user.role}</Text>
         </View>
       </View>
-      
+
       <View style={styles.loginInfo}>
         <Text style={styles.passwordText}>Şifre: {user.password}</Text>
         <MaterialIcons name="login" size={24} color="#666" />
@@ -251,4 +288,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-}); 
+});

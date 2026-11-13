@@ -45,7 +45,9 @@ export function getBackupVerificationReportQueryKey(runId: string) {
   return ['/api/admin/backup/runs', runId, 'verification-report'] as const;
 }
 
-export async function getBackupVerificationReport(runId: string): Promise<BackupVerificationReport> {
+export async function getBackupVerificationReport(
+  runId: string
+): Promise<BackupVerificationReport> {
   return customInstance<BackupVerificationReport>({
     url: `/api/admin/backup/runs/${runId}/verification-report`,
     method: 'GET',

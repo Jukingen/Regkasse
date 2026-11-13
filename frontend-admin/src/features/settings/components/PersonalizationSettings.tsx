@@ -1,8 +1,9 @@
 'use client';
 
 import { Card, Typography } from 'antd';
-import { AppearanceSettings } from '@/features/settings/pages/AppearanceSettings';
+
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
+import { AppearanceSettings } from '@/features/settings/pages/AppearanceSettings';
 import { useI18n } from '@/i18n';
 
 export function PersonalizationSettings() {

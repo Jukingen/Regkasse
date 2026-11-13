@@ -1,0 +1,122 @@
+{
+  "title": "Aktivitätsprotokoll",
+  "pageIntro": "Mandantenbezogene Mitarbeiteraktivitäten aus Audit-Daten. Plattform-Operator-Aktionen sind ausgeblendet.",
+  "shiftReportsLink": "Personal-/Kassenleistung",
+  "export": "Exportieren",
+  "exportSuccess": "Export gestartet",
+  "exportFailed": "Export fehlgeschlagen",
+  "totalEntries": "{{count}} Einträge",
+  "filters": {
+    "dateRange": "Zeitraum",
+    "user": "Benutzer",
+    "userPlaceholder": "Benutzer",
+    "actionType": "Aktionstyp",
+    "actionTypePlaceholder": "Aktionstyp",
+    "search": "Suchen (Benutzer, Aktion…)",
+    "allActions": "Alle Aktionen"
+  },
+  "actions": {
+    "USER_LOGIN": "Anmeldung",
+    "USER_LOGOUT": "Abmeldung",
+    "POS_PAY_OUTCOME": "Verkauf",
+    "POS_PAY_EX": "Zahlungsfehler (POS)",
+    "POS_REG_READY": "Kassenbereitschaft",
+    "PAYMENT_CONFIRM": "Zahlung",
+    "PAYMENT_INITIATE": "Zahlung gestartet",
+    "PAYMENT_CANCEL": "Zahlung storniert",
+    "PAYMENT_REFUND": "Erstattung",
+    "PaymentCreated": "Zahlung erstellt",
+    "PaymentReversal": "Storno",
+    "ShiftStarted": "Schicht öffnen",
+    "ShiftEnded": "Schicht schließen",
+    "POS_SPL_RCPT": "Sonderbeleg",
+    "CUSTOMER_CREATE": "Kunde hinzugefügt",
+    "CUSTOMER_UPDATE": "Kunde bearbeitet",
+    "USER_UPDATE": "Benutzer bearbeitet"
+  },
+  "table": {
+    "time": "Zeit",
+    "user": "Benutzer",
+    "action": "Aktion",
+    "description": "Beschreibung",
+    "details": "Details",
+    "noData": "Keine Aktivitäten gefunden"
+  },
+  "summary": {
+    "title": "Letzte Aktivitäten",
+    "viewAll": "Alle anzeigen",
+    "noActivities": "Keine Aktivitäten"
+  },
+  "tabs": {
+    "compliance": "Compliance-Audit",
+    "activity": "Aktivitätsprotokoll",
+    "operations": "Operationsprotokoll",
+    "staff": "Personal & Leistung"
+  },
+  "operationLog": {
+    "title": "Operationsprotokoll",
+    "pageIntro": "Rückgängig machbare Admin-Änderungen mit Vorher-/Nachher-Zustand. Zahlungen und fiskalische Belege können nicht rückgängig gemacht werden.",
+    "loadFailed": "Operationsprotokoll konnte nicht geladen werden",
+    "undoSuccess": "Operation wurde rückgängig gemacht",
+    "undoFailed": "Rückgängig machen fehlgeschlagen",
+    "undoConfirmTitle": "Operation rückgängig machen?",
+    "undoConfirmContent": "Der gespeicherte Vorher-Zustand wird wiederhergestellt. Diese Aktion wird auditiert.",
+    "detailTitle": "Operationsdetails",
+    "beforeState": "Vorher",
+    "afterState": "Nachher",
+    "unknownUser": "Unbekannt",
+    "table": {
+      "time": "Zeit",
+      "user": "Benutzer",
+      "operation": "Operation",
+      "entity": "Entität",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "status": {
+      "active": "Aktiv",
+      "undone": "Rückgängig"
+    },
+    "actions": {
+      "view": "Details anzeigen",
+      "undo": "Rückgängig"
+    }
+  },
+  "events": {
+    "unknown": {
+      "title": "Unbekanntes Ereignis"
+    },
+    "TenantCountryChanged": {
+      "title": "Mandantenland geändert",
+      "description": "Das Betriebsland oder die Steuerregel des Mandanten wurde geändert."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Historische Belege unverändert",
+      "description": "Bestehende Rechnungen und Belege behalten das Land zum Ausstellungszeitpunkt."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR-Rechnung erstellt",
+      "description": "Die QR-Rechnung-Nutzlast wurde erzeugt."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR-Rechnung-PDF erzeugt",
+      "description": "Das QR-Rechnung-PDF wurde erzeugt."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol-Teilnehmer registriert",
+      "description": "Eine Peppol-Teilnehmerkennung wurde für den Mandanten gespeichert."
+    },
+    "EinvoiceValidated": {
+      "title": "E-Rechnung geprüft",
+      "description": "Die E-Rechnung hat die Schematron-Prüfung bestanden."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-Rechnung übermittelt",
+      "description": "Die E-Rechnung wurde an den Access Point übergeben."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-Rechnung abgelehnt",
+      "description": "Die E-Rechnung wurde bei der Prüfung oder Übermittlung abgelehnt."
+    }
+  }
+}

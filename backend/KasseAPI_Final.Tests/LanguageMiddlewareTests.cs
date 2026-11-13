@@ -1,7 +1,6 @@
+using System.Globalization;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Localization;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
@@ -38,6 +37,34 @@ public sealed class LanguageMiddlewareTests
         await middleware.InvokeAsync(context);
 
         Assert.Equal("tr", storedLanguage);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_keeps_invariant_current_culture_for_decimal_parsing()
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var previousUi = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo? requestCulture = null;
+            CultureInfo? requestUiCulture = null;
+            var middleware = new LanguageMiddleware(ctx =>
+            {
+                requestCulture = CultureInfo.CurrentCulture;
+                requestUiCulture = CultureInfo.CurrentUICulture;
+                return Task.CompletedTask;
+            });
+
+            await middleware.InvokeAsync(new DefaultHttpContext());
+
+            Assert.Equal(CultureInfo.InvariantCulture, requestCulture);
+            Assert.Equal("de-AT", requestUiCulture!.Name);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUi;
+        }
     }
 
     [Fact]

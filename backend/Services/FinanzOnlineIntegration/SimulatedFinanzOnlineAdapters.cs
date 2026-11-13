@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -235,10 +230,11 @@ public sealed class DefaultFinanzOnlineCommandMapper : IFinanzOnlineCommandMappe
 
         if (request.RkdbBelegpruefung != null)
         {
-            if (request.Mode != FinanzOnlineIntegrationMode.TEST)
+            // TEST (art_uebermittlung=T) and PROD (P) both use belegpruefung; cutover is enforced upstream.
+            if (request.Mode is not (FinanzOnlineIntegrationMode.TEST or FinanzOnlineIntegrationMode.PROD))
             {
                 mapped.RkdbValidationErrorCode = "RKDB_MODE_NOT_SUPPORTED";
-                mapped.RkdbBuildError = "RKDB belegpruefung mapping is only supported for TEST mode in this release.";
+                mapped.RkdbBuildError = "RKDB belegpruefung mapping requires TEST or PROD mode.";
                 mapped.TransportPayload = string.Empty;
                 return mapped;
             }
@@ -271,6 +267,38 @@ public sealed class DefaultFinanzOnlineCommandMapper : IFinanzOnlineCommandMappe
             mapped.TransportPayload = string.Empty;
             metadata["rkdbPayloadKind"] = "belegpruefung";
             metadata["rkdbStructureValidated"] = "belegpruefung_v1";
+            return mapped;
+        }
+
+        if (request.RkdbAusfall != null)
+        {
+            if (request.Mode is not (FinanzOnlineIntegrationMode.TEST or FinanzOnlineIntegrationMode.PROD))
+            {
+                mapped.RkdbValidationErrorCode = "RKDB_MODE_NOT_SUPPORTED";
+                mapped.RkdbBuildError = "RKDB ausfall mapping requires TEST or PROD mode.";
+                mapped.TransportPayload = string.Empty;
+                return mapped;
+            }
+
+            var errors = FinanzOnlineRkdbAusfallValidator.Validate(request.RkdbAusfall);
+            if (errors.Count > 0)
+            {
+                mapped.RkdbValidationErrorCode = "RKDB_COMMAND_INVALID";
+                mapped.RkdbBuildError = string.Join("; ", errors);
+                mapped.TransportPayload = string.Empty;
+                return mapped;
+            }
+
+            var ns = string.IsNullOrWhiteSpace(_rkdbOptions.CurrentValue.SoapNamespace)
+                ? "https://finanzonline.bmf.gv.at/rkdb"
+                : _rkdbOptions.CurrentValue.SoapNamespace.Trim();
+
+            mapped.RkdbPayloadXml = FinanzOnlineRkdbAusfallXmlBuilder.Build(ns, request.RkdbAusfall);
+            mapped.TransportFormat = "application/xml+rksv-rkdb-inner";
+            mapped.TransportPayload = string.Empty;
+            metadata["rkdbPayloadKind"] = "ausfall";
+            metadata["rkdbStructureValidated"] = "ausfall_v1";
+            return mapped;
         }
 
         return mapped;
@@ -301,24 +329,27 @@ public sealed class FinanzOnlineSubmissionService : IFinanzOnlineSubmissionServi
     private readonly IFinanzOnlineRegistrierkassenClient _registrierkassenClient;
     private readonly IFinanzOnlineCommandMapper _commandMapper;
     private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _registrierkassenOptions;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public FinanzOnlineSubmissionService(
         IFinanzOnlineSessionClient sessionClient,
         IFinanzOnlineRegistrierkassenClient registrierkassenClient,
         IFinanzOnlineCommandMapper commandMapper,
-        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions)
+        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _sessionClient = sessionClient;
         _registrierkassenClient = registrierkassenClient;
         _commandMapper = commandMapper;
         _registrierkassenOptions = registrierkassenOptions;
+        _runtime = runtime;
     }
 
     public async Task<FinanzOnlineRegisterSubmissionResponse> SubmitAsync(FinanzOnlineRegisterSubmissionRequest request, CancellationToken cancellationToken = default)
     {
         var mapped = _commandMapper.MapRegisterSubmission(request);
 
-        var rkOpts = _registrierkassenOptions.CurrentValue;
+        var rkOpts = _runtime?.Registrierkassen ?? _registrierkassenOptions.CurrentValue;
         if (!rkOpts.UseSimulation && rkOpts.EnableRealTestSubmission && request.Mode == FinanzOnlineIntegrationMode.TEST)
         {
             if (!string.IsNullOrWhiteSpace(mapped.RkdbBuildError))

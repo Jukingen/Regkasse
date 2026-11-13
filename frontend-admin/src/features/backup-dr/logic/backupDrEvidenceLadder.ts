@@ -2,7 +2,6 @@
  * Yedek kanıt merdiveni: teknik başarı ile gerçek pg_dump / liste tatbikatı / kurtarma kanıtını ayırır (DTO sınırları içinde).
  * Başlık önceliği (`pickHeadline`) ve kanıt gücü özeti: `truthProvenance` ile hizalanacak şekilde `backupDrTruthExtensionPoints.ts` üzerinden dokümante edilir.
  */
-
 import type {
   BackupArtifactResponseDto,
   BackupRecoverabilitySummaryResponseDto,
@@ -10,15 +9,17 @@ import type {
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
-import { BackupRunResponseDtoStatus } from '@/api/generated/model/backupRunResponseDtoStatus';
-import { BackupVerificationResponseDtoStatus } from '@/api/generated/model/backupVerificationResponseDtoStatus';
-import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model/restoreVerificationRunResponseDtoStatus';
-import { mapDumpInspectionTriState } from '@/features/backup-dr/logic/backupDrMappers';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { BackupVerificationStatus } from '@/api/generated/model/backupVerificationStatus';
+import { RestoreVerificationStatus } from '@/api/generated/model/restoreVerificationStatus';
 import type { BackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 import { unloadedBackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
+import { mapDumpInspectionTriState } from '@/features/backup-dr/logic/backupDrMappers';
 
-function hasRecoverabilityProofGaps(summary: BackupRecoverabilitySummaryResponseDto | undefined): boolean {
+function hasRecoverabilityProofGaps(
+  summary: BackupRecoverabilitySummaryResponseDto | undefined
+): boolean {
   if (!summary) return true;
   const noBackupProof = !summary.lastSuccessfulBackupAt;
   const noArtifactProof = !summary.lastSuccessfulArtifactVerificationAt;
@@ -48,10 +49,10 @@ export interface BackupEvidenceLadderModel {
 
 function logicalDumpPresence(
   artifacts: BackupArtifactResponseDto[] | undefined | null,
-  hasLogicalDumpArtifactFlag: boolean | undefined,
+  hasLogicalDumpArtifactFlag: boolean | undefined
 ): EvidenceStepStatus {
   const list = artifacts ?? [];
-  const row = list.find((a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0);
+  const row = list.find((a) => a.artifactType === BackupArtifactType.LogicalDump);
   if (row) {
     if (row.isFilePresentForDownload === true) return 'pass';
     if (row.isFilePresentForDownload === false) return 'fail';
@@ -64,14 +65,15 @@ function logicalDumpPresence(
 
 function artifactVerificationStep(
   verification: BackupVerificationResponseDto | undefined,
-  latestRunId: string | undefined,
+  latestRunId: string | undefined
 ): EvidenceStepStatus {
-  if (!verification || verification.status === undefined || verification.status === null) return 'unknown';
-  if (verification.status === BackupVerificationResponseDtoStatus.NUMBER_0) return 'unknown';
+  if (!verification || verification.status === undefined || verification.status === null)
+    return 'unknown';
+  if (verification.status === BackupVerificationStatus.Pending) return 'unknown';
   const bid = verification.backupRunId?.trim();
   if (latestRunId && bid && bid !== latestRunId) return 'unknown';
-  if (verification.status === BackupVerificationResponseDtoStatus.NUMBER_1) return 'pass';
-  if (verification.status === BackupVerificationResponseDtoStatus.NUMBER_2) return 'fail';
+  if (verification.status === BackupVerificationStatus.Passed) return 'pass';
+  if (verification.status === BackupVerificationStatus.Failed) return 'fail';
   return 'unknown';
 }
 
@@ -104,7 +106,7 @@ export function deriveBackupEvidenceLadder(params: {
   const detail = detailForPipeline ?? null;
   const arts = detail?.artifacts ?? latest?.artifacts ?? undefined;
   const latestId = latest?.id?.trim();
-  const technicalOk = latest?.status === BackupRunResponseDtoStatus.NUMBER_3;
+  const technicalOk = latest?.status === BackupRunStatus.Succeeded;
 
   const stepTechnical: EvidenceStepRow = {
     id: 'technical_job',
@@ -118,7 +120,11 @@ export function deriveBackupEvidenceLadder(params: {
     labelKey: 'backupDr.evidence.steps.realPgConfigured.label',
     detailKey: 'backupDr.evidence.steps.realPgConfigured.detail',
     status:
-      realPostgreSqlLogicalDumpConfigured === true ? 'pass' : realPostgreSqlLogicalDumpConfigured === false ? 'fail' : 'unknown',
+      realPostgreSqlLogicalDumpConfigured === true
+        ? 'pass'
+        : realPostgreSqlLogicalDumpConfigured === false
+          ? 'fail'
+          : 'unknown',
   };
 
   const stepNonStub: EvidenceStepRow = {
@@ -128,7 +134,10 @@ export function deriveBackupEvidenceLadder(params: {
     status: !technicalOk ? 'na' : simulatedEvidence ? 'fail' : 'pass',
   };
 
-  const logicalPresence = logicalDumpPresence(arts, detail?.hasLogicalDumpArtifact ?? latest?.hasLogicalDumpArtifact);
+  const logicalPresence = logicalDumpPresence(
+    arts,
+    detail?.hasLogicalDumpArtifact ?? latest?.hasLogicalDumpArtifact
+  );
   const logicalDetailKey = (() => {
     if (!technicalOk) return 'backupDr.evidence.steps.logicalDumpFile.detailNa';
     if (simulatedEvidence) return 'backupDr.evidence.steps.logicalDumpFile.detailStub';
@@ -165,10 +174,13 @@ export function deriveBackupEvidenceLadder(params: {
 
   if (!restoreLatest) {
     listDetailKey = 'backupDr.evidence.steps.dumpListInspection.detailNoDrill';
-  } else if (rvSt === RestoreVerificationRunResponseDtoStatus.NUMBER_0 || rvSt === RestoreVerificationRunResponseDtoStatus.NUMBER_1) {
+  } else if (
+    rvSt === RestoreVerificationStatus.Queued ||
+    rvSt === RestoreVerificationStatus.Running
+  ) {
     listStatus = 'unknown';
     listDetailKey = 'backupDr.evidence.steps.dumpListInspection.detailDrillInFlight';
-  } else if (rvSt === RestoreVerificationRunResponseDtoStatus.NUMBER_3) {
+  } else if (rvSt === RestoreVerificationStatus.Failed) {
     if (simulatedEvidence && technicalOk) {
       listStatus = 'limited';
       listDetailKey = 'backupDr.evidence.steps.dumpListInspection.detailStubExpected';
@@ -182,7 +194,7 @@ export function deriveBackupEvidenceLadder(params: {
       listStatus = 'unknown';
       listDetailKey = 'backupDr.evidence.steps.dumpListInspection.detailUnknown';
     }
-  } else if (rvSt === RestoreVerificationRunResponseDtoStatus.NUMBER_2) {
+  } else if (rvSt === RestoreVerificationStatus.Succeeded) {
     if (di === true) {
       listStatus = 'pass';
       listDetailKey = 'backupDr.evidence.steps.dumpListInspection.detailPassIndirect';
@@ -207,10 +219,10 @@ export function deriveBackupEvidenceLadder(params: {
     status: listStatus,
   };
 
-  const drillOk = restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_2;
+  const drillOk = restoreLatest?.status === RestoreVerificationStatus.Succeeded;
   const drillQueuedOrRunning =
-    restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_0 ||
-    restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_1;
+    restoreLatest?.status === RestoreVerificationStatus.Queued ||
+    restoreLatest?.status === RestoreVerificationStatus.Running;
   const stepDrill: EvidenceStepRow = {
     id: 'restore_drill_ok',
     labelKey: 'backupDr.evidence.steps.restoreDrillCompleted.label',
@@ -221,7 +233,13 @@ export function deriveBackupEvidenceLadder(params: {
         : drillOk
           ? 'backupDr.evidence.steps.restoreDrillCompleted.detailPass'
           : 'backupDr.evidence.steps.restoreDrillCompleted.detailNotOk',
-    status: !restoreLatest ? 'unknown' : drillQueuedOrRunning ? 'unknown' : drillOk ? 'pass' : 'fail',
+    status: !restoreLatest
+      ? 'unknown'
+      : drillQueuedOrRunning
+        ? 'unknown'
+        : drillOk
+          ? 'pass'
+          : 'fail',
   };
 
   const proofGap = hasRecoverabilityProofGaps(recoverabilitySummary);
@@ -267,7 +285,10 @@ export function deriveBackupEvidenceLadder(params: {
     stepIsolated,
   ];
 
-  const backendSignalGaps: string[] = ['backupDr.evidence.gaps.pgdmpHeader', 'backupDr.evidence.gaps.stagingPathRedacted'];
+  const backendSignalGaps: string[] = [
+    'backupDr.evidence.gaps.pgdmpHeader',
+    'backupDr.evidence.gaps.stagingPathRedacted',
+  ];
 
   const headline = pickHeadline({
     technicalOk,
@@ -276,10 +297,11 @@ export function deriveBackupEvidenceLadder(params: {
     logicalPresence,
     listStatus,
     drillOk,
-    latestDrillFailed: restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+    latestDrillFailed: restoreLatest?.status === RestoreVerificationStatus.Failed,
     proofGap,
     requestedRealButBlocked: executionMode.loaded && executionMode.requestedRealButBlocked,
-    requestedRealButEffectiveSimulated: executionMode.loaded && executionMode.requestedRealButEffectiveSimulated,
+    requestedRealButEffectiveSimulated:
+      executionMode.loaded && executionMode.requestedRealButEffectiveSimulated,
   });
 
   return {
@@ -309,7 +331,10 @@ function pickHeadline(p: {
     return { key: 'backupDr.evidence.headline.requestedRealButEffectiveStub', tone: 'warning' };
   }
   if (p.requestedRealButBlocked && !p.simulatedEvidence) {
-    return { key: 'backupDr.evidence.headline.requestedRealButPrerequisitesBlocked', tone: 'warning' };
+    return {
+      key: 'backupDr.evidence.headline.requestedRealButPrerequisitesBlocked',
+      tone: 'warning',
+    };
   }
   if (p.simulatedEvidence) {
     return { key: 'backupDr.evidence.headline.stubPipeline', tone: 'info' };

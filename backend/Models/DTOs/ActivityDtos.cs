@@ -8,8 +8,14 @@ public sealed class ActivityDto
 {
     public Guid Id { get; set; }
 
+    /// <summary>
+    /// Event kind. JSON is the <see cref="ActivityEventType"/> member name
+    /// (for example <c>UserCreated</c>). The converter stays on this property so
+    /// duplicate underlying values do not collapse notification-config dictionary keys.
+    /// </summary>
     [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ActivityEventType Type { get; set; }
 
     public string Severity { get; set; } = ActivitySeverityNames.Info;
 

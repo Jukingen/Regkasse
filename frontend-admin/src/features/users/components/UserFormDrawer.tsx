@@ -11,16 +11,35 @@
  * - Render: full catalog as options; checked = assignedRoleIds.includes(role) → form field "role" holds the single selected value.
  * - User switch: form key edit-${user.id} resets component; sync effect sets values from new user (no stale selection).
  */
+import {
+  Alert,
+  Button,
+  Divider,
+  Drawer,
+  Form,
+  Input,
+  Radio,
+  Select,
+  Space,
+  Spin,
+  Typography,
+} from 'antd';
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert, Typography, Divider, Select } from 'antd';
-import type { UserInfo } from '@/api/generated/model';
-import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
+
+import type { CreateUserRequest, UpdateUserRequest, UserInfo } from '@/api/generated/model';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
-import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
-import { usersCopy } from '../constants/copy';
-import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
+
+import {
+  EMAIL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
+  SHORT_FIELD_MAX_LENGTH,
+  buildUsersFormRulesContext,
+  createUsersFormRules,
+} from '../constants/validation';
 
 type Mode = 'create' | 'edit';
 type UserFormTenantValues = {
@@ -54,16 +73,6 @@ type Props = {
   canManageTenants?: boolean;
 };
 
-const formRulesContext = {
-  requiredMessage: usersCopy.validationRequired,
-  emailInvalidMessage: usersCopy.validationEmail,
-  passwordMinMessage: usersCopy.validationPasswordMin,
-  passwordPolicyMessage: usersCopy.validationPasswordPolicy,
-  maxLengthMessage: usersCopy.validationMaxLength,
-  reasonRequiredMessage: usersCopy.reasonRequiredMessage,
-  roleNameRequiredMessage: usersCopy.roleNameRequired,
-};
-
 /**
  * Map UserInfo to form field values. Keys must match Form.Item name props exactly:
  * firstName, lastName, email, employeeNumber, role, taxNumber, notes.
@@ -89,7 +98,14 @@ function userToFormValues(u: UserInfo | Record<string, unknown>): Record<string,
   };
 }
 
-export function UserFormDrawer({
+export function UserFormDrawer(props: Props) {
+  if (!props.open) {
+    return null;
+  }
+  return <UserFormDrawerContent {...props} />;
+}
+
+function UserFormDrawerContent({
   open,
   onClose,
   mode,
@@ -106,22 +122,19 @@ export function UserFormDrawer({
 }: Props) {
   const { t } = useI18n();
   const [form] = Form.useForm();
-  const rules = useMemo(() => createUsersFormRules(formRulesContext), []);
+  const rules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
   const editUserId = mode === 'edit' && user?.id ? user.id : null;
-  const {
-    data: memberships = [],
-    isLoading: tenantsLoading,
-  } = useAdminUserTenants(editUserId, open && mode === 'edit' && !!editUserId);
-  const {
-    tenants: editableTenants,
-    isLoading: editableTenantsLoading,
-  } = useTenantList({
+  const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(
+    editUserId,
+    open && mode === 'edit' && !!editUserId
+  );
+  const { tenants: editableTenants, isLoading: editableTenantsLoading } = useTenantList({
     enabled: canManageTenants && open && mode === 'edit' && user?.role !== 'SuperAdmin',
   });
 
   const isPlatformCreate = mode === 'create' && createVariant === 'platform';
   const effectiveRoleOptions = isPlatformCreate
-    ? [{ value: 'SuperAdmin', label: usersCopy.roleDisplayName('SuperAdmin') }]
+    ? [{ value: 'SuperAdmin', label: t('users.roles.displayNames.SuperAdmin') }]
     : roleOptions;
   const editableTenantOptions = useMemo(
     () =>
@@ -129,7 +142,7 @@ export function UserFormDrawer({
         value: tenant.id,
         label: `${tenant.name} (${tenant.slug})`,
       })),
-    [editableTenants],
+    [editableTenants]
   );
 
   useEffect(() => {
@@ -162,7 +175,8 @@ export function UserFormDrawer({
   }, [open, mode, user, form, canManageTenants, memberships]);
 
   const handleSubmit = () => {
-    form.validateFields()
+    form
+      .validateFields()
       .then((values) => {
         const raw = values as Record<string, unknown>;
         const normalized = {
@@ -182,9 +196,9 @@ export function UserFormDrawer({
   const title =
     mode === 'create'
       ? isPlatformCreate
-        ? usersCopy.createPlatformUser
-        : usersCopy.createUser
-      : usersCopy.editUser;
+        ? t('users.page.createPlatformAdmin')
+        : t('users.create.title')
+      : t('users.form.editTitle');
   const saveDisabled = mode === 'edit' && (initialLoading || !!fetchError);
   // Edit: never render form until user detail is loaded (avoids empty form + initialValues-only hydration).
   const showForm = mode === 'create' || (mode === 'edit' && user != null);
@@ -199,124 +213,155 @@ export function UserFormDrawer({
       destroyOnHidden
       footer={
         <Space>
-          <Button onClick={onClose}>{usersCopy.cancel}</Button>
+          <Button onClick={onClose}>{t('common.buttons.cancel')}</Button>
           <Button type="primary" onClick={handleSubmit} loading={loading} disabled={saveDisabled}>
-            {usersCopy.save}
+            {t('common.buttons.save')}
           </Button>
         </Space>
       }
     >
       {mode === 'edit' && (initialLoading || user == null) ? (
-        // Spin tip only works in nest pattern (child required); avoid useForm-disconnected phase without Form mounted.
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin spinning description="Laden…">
+          <Spin spinning description={t('common.loading.data')}>
             <div style={{ minHeight: 80 }} />
           </Spin>
         </div>
       ) : mode === 'edit' && fetchError ? (
         <Alert
           type="error"
-          title={usersCopy.errorLoadUser}
-          description={((fetchError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (fetchError as { message?: string })?.message) ?? String(fetchError)}
-          action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>Erneut versuchen</Button>}
+          title={t('users.form.errorLoadUser')}
+          description={
+            (fetchError as { response?: { data?: { message?: string } }; message?: string })
+              ?.response?.data?.message ??
+            (fetchError as { message?: string })?.message ??
+            String(fetchError)
+          }
+          action={
+            onRetryFetch && (
+              <Button size="small" onClick={onRetryFetch}>
+                {t('common.buttons.retry')}
+              </Button>
+            )
+          }
           showIcon
         />
-      ) : showForm ? (
-        <Form
-          key={mode === 'edit' && user ? `edit-${user.id ?? 'user'}` : 'create'}
-          form={form}
-          layout="vertical"
-          preserve={false}
-          initialValues={formValues ?? undefined}
-        >
-          {mode === 'create' && (
-            <>
-              <Form.Item name="userName" label={usersCopy.userName} rules={rules.userName}>
-                <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={usersCopy.userName} />
-              </Form.Item>
-              <Form.Item name="password" label={usersCopy.password} rules={rules.password}>
-                <Input.Password autoComplete="new-password" placeholder="••••••••" />
-              </Form.Item>
-            </>
-          )}
-          <Form.Item name="firstName" label={usersCopy.firstName} rules={rules.firstName}>
-            <Input maxLength={NAME_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="lastName" label={usersCopy.lastName} rules={rules.lastName}>
-            <Input maxLength={NAME_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="email" label={usersCopy.email} rules={rules.email}>
-            <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
-            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-          </Form.Item>
-          {isPlatformCreate ? (
-            <Alert
-              type="info"
-              showIcon
-              title={usersCopy.platformCreateHint}
-              style={{ marginBottom: 16 }}
-            />
-          ) : null}
-          <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
-            {rolesLoading && effectiveRoleOptions.length === 0 ? (
-              <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{usersCopy.rolesLoading}</span>
-            ) : (
-              <Radio.Group
-                disabled={isPlatformCreate}
-                options={effectiveRoleOptions.map((opt) => ({
-                  value: opt.value,
-                  label: opt.label ?? usersCopy.roleDisplayName(opt.value),
-                }))}
-              />
+      ) : null}
+      <Form
+        key={mode === 'edit' && user ? `edit-${user.id ?? 'user'}` : 'create'}
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formValues ?? undefined}
+        style={{ display: showForm ? undefined : 'none' }}
+      >
+        {showForm ? (
+          <>
+            {mode === 'create' && (
+              <>
+                <Form.Item name="userName" label={t('users.form.userName')} rules={rules.userName}>
+                  <Input
+                    maxLength={NAME_MAX_LENGTH}
+                    showCount
+                    placeholder={t('users.username.placeholder')}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="password"
+                  label={t('users.create.password')}
+                  rules={rules.password}
+                >
+                  <Input.Password
+                    autoComplete="new-password"
+                    placeholder={t('common.auth.passwordMaskedPlaceholder')}
+                  />
+                </Form.Item>
+              </>
             )}
-          </Form.Item>
-          <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
-            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
-            <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
-          </Form.Item>
-          {mode === 'edit' && user?.id ? (
-            <>
-              <Divider style={{ margin: '8px 0 16px' }} />
-              <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
-                {t('users.tabs.tenant.columnTenant')}
-              </Typography.Text>
+            <Form.Item name="firstName" label={t('users.create.firstName')} rules={rules.firstName}>
+              <Input maxLength={NAME_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="lastName" label={t('users.create.lastName')} rules={rules.lastName}>
+              <Input maxLength={NAME_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="email" label={t('users.create.email')} rules={rules.email}>
+              <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item
+              name="employeeNumber"
+              label={t('users.form.employeeNumber')}
+              rules={rules.employeeNumber}
+            >
+              <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+            </Form.Item>
+            {isPlatformCreate ? (
               <Alert
                 type="info"
                 showIcon
-                title={t('users.tenants.manageHint')}
-                style={{ marginBottom: 12 }}
+                title={t('users.form.platformCreateHint')}
+                style={{ marginBottom: 16 }}
               />
-              <UserTenantSummary
-                userRole={user.role}
-                memberships={memberships}
-                loading={tenantsLoading}
-              />
-              {canManageTenants && user.role !== 'SuperAdmin' ? (
-                <div style={{ marginTop: 16 }}>
-                  <Form.Item
-                    name="tenantIds"
-                    label={t('users.tenants.manageTitle')}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      optionFilterProp="label"
-                      placeholder={t('users.tenants.manageTitle')}
-                      loading={editableTenantsLoading || tenantsLoading}
-                      options={editableTenantOptions}
-                    />
-                  </Form.Item>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-        </Form>
-      ) : null}
+            ) : null}
+            <Form.Item name="role" label={t('users.create.role')} rules={rules.role}>
+              {rolesLoading && effectiveRoleOptions.length === 0 ? (
+                <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
+                  {t('users.form.rolesLoading')}
+                </span>
+              ) : (
+                <Radio.Group
+                  disabled={isPlatformCreate}
+                  options={effectiveRoleOptions.map((opt) => ({
+                    value: opt.value,
+                    label: opt.label ?? t(`users.roles.displayNames.${opt.value}`),
+                  }))}
+                />
+              )}
+            </Form.Item>
+            <Form.Item name="taxNumber" label={t('users.form.taxNumber')} rules={rules.taxNumber}>
+              <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="notes" label={t('users.form.notes')} rules={rules.notes}>
+              <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
+            </Form.Item>
+            {mode === 'edit' && user?.id ? (
+              <>
+                <Divider style={{ margin: '8px 0 16px' }} />
+                <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {t('users.tabs.tenant.columnTenant')}
+                </Typography.Text>
+                <Alert
+                  type="info"
+                  showIcon
+                  title={t('users.tenants.manageHint')}
+                  style={{ marginBottom: 12 }}
+                />
+                <UserTenantSummary
+                  userRole={user.role}
+                  memberships={memberships}
+                  loading={tenantsLoading}
+                />
+                {canManageTenants && user.role !== 'SuperAdmin' ? (
+                  <div style={{ marginTop: 16 }}>
+                    <Form.Item
+                      name="tenantIds"
+                      label={t('users.tenants.manageTitle')}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        mode="multiple"
+                        allowClear
+                        optionFilterProp="label"
+                        placeholder={t('users.tenants.manageTitle')}
+                        loading={editableTenantsLoading || tenantsLoading}
+                        options={editableTenantOptions}
+                      />
+                    </Form.Item>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </Form>
     </Drawer>
   );
 }

@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
+
 import {
+  type BackupSchedulePlannerState,
   buildCronFromPlannerState,
   buildCronFromSchedule,
   parseCronToSchedule,
   plannerStateToPutSchedule,
-  type BackupSchedulePlannerState,
 } from '@/features/backup/logic/backupScheduleCronCodec';
-import { BackupScheduleFrequency } from '@/api/generated/model';
 
 describe('backupScheduleCronCodec', () => {
   it('buildCronFromSchedule daily', () => {
     const cron = buildCronFromSchedule({
-      frequency: BackupScheduleFrequency.Daily,
+      frequency: 'Daily',
       hourUtc: 3,
       minuteUtc: 15,
     });
@@ -20,7 +20,7 @@ describe('backupScheduleCronCodec', () => {
 
   it('buildCronFromSchedule weekly Monday', () => {
     const cron = buildCronFromSchedule({
-      frequency: BackupScheduleFrequency.Weekly,
+      frequency: 'Weekly',
       hourUtc: 2,
       minuteUtc: 0,
       dayOfWeek: 1,
@@ -62,8 +62,14 @@ describe('backupScheduleCronCodec', () => {
       dayOfMonth: 1,
       customCron: '0 2 * * 1',
     };
-    expect(buildCronFromPlannerState(state)).toBe(
-      buildCronFromSchedule(plannerStateToPutSchedule(state)),
-    );
+    expect(buildCronFromPlannerState(state)).toBe('0 2 * * 1');
+    expect(
+      buildCronFromSchedule({
+        frequency: 'Weekly',
+        hourUtc: 2,
+        minuteUtc: 0,
+        dayOfWeek: 1,
+      })
+    ).toBe('0 2 * * 1');
   });
 });

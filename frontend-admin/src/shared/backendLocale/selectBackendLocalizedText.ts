@@ -12,7 +12,7 @@ import type { TextLocale } from '@/i18n/config';
 export function pickDualLocaleMessage(
   messageDe: string,
   messageEn: string | null | undefined,
-  locale: TextLocale,
+  locale: TextLocale
 ): string {
   const de = (messageDe ?? '').trim();
   const en = (messageEn ?? '').trim();
@@ -45,7 +45,7 @@ export function pickDeOnlyBackendText(value: string | null | undefined): string 
  */
 export function joinDeOnlyBackendList(
   items: readonly string[] | null | undefined,
-  separator: string,
+  separator: string
 ): string | undefined {
   if (!items?.length) return undefined;
   const parts = items.map((x) => String(x).trim()).filter((x) => x.length > 0);

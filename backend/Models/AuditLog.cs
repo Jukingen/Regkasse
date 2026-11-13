@@ -161,6 +161,10 @@ namespace KasseAPI_Final.Models
 
         // Company / tenant settings
         public const string COMPANY_SETTINGS_UPDATE = "COMPANY_SETTINGS_UPDATE";
+        public const string TENANT_SETTINGS_REQUESTED = "TENANT_SETTINGS_REQUESTED";
+        public const string TENANT_SETTINGS_APPROVED = "TENANT_SETTINGS_APPROVED";
+        public const string TENANT_SETTINGS_REJECTED = "TENANT_SETTINGS_REJECTED";
+        public const string TENANT_SETTINGS_REVERTED = "TENANT_SETTINGS_REVERTED";
 
         // Receipt operations
         public const string RECEIPT_PRINTED = "RECEIPT_PRINTED";
@@ -181,7 +185,11 @@ namespace KasseAPI_Final.Models
 
         // User operations
         public const string USER_LOGIN = "USER_LOGIN";
+        /// <summary>Failed authentication attempt (distinct from <see cref="USER_LOGIN"/> for reports).</summary>
+        public const string USER_LOGIN_FAILED = "USER_LOGIN_FAILED";
         public const string USER_LOGOUT = "USER_LOGOUT";
+        public const string USER_PERMISSION_OVERRIDES_CHANGED = "USER_PERMISSION_OVERRIDES_CHANGED";
+        public const string REPORT_PDF_DOWNLOADED = "REPORT_PDF_DOWNLOADED";
         public const string USER_CREATE = "USER_CREATE";
         /// <summary>Preferred action label for direct user provisioning (no invitation email).</summary>
         public const string USER_CREATED = "USER_CREATED";
@@ -199,12 +207,18 @@ namespace KasseAPI_Final.Models
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
         public const string USER_TENANT_MEMBERSHIP_CHANGED = "USER_TENANT_MEMBERSHIP_CHANGED";
         public const string USER_NAME_CHANGE = "USER_NAME_CHANGE";
+        /// <summary>Super Admin force logout (security stamp rotation + all sessions).</summary>
+        public const string USER_FORCE_LOGOUT = "USER_FORCE_LOGOUT";
+        /// <summary>Super Admin terminated one or more auth sessions.</summary>
+        public const string USER_SESSION_TERMINATED = "USER_SESSION_TERMINATED";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
         public const string TSE_STATUS_CHECK = "TSE_STATUS_CHECK";
         public const string BACKUP_CREATE = "BACKUP_CREATE";
         public const string SYSTEM_MAINTENANCE = "SYSTEM_MAINTENANCE";
+        /// <summary>Super Admin cleared application cache (troubleshooting).</summary>
+        public const string SYSTEM_CACHE_CLEARED = "SYSTEM_CACHE_CLEARED";
 
         // Generic CRUD operations
         public const string CREATE = "CREATE";
@@ -212,7 +226,8 @@ namespace KasseAPI_Final.Models
         public const string UPDATE = "UPDATE";
         public const string DELETE = "DELETE";
 
-        // Role management (custom role delete, permission update)
+        // Role management (custom role create/delete, permission update)
+        public const string ROLE_CREATE = "ROLE_CREATE";
         public const string ROLE_DELETE = "ROLE_DELETE";
         public const string ROLE_PERMISSIONS_UPDATE = "ROLE_PERMISSIONS_UPDATE";
 
@@ -252,14 +267,37 @@ namespace KasseAPI_Final.Models
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
 
-    /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
-    public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
+        /// <summary>Cashier assigned to a cash register (POST /api/admin/cash-registers/{id}/assign).</summary>
+        public const string CASH_REGISTER_ASSIGNED = "CASH_REGISTER_ASSIGNED";
 
-    /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
-    public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
+        /// <summary>Cashier assignment removed from a cash register (POST /api/admin/cash-registers/{id}/assign with null user).</summary>
+        public const string CASH_REGISTER_UNASSIGNED = "CASH_REGISTER_UNASSIGNED";
 
-    /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
-    public const string LICENSE_RENEWED = "LICENSE_RENEWED";
+        /// <summary>Reversible admin operation undone via operation log.</summary>
+        public const string OPERATION_UNDONE = "OPERATION_UNDONE";
+
+        /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
+        public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
+
+        /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
+        public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
+
+        /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
+        public const string LICENSE_RENEWED = "LICENSE_RENEWED";
+
+        /// <summary>Mandant license extended via REGK key and/or valid-until update.</summary>
+        public const string LICENSE_EXTENDED = "LICENSE_EXTENDED";
+
+        /// <summary>Mandant license key and/or validity updated (masked keys in audit payload).</summary>
+        public const string LICENSE_UPDATED = "LICENSE_UPDATED";
+
+        /// <summary>FA renewal UI (page/modal) viewed — license renewal funnel analytics.</summary>
+        public const string LICENSE_RENEWAL_PAGE_VIEWED = "LICENSE_RENEWAL_PAGE_VIEWED";
+
+        public const string LICENSE_ACTIVATED = "LICENSE_ACTIVATED";
+        public const string LICENSE_REVOKED = "LICENSE_REVOKED";
+        public const string LICENSE_ACTIVATION_FAILED = "LICENSE_ACTIVATION_FAILED";
+        public const string LICENSE_PREVIEWED = "LICENSE_PREVIEWED";
 
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
@@ -280,37 +318,67 @@ namespace KasseAPI_Final.Models
         public const string MANUAL_RESTORE_REQUEST_CREATED = "MANUAL_RESTORE_REQUEST_CREATED";
         public const string MANUAL_RESTORE_REQUEST_APPROVED = "MANUAL_RESTORE_REQUEST_APPROVED";
         public const string MANUAL_RESTORE_REQUEST_REJECTED = "MANUAL_RESTORE_REQUEST_REJECTED";
+
+        public const string DEPLOYMENT_STARTED = "DEPLOYMENT_STARTED";
+        public const string DEPLOYMENT_SUCCEEDED = "DEPLOYMENT_SUCCEEDED";
+        public const string DEPLOYMENT_FAILED = "DEPLOYMENT_FAILED";
+        public const string DEPLOYMENT_ROLLBACK = "DEPLOYMENT_ROLLBACK";
+        public const string DEPLOYMENT_COMPLIANCE_APPROVED = "DEPLOYMENT_COMPLIANCE_APPROVED";
+
+        /// <summary>POS/FA storno signed at fiskaly SIGN AT as CANCELLATION.</summary>
+        public const string FISKALY_CANCELLATION_RECEIPT_SIGNED = "FISKALY_CANCELLATION_RECEIPT_SIGNED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation failed.</summary>
+        public const string FISKALY_RECEIPT_OPERATION_FAILED = "FISKALY_RECEIPT_OPERATION_FAILED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation succeeded.</summary>
+        public const string FISKALY_RECEIPT_SIGNED = "FISKALY_RECEIPT_SIGNED";
+
+        /// <summary>Failed Fiskaly operation retried from FA history.</summary>
+        public const string FISKALY_OPERATION_RETRIED = "FISKALY_OPERATION_RETRIED";
+
+        /// <summary>FA Fiskaly batch (storno / Sonderbelege / DEP ZIP) completed.</summary>
+        public const string FISKALY_BATCH_COMPLETED = "FISKALY_BATCH_COMPLETED";
+
+        /// <summary>Failed Fiskaly error marked resolved / known issue / reopened.</summary>
+        public const string FISKALY_ERROR_REVIEWED = "FISKALY_ERROR_REVIEWED";
     }
 
-            // Entity types for audit logging
-        public static class AuditLogEntityTypes
-        {
-            public const string PAYMENT = "Payment";
-            public const string INVOICE = "Invoice";
-            public const string CART = "Cart";
-            public const string CART_ITEM = "CartItem";
-            public const string CUSTOMER = "Customer";
-            public const string USER = "User";
-            public const string ROLE = "Role";
-            public const string PAYMENT_SESSION = "PaymentSession";
-            public const string PAYMENT_LOG = "PaymentLog";
-            public const string AUDIT_LOG = "AuditLog";
-            public const string SYSTEM_CONFIG = "SystemConfig";
-            public const string TSE_DEVICE = "TseDevice";
-            public const string RECEIPT = "Receipt";
+    // Entity types for audit logging
+    public static class AuditLogEntityTypes
+    {
+        public const string PAYMENT = "Payment";
+        public const string INVOICE = "Invoice";
+        public const string CART = "Cart";
+        public const string CART_ITEM = "CartItem";
+        public const string CUSTOMER = "Customer";
+        public const string USER = "User";
+        public const string ROLE = "Role";
+        public const string PAYMENT_SESSION = "PaymentSession";
+        public const string PAYMENT_LOG = "PaymentLog";
+        public const string AUDIT_LOG = "AuditLog";
+        public const string SYSTEM_CONFIG = "SystemConfig";
+        public const string TSE_DEVICE = "TseDevice";
+        public const string RECEIPT = "Receipt";
 
-            /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
-            public const string POS_CRITICAL = "PosCritical";
+        /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
+        public const string POS_CRITICAL = "PosCritical";
 
-            /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
-            public const string FISCAL_EXPORT = "FiscalExport";
+        /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
+        public const string FISCAL_EXPORT = "FiscalExport";
 
-            public const string CASH_REGISTER = "CashRegister";
+        public const string CASH_REGISTER = "CashRegister";
 
-            public const string CATEGORY = "Category";
+        public const string CATEGORY = "Category";
 
-            public const string COMPANY_SETTINGS = "CompanySettings";
+        public const string COMPANY_SETTINGS = "CompanySettings";
 
-            public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
-        }
+        public const string TENANT_SETTINGS_HISTORY = "TenantSettingsHistory";
+
+        public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
+
+        public const string DEPLOYMENT = "Deployment";
+
+        public const string DEPLOYMENT_COMPLIANCE_SIGNOFF = "DeploymentComplianceSignoff";
+    }
 }

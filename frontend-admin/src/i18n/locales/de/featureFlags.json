@@ -1,0 +1,28 @@
+{
+  "pageTitle": "Feature Flags",
+  "accessDenied": "Nur Super-Administratoren können Feature Flags verwalten.",
+  "introTitle": "Stufenweise Freigabe",
+  "introBody": "Globale Defaults kommen aus appsettings (FeatureFlags). Mandanten-Overrides liegen in tenant_settings. Code kann mit deaktivierten Features deployed werden und danach pro Mandant aktiviert werden.",
+  "tenantScope": "Mandanten-Scope (optional)",
+  "tenantIdInputPlaceholder": "Tenant-UUID für Overrides (leer = global)",
+  "tenantIdPasteHint": "Leer lassen für globale Overrides. Gültige UUID aktiviert den Mandanten-Scope.",
+  "saved": "Feature Flag gespeichert.",
+  "saveFailed": "Feature Flag konnte nicht gespeichert werden.",
+  "clearOverride": "Override entfernen",
+  "bool": {
+    "true": "Ja",
+    "false": "Nein"
+  },
+  "columns": {
+    "name": "Flag",
+    "enabled": "Aktiv",
+    "configDefault": "Config-Default",
+    "source": "Quelle",
+    "actions": "Aktionen"
+  },
+  "source": {
+    "config": "Config",
+    "global_override": "Global Override",
+    "tenant_override": "Mandant Override"
+  }
+}

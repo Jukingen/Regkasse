@@ -9,7 +9,7 @@ export interface ModifierGroupSelectionShape {
   minSelections: number;
   maxSelections: number | null;
   isRequired?: boolean;
-  products?: Array<{ productId: string }>;
+  products?: { productId: string }[];
 }
 
 /** Result of validating a single group. */
@@ -21,15 +21,13 @@ export interface GroupValidationResult {
 /** Result of validating all groups. */
 export interface AllGroupsValidationResult {
   valid: boolean;
-  errors: Array<{ groupId: string; message: string }>;
+  errors: { groupId: string; message: string }[];
 }
 
 /**
  * Control type for the group: radio (exactly one) or checkbox (zero or more up to max).
  */
-export function getGroupControlType(
-  group: ModifierGroupSelectionShape
-): 'radio' | 'checkbox' {
+export function getGroupControlType(group: ModifierGroupSelectionShape): 'radio' | 'checkbox' {
   const min = group.minSelections ?? 0;
   const max = group.maxSelections;
   return min === 1 && max === 1 ? 'radio' : 'checkbox';
@@ -127,7 +125,7 @@ export function validateAllGroups(
   groups: ModifierGroupSelectionShape[],
   selectedIds: Set<string>
 ): AllGroupsValidationResult {
-  const errors: Array<{ groupId: string; message: string }> = [];
+  const errors: { groupId: string; message: string }[] = [];
   for (const group of groups) {
     const result = validateGroup(group, selectedIds);
     if (!result.valid && result.message) {

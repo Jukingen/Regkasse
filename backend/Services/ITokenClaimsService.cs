@@ -4,18 +4,14 @@ using KasseAPI_Final.Models;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Builds claims for JWT (and cookie) at login/refresh: sub, name, one <c>role</c> claim per assigned role, permission, optional tenant_id/branch_id.
-/// Role and permissions from Identity and RolePermissionMatrix (Roles.* only; no legacy alias).
+/// Builds compact JWT claims: <c>sub</c>, <c>userId</c>, <c>email</c>, one <c>role</c> per assigned role,
+/// optional <c>tenant_id</c>/<c>branch_id</c>/<c>app_context</c>. Permission catalog is omitted for canonical
+/// system roles (SuperAdmin keeps <c>system.critical</c>); custom roles still embed filtered permission claims.
 /// </summary>
 public interface ITokenClaimsService
 {
-    /// <summary>
-    /// Builds the full claim list: sub, email, name, user_id, role, roles, permission (one per permission),
-    /// optional tenant_id, branch_id, and app_context.
-    /// Uses role normalization (trim) and RolePermissionMatrix for permissions.
-    /// </summary>
     /// <param name="tenantId">Optional; when set, adds tenant_id claim for scope checks.</param>
-    /// <param name="branchId">Optional; when set, adds branch_id claim for scope checks.</param>
+    /// <param name="branchId">Optional; when set, adds branch_id claim for branch scope checks.</param>
     /// <param name="appContext">Optional; when set, adds app_context claim ("pos" | "admin").</param>
     Task<IReadOnlyList<Claim>> BuildClaimsAsync(
         ApplicationUser user,

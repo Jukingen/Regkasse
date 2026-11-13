@@ -15,7 +15,7 @@ export interface EmployeeSummary {
  * so payment flow can continue to use customerId without change.
  */
 class EmployeeService {
-  private baseUrl = '/Employee';
+  private readonly baseUrl = '/Employee';
 
   /**
    * Look up employee by EmployeeNumber and return the linked Customer used for benefit application.

@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "overview": "Genel bakış",
+    "list": "Personel listesi",
+    "performance": "Performans",
+    "shifts": "Vardiyalar"
+  },
+  "hub": {
+    "pageTitle": "Personel",
+    "backLink": "Personel özetine dön",
+    "intro": "Kendi mandantınızdaki personeli görüntüleyin: ekip özeti, kasa performansı ve vardiyalar — kullanıcı yönetimi olmadan.",
+    "cardListTitle": "Personel listesi",
+    "cardListDescription": "Rol ve son giriş bilgisiyle aktif ve pasif mandant personeli.",
+    "cardPerformanceTitle": "Personel performansı",
+    "cardPerformanceDescription": "Seçilen dönemde kasiyer başına ciro, işlem ve KPI'lar.",
+    "cardShiftsTitle": "Vardiyalar ve çalışma saatleri",
+    "cardShiftsDescription": "Açılış ve kapanış saatleriyle açık ve kapalı vardiyalar.",
+    "accessDeniedTitle": "Erişim yok",
+    "accessDeniedDescription": "Personel için en az bir izin gerekir (user.view, report.view veya shift.view)."
+  },
+  "list": {
+    "pageTitle": "Personel listesi",
+    "cardTitle": "Personel",
+    "search": "Ara…",
+    "roleFilter": "Rol",
+    "statusFilter": "Durum",
+    "refresh": "Yenile",
+    "manageUsers": "Kullanıcıları yönet",
+    "empty": "Personel bulunamadı",
+    "view": "Görüntüle",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "columnStaff": "Personel",
+    "columnRole": "Rol",
+    "columnStatus": "Durum",
+    "columnLastActivity": "Son aktivite",
+    "columnActions": "İşlemler",
+    "readOnlyTitle": "Salt okunur görünüm",
+    "readOnlyDescription": "Manager olarak personeli görüntüleyebilirsiniz. Oluşturma, düzenleme ve devre dışı bırakma kullanıcı yönetimi (user.manage) gerektirir.",
+    "accessDeniedTitle": "Erişim yok",
+    "accessDeniedDescription": "Kullanıcı görüntüleme izni (user.view) gerekir."
+  }
+}

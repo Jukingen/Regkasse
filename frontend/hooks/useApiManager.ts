@@ -1,17 +1,20 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Bu hook tüm API çağrılarını merkezi olarak yönetir ve sonsuz döngü sorunlarını önler.
 // RKSV uyumlu güvenlik kontrolü ve akıllı cache yönetimi sağlar.
 
-import { useState, useCallback, useRef, useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
-import { API_BASE_URL } from '../services/api/config';
-import { paymentService } from '../services/api/paymentService';
-import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
-import { useAuth } from '../contexts/AuthContext';
-import { sessionManager } from '../services/session/sessionManager';
+import { useState, useCallback, useRef, useEffect } from 'react';
+
+import { subscribeForegroundPolling } from './useConditionalPolling';
 import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
 import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
-import { subscribeForegroundPolling } from './useConditionalPolling';
+import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../services/api/config';
+import { paymentService } from '../services/api/paymentService';
+import { syncOfflineOrderSnapshots } from '../services/offline/offlineOrderManager';
+import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
 import { notifyPosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
+import { sessionManager } from '../services/session/sessionManager';
 
 // API çağrı durumu
 interface ApiCallStatus {
@@ -53,12 +56,14 @@ export const useApiManager = () => {
 
   // Global interval guard to avoid multiple timers across many hook instances
   // Module-scoped flags
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const intervalsInitializedRef = useRef<boolean>((globalThis as any).__apiManagerIntervalsInitialized__ || false);
+
+  const intervalsInitializedRef = useRef<boolean>(
+    (globalThis as any).__apiManagerIntervalsInitialized__ || false
+  );
 
   // State güncelleme fonksiyonu - batch update
   const updateState = useCallback((updates: Partial<ApiManagerState>) => {
-    setState(prev => {
+    setState((prev) => {
       const newState = { ...prev, ...updates };
       stateRef.current = newState;
       return newState;
@@ -77,7 +82,7 @@ export const useApiManager = () => {
     try {
       const token = await sessionManager.getAccessToken();
       if (!token) {
-        console.log('⚠️ Token bulunamadı');
+        safeLog('⚠️ Token bulunamadı');
         return true;
       }
 
@@ -86,7 +91,7 @@ export const useApiManager = () => {
       const currentTime = Math.floor(now / 1000);
 
       if (payload.exp && payload.exp < currentTime) {
-        console.log('⚠️ Token expired');
+        safeLog('⚠️ Token expired');
         return true;
       }
 
@@ -111,11 +116,11 @@ export const useApiManager = () => {
         return false;
       }
 
-      // 1. Önce native network durumunu kontrol et (Hızlı ve maliyetsiz)
+      // 1. Skip health check when the link is clearly offline / unreachable.
+      // null isInternetReachable (common on reconnect) still proceeds to the API health probe.
       const netInfo = await NetInfo.fetch();
-      if (netInfo.isConnected === false) {
+      if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
         updateState({ isOnline: false });
-        // Eğer native olarak offline ise, fetch denemeye gerek yok
         return false;
       }
 
@@ -125,13 +130,15 @@ export const useApiManager = () => {
 
       // AbortController ile timeout yönetimi (RN'de AbortSignal.timeout henüz tam desteklenmeyebilir)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 5000);
 
       try {
         const response = await fetch(healthUrl, {
           method: 'GET',
-          headers: { 'Accept': 'text/plain' },
-          signal: controller.signal
+          headers: { Accept: 'text/plain' },
+          signal: controller.signal,
         });
         clearTimeout(timeoutId);
 
@@ -146,15 +153,30 @@ export const useApiManager = () => {
             .syncPendingPaymentQueue()
             .then(({ processed, failed }) => {
               if (processed > 0 || failed > 0) {
-                console.log(
+                safeLog(
                   `[PaymentQueue] Synced ${processed} pending payment(s) after reconnect, failed: ${failed}`
                 );
                 notifyOfflineSyncComplete(processed, failed);
               }
             })
-            .catch((e) =>
-              console.warn('[PaymentQueue] Background sync failed:', e)
-            );
+            .catch((e) => {
+              console.warn('[PaymentQueue] Background sync failed:', e);
+            });
+          void syncOfflineOrderSnapshots()
+            .then((result) => {
+              const details = result.details ?? [];
+              const synced = details.filter((d) => d.success).length;
+              const failed = details.filter((d) => !d.success).length;
+              if (synced > 0 || failed > 0) {
+                safeLog(
+                  `[OfflineOrderManager] synced=${synced} failed=${failed} message=${result.message}`
+                );
+                notifyOfflineSyncComplete(synced, failed);
+              }
+            })
+            .catch((e) => {
+              console.warn('[OfflineOrderManager] Background sync failed:', e);
+            });
         }
         return ok;
       } catch (fetchError) {
@@ -162,7 +184,7 @@ export const useApiManager = () => {
         throw fetchError;
       }
     } catch (error) {
-      console.log('⚠️ Health check failed:', error);
+      safeLog('⚠️ Health check failed:', error);
       updateState({ isOnline: false });
       return false;
     }
@@ -176,7 +198,7 @@ export const useApiManager = () => {
     const now = Date.now();
     if (now > cached.expiresAt) {
       // Cache expired, temizle
-      setState(prev => {
+      setState((prev) => {
         const newCache = new Map(prev.cache);
         newCache.delete(key);
         return { ...prev, cache: newCache };
@@ -189,9 +211,9 @@ export const useApiManager = () => {
 
   const setCachedData = useCallback(<T>(key: string, data: T, ttlMinutes: number = 5) => {
     const now = Date.now();
-    const expiresAt = now + (ttlMinutes * 60 * 1000);
+    const expiresAt = now + ttlMinutes * 60 * 1000;
 
-    setState(prev => {
+    setState((prev) => {
       const newCache = new Map(prev.cache);
       newCache.set(key, { data, timestamp: now, expiresAt });
       return { ...prev, cache: newCache };
@@ -199,87 +221,51 @@ export const useApiManager = () => {
   }, []);
 
   // API çağrı wrapper - duplicate call'ları önler
-  const apiCall = useCallback(async <T>(
-    key: string,
-    apiFunction: () => Promise<T>,
-    options: {
-      cacheKey?: string;
-      cacheTTL?: number;
-      retryCount?: number;
-      skipDuplicate?: boolean;
-    } = {}
-  ): Promise<T> => {
-    const {
-      cacheKey,
-      cacheTTL = 5,
-      retryCount = 3,
-      skipDuplicate = true,
-    } = options;
+  const apiCall = useCallback(
+    async <T>(
+      key: string,
+      apiFunction: () => Promise<T>,
+      options: {
+        cacheKey?: string;
+        cacheTTL?: number;
+        retryCount?: number;
+        skipDuplicate?: boolean;
+      } = {}
+    ): Promise<T> => {
+      const { cacheKey, cacheTTL = 5, retryCount = 3, skipDuplicate = true } = options;
 
-    // Cache kontrolü
-    if (cacheKey) {
-      const cached = getCachedData<T>(cacheKey);
-      if (cached) {
-        console.log(`✅ Cache hit for ${cacheKey}`);
-        return cached;
-      }
-    }
-
-    // Duplicate call kontrolü - daha akıllı kontrol
-    if (skipDuplicate) {
-      const activeCall = stateRef.current.activeCalls.get(key);
-      if (activeCall && activeCall.isLoading) {
-        // Eğer son call'dan 2 saniye geçtiyse duplicate olarak kabul etme
-        const timeSinceLastCall = Date.now() - activeCall.lastCall;
-        if (timeSinceLastCall < 2000) { // 2 saniye
-          console.log(`⚠️ Duplicate API call prevented for ${key} (last call: ${timeSinceLastCall}ms ago)`);
-          throw new Error('Duplicate API call prevented');
-        } else {
-          console.log(`🔄 Allowing API call for ${key} (last call: ${timeSinceLastCall}ms ago)`);
+      // Cache kontrolü
+      if (cacheKey) {
+        const cached = getCachedData<T>(cacheKey);
+        if (cached) {
+          safeLog(`✅ Cache hit for ${cacheKey}`);
+          return cached;
         }
       }
-    }
 
-    // Active call'ı kaydet
-    setState(prev => {
-      const newActiveCalls = new Map(prev.activeCalls);
-      newActiveCalls.set(key, {
-        isLoading: true,
-        lastCall: Date.now(),
-        error: null,
-        retryCount: 0,
-      });
-      return { ...prev, activeCalls: newActiveCalls };
-    });
-
-    try {
-      // Token kontrolü
-      const tokenExpired = await checkTokenExpiry();
-      if (tokenExpired) {
-        console.log('❌ Token expired, logging out');
-        logout();
-        throw new Error('Session expired');
+      // Duplicate call kontrolü - daha akıllı kontrol
+      if (skipDuplicate) {
+        const activeCall = stateRef.current.activeCalls.get(key);
+        if (activeCall?.isLoading) {
+          // Eğer son call'dan 2 saniye geçtiyse duplicate olarak kabul etme
+          const timeSinceLastCall = Date.now() - activeCall.lastCall;
+          if (timeSinceLastCall < 2000) {
+            // 2 saniye
+            safeLog(
+              `⚠️ Duplicate API call prevented for ${key} (last call: ${timeSinceLastCall}ms ago)`
+            );
+            throw new Error('Duplicate API call prevented');
+          } else {
+            safeLog(`🔄 Allowing API call for ${key} (last call: ${timeSinceLastCall}ms ago)`);
+          }
+        }
       }
 
-      // Online durum kontrolü
-      const isOnline = await checkOnlineStatus();
-      if (!isOnline) {
-        throw new Error('Network offline');
-      }
-
-      // API çağrısını yap
-      const result = await apiFunction();
-
-      // Cache'e kaydet
-      if (cacheKey) {
-        setCachedData(cacheKey, result, cacheTTL);
-      }
-
-      // Success state
-      setState(prev => {
+      // Active call'ı kaydet
+      setState((prev) => {
         const newActiveCalls = new Map(prev.activeCalls);
         newActiveCalls.set(key, {
-          isLoading: false,
+          isLoading: true,
           lastCall: Date.now(),
           error: null,
           retryCount: 0,
@@ -287,50 +273,91 @@ export const useApiManager = () => {
         return { ...prev, activeCalls: newActiveCalls };
       });
 
-      return result;
+      try {
+        // Token kontrolü
+        const tokenExpired = await checkTokenExpiry();
+        if (tokenExpired) {
+          safeLog('❌ Token expired, logging out');
+          logout();
+          throw new Error('Session expired');
+        }
 
-    } catch (error: any) {
-      const currentCall = stateRef.current.activeCalls.get(key);
-      const newRetryCount = (currentCall?.retryCount || 0) + 1;
+        // Online durum kontrolü
+        const isOnline = await checkOnlineStatus();
+        if (!isOnline) {
+          throw new Error('Network offline');
+        }
 
-      if (newRetryCount <= retryCount) {
-        // Retry logic
-        console.log(`🔄 Retrying API call ${key} (${newRetryCount}/${retryCount})`);
+        // API çağrısını yap
+        const result = await apiFunction();
 
-        const timeoutId = setTimeout(() => {
-          apiCall(key, apiFunction, options);
-        }, Math.pow(2, newRetryCount) * 1000); // Exponential backoff
+        // Cache'e kaydet
+        if (cacheKey) {
+          setCachedData(cacheKey, result, cacheTTL);
+        }
 
-        timeoutRefs.current.set(key, timeoutId);
-      }
-
-      // Error state
-      setState(prev => {
-        const newActiveCalls = new Map(prev.activeCalls);
-        newActiveCalls.set(key, {
-          isLoading: false,
-          lastCall: Date.now(),
-          error: error.message,
-          retryCount: newRetryCount,
+        // Success state
+        setState((prev) => {
+          const newActiveCalls = new Map(prev.activeCalls);
+          newActiveCalls.set(key, {
+            isLoading: false,
+            lastCall: Date.now(),
+            error: null,
+            retryCount: 0,
+          });
+          return { ...prev, activeCalls: newActiveCalls };
         });
-        return { ...prev, activeCalls: newActiveCalls };
-      });
 
-      throw error;
-    }
-  }, [checkTokenExpiry, checkOnlineStatus, getCachedData, setCachedData, logout]);
+        return result;
+      } catch (error: any) {
+        const currentCall = stateRef.current.activeCalls.get(key);
+        const newRetryCount = (currentCall?.retryCount || 0) + 1;
+
+        if (newRetryCount <= retryCount) {
+          // Retry logic
+          safeLog(`🔄 Retrying API call ${key} (${newRetryCount}/${retryCount})`);
+
+          const timeoutId = setTimeout(
+            () => {
+              apiCall(key, apiFunction, options);
+            },
+            Math.pow(2, newRetryCount) * 1000
+          ); // Exponential backoff
+
+          timeoutRefs.current.set(key, timeoutId);
+        }
+
+        // Error state
+        setState((prev) => {
+          const newActiveCalls = new Map(prev.activeCalls);
+          newActiveCalls.set(key, {
+            isLoading: false,
+            lastCall: Date.now(),
+            error: error.message,
+            retryCount: newRetryCount,
+          });
+          return { ...prev, activeCalls: newActiveCalls };
+        });
+
+        throw error;
+      }
+    },
+    [checkTokenExpiry, checkOnlineStatus, getCachedData, setCachedData, logout]
+  );
 
   // Cleanup fonksiyonları
   const clearCache = useCallback(() => {
-    setState(prev => ({ ...prev, cache: new Map() }));
+    setState((prev) => ({ ...prev, cache: new Map() }));
   }, []);
 
   const clearActiveCalls = useCallback(() => {
     // Tüm timeout'ları temizle
-    timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+    timeoutRefs.current.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
     timeoutRefs.current.clear();
 
-    setState(prev => ({ ...prev, activeCalls: new Map() }));
+    setState((prev) => ({ ...prev, activeCalls: new Map() }));
   }, []);
 
   // Component unmount'ta cleanup
@@ -343,9 +370,8 @@ export const useApiManager = () => {
   // Periyodik kontroller - sadece gerektiğinde
   useEffect(() => {
     // Prevent creating multiple intervals if multiple components mount
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     if (!(globalThis as any).__apiManagerIntervalsInitialized__) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).__apiManagerIntervalsInitialized__ = true;
 
       const stopTokenPolling = subscribeForegroundPolling(() => {
@@ -356,7 +382,7 @@ export const useApiManager = () => {
       }, POS_HEALTH_POLL_MS);
 
       // Store on globalThis for cleanup on HMR if needed
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       (globalThis as any).__apiManagerPollingCleanup__ = () => {
         stopTokenPolling();
         stopOnlinePolling();

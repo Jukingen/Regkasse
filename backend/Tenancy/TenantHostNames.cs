@@ -8,6 +8,21 @@ namespace KasseAPI_Final.Tenancy;
 /// </summary>
 public static class TenantHostNames
 {
+    /// <summary>
+    /// Shared platform host labels that must never be treated as mandant slugs
+    /// (<c>pos.regkasse.at</c>, <c>api.regkasse.at</c>, <c>admin.regkasse.at</c>, <c>www</c>).
+    /// </summary>
+    public static bool IsReservedPlatformHostLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            return false;
+
+        return string.Equals(label, "admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "www", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "pos", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "api", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <inheritdoc cref="IsLoopbackHost"/>
     public static bool IsLoopbackHost(string? host)
     {
@@ -24,7 +39,7 @@ public static class TenantHostNames
     }
 
     /// <summary>
-    /// Hosts-file development domains (e.g. <c>cafe.regkasse.local</c>, <c>tenant.example.local</c>).
+    /// Hosts-file development domains (e.g. <c>dev.regkasse.local</c>, <c>tenant.example.local</c>).
     /// </summary>
     public static bool IsLocalDevelopmentDomain(string? host)
     {
@@ -44,7 +59,58 @@ public static class TenantHostNames
     }
 
     /// <summary>
-    /// First subdomain label when not admin/www; loopback hosts map to <c>admin</c>.
+    /// Production CORS: platform web surfaces under <c>regkasse.at</c> (POS, FA, Sites, tenant slug hosts).
+    /// Custom <see cref="Models.TenantDomain"/> hosts must still be listed in <c>Cors:AllowedOrigins</c>.
+    /// </summary>
+    public static bool IsRegkassePlatformWebOriginHost(string? host)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            return false;
+
+        return host.Equals("regkasse.at", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".regkasse.at", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Shared API/POS/FA hosts (and loopback) must not receive a pre-auth ambient tenant in Production —
+    /// authenticated traffic is scoped solely by JWT <c>tenant_id</c>.
+    /// Custom <see cref="Models.TenantDomain"/> hosts and mandant subdomains still bind from Host.
+    /// </summary>
+    public static bool ShouldSkipPreAuthHostBinding(string? host)
+    {
+        if (string.IsNullOrWhiteSpace(host) || IsLoopbackHost(host))
+            return true;
+
+        var parts = host.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length >= 1 && IsReservedPlatformHostLabel(parts[0]);
+    }
+
+    /// <summary>
+    /// Hosts where JWT↔Host tenant match is not enforced (Single POS UI / shared API / apex / loopback).
+    /// Mandant subdomains and verified custom domains are <strong>not</strong> exempt.
+    /// </summary>
+    public static bool IsSharedPlatformHostForJwtMatch(string? host)
+    {
+        if (ShouldSkipPreAuthHostBinding(host))
+            return true;
+
+        if (string.IsNullOrWhiteSpace(host))
+            return true;
+
+        var hostWithoutPort = host.Split(':', 2)[0].Trim();
+        if (hostWithoutPort.Equals("regkasse.at", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Explicit *.localhost (beyond bare loopback) for local multi-host experiments.
+        if (hostWithoutPort.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// First subdomain label when not a reserved platform host; loopback and reserved hosts map to <c>admin</c>
+    /// (platform ambient binding — JWT <c>tenant_id</c> is authoritative after login for POS/API).
     /// </summary>
     public static string GetTenantSlugFromHost(string? host)
     {
@@ -55,11 +121,8 @@ public static class TenantHostNames
         if (parts.Length >= 1)
         {
             var first = parts[0];
-            if (!string.Equals(first, "admin", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(first, "www", StringComparison.OrdinalIgnoreCase))
-            {
+            if (!IsReservedPlatformHostLabel(first))
                 return first;
-            }
         }
 
         return "admin";

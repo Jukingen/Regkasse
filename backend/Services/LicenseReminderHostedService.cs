@@ -1,8 +1,5 @@
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Services.License;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -116,11 +113,15 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
         var lic = sp.GetRequiredService<ILicenseService>();
         var store = sp.GetRequiredService<ILicenseReminderNotificationStore>();
         var mail = sp.GetRequiredService<ILicenseReminderEmailSender>();
+        var mandantReminders = sp.GetRequiredService<ILicenseReminderService>();
         var options = sp.GetRequiredService<IOptions<LicenseOptions>>().Value;
 
         lic.EvaluateOnStartup();
         var status = await lic.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var now = DateTimeOffset.UtcNow;
+
+        await TrySendMandantExpiryRemindersAsync(mandantReminders, cancellationToken).ConfigureAwait(false);
+        await TrySendGracePeriodRemindersAsync(mandantReminders, cancellationToken).ConfigureAwait(false);
 
         if (status.IsExpired)
         {
@@ -167,6 +168,54 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
             {
                 _logger.LogWarning(ex, "License urgency email was not sent (SMTP error).");
             }
+        }
+    }
+
+    private async Task TrySendMandantExpiryRemindersAsync(
+        ILicenseReminderService mandantReminders,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var mandantResult = await mandantReminders
+                .SendDueMandantExpiryRemindersAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (mandantResult.EmailsSent > 0)
+            {
+                _logger.LogInformation(
+                    "Mandant license expiry reminders sent: sent={Sent} skipped={Skipped} failed={Failed}",
+                    mandantResult.EmailsSent,
+                    mandantResult.Skipped,
+                    mandantResult.Failed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Mandant license expiry reminder sweep failed.");
+        }
+    }
+
+    private async Task TrySendGracePeriodRemindersAsync(
+        ILicenseReminderService mandantReminders,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var graceResult = await mandantReminders
+                .SendDueGracePeriodRemindersAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (graceResult.EmailsSent > 0)
+            {
+                _logger.LogInformation(
+                    "Mandant grace-period reminders sent: sent={Sent} skipped={Skipped} failed={Failed}",
+                    graceResult.EmailsSent,
+                    graceResult.Skipped,
+                    graceResult.Failed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Mandant grace-period reminder sweep failed.");
         }
     }
 

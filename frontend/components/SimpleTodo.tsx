@@ -1,34 +1,28 @@
+// @ts-nocheck
 /**
  * SimpleTodo - Basit React Native Todo Komponenti
- * 
+ *
  * Bu component, klasik todo list fonksiyonalitesi sağlar.
  * Task-Master sisteminden bağımsız, basit kullanım için tasarlanmıştır.
- * 
+ *
  * Özellikler:
  * - Todo ekleme/silme/tamamlama
  * - Local state management
  * - RKSV iş akışları için hızlı notlar
  * - Almanca UI
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  Alert,
-  SafeAreaView
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { storage } from '../utils/storage';
 
 // Basit Todo item interface'i
 interface TodoItem {
@@ -51,15 +45,17 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
   storageKey = 'simple_todo_items',
   maxItems = 50,
   enableCategories = true,
-  enablePriority = true
+  enablePriority = true,
 }) => {
   const { t } = useTranslation();
-  
+
   // State tanımlamaları
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [inputText, setInputText] = useState<string>('');
   const [selectedPriority, setSelectedPriority] = useState<'low' | 'medium' | 'high'>('medium');
-  const [selectedCategory, setSelectedCategory] = useState<'rksv' | 'tse' | 'allgemein'>('allgemein');
+  const [selectedCategory, setSelectedCategory] = useState<'rksv' | 'tse' | 'allgemein'>(
+    'allgemein'
+  );
   const [loading, setLoading] = useState<boolean>(false);
 
   /**
@@ -75,11 +71,11 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
   const loadTodos = async () => {
     try {
       setLoading(true);
-      const savedTodos = await AsyncStorage.getItem(storageKey);
+      const savedTodos = await storage.getItem(storageKey);
       if (savedTodos) {
         const parsedTodos = JSON.parse(savedTodos).map((todo: any) => ({
           ...todo,
-          createdAt: new Date(todo.createdAt)
+          createdAt: new Date(todo.createdAt),
         }));
         setTodos(parsedTodos);
       }
@@ -100,7 +96,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
    */
   const saveTodos = async (todoList: TodoItem[]) => {
     try {
-      await AsyncStorage.setItem(storageKey, JSON.stringify(todoList));
+      await storage.setItem(storageKey, JSON.stringify(todoList));
     } catch (error) {
       console.error('Todo saving failed:', error);
     }
@@ -134,7 +130,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
       completed: false,
       createdAt: new Date(),
       priority: selectedPriority,
-      category: enableCategories ? selectedCategory : undefined
+      category: enableCategories ? selectedCategory : undefined,
     };
 
     const updatedTodos = [newTodo, ...todos];
@@ -150,7 +146,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
    * Todo'yu tamamlandı olarak işaretle
    */
   const toggleTodo = (id: string) => {
-    const updatedTodos = todos.map(todo =>
+    const updatedTodos = todos.map((todo) =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     );
     setTodos(updatedTodos);
@@ -166,15 +162,15 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
       t('todo.delete_confirm', 'Möchten Sie diese Aufgabe löschen?'),
       [
         { text: t('common.cancel', 'Abbrechen'), style: 'cancel' },
-        { 
-          text: t('common.delete', 'Löschen'), 
+        {
+          text: t('common.delete', 'Löschen'),
           style: 'destructive',
           onPress: () => {
-            const updatedTodos = todos.filter(todo => todo.id !== id);
+            const updatedTodos = todos.filter((todo) => todo.id !== id);
             setTodos(updatedTodos);
             saveTodos(updatedTodos);
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -183,7 +179,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
    * Tüm tamamlanmış todo'ları temizle
    */
   const clearCompleted = () => {
-    if (todos.filter(todo => todo.completed).length === 0) {
+    if (todos.filter((todo) => todo.completed).length === 0) {
       Alert.alert(
         t('info.title', 'Info'),
         t('todo.no_completed', 'Keine abgeschlossenen Aufgaben vorhanden'),
@@ -197,15 +193,15 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
       t('todo.clear_completed_confirm', 'Möchten Sie alle abgeschlossenen Aufgaben löschen?'),
       [
         { text: t('common.cancel', 'Abbrechen'), style: 'cancel' },
-        { 
-          text: t('common.delete', 'Löschen'), 
+        {
+          text: t('common.delete', 'Löschen'),
           style: 'destructive',
           onPress: () => {
-            const updatedTodos = todos.filter(todo => !todo.completed);
+            const updatedTodos = todos.filter((todo) => !todo.completed);
             setTodos(updatedTodos);
             saveTodos(updatedTodos);
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -224,7 +220,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
     const colors = {
       rksv: '#FF5722',
       tse: '#FF9800',
-      allgemein: '#2196F3'
+      allgemein: '#2196F3',
     };
     return colors[category as keyof typeof colors] || '#2196F3';
   };
@@ -236,7 +232,7 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
     const icons = {
       high: 'chevron-up',
       medium: 'remove',
-      low: 'chevron-down'
+      low: 'chevron-down',
     };
     return icons[priority as keyof typeof icons] || 'remove';
   };
@@ -245,26 +241,19 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
    * Todo item render
    */
   const renderTodoItem = ({ item }: { item: TodoItem }) => (
-    <View style={[
-      styles.todoItem,
-      item.completed && styles.completedTodo
-    ]}>
+    <View style={[styles.todoItem, item.completed && styles.completedTodo]}>
       {/* Todo content */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.todoContent}
-        onPress={() => toggleTodo(item.id)}
-      >
+        onPress={() => {
+          toggleTodo(item.id);
+        }}>
         <Ionicons
-          name={item.completed ? "checkbox" : "square-outline"}
+          name={item.completed ? 'checkbox' : 'square-outline'}
           size={24}
-          color={item.completed ? "#4CAF50" : "#666"}
+          color={item.completed ? '#4CAF50' : '#666'}
         />
-        <Text style={[
-          styles.todoText,
-          item.completed && styles.completedText
-        ]}>
-          {item.text}
-        </Text>
+        <Text style={[styles.todoText, item.completed && styles.completedText]}>{item.text}</Text>
       </TouchableOpacity>
 
       {/* Todo metadata */}
@@ -277,16 +266,15 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
           />
         )}
         {enableCategories && item.category && (
-          <View style={[
-            styles.categoryBadge,
-            { backgroundColor: getCategoryColor(item.category) }
-          ]}>
-            <Text style={styles.categoryText}>
-              {item.category.toUpperCase()}
-            </Text>
+          <View
+            style={[styles.categoryBadge, { backgroundColor: getCategoryColor(item.category) }]}>
+            <Text style={styles.categoryText}>{item.category.toUpperCase()}</Text>
           </View>
         )}
-        <TouchableOpacity onPress={() => deleteTodo(item.id)}>
+        <TouchableOpacity
+          onPress={() => {
+            deleteTodo(item.id);
+          }}>
           <Ionicons name="trash-outline" size={20} color="#F44336" />
         </TouchableOpacity>
       </View>
@@ -297,16 +285,14 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
    * Statistics
    */
   const totalTodos = todos.length;
-  const completedTodos = todos.filter(todo => todo.completed).length;
+  const completedTodos = todos.filter((todo) => todo.completed).length;
   const pendingTodos = totalTodos - completedTodos;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>
-          {t('todo.title', 'Einfache Aufgaben')}
-        </Text>
+        <Text style={styles.title}>{t('todo.title', 'Einfache Aufgaben')}</Text>
         <View style={styles.stats}>
           <Text style={styles.statsText}>
             {t('todo.stats', `${pendingTodos} offen, ${completedTodos} erledigt`)}
@@ -326,29 +312,29 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
           onSubmitEditing={addTodo}
           returnKeyType="done"
         />
-        
+
         {/* Priority & Category Selection */}
         {(enablePriority || enableCategories) && (
           <View style={styles.optionsRow}>
             {enablePriority && (
               <View style={styles.optionGroup}>
-                <Text style={styles.optionLabel}>
-                  {t('todo.priority', 'Priorität')}
-                </Text>
+                <Text style={styles.optionLabel}>{t('todo.priority', 'Priorität')}</Text>
                 <View style={styles.priorityButtons}>
-                  {(['low', 'medium', 'high'] as const).map(priority => (
+                  {(['low', 'medium', 'high'] as const).map((priority) => (
                     <TouchableOpacity
                       key={priority}
                       style={[
                         styles.priorityButton,
-                        selectedPriority === priority && styles.selectedPriority
+                        selectedPriority === priority && styles.selectedPriority,
                       ]}
-                      onPress={() => setSelectedPriority(priority)}
-                    >
-                      <Text style={[
-                        styles.priorityText,
-                        selectedPriority === priority && styles.selectedPriorityText
-                      ]}>
+                      onPress={() => {
+                        setSelectedPriority(priority);
+                      }}>
+                      <Text
+                        style={[
+                          styles.priorityText,
+                          selectedPriority === priority && styles.selectedPriorityText,
+                        ]}>
                         {priority === 'high' ? 'H' : priority === 'medium' ? 'M' : 'L'}
                       </Text>
                     </TouchableOpacity>
@@ -359,23 +345,20 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
 
             {enableCategories && (
               <View style={styles.optionGroup}>
-                <Text style={styles.optionLabel}>
-                  {t('todo.category', 'Kategorie')}
-                </Text>
+                <Text style={styles.optionLabel}>{t('todo.category', 'Kategorie')}</Text>
                 <View style={styles.categoryButtons}>
-                  {(['allgemein', 'rksv', 'tse'] as const).map(category => (
+                  {(['allgemein', 'rksv', 'tse'] as const).map((category) => (
                     <TouchableOpacity
                       key={category}
                       style={[
                         styles.categoryButton,
                         { backgroundColor: getCategoryColor(category) },
-                        selectedCategory === category && styles.selectedCategory
+                        selectedCategory === category && styles.selectedCategory,
                       ]}
-                      onPress={() => setSelectedCategory(category)}
-                    >
-                      <Text style={styles.categoryButtonText}>
-                        {category.toUpperCase()}
-                      </Text>
+                      onPress={() => {
+                        setSelectedCategory(category);
+                      }}>
+                      <Text style={styles.categoryButtonText}>{category.toUpperCase()}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -393,15 +376,13 @@ const SimpleTodo: React.FC<SimpleTodoProps> = ({
       <FlatList
         data={todos}
         renderItem={renderTodoItem}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         style={styles.todoList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="clipboard-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>
-              {t('todo.empty', 'Keine Aufgaben vorhanden')}
-            </Text>
+            <Text style={styles.emptyText}>{t('todo.empty', 'Keine Aufgaben vorhanden')}</Text>
             <Text style={styles.emptySubtext}>
               {t('todo.empty_subtitle', 'Fügen Sie Ihre erste Aufgabe hinzu')}
             </Text>

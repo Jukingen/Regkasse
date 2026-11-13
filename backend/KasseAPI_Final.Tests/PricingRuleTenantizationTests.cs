@@ -1,4 +1,3 @@
-using System.Linq;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
@@ -18,7 +17,7 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public sealed class PricingRuleTenantizationTests
 {
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     private static AppDbContext CreateContext()
@@ -27,12 +26,12 @@ public sealed class PricingRuleTenantizationTests
             .UseInMemoryDatabase($"PricingTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void EnsureTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "pricing-tenant-b" });
     }
@@ -135,17 +134,17 @@ public sealed class PricingRuleTenantizationTests
         PricingRuleTargetScope scope,
         Guid targetId,
         Guid? cashRegisterId = null) => new()
-    {
-        Name = "rule",
-        Priority = 50,
-        ValidFromDate = today,
-        ValidToDate = today.AddDays(7),
-        TargetScope = scope,
-        TargetId = targetId,
-        ActionType = PricingRuleActionType.FixedGrossPrice,
-        ActionValue = 5.55m,
-        CashRegisterId = cashRegisterId
-    };
+        {
+            Name = "rule",
+            Priority = 50,
+            ValidFromDate = today,
+            ValidToDate = today.AddDays(7),
+            TargetScope = scope,
+            TargetId = targetId,
+            ActionType = PricingRuleActionType.FixedGrossPrice,
+            ActionValue = 5.55m,
+            CashRegisterId = cashRegisterId
+        };
 
     [Fact]
     public async Task Admin_GetAll_AsTenantA_ExcludesTenantBRule()

@@ -1,14 +1,17 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Constants;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Services;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Extensions;
+using KasseAPI_Final.Services.Loyalty;
+using KasseAPI_Final.Services.Operations;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -23,16 +26,166 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Customer> _customerRepository;
         private readonly IPaymentService _paymentService;
+        private readonly ICustomerService _customerService;
+        private readonly ILoyaltyService _loyaltyService;
+        private readonly ICustomerExportService _customerExport;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IOperationLogService _operationLogs;
+        private readonly ITenantExtensionRegistry? _extensions;
 
         public CustomerController(
             AppDbContext context,
             IGenericRepository<Customer> customerRepository,
             IPaymentService paymentService,
-            ILogger<CustomerController> logger) : base(customerRepository, logger)
+            ICustomerService customerService,
+            ILoyaltyService loyaltyService,
+            ICustomerExportService customerExport,
+            ISettingsTenantResolver settingsTenantResolver,
+            IOperationLogService operationLogs,
+            ILogger<CustomerController> logger,
+            ITenantExtensionRegistry? extensions = null) : base(customerRepository, logger)
         {
             _context = context;
             _customerRepository = customerRepository;
             _paymentService = paymentService;
+            _customerService = customerService;
+            _loyaltyService = loyaltyService;
+            _customerExport = customerExport;
+            _settingsTenantResolver = settingsTenantResolver;
+            _operationLogs = operationLogs;
+            _extensions = extensions;
+        }
+
+        private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
+
+        private async Task<IActionResult?> RunCustomerHookAsync(Guid customerId, bool isUpdate)
+        {
+            try
+            {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                await TenantExtensionRunner.RunAsync(
+                    _extensions,
+                    tenantId,
+                    TenantExtensionHooks.CustomerBeforeSave,
+                    new Dictionary<string, object?>
+                    {
+                        ["customerId"] = customerId,
+                        ["isUpdate"] = isUpdate,
+                    },
+                    CancellationToken.None);
+                return null;
+            }
+            catch (ExtensionFailedException ex)
+            {
+                return ErrorResponse(ex.Message, 400, new { code = ExtensionFailedException.ErrorCode });
+            }
+        }
+
+        private async Task<IActionResult?> RejectSystemCustomerMutationAsync(Guid customerId)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return null;
+
+            if (!await _customerService.CanModifyCustomerAsync(customerId))
+                return ErrorResponse("System customers cannot be modified or deleted", 403);
+
+            return null;
+        }
+
+        private async Task<IActionResult?> RejectSystemCustomerDeleteAsync(Guid customerId)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return null;
+
+            if (!await _customerService.CanDeleteCustomerAsync(customerId))
+                return ErrorResponse("System customers cannot be modified or deleted", 403);
+
+            return null;
+        }
+
+        /// <summary>
+        /// Export customers as CSV or JSON. Filename: <c>customer_{tenantSlug}_{stamp}.{ext}</c>.
+        /// </summary>
+        [HttpGet("export")]
+        [Produces("text/csv", "application/json")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Export(
+            [FromQuery] string format = "csv",
+            [FromQuery] bool? isActive = null,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var tenantSlug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            try
+            {
+                var result = await _customerExport
+                    .ExportAsync(
+                        tenantId,
+                        tenantSlug,
+                        format,
+                        isActive,
+                        excludeSystemCustomers: !IsCurrentUserSuperAdmin(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return File(result.Content, result.ContentType, result.FileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message, code = "CUSTOMER_EXPORT_TOO_LARGE" });
+            }
+        }
+
+        /// <summary>
+        /// List customers. System customers are hidden from non–Super Admin users.
+        /// </summary>
+        [HttpGet]
+        public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
+                var query = _context.Customers.AsQueryable();
+
+                if (IsCurrentUserSuperAdmin())
+                    // Super Admin operates cross-tenant: bypass the tenant query filter for deployment-wide visibility.
+                    query = query.IgnoreQueryFilters();
+                else
+                    query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
+
+                query = query.Where(c => c.IsActive);
+
+                var totalCount = await query.CountAsync();
+                var items = await query
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Skip((validPageNumber - 1) * validPageSize)
+                    .Take(validPageSize)
+                    .ToListAsync();
+
+                var response = new
+                {
+                    items,
+                    pagination = new
+                    {
+                        pageNumber = validPageNumber,
+                        pageSize = validPageSize,
+                        totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / validPageSize)
+                    }
+                };
+
+                return SuccessResponse(response, $"Retrieved {items.Count} Customer entities");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetAll Customer");
+            }
         }
 
         /// <summary>
@@ -137,9 +290,15 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
+                customer.IsSystem = false;
+
+                var hookError = await RunCustomerHookAsync(customer.Id, isUpdate: false);
+                if (hookError is not null)
+                    return hookError;
+
                 var createdCustomer = await _customerRepository.AddAsync(customer);
-                
-                return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id }, 
+
+                return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id },
                     SuccessResponse(createdCustomer, "Customer created successfully"));
             }
             catch (Exception ex)
@@ -168,6 +327,17 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("ID mismatch between URL and request body", 400);
                 }
 
+                var existingCustomer = await _customerService.GetCustomerAsync(id);
+                if (existingCustomer == null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                var systemGuard = await RejectSystemCustomerMutationAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                if (!IsCurrentUserSuperAdmin())
+                    customer.IsSystem = existingCustomer.IsSystem;
+
                 // Custom validation
                 var validationErrors = await ValidateCustomerAsync(customer, id);
                 if (validationErrors.Any())
@@ -175,8 +345,33 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
+                var before = OperationSnapshots.FromCustomer(existingCustomer);
+                var hookError = await RunCustomerHookAsync(customer.Id, isUpdate: true);
+                if (hookError is not null)
+                    return hookError;
+
                 var updatedCustomer = await _customerRepository.UpdateAsync(customer);
-                
+
+                var userId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(userId) && updatedCustomer != null)
+                {
+                    try
+                    {
+                        await _operationLogs.LogAsync(
+                            updatedCustomer.TenantId,
+                            userId,
+                            OperationTypes.UpdateCustomer,
+                            OperationEntityTypes.Customer,
+                            id.ToString("D"),
+                            before,
+                            OperationSnapshots.FromCustomer(updatedCustomer));
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "Failed to write operation log for customer update {CustomerId}", id);
+                    }
+                }
+
                 return SuccessResponse(updatedCustomer, "Customer updated successfully");
             }
             catch (Exception ex)
@@ -201,10 +396,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.CustomerNumber))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerNumber == customer.CustomerNumber && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.CustomerNumber == customer.CustomerNumber &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This customer number is already in use");
@@ -215,10 +410,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.Email))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.Email == customer.Email && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.Email == customer.Email &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This email address is already in use");
@@ -229,10 +424,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.TaxNumber))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.TaxNumber == customer.TaxNumber && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.TaxNumber == customer.TaxNumber &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This tax number is already in use");
@@ -249,7 +444,22 @@ namespace KasseAPI_Final.Controllers
         [HasPermission(AppPermissions.CustomerManage)]
         public override async Task<IActionResult> Delete(Guid id)
         {
-            return await base.Delete(id);
+            try
+            {
+                var existingCustomer = await _customerService.GetCustomerAsync(id);
+                if (existingCustomer == null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                var systemGuard = await RejectSystemCustomerDeleteAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                return await base.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"Delete Customer with ID {id}");
+            }
         }
 
         /// <summary>
@@ -315,7 +525,15 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var query = _context.Customers.Where(c => c.IsActive);
+                var query = _context.Customers.AsQueryable();
+
+                if (IsCurrentUserSuperAdmin())
+                    // Super Admin operates cross-tenant: bypass the tenant query filter for deployment-wide visibility.
+                    query = query.IgnoreQueryFilters();
+                else
+                    query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
+
+                query = query.Where(c => c.IsActive);
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {
@@ -341,6 +559,70 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "Search Customers");
+            }
+        }
+
+        /// <summary>Current loyalty point balance for a customer.</summary>
+        [HttpGet("{id:guid}/loyalty")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetLoyaltyBalance(Guid id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var balance = await _loyaltyService.GetBalanceAsync(id, cancellationToken);
+                if (balance is null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                return SuccessResponse(
+                    new LoyaltyBalanceDto { CustomerId = id, LoyaltyPoints = balance.Value },
+                    "Loyalty balance retrieved");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"GetLoyaltyBalance for customer {id}");
+            }
+        }
+
+        /// <summary>
+        /// Redeem loyalty points for an EUR discount (100 points = 1 EUR). Not a fiscal payment.
+        /// </summary>
+        [HttpPost("{id:guid}/loyalty/redeem")]
+        [HasPermission(AppPermissions.CustomerManage)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RedeemLoyaltyPoints(
+            Guid id,
+            [FromBody] RedeemLoyaltyPointsRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var systemGuard = await RejectSystemCustomerMutationAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                var result = await _loyaltyService.RedeemPointsAsync(id, request.Points, cancellationToken);
+                if (!result.Succeeded)
+                {
+                    var status = result.Code == LoyaltyService.NotFoundCode ? 404 : 400;
+                    return ErrorResponse(result.Message ?? "Loyalty redeem failed", status, new List<string> { result.Code ?? "LOYALTY_ERROR" });
+                }
+
+                return SuccessResponse(
+                    new RedeemLoyaltyPointsResponse
+                    {
+                        CustomerId = id,
+                        PointsRedeemed = request.Points,
+                        DiscountEuro = result.Value,
+                        LoyaltyPointsBalance = result.Balance
+                    },
+                    "Loyalty points redeemed");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"RedeemLoyaltyPoints for customer {id}");
             }
         }
     }

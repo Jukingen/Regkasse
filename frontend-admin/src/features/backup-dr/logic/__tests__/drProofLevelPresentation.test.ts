@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
-import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
-} from '@/api/generated/model';
+
 import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
+import {
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
+} from '@/api/generated/model';
+import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
   buildDrProofPresentationModel,
   mapDrProofScanTagToneToAntdTagColor,
@@ -40,10 +41,10 @@ describe('buildDrProofPresentationModel', () => {
   it('stub/simulated pipeline does not yield high proof layers', () => {
     const latest: BackupRunResponseDto = {
       id: 'run-a',
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
@@ -56,7 +57,9 @@ describe('buildDrProofPresentationModel', () => {
       recoverability: {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationStatus.Succeeded,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.highestFullyProvenLevel).toBe(0);
@@ -71,7 +74,9 @@ describe('buildDrProofPresentationModel', () => {
       detailForPipeline: undefined,
       verification: undefined,
       recoverability: {},
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationStatus.Failed,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.decisionStrip.alertType).toBe('error');
@@ -82,16 +87,16 @@ describe('buildDrProofPresentationModel', () => {
     const rid = 'run-prod';
     const latest: BackupRunResponseDto = {
       id: rid,
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
     };
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -107,7 +112,10 @@ describe('buildDrProofPresentationModel', () => {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: restore,
-      restoreExtended: { postRestoreContinuityChecksExecuted: true, postRestoreContinuityChecksPassed: true },
+      restoreExtended: {
+        postRestoreContinuityChecksExecuted: true,
+        postRestoreContinuityChecksPassed: true,
+      },
     });
     expect(m.highestFullyProvenLevel).toBe(4);
     expect(m.fiscalVerifiedSummary.passed).toBe(true);

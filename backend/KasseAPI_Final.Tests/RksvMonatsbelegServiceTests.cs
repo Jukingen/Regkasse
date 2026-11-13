@@ -5,7 +5,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +26,7 @@ public class RksvMonatsbelegServiceTests
             .Options;
         return new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -52,7 +51,7 @@ public class RksvMonatsbelegServiceTests
             tseMock.Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         return new RksvSpecialReceiptService(
             context,
@@ -64,12 +63,15 @@ public class RksvMonatsbelegServiceTests
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
-            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object),
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IOptionsMonitor<FinanzOnlineModeOptions>>(o => o.CurrentValue == new FinanzOnlineModeOptions { Mode = "Test" }),
+            Mock.Of<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>(o => o.CurrentValue == new FinanzOnlineCutoverGuardOptions()));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<IReceiptSequenceService> Seq)> SeedAsync(AppDbContext context)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -81,7 +83,7 @@ public class RksvMonatsbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -105,7 +107,7 @@ public class RksvMonatsbelegServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync((Guid _, string _, decimal _, string _, string? prev, DateTime? _, string? _, Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _) =>
-                new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.monat", prev ?? "chain-root"));
+                new TseSignatureResult(RksvTestSignatures.CreateDemoCompactJws(), prev ?? "chain-root"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 
@@ -132,7 +134,7 @@ public class RksvMonatsbelegServiceTests
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (y, m) = GetPreviousViennaMonth();
 
         var resp = await service.CreateMonatsbelegAsync(
             new CreateMonatsbelegRequest
@@ -142,7 +144,8 @@ public class RksvMonatsbelegServiceTests
                 Month = m,
                 Reason = "RKSV Monat"
             },
-            "cashier-1");
+            "cashier-1",
+            forcePastMonth: true);
 
         Assert.NotEqual(Guid.Empty, resp.PaymentId);
         Assert.False(string.IsNullOrEmpty(resp.ReceiptNumber));
@@ -170,21 +173,38 @@ public class RksvMonatsbelegServiceTests
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (y, m) = GetPreviousViennaMonth();
         var req = new CreateMonatsbelegRequest { CashRegisterId = regId, Year = y, Month = m };
-        await service.CreateMonatsbelegAsync(req, "u1");
+        var first = await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
 
-        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() => service.CreateMonatsbelegAsync(req, "u1"));
         if (m == 12)
         {
+            var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
+                service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true));
             Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
             Assert.Contains("Jahresbeleg", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
         }
-        else
-        {
-            Assert.Equal(RksvGuardErrorCodes.DuplicateMonatsbeleg, ex.ErrorCode);
-            Assert.Contains("Monatsbeleg already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
-        }
+
+        var second = await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
+        Assert.True(second.Reissued);
+        Assert.Equal(first.PaymentId, second.SupersededPaymentId);
+        Assert.NotEqual(first.PaymentId, second.PaymentId);
+        Assert.NotEqual(first.ReceiptNumber, second.ReceiptNumber);
+
+        var rows = await context.PaymentDetails
+            .Where(p => p.CashRegisterId == regId &&
+                        p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg)
+            .ToListAsync();
+        Assert.Equal(2, rows.Count);
+        Assert.Single(rows, p => p.IsActive);
+        var prior = Assert.Single(rows, p => p.Id == first.PaymentId);
+        Assert.False(prior.IsActive);
+        Assert.Equal(first.ReceiptNumber, prior.ReceiptNumber);
+        Assert.False(string.IsNullOrWhiteSpace(prior.TseSignature));
+        var current = Assert.Single(rows, p => p.Id == second.PaymentId);
+        Assert.True(current.IsActive);
+        Assert.False(string.IsNullOrWhiteSpace(current.TseSignature));
     }
 
     [Fact]
@@ -202,7 +222,7 @@ public class RksvMonatsbelegServiceTests
     }
 
     [Fact]
-    public async Task CreateMonatsbelegAsync_PastMonthWithForce_Succeeds()
+    public async Task CreateMonatsbelegAsync_PastMonthWithForce_Succeeds_AndMarksLate()
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
@@ -214,11 +234,20 @@ public class RksvMonatsbelegServiceTests
             forcePastMonth: true);
 
         Assert.NotEqual(Guid.Empty, resp.PaymentId);
+        Assert.True(resp.IsLateCreated);
+        Assert.NotNull(resp.IntendedPeriodDate);
+        Assert.Equal(year, resp.Year);
+        Assert.Equal(month, resp.Month);
+        Assert.True(resp.CreatedAtUtc > DateTime.UtcNow.AddMinutes(-5));
+
         var row = await context.PaymentDetails.AsNoTracking()
             .SingleAsync(p => p.Id == resp.PaymentId);
         Assert.Equal(RksvSpecialReceiptKinds.Monatsbeleg, row.RksvSpecialReceiptKind);
         Assert.Equal(year, row.RksvSpecialReceiptYear);
         Assert.Equal(month, row.RksvSpecialReceiptMonth);
+        Assert.True(row.IsLateCreated);
+        Assert.Equal("Admin catch-up", row.LateCreationReason);
+        Assert.NotNull(row.IntendedPeriodDate);
     }
 
     [Fact]
@@ -235,7 +264,22 @@ public class RksvMonatsbelegServiceTests
                 new CreateMonatsbelegRequest { CashRegisterId = regId, Year = futureYear, Month = futureMonth },
                 "u1",
                 forcePastMonth: true));
-        Assert.Contains("future Vienna calendar month", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("completed (past) Vienna calendar months", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateMonatsbelegAsync_CurrentMonth_ThrowsEvenWithForce()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _) = await SeedAsync(context);
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateMonatsbelegAsync(
+                new CreateMonatsbelegRequest { CashRegisterId = regId, Year = year, Month = month },
+                "u1",
+                forcePastMonth: true));
+        Assert.Contains("completed (past) Vienna calendar months", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static (int Year, int Month) GetPreviousViennaMonth()
@@ -250,7 +294,7 @@ public class RksvMonatsbelegServiceTests
     public async Task GetStaffPerformanceAsync_ExcludesMonatsbelegFromRowCount()
     {
         await using var context = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -262,7 +306,7 @@ public class RksvMonatsbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "R1",
             Location = "L",

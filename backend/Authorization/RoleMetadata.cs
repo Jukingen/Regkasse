@@ -12,7 +12,8 @@ public static class RoleMetadata
     /// </summary>
     public static string GetRoleKey(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return string.Empty;
         return roleName.Trim();
     }
 
@@ -30,8 +31,10 @@ public static class RoleMetadata
     /// </summary>
     public static string GetDisplayName(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return string.Empty;
-        if (DisplayNames.TryGetValue(roleName, out var display)) return display;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return string.Empty;
+        if (DisplayNames.TryGetValue(roleName, out var display))
+            return display;
         return roleName;
     }
 
@@ -40,7 +43,8 @@ public static class RoleMetadata
     /// </summary>
     public static string? GetDescription(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return null;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return null;
         return Descriptions.TryGetValue(roleName, out var d) ? d : null;
     }
 
@@ -53,16 +57,18 @@ public static class RoleMetadata
         [Roles.Kitchen] = "Kitchen",
         [Roles.ReportViewer] = "ReportViewer",
         [Roles.Accountant] = "Accountant",
+        [Roles.ComplianceOfficer] = "ComplianceOfficer",
     };
 
     private static readonly Dictionary<string, string> Descriptions = new(StringComparer.OrdinalIgnoreCase)
     {
         [Roles.SuperAdmin] = "Full system and user management; system roles cannot be mutated.",
-        [Roles.Manager] = "Operational management, users view, most POS permissions.",
+        [Roles.Manager] = "Tenant administrator: user lifecycle, reports, settings view, most POS permissions.",
         [Roles.Cashier] = "Sales, payments, cart, TSE sign.",
         [Roles.Waiter] = "Tables, orders, limited payment.",
         [Roles.Kitchen] = "Kitchen display and order status.",
         [Roles.ReportViewer] = "Read-only reports and exports.",
         [Roles.Accountant] = "Audit and invoice view/export without write.",
+        [Roles.ComplianceOfficer] = "Production deployment compliance sign-off (RKSV gate); fiscal read access.",
     };
 }

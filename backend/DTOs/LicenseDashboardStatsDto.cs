@@ -3,12 +3,22 @@ namespace KasseAPI_Final.DTOs;
 /// <summary>Dashboard KPIs for Mandantenlizenz (tenants) and deployment licenses (issued_licenses).</summary>
 public sealed class LicenseDashboardStatsDto
 {
+    /// <summary>Non-deleted tenants visible to the actor (Super Admin: all; Manager: memberships).</summary>
+    public int TotalTenants { get; set; }
+
     /// <summary>Active SaaS tenant licenses (<c>tenants.license_valid_until_utc</c>).</summary>
     public int ActiveTenantLicenses { get; set; }
 
     public int ExpiringTenantLicenses { get; set; }
 
+    /// <summary>Past <c>license_valid_until_utc</c> (includes grace + locked).</summary>
     public int ExpiredTenantLicenses { get; set; }
+
+    /// <summary>Expired mandant licenses still inside the grace window.</summary>
+    public int GraceTenantLicenses { get; set; }
+
+    /// <summary>Expired mandant licenses past grace (locked / archived cohort).</summary>
+    public int LockedTenantLicenses { get; set; }
 
     /// <summary>Active deployment licenses (<c>issued_licenses</c>).</summary>
     public int ActiveDeploymentLicenses { get; set; }

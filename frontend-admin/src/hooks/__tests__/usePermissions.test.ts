@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { usePermissions } from '@/hooks/usePermissions';
 import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -24,6 +25,19 @@ describe('usePermissions', () => {
     expect(result.current.hasPermission(PERMISSIONS.USER_MANAGE)).toBe(true);
     expect(result.current.canViewMenu('/admin/users')).toBe(true);
     expect(result.current.canViewCashRegisters).toBe(true);
+    expect(result.current.isSuperAdmin).toBe(true);
+    expect(result.current.isManager).toBe(false);
+  });
+
+  it('exposes isManager for Manager role only', () => {
+    mockUseAuth.mockReturnValue({
+      user: { role: 'Manager', permissions: [PERMISSIONS.REPORT_VIEW] },
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    expect(result.current.isManager).toBe(true);
+    expect(result.current.isSuperAdmin).toBe(false);
   });
 
   it('denies menu paths when user has no permission claims', () => {
@@ -64,11 +78,25 @@ describe('usePermissions', () => {
     const { result } = renderHook(() => usePermissions());
 
     expect(result.current.hasAnyPermission([PERMISSIONS.REPORT_VIEW, PERMISSIONS.USER_VIEW])).toBe(
-      true,
+      true
     );
     expect(result.current.hasAllPermissions([PERMISSIONS.REPORT_VIEW, PERMISSIONS.USER_VIEW])).toBe(
-      false,
+      false
     );
+  });
+
+  it('treats cash_register.manage as sufficient for canViewCashRegisters', () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        role: 'Manager',
+        permissions: [AppPermissions.CashRegisterManage],
+      },
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    expect(result.current.canViewCashRegisters).toBe(true);
+    expect(result.current.canManageCashRegisters).toBe(true);
   });
 
   it('grants view/manage/decommission for Manager matrix', () => {

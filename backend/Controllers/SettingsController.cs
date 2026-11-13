@@ -1,17 +1,18 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -25,19 +26,22 @@ namespace KasseAPI_Final.Controllers
         private readonly IBackupManualTriggerService _backupManualTrigger;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ICashRegisterSettingsService _cashRegisterSettings;
+        private readonly ICurrentTenantAccessor _currentTenantAccessor;
 
         public SettingsController(
             AppDbContext context,
             ILogger<SettingsController> logger,
             IBackupManualTriggerService backupManualTrigger,
             ISettingsTenantResolver settingsTenantResolver,
-            ICashRegisterSettingsService cashRegisterSettings)
+            ICashRegisterSettingsService cashRegisterSettings,
+            ICurrentTenantAccessor currentTenantAccessor)
         {
             _context = context;
             _logger = logger;
             _backupManualTrigger = backupManualTrigger;
             _settingsTenantResolver = settingsTenantResolver;
             _cashRegisterSettings = cashRegisterSettings;
+            _currentTenantAccessor = currentTenantAccessor;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -169,7 +173,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPut("session")]
-        [HasPermission(AppPermissions.SettingsManage)]
+        [HasPermission(AppPermissions.SettingsView)]
         public async Task<IActionResult> UpdateSessionSettings(
             [FromBody] UpdateSessionSettingsRequest request,
             CancellationToken cancellationToken)
@@ -289,7 +293,7 @@ namespace KasseAPI_Final.Controllers
         // POST: api/settings/backup/now
         // Legacy entry: delegates to backup orchestration (no simulation, no pg_dump on this thread).
         [HttpPost("backup/now")]
-        [HasPermission(AppPermissions.SettingsManage)]
+        [HasPermission(AppPermissions.BackupManage)]
         public async Task<IActionResult> CreateBackupNow(CancellationToken cancellationToken)
         {
             try
@@ -303,12 +307,15 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.GetActorUserId();
                 var role = User.GetActorRole() ?? "Unknown";
                 var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
                 var outcome = await _backupManualTrigger.RequestManualBackupAsync(
                     userId,
                     role,
                     idempotencyKey: null,
                     correlationId,
-                    cancellationToken);
+                    strategy: isSuperAdmin ? BackupStrategyKind.System : BackupStrategyKind.Tenant,
+                    deploymentWide: isSuperAdmin,
+                    cancellationToken: cancellationToken);
 
                 var dto = BackupTriggerResponseFactory.Create(outcome);
 
@@ -335,6 +342,10 @@ namespace KasseAPI_Final.Controllers
                     nameof(AdminBackupController).Replace("Controller", string.Empty, StringComparison.Ordinal),
                     new { id = outcome.Run.Id },
                     dto);
+            }
+            catch (LimitExceededException ex)
+            {
+                return Conflict(ex.ToConflictBody());
             }
             catch (Exception ex)
             {
@@ -451,6 +462,101 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting cash register settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Restaurant working hours (Mon–Sun), special days, online-order cutoff,
+        /// and Tagesabschluss reminder lead time from company settings.
+        /// Cutoff applies to customer website/app intake only — never gates POS or FA.
+        /// </summary>
+        [HasPermission(AppPermissions.SettingsView)]
+        [HttpGet("working-hours")]
+        [ProducesResponseType(typeof(WorkingHoursDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetWorkingHours(CancellationToken ct)
+        {
+            try
+            {
+                if (_currentTenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                    return NotFound();
+
+                var settings = await _context.CompanySettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct)
+                    .ConfigureAwait(false);
+
+                return Ok(WorkingHoursDto.From(settings?.WorkingHours));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting working hours");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update restaurant working hours (weekly + special days + online-order cutoff).
+        /// POS uses hours for Tagesabschluss reminders / display only (never blocks sales).
+        /// Online-order stop applies to website/app public status only.
+        /// </summary>
+        [HttpPut("working-hours")]
+        [HasPermission(AppPermissions.SettingsView)]
+        [ProducesResponseType(typeof(WorkingHoursDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateWorkingHours(
+            [FromBody] WorkingHoursDto request,
+            CancellationToken ct)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                if (_currentTenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                    return NotFound();
+
+                var settings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct)
+                    .ConfigureAwait(false);
+
+                if (settings == null)
+                {
+                    settings = new CompanySettings
+                    {
+                        TenantId = tenantId,
+                        CompanyName = string.Empty,
+                        CompanyAddress = string.Empty,
+                        CompanyTaxNumber = string.Empty,
+                        BusinessHours = new Dictionary<string, string>(),
+                        WorkingHours = WorkingHoursSettings.CreateDefault(),
+                        AutoTagesabschluss = AutoTagesabschlussSettings.CreateDefault(),
+                        Currency = "EUR",
+                        Language = "de-DE",
+                        TimeZone = "Europe/Vienna",
+                        DateFormat = "dd.MM.yyyy",
+                        TimeFormat = "HH:mm:ss",
+                        DecimalPlaces = 2,
+                        TaxCalculationMethod = "Standard",
+                        InvoiceNumbering = "Sequential",
+                        ReceiptNumbering = "Sequential",
+                        DefaultPaymentMethod = "Cash",
+                        IsActive = true,
+                    };
+                    _context.CompanySettings.Add(settings);
+                }
+
+                settings.WorkingHours = (request ?? new WorkingHoursDto()).ToSettings();
+                settings.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync(ct).ConfigureAwait(false);
+
+                return Ok(WorkingHoursDto.From(settings.WorkingHours));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating working hours");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

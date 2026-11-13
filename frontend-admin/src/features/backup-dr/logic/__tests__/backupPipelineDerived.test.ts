@@ -1,26 +1,30 @@
 import { describe, expect, it } from 'vitest';
+
 import type {
   BackupArtifactPipelinePolicyResponseDto,
   BackupPipelineSnapshotDto,
   BackupRunResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
-import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
-import type { DerivedPipelineStepId, DerivedPipelineStepState } from '@/features/backup-dr/logic/backupPipelineDerived';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupArtifactLifecycleState } from '@/api/generated/model/backupArtifactLifecycleState';
+import type {
+  DerivedPipelineStepId,
+  DerivedPipelineStepState,
+} from '@/features/backup-dr/logic/backupPipelineDerived';
 import {
+  SERVER_PIPELINE_PROJECTION_VERSION,
   deriveBackupPipelineSteps,
   formatRunDurationMs,
   mapServerPipelineStatus,
   pipelineSnapshotToDerivedSteps,
   resolveBackupPipelineStepsForUi,
-  SERVER_PIPELINE_PROJECTION_VERSION,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
 
 const RUN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 function sm(
-  steps: ReturnType<typeof deriveBackupPipelineSteps>,
+  steps: ReturnType<typeof deriveBackupPipelineSteps>
 ): Record<DerivedPipelineStepId, DerivedPipelineStepState> {
   return Object.fromEntries(steps.map((s) => [s.id, s.state])) as Record<
     DerivedPipelineStepId,
@@ -44,7 +48,9 @@ function policyExternalOff(): BackupArtifactPipelinePolicyResponseDto {
 
 describe('deriveBackupPipelineSteps', () => {
   it('returns empty when run id missing', () => {
-    expect(deriveBackupPipelineSteps({ status: 0 } as BackupRunResponseDto, null, undefined)).toEqual([]);
+    expect(
+      deriveBackupPipelineSteps({ status: 0 } as BackupRunResponseDto, null, undefined)
+    ).toEqual([]);
   });
 
   it('1) queued run: step queued running, worker pending', () => {
@@ -73,8 +79,8 @@ describe('deriveBackupPipelineSteps', () => {
       status: 2,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.Staging,
         },
       ],
       verifications: [
@@ -99,12 +105,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_2,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_2,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -123,12 +129,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 5,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_3,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyFailed,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_3,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyFailed,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 2, startedAt: '2026-01-01T00:00:00Z' }],
@@ -146,12 +152,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -172,12 +178,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -202,12 +208,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [],
@@ -223,12 +229,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -245,17 +251,27 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [
-        { backupRunId: RUN_ID, status: 2, startedAt: '2026-01-01T00:00:00Z', completedAt: '2026-01-01T00:01:00Z' },
-        { backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z', completedAt: '2026-01-01T00:02:00Z' },
+        {
+          backupRunId: RUN_ID,
+          status: 2,
+          startedAt: '2026-01-01T00:00:00Z',
+          completedAt: '2026-01-01T00:01:00Z',
+        },
+        {
+          backupRunId: RUN_ID,
+          status: 1,
+          startedAt: '2026-01-01T00:00:00Z',
+          completedAt: '2026-01-01T00:02:00Z',
+        },
       ],
     };
     const m = sm(deriveBackupPipelineSteps(run, detail, policyExternalOff()));
@@ -274,7 +290,7 @@ describe('pipelineSnapshotToDerivedSteps', () => {
     expect(
       pipelineSnapshotToDerivedSteps({
         steps: [{ key: 'queued', status: 'running' }],
-      } as BackupPipelineSnapshotDto),
+      } as BackupPipelineSnapshotDto)
     ).toBeNull();
   });
 
@@ -333,7 +349,9 @@ describe('resolveBackupPipelineStepsForUi', () => {
       status: 3,
       pipeline: { projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION, steps: eightSteps },
     };
-    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: true });
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), {
+      allowClientFallback: true,
+    });
     expect(r.source).toBe('server_projection');
     expect(r.projectionVersionMismatch).toBe(false);
     expect(r.steps).toHaveLength(8);
@@ -356,7 +374,9 @@ describe('resolveBackupPipelineStepsForUi', () => {
       status: 3,
       pipeline: { projectionVersion: '2099-01-01', steps: eightSteps },
     };
-    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: true });
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), {
+      allowClientFallback: true,
+    });
     expect(r.source).toBe('client_fallback');
     expect(r.projectionVersionMismatch).toBe(true);
   });
@@ -378,7 +398,9 @@ describe('resolveBackupPipelineStepsForUi', () => {
       status: 3,
       pipeline: { projectionVersion: '2099-01-01', steps: eightSteps },
     };
-    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: false });
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), {
+      allowClientFallback: false,
+    });
     expect(r.source).toBe('client_fallback_blocked');
     expect(r.projectionVersionMismatch).toBe(true);
     expect(r.steps).toEqual([]);
@@ -393,17 +415,15 @@ describe('SERVER_PIPELINE_PROJECTION_VERSION', () => {
 
 describe('formatRunDurationMs / sumLogicalDumpBytes', () => {
   it('duration invalid order → undefined', () => {
-    expect(
-      formatRunDurationMs('2026-01-02T00:00:00Z', '2026-01-01T00:00:00Z'),
-    ).toBeUndefined();
+    expect(formatRunDurationMs('2026-01-02T00:00:00Z', '2026-01-01T00:00:00Z')).toBeUndefined();
   });
 
   it('sumLogicalDumpBytes reads logical dump artifact', () => {
     expect(
       sumLogicalDumpBytes([
-        { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0, byteSize: 42 },
-        { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4, byteSize: 1 },
-      ]),
+        { artifactType: BackupArtifactType.LogicalDump, byteSize: 42 },
+        { artifactType: BackupArtifactType.VerificationManifest, byteSize: 1 },
+      ])
     ).toBe(42);
   });
 });

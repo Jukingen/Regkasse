@@ -3,7 +3,6 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
@@ -17,17 +16,20 @@ public sealed class BackupRunService : IBackupRunService
     private readonly AppDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IOptionsMonitor<BackupOptions> _backupOptions;
+    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<BackupRunService> _logger;
 
     public BackupRunService(
         AppDbContext db,
         IConfiguration configuration,
         IOptionsMonitor<BackupOptions> backupOptions,
+        IHostEnvironment hostEnvironment,
         ILogger<BackupRunService> logger)
     {
         _db = db;
         _configuration = configuration;
         _backupOptions = backupOptions;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -45,6 +47,7 @@ public sealed class BackupRunService : IBackupRunService
             return null;
 
         var estimatedOriginalBytes = await EstimateOriginalDumpSizeAsync(run, cancellationToken);
+        var display = await BackupRunDisplayLookup.LoadAsync(_db, [run], cancellationToken).ConfigureAwait(false);
 
         return BackupRunMapper.ToDto(
             run,
@@ -53,8 +56,146 @@ public sealed class BackupRunService : IBackupRunService
             materializedChildren: true,
             automaticRetryMaxAttemptsBudget: mappingOptions.AutomaticRetryMaxAttemptsBudget,
             downloadEnrichment: mappingOptions.DownloadEnrichment,
-            estimatedOriginalDatabaseBytes: estimatedOriginalBytes > 0 ? estimatedOriginalBytes : null);
+            estimatedOriginalDatabaseBytes: estimatedOriginalBytes > 0 ? estimatedOriginalBytes : null,
+            display: display);
     }
+
+    public async Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(
+        Guid? tenantId,
+        bool isSuperAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        var runQuery = _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Status == BackupRunStatus.Succeeded);
+
+        if (isSuperAdmin)
+        {
+            // All succeeded dumps (Tenant + System).
+        }
+        else
+        {
+            // Mandanten-Admin: own Tenant strategy only — never System (may contain Identity / all tenants).
+            if (tenantId is not Guid tid || tid == Guid.Empty)
+                return Array.Empty<BackupListItemResponseDto>();
+
+            runQuery = runQuery.Where(r =>
+                r.Strategy == BackupStrategyKind.Tenant && r.TenantId == tid);
+        }
+
+        var rows = await (
+                from artifact in _db.BackupArtifacts.AsNoTracking()
+                join run in runQuery on artifact.BackupRunId equals run.Id
+                where artifact.ArtifactType == BackupArtifactType.LogicalDump
+                orderby artifact.CreatedAt descending
+                select new { artifact, run })
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0)
+            return Array.Empty<BackupListItemResponseDto>();
+
+        var runs = rows.Select(x => x.run).DistinctBy(r => r.Id).ToList();
+        var runIds = runs.Select(r => r.Id).ToList();
+        var slugByTenantId = await BackupRunTenantSlugResolver.LoadSlugByTenantIdAsync(
+            runs,
+            _db,
+            cancellationToken);
+        var manifests = await _db.BackupArtifacts.AsNoTracking()
+            .Where(a => runIds.Contains(a.BackupRunId)
+                        && a.ArtifactType == BackupArtifactType.VerificationManifest)
+            .ToListAsync(cancellationToken);
+        var manifestByRunId = manifests
+            .GroupBy(m => m.BackupRunId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(m => m.CreatedAt).First());
+
+        var opts = _backupOptions.CurrentValue;
+
+        return rows.Select(row =>
+        {
+            var artifact = row.artifact;
+            var run = row.run;
+            var tenantSlug = BackupRunTenantSlugResolver.ResolveSlug(run, slugByTenantId);
+            var fileName = ResolveArtifactFileName(
+                artifact,
+                tenantSlug,
+                BackupArtifactType.LogicalDump);
+
+            var fileOnDisk = BackupArtifactOnDiskResolver.TryResolveForSingleRun(
+                run.Id,
+                artifact,
+                opts,
+                _logger,
+                _hostEnvironment,
+                "Backup list: download availability",
+                out _);
+
+            manifestByRunId.TryGetValue(run.Id, out var manifest);
+            string? manifestFileName = null;
+            string? manifestDownloadUrl = null;
+            Guid? manifestArtifactId = null;
+            long? manifestFileSize = null;
+            if (manifest != null)
+            {
+                manifestArtifactId = manifest.Id;
+                manifestFileName = ResolveArtifactFileName(manifest, tenantSlug, BackupArtifactType.VerificationManifest);
+                manifestFileSize = manifest.ByteSize;
+                if (BackupArtifactOnDiskResolver.TryResolveForSingleRun(
+                        run.Id,
+                        manifest,
+                        opts,
+                        _logger,
+                        _hostEnvironment,
+                        "Backup list: manifest download availability",
+                        out _))
+                {
+                    manifestDownloadUrl = BuildArtifactDownloadUrl(run.Id, manifest.Id);
+                }
+            }
+
+            var durationSeconds = BackupRunMetricsFormatter.ComputeDurationSeconds(run.StartedAt, run.CompletedAt);
+            return new BackupListItemResponseDto
+            {
+                BackupRunId = run.Id,
+                ArtifactId = artifact.Id,
+                FileName = fileName,
+                FileSize = artifact.ByteSize,
+                CreatedAt = artifact.CreatedAt,
+                TenantSlug = tenantSlug,
+                IsFake = IsSimulatedAdapter(run.AdapterKind),
+                Status = run.Status,
+                Strategy = run.Strategy,
+                DurationSeconds = durationSeconds,
+                DurationFormatted = BackupRunMetricsFormatter.FormatDuration(durationSeconds),
+                DownloadUrl = fileOnDisk
+                    ? BuildArtifactDownloadUrl(run.Id, artifact.Id)
+                    : null,
+                ManifestArtifactId = manifestArtifactId,
+                ManifestFileName = manifestFileName,
+                ManifestFileSize = manifestFileSize,
+                ManifestDownloadUrl = manifestDownloadUrl
+            };
+        }).ToList();
+    }
+
+    private static string ResolveArtifactFileName(
+        BackupArtifact artifact,
+        string tenantSlug,
+        BackupArtifactType artifactType)
+    {
+        var fromDescriptor = Path.GetFileName(artifact.StorageDescriptor.Trim());
+        if (!string.IsNullOrEmpty(fromDescriptor))
+            return fromDescriptor;
+
+        return artifactType == BackupArtifactType.VerificationManifest
+            ? BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, artifact.CreatedAt, BackupStrategyKind.System)
+            : BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, artifact.CreatedAt, BackupStrategyKind.System);
+    }
+
+    internal static string BuildArtifactDownloadUrl(Guid backupRunId, Guid artifactId) =>
+        $"/api/admin/backup/runs/{backupRunId:D}/artifacts/{artifactId:D}/download";
+
+    private static bool IsSimulatedAdapter(string? adapterKind) =>
+        BackupCompletenessSuccessPolicy.TryParseAdapterKind(adapterKind, out var kind)
+        && (kind == BackupExecutionAdapterKind.Fake || kind == BackupExecutionAdapterKind.ProductionStub);
 
     /// <summary>
     /// Best-effort original size: artifact metadata first, then live <c>pg_database_size</c> for PgDump runs.

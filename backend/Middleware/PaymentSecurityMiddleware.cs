@@ -1,12 +1,5 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Middleware
@@ -53,15 +46,15 @@ namespace KasseAPI_Final.Middleware
             {
                 try
                 {
-                    _logger.LogInformation("Payment security middleware processing request: {Method} {Path} from IP: {IP}", 
+                    _logger.LogInformation("Payment security middleware processing request: {Method} {Path} from IP: {IP}",
                         requestMethod, requestPath, GetClientIpAddress(context));
 
                     // Validate request headers and authentication
                     if (!await ValidatePaymentRequest(context))
                     {
-                        _logger.LogWarning("Payment security validation failed for request: {Method} {Path} from IP: {IP}", 
+                        _logger.LogWarning("Payment security validation failed for request: {Method} {Path} from IP: {IP}",
                             requestMethod, requestPath, GetClientIpAddress(context));
-                        
+
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         await context.Response.WriteAsync("Access denied: Payment security validation failed");
                         return;
@@ -75,23 +68,23 @@ namespace KasseAPI_Final.Middleware
                     {
                         if (!await ValidatePaymentRequestBody(context))
                         {
-                            _logger.LogWarning("Payment request body validation failed for: {Method} {Path} from IP: {IP}", 
+                            _logger.LogWarning("Payment request body validation failed for: {Method} {Path} from IP: {IP}",
                                 requestMethod, requestPath, GetClientIpAddress(context));
-                            
+
                             context.Response.StatusCode = StatusCodes.Status400BadRequest;
                             await context.Response.WriteAsync("Invalid payment request data");
                             return;
                         }
                     }
 
-                    _logger.LogInformation("Payment security validation passed for request: {Method} {Path}", 
+                    _logger.LogInformation("Payment security validation passed for request: {Method} {Path}",
                         requestMethod, requestPath);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in payment security middleware for request: {Method} {Path}", 
+                    _logger.LogError(ex, "Error in payment security middleware for request: {Method} {Path}",
                         requestMethod, requestPath);
-                    
+
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     await context.Response.WriteAsync("Internal server error during security validation");
                     return;
@@ -105,7 +98,7 @@ namespace KasseAPI_Final.Middleware
             if (IsPaymentSecurityEndpoint(requestPath, requestMethod))
             {
                 var processingTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                _logger.LogInformation("Payment request completed: {Method} {Path} in {ProcessingTime}ms", 
+                _logger.LogInformation("Payment request completed: {Method} {Path} in {ProcessingTime}ms",
                     requestMethod, requestPath, processingTime);
             }
         }
@@ -129,7 +122,7 @@ namespace KasseAPI_Final.Middleware
                 "/api/payment/reverse"
             };
 
-            return Array.Exists(secureEndpoints, endpoint => 
+            return Array.Exists(secureEndpoints, endpoint =>
                 requestPath.EndsWith(endpoint, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -139,7 +132,8 @@ namespace KasseAPI_Final.Middleware
         /// </summary>
         private static string[] GetRequiredPermissionsForPath(string requestPath)
         {
-            if (string.IsNullOrEmpty(requestPath)) return FallbackPaymentPermissions;
+            if (string.IsNullOrEmpty(requestPath))
+                return FallbackPaymentPermissions;
             foreach (var kvp in EndpointRequiredPermissions)
             {
                 if (requestPath.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
@@ -158,7 +152,7 @@ namespace KasseAPI_Final.Middleware
                 // Check if user is authenticated
                 if (!context.User.Identity?.IsAuthenticated ?? true)
                 {
-                    _logger.LogWarning("Unauthenticated payment request attempt from IP: {IP}", 
+                    _logger.LogWarning("Unauthenticated payment request attempt from IP: {IP}",
                         GetClientIpAddress(context));
                     return false;
                 }
@@ -172,13 +166,13 @@ namespace KasseAPI_Final.Middleware
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
                 if (permissionClaims.Count == 0)
                 {
-                    _logger.LogWarning("User with no permission claims attempting payment operation from IP: {IP}", 
+                    _logger.LogWarning("User with no permission claims attempting payment operation from IP: {IP}",
                         GetClientIpAddress(context));
                     return false;
                 }
                 if (!requiredPermissions.Any(p => permissionClaims.Contains(p)))
                 {
-                    _logger.LogWarning("User lacking required payment permission for path {Path} (required: {Required}) from IP: {IP}", 
+                    _logger.LogWarning("User lacking required payment permission for path {Path} (required: {Required}) from IP: {IP}",
                         requestPath, string.Join(", ", requiredPermissions), GetClientIpAddress(context));
                     return false;
                 }
@@ -186,7 +180,7 @@ namespace KasseAPI_Final.Middleware
                 // Check for required headers
                 if (!context.Request.Headers.ContainsKey("User-Agent"))
                 {
-                    _logger.LogWarning("Payment request missing User-Agent header from IP: {IP}", 
+                    _logger.LogWarning("Payment request missing User-Agent header from IP: {IP}",
                         GetClientIpAddress(context));
                     return false;
                 }
@@ -196,7 +190,7 @@ namespace KasseAPI_Final.Middleware
                 {
                     if (!ValidateRequestTimestamp(context.Request.Headers["X-Request-Timestamp"]))
                     {
-                        _logger.LogWarning("Invalid request timestamp in payment request from IP: {IP}", 
+                        _logger.LogWarning("Invalid request timestamp in payment request from IP: {IP}",
                             GetClientIpAddress(context));
                         return false;
                     }
@@ -206,7 +200,7 @@ namespace KasseAPI_Final.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating payment request from IP: {IP}", 
+                _logger.LogError(ex, "Error validating payment request from IP: {IP}",
                     GetClientIpAddress(context));
                 return false;
             }
@@ -223,15 +217,15 @@ namespace KasseAPI_Final.Middleware
                 context.Request.EnableBuffering();
 
                 // Read request body
-                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, 
+                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8,
                     detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-                
+
                 var requestBody = await reader.ReadToEndAsync();
                 context.Request.Body.Position = 0; // Reset position for downstream middleware
 
                 if (string.IsNullOrEmpty(requestBody))
                 {
-                    _logger.LogWarning("Empty request body in payment request from IP: {IP}", 
+                    _logger.LogWarning("Empty request body in payment request from IP: {IP}",
                         GetClientIpAddress(context));
                     return false;
                 }
@@ -240,15 +234,15 @@ namespace KasseAPI_Final.Middleware
                 try
                 {
                     var jsonDocument = JsonDocument.Parse(requestBody);
-                    
+
                     // Check for required fields based on endpoint
                     var requestPath = context.Request.Path.Value?.ToLower();
-                    
+
                     if (requestPath?.Contains("/refund") == true)
                     {
                         if (!ValidateRefundRequest(jsonDocument))
                         {
-                            _logger.LogWarning("Invalid refund request structure from IP: {IP}", 
+                            _logger.LogWarning("Invalid refund request structure from IP: {IP}",
                                 GetClientIpAddress(context));
                             return false;
                         }
@@ -257,7 +251,7 @@ namespace KasseAPI_Final.Middleware
                     {
                         if (!ValidateCancelRequest(jsonDocument))
                         {
-                            _logger.LogWarning("Invalid cancel request structure from IP: {IP}", 
+                            _logger.LogWarning("Invalid cancel request structure from IP: {IP}",
                                 GetClientIpAddress(context));
                             return false;
                         }
@@ -266,7 +260,7 @@ namespace KasseAPI_Final.Middleware
                     {
                         if (!ValidateModifyRequest(jsonDocument))
                         {
-                            _logger.LogWarning("Invalid modify request structure from IP: {IP}", 
+                            _logger.LogWarning("Invalid modify request structure from IP: {IP}",
                                 GetClientIpAddress(context));
                             return false;
                         }
@@ -274,7 +268,7 @@ namespace KasseAPI_Final.Middleware
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogWarning("Invalid JSON in payment request from IP: {IP}: {Error}", 
+                    _logger.LogWarning("Invalid JSON in payment request from IP: {IP}: {Error}",
                         GetClientIpAddress(context), ex.Message);
                     return false;
                 }
@@ -283,7 +277,7 @@ namespace KasseAPI_Final.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating payment request body from IP: {IP}", 
+                _logger.LogError(ex, "Error validating payment request body from IP: {IP}",
                     GetClientIpAddress(context));
                 return false;
             }
@@ -295,7 +289,7 @@ namespace KasseAPI_Final.Middleware
         private bool ValidateRefundRequest(JsonDocument jsonDocument)
         {
             var root = jsonDocument.RootElement;
-            
+
             // Check required fields for refund
             return root.TryGetProperty("paymentId", out _) &&
                    root.TryGetProperty("refundAmount", out var amountElement) &&
@@ -311,7 +305,7 @@ namespace KasseAPI_Final.Middleware
         private bool ValidateCancelRequest(JsonDocument jsonDocument)
         {
             var root = jsonDocument.RootElement;
-            
+
             // Check required fields for cancellation
             return root.TryGetProperty("paymentId", out _) &&
                    root.TryGetProperty("cancelReason", out var reasonElement) &&
@@ -324,7 +318,7 @@ namespace KasseAPI_Final.Middleware
         private bool ValidateModifyRequest(JsonDocument jsonDocument)
         {
             var root = jsonDocument.RootElement;
-            
+
             // Check required fields for modification
             return root.TryGetProperty("paymentId", out _) &&
                    root.TryGetProperty("modificationType", out _) &&
@@ -342,7 +336,7 @@ namespace KasseAPI_Final.Middleware
                 {
                     var currentTime = DateTime.UtcNow;
                     var timeDifference = Math.Abs((currentTime - requestTime).TotalMinutes);
-                    
+
                     // Allow requests within 5 minutes of current time
                     return timeDifference <= 5;
                 }
@@ -392,9 +386,9 @@ namespace KasseAPI_Final.Middleware
         /// </summary>
         private string GetClientIpAddress(HttpContext context)
         {
-            return context.Connection.RemoteIpAddress?.ToString() ?? 
-                   context.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? 
-                   context.Request.Headers["X-Real-IP"].FirstOrDefault() ?? 
+            return context.Connection.RemoteIpAddress?.ToString() ??
+                   context.Request.Headers["X-Forwarded-For"].FirstOrDefault() ??
+                   context.Request.Headers["X-Real-IP"].FirstOrDefault() ??
                    "Unknown";
         }
     }

@@ -1,4 +1,19 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "PDF wird geladen…",
+    "success": "PDF heruntergeladen",
+    "error": "PDF konnte nicht geladen werden"
+  },
+  "periodSales": {
+    "period": "Berichtszeitraum",
+    "revenue": "Gesamtumsatz",
+    "receipts": "Anzahl der Belege",
+    "zeroSales": "In diesem Zeitraum wurden keine Umsätze erfasst.",
+    "selectRegister": "Bitte eine Kasse wählen, um die Umsatzübersicht des PDF zu sehen.",
+    "download": "PDF herunterladen",
+    "noPdf": "Für diesen Zeitraum liegt noch kein Beleg zum Download vor."
+  },
   "policy": {
     "formalReportLanguageTitle": "Formale Berichtstexte",
     "formalReportLanguageBody": "Die Oberfläche kann auf Türkisch eingestellt sein; formale Berichtstexte in diesem Bereich sind jedoch nur auf Deutsch oder Englisch verfügbar (Standard: Deutsch).",
@@ -42,7 +57,8 @@
     },
     "reportStatus": {
       "Finalized": "Finalisiert",
-      "Provisional": "Provisorisch"
+      "Provisional": "Provisorisch",
+      "Corrected": "Korrigiert"
     },
     "emptyDash": "—"
   },
@@ -53,9 +69,39 @@
       "columnDate": "Datum",
       "intro": "Provisorische Berichte können bis zur Finalisierung neu berechnet werden. Finalisierte Snapshots sind unveränderlich; Korrekturen erzeugen eine neue Berichtszeile.",
       "generateButton": "Tagesbericht für Enddatum erzeugen/aktualisieren",
+      "exportCsv": "CSV exportieren",
+      "bulkFinalize": "Auswahl finalisieren",
+      "bulkFinalizeConfirmTitle": "Tagesberichte finalisieren?",
+      "bulkFinalizeConfirmBody": "{{count}} provisorische Tagesberichte werden finalisiert. Dieser Schritt kann nicht rückgängig gemacht werden.",
+      "statusFilter": "Status",
+      "statusAll": "Alle Status",
+      "emptyTitle": "Keine Tagesberichte in diesem Zeitraum",
+      "emptyDescription": "Erzeugen Sie einen provisorischen Tagesbericht für das gewählte Enddatum und die gewählte Kasse.",
+      "emptyGenerateCta": "Tagesbericht erzeugen",
+      "csv": {
+        "date": "Datum",
+        "register": "Kasse",
+        "status": "Status",
+        "gross": "Brutto",
+        "submission": "Übermittlung"
+      },
       "messages": {
-        "generateSuccess": "Tagesbericht erzeugt oder aktualisiert."
+        "generateSuccess": "Tagesbericht erzeugt oder aktualisiert.",
+        "csvSuccess": "CSV exportiert.",
+        "bulkFinalizeSuccess": "Ausgewählte Tagesberichte wurden finalisiert.",
+        "bulkFinalizeNone": "Bitte mindestens einen provisorischen Tagesbericht auswählen."
       }
+    },
+    "error": {
+      "list": "Tagesberichte konnten nicht geladen werden.",
+      "detail": "Tagesbericht konnte nicht geladen werden.",
+      "generate": "Erzeugung fehlgeschlagen.",
+      "finalize": "Finalisierung fehlgeschlagen.",
+      "csv": "CSV-Export fehlgeschlagen.",
+      "pdfGenerate": "PDF konnte nicht erzeugt werden.",
+      "pdfDownload": "PDF konnte nicht heruntergeladen werden.",
+      "pdfNotStored": "Kein gespeichertes PDF vorhanden. Bitte zuerst „PDF erzeugen“ verwenden.",
+      "bulkFinalize": "Sammelfinalisierung fehlgeschlagen."
     },
     "detail": {
       "loading": "Laden…",
@@ -72,6 +118,8 @@
       },
       "actions": {
         "finalize": "Finalisieren",
+        "generatePdf": "PDF erzeugen",
+        "downloadPdf": "PDF herunterladen",
         "finanzOnline": "FinanzOnline (Outbox)",
         "correction": "Korrektur (neuer Bericht)",
         "backToList": "Zur Liste"
@@ -92,6 +140,8 @@
         "taxBreakdown": "Steueraufschlüsselung",
         "paymentMethods": "Zahlungsarten",
         "reconciliation": "Abstimmung / Hinweise",
+        "finanzOnline": "FinanzOnline-Übermittlung",
+        "auditTrail": "Prüfpfad",
         "trace": "Trace (Compliance)",
         "traceBody": "Roh-IDs sind gekürzt gespeichert; Hash dient der Nachvollziehbarkeit.",
         "history": "Verlauf"
@@ -128,6 +178,12 @@
         "dayClosedRksv": "Tag in RKSV geschlossen",
         "yes": "Ja",
         "no": "Nein"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Zahlungszeilen ohne verknüpfte Rechnung in diesem Kalendertag.",
+        "unknownMethodLines": "Zahlungszeilen ohne erkannte Zahlungsart.",
+        "offlineLinked": "Zahlungen, die aus der Offline-Warteschlange verknüpft wurden.",
+        "dayClosedRksv": "Ob für diesen Kalendertag ein RKSV-Tagesabschluss existiert."
       },
       "history": {
         "loading": "Lade Verlauf…",
@@ -381,5 +437,117 @@
       "duplicates": "Duplikate"
     },
     "tseExportFailed": "TSE-Kettenexport fehlgeschlagen."
+  },
+  "userActivity": {
+    "pageTitle": "Benutzer-Aktivitätsbericht",
+    "pageIntro": "Compliance-Bericht mit Login-, Sitzungs- und Audit-Daten (RKSV). Export als CSV für Behörden oder PDF zur Archivierung.",
+    "hubTitle": "Berichte",
+    "hubIntro": "Compliance- und Betriebsberichte.",
+    "openUserActivity": "Benutzer-Aktivität",
+    "selectUser": "Benutzer",
+    "selectUserRequired": "Bitte Benutzer wählen",
+    "selectUserPlaceholder": "Benutzer suchen …",
+    "dateRange": "Zeitraum",
+    "dateRangeRequired": "Bitte Zeitraum wählen",
+    "actionType": "Aktionstyp",
+    "actionTypeAll": "Alle Aktionen",
+    "generate": "Bericht erstellen",
+    "exportCsv": "CSV exportieren",
+    "exportPdf": "PDF exportieren",
+    "scheduleReport": "Bericht planen",
+    "scheduleTitle": "Bericht per E-Mail planen",
+    "scheduleName": "Name",
+    "scheduleInterval": "Intervall",
+    "scheduleRecipients": "Empfänger (E-Mail, kommagetrennt)",
+    "scheduleRecipientsPlaceholder": "audit@firma.at, buchhaltung@firma.at",
+    "scheduleWeekly": "Wöchentlich (Montag 08:00 UTC)",
+    "scheduleMonthly": "Monatlich (1., 08:00 UTC)",
+    "scheduleSuccess": "Bericht wurde geplant.",
+    "scheduleNameDefault": "Benutzer-Aktivität — {{userName}}",
+    "totalActions": "Aktionen gesamt",
+    "totalLogins": "Anmeldungen",
+    "failedLogins": "Fehlgeschlagene Anmeldungen",
+    "activeSessions": "Aktive Sitzungen",
+    "avgSession": "Ø Sitzungsdauer",
+    "lastLogin": "Letzter Login",
+    "topActiveUsers": "Aktivste Benutzer (Vergleich)",
+    "actionBreakdown": "Aktionsverteilung",
+    "activityOverTime": "Aktivität im Zeitverlauf",
+    "reportForUser": "Bericht für",
+    "identity": "Identität",
+    "lastSessionEnd": "Letztes Sitzungsende",
+    "actionSummary": "Aktionsübersicht",
+    "timelineTitle": "Audit-Zeitleiste (RKSV)",
+    "noData": "Bitte Benutzer und Zeitraum wählen und Bericht erstellen.",
+    "loadError": "Bericht konnte nicht geladen werden.",
+    "userCreates": "Benutzer angelegt",
+    "userEdits": "Benutzer bearbeitet",
+    "payments": "Zahlungen",
+    "stornos": "Stornos",
+    "refunds": "Erstattungen",
+    "exports": "Exporte",
+    "minutesSuffix": "min",
+    "timeline": {
+      "time": "Zeit",
+      "action": "Aktion",
+      "entityType": "Entität",
+      "status": "Status",
+      "ip": "IP",
+      "session": "Session",
+      "correlation": "Correlation",
+      "tse": "TSE"
+    }
+  },
+  "activityLog": {
+    "pageTitle": "Aktivitätsprotokoll",
+    "pageIntro": "Mandantenbezogene Mitarbeiteraktivitäten aus Audit-Daten. Plattform-Operator-Aktionen sind ausgeblendet.",
+    "title": "Aktivitätsprotokoll",
+    "userPlaceholder": "Benutzer",
+    "actionTypePlaceholder": "Aktionstyp",
+    "actionTypeAll": "Alle Aktionen",
+    "searchPlaceholder": "Suchen…",
+    "colTime": "Zeit",
+    "colUser": "Benutzer",
+    "colAction": "Aktion",
+    "colDescription": "Beschreibung",
+    "colDetails": "Details",
+    "empty": "Keine Aktivitäten gefunden",
+    "totalEntries": "{{count}} Einträge",
+    "export": "Exportieren",
+    "exportSuccess": "Export gestartet",
+    "exportFailed": "Export fehlgeschlagen",
+    "shiftReportsLink": "Personal-/Kassenleistung",
+    "actions": {
+      "ShiftStarted": "Schicht geöffnet",
+      "ShiftEnded": "Schicht geschlossen",
+      "POS_SPL_RCPT": "Sonderbeleg"
+    }
+  },
+  "taxReports": {
+    "pageTitle": "Steuerberichte",
+    "cardTitle": "Steuerberichte",
+    "period": "Zeitraum",
+    "totalNet": "Netto gesamt",
+    "totalTax": "Steuer gesamt",
+    "totalGross": "Brutto gesamt",
+    "empty": "Keine Steuerdaten im gewählten Zeitraum.",
+    "tabs": {
+      "distribution": "Steuerverteilung",
+      "trend": "Steuertrend",
+      "export": "Export"
+    },
+    "columns": {
+      "group": "Steuergruppe",
+      "rate": "Satz",
+      "net": "Netto",
+      "tax": "Steuer",
+      "gross": "Brutto",
+      "receipts": "Belege"
+    },
+    "exportYear": "Jahressteuerbericht",
+    "exportMonth": "Monatssteuerbericht",
+    "exportSuccess": "Steuerbericht heruntergeladen",
+    "exportFailed": "Export fehlgeschlagen",
+    "exportPermissionHint": "Für den Export ist die Berechtigung report.export erforderlich."
   }
 }

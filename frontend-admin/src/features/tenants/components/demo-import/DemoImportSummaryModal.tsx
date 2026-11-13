@@ -1,151 +1,151 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { Button, Modal, Space, Typography, Divider, Tooltip } from 'antd';
-import { SimpleList as List } from '@/components/ui/SimpleList';
 import {
-    CheckCircleOutlined,
-    BarChartOutlined,
-    FolderOutlined,
-    EuroOutlined,
+  BarChartOutlined,
+  CheckCircleOutlined,
+  EuroOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
+import { Button, Divider, Modal, Space, Tooltip, Typography } from 'antd';
+import { useRouter } from 'next/navigation';
 
 import type { DemoProductImportResult } from '@/api/admin/products';
-import { buildPosAppOpenUrl } from '@/lib/posAppUrl';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import {
-    formatAverageImportedPrice,
-    resolveCategoriesCreated,
-    resolveImportedProductCount,
+  formatAverageImportedPrice,
+  resolveCategoriesCreated,
+  resolveImportedProductCount,
 } from '@/features/tenants/components/demo-import/demoImportSummary';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { buildPosAppOpenUrl } from '@/lib/posAppUrl';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 const { Text, Title } = Typography;
 
 const BASE_NEXT_STEPS: Array<{ text: string; href?: string }> = [
-    { text: 'Preise überprüfen und anpassen', href: '/products' },
-    { text: 'Produktbilder hinzufügen', href: '/products' },
-    { text: 'TSE-konforme Monatsbeleg erstellen', href: '/rksv/sonderbelege?focus=monatsbeleg' },
-    { text: 'Erste Bestellung aufgeben' },
+  { text: 'Preise überprüfen und anpassen', href: '/products' },
+  { text: 'Produktbilder hinzufügen', href: '/products' },
+  { text: 'TSE-konforme Monatsbeleg erstellen', href: '/rksv/sonderbelege?focus=monatsbeleg' },
+  { text: 'Erste Bestellung aufgeben' },
 ];
 
 export type DemoImportSummaryModalProps = {
-    open: boolean;
-    result: DemoProductImportResult;
-    tenantSlug?: string | null;
-    onClose: () => void;
-    onDone: () => void;
+  open: boolean;
+  result: DemoProductImportResult;
+  tenantSlug?: string | null;
+  onClose: () => void;
+  onDone: () => void;
 };
 
 export function DemoImportSummaryModal({
-    open,
-    result,
-    tenantSlug,
-    onClose,
-    onDone,
+  open,
+  result,
+  tenantSlug,
+  onClose,
+  onDone,
 }: DemoImportSummaryModalProps) {
-    const router = useRouter();
-    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
-    const nextSteps = BASE_NEXT_STEPS.filter(
-        (step) => !step.href?.startsWith(RKSV_SONDERBELEGE_PATH) || canOpenSonderbelege,
-    );
-    const importedCount = resolveImportedProductCount(result);
-    const categoriesCreated = resolveCategoriesCreated(result);
-    const averagePrice = formatAverageImportedPrice(result);
-    const posUrl = buildPosAppOpenUrl(tenantSlug);
+  const router = useRouter();
+  const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+  const nextSteps = BASE_NEXT_STEPS.filter(
+    (step) => !step.href?.startsWith(RKSV_SONDERBELEGE_PATH) || canOpenSonderbelege
+  );
+  const importedCount = resolveImportedProductCount(result);
+  const categoriesCreated = resolveCategoriesCreated(result);
+  const averagePrice = formatAverageImportedPrice(result);
+  const posUrl = buildPosAppOpenUrl(tenantSlug);
 
-    const navigate = (href: string) => {
+  const navigate = (href: string) => {
+    onDone();
+    router.push(href);
+  };
+
+  const openPos = () => {
+    if (!posUrl) return;
+    window.open(posUrl, '_blank', 'noopener,noreferrer');
+    onDone();
+  };
+
+  return (
+    <Modal
+      open={open}
+      title={null}
+      closable
+      onCancel={() => {
+        onClose();
         onDone();
-        router.push(href);
-    };
-
-    const openPos = () => {
-        if (!posUrl) return;
-        window.open(posUrl, '_blank', 'noopener,noreferrer');
-        onDone();
-    };
-
-    return (
-        <Modal
-            open={open}
-            title={null}
-            closable
-            onCancel={() => {
-                onClose();
-                onDone();
-            }}
-            width={520}
-            footer={
-                <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-                    <Button type="primary" onClick={() => navigate('/products')}>
-                        Preise bearbeiten
-                    </Button>
-                    <Button onClick={() => navigate('/dashboard')}>Dashboard</Button>
-                    <Tooltip
-                        title={
-                            posUrl
-                                ? 'POS-App in neuem Tab öffnen'
-                                : 'POS-URL nicht konfiguriert (NEXT_PUBLIC_POS_APP_URL). App auf dem Kassengerät öffnen.'
-                        }
-                    >
-                        <Button disabled={!posUrl} onClick={openPos}>
-                            POS öffnen
-                        </Button>
-                    </Tooltip>
-                </Space>
+      }}
+      width={520}
+      footer={
+        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+          <Button type="primary" onClick={() => navigate('/products')}>
+            Preise bearbeiten
+          </Button>
+          <Button onClick={() => navigate('/dashboard')}>Dashboard</Button>
+          <Tooltip
+            title={
+              posUrl
+                ? 'POS-App in neuem Tab öffnen'
+                : 'POS-URL nicht konfiguriert (NEXT_PUBLIC_POS_APP_URL). App auf dem Kassengerät öffnen.'
             }
-        >
-            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                <Space align="start">
-                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 22, marginTop: 2 }} />
-                    <Title level={4} style={{ margin: 0 }}>
-                        Import abgeschlossen!
-                    </Title>
-                </Space>
+          >
+            <Button disabled={!posUrl} onClick={openPos}>
+              POS öffnen
+            </Button>
+          </Tooltip>
+        </Space>
+      }
+    >
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+        <Space align="start">
+          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 22, marginTop: 2 }} />
+          <Title level={4} style={{ margin: 0 }}>
+            Import abgeschlossen!
+          </Title>
+        </Space>
 
-                <Space orientation="vertical" size={4} style={{ width: '100%' }}>
-                    <Text>
-                        <BarChartOutlined style={{ marginRight: 8 }} />
-                        {importedCount} Produkte importiert
-                    </Text>
-                    <Text>
-                        <FolderOutlined style={{ marginRight: 8 }} />
-                        {categoriesCreated} Kategorien erstellt
-                    </Text>
-                    {averagePrice ? (
-                        <Text>
-                            <EuroOutlined style={{ marginRight: 8 }} />
-                            Durchschnittspreis: {averagePrice}
-                        </Text>
-                    ) : null}
-                </Space>
+        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+          <Text>
+            <BarChartOutlined style={{ marginRight: 8 }} />
+            {importedCount} Produkte importiert
+          </Text>
+          <Text>
+            <FolderOutlined style={{ marginRight: 8 }} />
+            {categoriesCreated} Kategorien erstellt
+          </Text>
+          {averagePrice ? (
+            <Text>
+              <EuroOutlined style={{ marginRight: 8 }} />
+              Durchschnittspreis: {averagePrice}
+            </Text>
+          ) : null}
+        </Space>
 
-                <Divider style={{ margin: '8px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
 
-                <div>
-                    <Text strong>Nächste Schritte:</Text>
-                    <List
-                        size="small"
-                        style={{ marginTop: 8 }}
-                        dataSource={nextSteps}
-                        renderItem={(item) => (
-                            <List.Item style={{ padding: '4px 0', border: 'none' }}>
-                                {item.href ? (
-                                    <Button
-                                        type="link"
-                                        style={{ padding: 0, height: 'auto' }}
-                                        onClick={() => navigate(item.href!)}
-                                    >
-                                        • {item.text}
-                                    </Button>
-                                ) : (
-                                    <Text type="secondary">• {item.text}</Text>
-                                )}
-                            </List.Item>
-                        )}
-                    />
-                </div>
-            </Space>
-        </Modal>
-    );
+        <div>
+          <Text strong>Nächste Schritte:</Text>
+          <List
+            size="small"
+            style={{ marginTop: 8 }}
+            dataSource={nextSteps}
+            renderItem={(item) => (
+              <List.Item style={{ padding: '4px 0', border: 'none' }}>
+                {item.href ? (
+                  <Button
+                    type="link"
+                    style={{ padding: 0, height: 'auto' }}
+                    onClick={() => navigate(item.href!)}
+                  >
+                    • {item.text}
+                  </Button>
+                ) : (
+                  <Text type="secondary">• {item.text}</Text>
+                )}
+              </List.Item>
+            )}
+          />
+        </div>
+      </Space>
+    </Modal>
+  );
 }

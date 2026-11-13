@@ -1,45 +1,57 @@
 'use client';
 
+import { Space, Typography } from 'antd';
 import React, { ReactNode } from 'react';
-import { Typography, Space, Breadcrumb } from 'antd';
-import Link from 'next/link';
-import { useI18n } from '@/i18n';
+
+import { Breadcrumb } from '@/components/Breadcrumb';
+import type { AdminBreadcrumbItem } from '@/shared/adminShellLabels';
 
 const { Title } = Typography;
 
 interface AdminPageHeaderProps {
-    /** Plain string or inline elements (e.g. title + status Tag). */
-    title: React.ReactNode;
-    breadcrumbs?: Array<{ title: string; href?: string }>;
-    actions?: ReactNode;
-    children?: ReactNode;
+  /** Plain string or inline elements (e.g. title + status Tag). */
+  title: React.ReactNode;
+  breadcrumbs?: AdminBreadcrumbItem[];
+  /** Right-side actions (tenant switcher, buttons, …). */
+  actions?: ReactNode;
+  /** Alias for `actions` (used by many admin pages). */
+  extra?: ReactNode;
+  /** Optional subtitle under the title row. */
+  subtitle?: ReactNode;
+  children?: ReactNode;
 }
 
-export function AdminPageHeader({ title, breadcrumbs, actions, children }: AdminPageHeaderProps) {
-    const { t } = useI18n();
+export function AdminPageHeader({
+  title,
+  breadcrumbs,
+  actions,
+  extra,
+  subtitle,
+  children,
+}: AdminPageHeaderProps) {
+  const right = actions ?? extra;
+  return (
+    <div style={{ marginBottom: 24 }}>
+      {/* Below compact TenantHeader (layout / Verwaltung gate). Extra top gap keeps the trail readable. */}
+      <Breadcrumb items={breadcrumbs} style={{ marginTop: 4, marginBottom: 16 }} />
 
-    return (
-        <div style={{ marginBottom: 24 }}>
-            {breadcrumbs && (
-                <nav aria-label={t('common.aria.breadcrumbNav')} style={{ marginBottom: 16 }}>
-                    <Breadcrumb
-                        items={breadcrumbs.map((b) => ({
-                            title: b.href ? <Link href={b.href}>{b.title}</Link> : b.title,
-                        }))}
-                    />
-                </nav>
-            )}
-
-            <header>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Title level={1} style={{ margin: 0 }}>
-                        {title}
-                    </Title>
-                    {actions && <Space>{actions}</Space>}
-                </div>
-            </header>
-
-            {children ? <div style={{ marginTop: 16 }}>{children}</div> : null}
+      <header>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Title level={1} style={{ margin: 0 }}>
+              {title}
+            </Title>
+            {subtitle ? (
+              <Typography.Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
+                {subtitle}
+              </Typography.Paragraph>
+            ) : null}
+          </div>
+          {right && <Space>{right}</Space>}
         </div>
-    );
+      </header>
+
+      {children ? <div style={{ marginTop: 16 }}>{children}</div> : null}
+    </div>
+  );
 }

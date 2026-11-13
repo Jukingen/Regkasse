@@ -1,28 +1,27 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-/**
- * Formal Monatsbericht: Liste, provisorische Erzeugung/Aktualisierung, Filter Monat und Kassen-/Firmenkontext.
- */
-import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * Formal Monatsbericht: Liste, provisorische Erzeugung/Aktualisierung, Filter Monat und Kassen-/Firmenkontext.
+ */
+import React, { useMemo, useState } from 'react';
+
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
-import { formatUserMonthYear } from '@/lib/dateFormatter';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { DAYJS_DATE_FORMAT, formatUserMonthYear } from '@/lib/dateFormatter';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
-import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 type MonatsberichtListItem = {
   id: string;
@@ -69,28 +68,23 @@ export default function MonatsberichtListPage() {
   const [scopeKind, setScopeKind] = useState<'Register' | 'Company'>('Register');
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
-  const registersQ = useGetApiCashRegister();
-  const registersData = registersQ.data as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
-
   const fromMonth = listRange[0].startOf('month').format('YYYY-MM-DD');
   const toMonth = listRange[1].startOf('month').format('YYYY-MM-DD');
 
   const listQ = useQuery({
     queryKey: ['monatsbericht', 'list', fromMonth, toMonth, scopeKind, cashRegisterId],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<MonatsberichtListItem[]>('/api/reports/monatsbericht', {
-        params: {
-          fromMonth,
-          toMonth,
-          scopeKind,
-          cashRegisterId: scopeKind === 'Register' ? cashRegisterId : undefined,
-        },
-      });
+      const { data } = await AXIOS_INSTANCE.get<MonatsberichtListItem[]>(
+        '/api/reports/monatsbericht',
+        {
+          params: {
+            fromMonth,
+            toMonth,
+            scopeKind,
+            cashRegisterId: scopeKind === 'Register' ? cashRegisterId : undefined,
+          },
+        }
+      );
       return data;
     },
   });
@@ -135,7 +129,7 @@ export default function MonatsberichtListPage() {
         render: (v: string | null | undefined, r) =>
           r.scopeKind === 'Company'
             ? t('reporting.listShared.emptyDash')
-            : v ?? r.cashRegisterId?.slice(0, 8) ?? t('reporting.listShared.emptyDash'),
+            : (v ?? r.cashRegisterId?.slice(0, 8) ?? t('reporting.listShared.emptyDash')),
       },
       {
         title: t('reporting.listShared.columns.status'),
@@ -155,7 +149,11 @@ export default function MonatsberichtListPage() {
             <Space orientation="vertical" size={0}>
               <Tag>{row.submission.lifecycle}</Tag>
               {hint ? (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 12 }}
+                  title={fiscalTooltip(hint.contentLang)}
+                >
                   {hint.text}
                 </Typography.Text>
               ) : null}
@@ -166,15 +164,18 @@ export default function MonatsberichtListPage() {
       {
         title: t('reporting.monatsbericht.list.columnGross'),
         dataIndex: 'grossSalesAmount',
-        render: (v: number) => formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        render: (v: number) =>
+          formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
       {
         title: '',
         key: 'a',
-        render: (_, r) => <Link href={`/reporting/monatsbericht/${r.id}`}>{t('reporting.listShared.details')}</Link>,
+        render: (_, r) => (
+          <Link href={`/reporting/monatsbericht/${r.id}`}>{t('reporting.listShared.details')}</Link>
+        ),
       },
     ],
-    [t, formatLocale, fiscalTooltip, resolveFiscal],
+    [t, formatLocale, fiscalTooltip, resolveFiscal]
   );
 
   return (
@@ -189,7 +190,8 @@ export default function MonatsberichtListPage() {
       <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
-          <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
+          <DatePicker.RangePicker
+            format={DAYJS_DATE_FORMAT}
             picker="month"
             value={listRange}
             onChange={(v) => v && setListRange(v as [dayjs.Dayjs, dayjs.Dayjs])}
@@ -206,18 +208,17 @@ export default function MonatsberichtListPage() {
               { value: 'Company', label: t('reporting.listShared.scopeOptionCompany') },
             ]}
           />
-          <Select
-            allowClear={scopeKind === 'Company'}
-            placeholder={t('reporting.listShared.registerPlaceholderScoped')}
-            style={{ minWidth: 220 }}
-            disabled={scopeKind === 'Company'}
-            value={cashRegisterId}
-            onChange={setCashRegisterId}
-            options={registerRows.map((r) => ({
-              value: r.id,
-              label: `${r.registerNumber} — ${r.location}`,
-            }))}
-          />
+          {scopeKind === 'Register' ? (
+            <CashRegisterSelector
+              value={cashRegisterId}
+              onChange={setCashRegisterId}
+              showFormItem={false}
+              required={false}
+              allowClear
+              placeholder={t('reporting.listShared.registerPlaceholderScoped')}
+              style={{ minWidth: 220 }}
+            />
+          ) : null}
           <Button onClick={() => listQ.refetch()} loading={listQ.isFetching}>
             {t('reporting.listShared.refresh')}
           </Button>
@@ -230,10 +231,19 @@ export default function MonatsberichtListPage() {
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
               {t('reporting.monatsbericht.list.monthPickerLabel')}
             </Typography.Text>
-            <DatePicker picker="month" value={reportMonth} onChange={(v) => v && setReportMonth(v.startOf('month'))} />
+            <DatePicker
+              picker="month"
+              value={reportMonth}
+              onChange={(v) => v && setReportMonth(v.startOf('month'))}
+            />
           </div>
           {canExport ? (
-            <Button type="primary" loading={generateMut.isPending} onClick={() => generateMut.mutate()} style={{ marginTop: 22 }}>
+            <Button
+              type="primary"
+              loading={generateMut.isPending}
+              onClick={() => generateMut.mutate()}
+              style={{ marginTop: 22 }}
+            >
               {t('reporting.monatsbericht.list.generateButton')}
             </Button>
           ) : null}

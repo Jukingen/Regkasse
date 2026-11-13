@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@jest/globals';
 
 import {
   normalizeProductTextLocale,
@@ -14,7 +14,7 @@ describe('productLocalization', () => {
         nameDe: 'Pizza Margherita',
         nameEn: 'Margherita Pizza',
       },
-      'en',
+      'en'
     );
     expect(name).toBe('Margherita Pizza');
   });
@@ -25,7 +25,7 @@ describe('productLocalization', () => {
         descriptionDe: 'mit Tomaten',
         descriptionEn: 'with tomatoes',
       },
-      'de',
+      'de'
     );
     expect(desc).toBe('mit Tomaten');
   });

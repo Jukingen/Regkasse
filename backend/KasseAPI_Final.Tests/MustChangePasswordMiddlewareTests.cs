@@ -3,6 +3,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -17,6 +18,8 @@ public class MustChangePasswordMiddlewareTests
     [InlineData("/api/auth/login", true)]
     [InlineData("/api/UserManagement/me/password", true)]
     [InlineData("/api/health", true)]
+    [InlineData("/api/license/status", true)]
+    [InlineData("/api/system/development-mode", true)]
     [InlineData("/swagger/index.html", true)]
     [InlineData("/api/admin/products", false)]
     [InlineData("/api/companysettings", false)]
@@ -91,6 +94,36 @@ public class MustChangePasswordMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_WhenMustChangePassword_allows_license_status_for_pos_gate()
+    {
+        await using var db = CreateDbContext();
+        var userId = Guid.NewGuid().ToString();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = userId,
+            UserName = "temp-user",
+            Email = "temp@example.com",
+            MustChangePasswordOnNextLogin = true,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var context = CreateAuthenticatedContext(userId, "/api/license/status");
+        var nextCalled = false;
+        RequestDelegate next = _ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        };
+
+        var middleware = new MustChangePasswordMiddleware(next);
+        await middleware.InvokeAsync(context, db, LocalizationTestDoubles.ApiMessageLocalizer());
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task InvokeAsync_WhenPasswordAlreadyChanged_allows_protected_api()
     {
         await using var db = CreateDbContext();
@@ -127,7 +160,7 @@ public class MustChangePasswordMiddlewareTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static DefaultHttpContext CreateAuthenticatedContext(string userId, string path)

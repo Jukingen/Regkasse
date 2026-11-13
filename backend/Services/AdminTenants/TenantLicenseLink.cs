@@ -19,4 +19,17 @@ internal static class TenantLicenseLink
 
     public static bool CustomerNameReferencesTenant(string customerName, Guid tenantId) =>
         customerName.Contains(Marker(tenantId), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Floating keys (no <c>[tenant:…]</c> marker) may be used on any mandant.
+    /// Keys with a marker must match the target tenant.
+    /// </summary>
+    public static bool IsIssuedLicenseAssignableToTenant(string customerName, Guid tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(customerName))
+            return true;
+        if (!customerName.Contains("[tenant:", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return CustomerNameReferencesTenant(customerName, tenantId);
+    }
 }

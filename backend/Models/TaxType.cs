@@ -11,6 +11,8 @@ namespace KasseAPI_Final.Models
         Reduced = 2,
         Special = 3,
         /// <summary>0% VAT – Österreich 2026 Reform. (Exempt deprecated, use ZeroRate.)</summary>
-        ZeroRate = 4
+        ZeroRate = 4,
+        /// <summary>4.9% MwSt. – Ermäßigt (Neu).</summary>
+        ReducedNew = 5,
     }
 }

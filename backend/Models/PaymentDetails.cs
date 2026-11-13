@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Models
     {
         [Required]
         public Guid CustomerId { get; set; }
-        
+
         [Required]
         [MaxLength(100)]
         public string CustomerName { get; set; } = string.Empty;
@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Models
         // Yeni eklenen alanlar - Frontend PaymentModal'dan gelen
         [Required]
         public int TableNumber { get; set; } // Masa numarası
-        
+
         [Required]
         [MaxLength(100)]
         public string CashierId { get; set; } = string.Empty; // Kasiyer ID
@@ -25,17 +25,25 @@ namespace KasseAPI_Final.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
-        
+
+        /// <summary>Cash tendered by the customer. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("cash_given", TypeName = "decimal(18,2)")]
+        public decimal? CashGiven { get; set; }
+
+        /// <summary>Change returned on a cash sale. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("change_due", TypeName = "decimal(18,2)")]
+        public decimal? ChangeDue { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }
-        
+
         // DB column "PaymentMethod" is varchar storing numeric strings like '0', '1', etc.
         [Required]
         [MaxLength(50)]
         [Column("PaymentMethod")]
         public string PaymentMethodRaw { get; set; } = "0";
-        
+
         // Enum helper for type-safe access (not mapped to DB)
         [NotMapped]
         public PaymentMethod PaymentMethod
@@ -51,11 +59,11 @@ namespace KasseAPI_Final.Models
                 PaymentMethodRaw = ((int)value).ToString();
             }
         }
-        
+
         // Avusturya yasal gereksinimleri (RKSV & DSGVO)
         [Required]
         [MaxLength(12)]
-        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
+        [RegularExpression(Countries.VatIdPatterns.Austria, ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
         public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
 
         /// <summary>RKSV §8 snapshot: Unternehmensbezeichnung at payment time (from <see cref="CompanySettings"/>).</summary>
@@ -65,7 +73,21 @@ namespace KasseAPI_Final.Models
         /// <summary>RKSV §8 snapshot: Sitz der gewerblichen Betriebsstätte at payment time (from <see cref="CompanySettings"/>).</summary>
         [MaxLength(200)]
         public string? CompanyAddress { get; set; }
-        
+
+        /// <summary>ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.</summary>
+        [MaxLength(2)]
+        [Column("country_code_at_issue")]
+        public string? CountryCodeAtIssue { get; set; }
+
+        /// <summary>SIX QR-bill SPC payload frozen at issue time for CH MWST. Null for other countries.</summary>
+        [MaxLength(1000)]
+        [Column("swiss_qr_text", TypeName = "character varying(1000)")]
+        public string? SwissQrText { get; set; }
+
+        /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
+        [Column("vat_regime_at_issue")]
+        public VatRegime? VatRegimeAtIssue { get; set; }
+
         /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]
         [Column("cash_register_id")]
@@ -76,10 +98,35 @@ namespace KasseAPI_Final.Models
 
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
-        
+
+        /// <summary>
+        /// Optional non-fiscal prescription reference (vet vertical). Not part of the RKSV/TSE payload.
+        /// </summary>
+        [MaxLength(255)]
+        [Column("prescription_reference")]
+        public string? PrescriptionReference { get; set; }
+
+        /// <summary>Optional taxi trip origin. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_from")]
+        public string? RouteFrom { get; set; }
+
+        /// <summary>Optional taxi trip destination. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_to")]
+        public string? RouteTo { get; set; }
+
+        /// <summary>Optional taxi distance in kilometres. Not part of the RKSV/TSE payload.</summary>
+        [Column("route_km", TypeName = "decimal(8,2)")]
+        public decimal? RouteKm { get; set; }
+
+        /// <summary>Optional taxi trip start (UTC). Not part of the RKSV/TSE payload.</summary>
+        [Column("taxi_trip_started_at_utc")]
+        public DateTime? TripStartedAtUtc { get; set; }
+
         [MaxLength(100)]
         public string? TransactionId { get; set; }
-        
+
         [Required]
         [Column(TypeName = "text")]
         public string TseSignature { get; set; } = string.Empty; // RKSV §6 COMPACT JWS
@@ -88,10 +135,10 @@ namespace KasseAPI_Final.Models
         [MaxLength(64)]
         [Column("certificate_thumbprint")]
         public string? CertificateThumbprint { get; set; }
-        
+
         [Column(TypeName = "text")]
         public string? PrevSignatureValueUsed { get; set; } // Imza zinciri için önceki signature
-        
+
         [Required]
         public DateTime TseTimestamp { get; set; } // TSE zaman damgası
 
@@ -149,20 +196,20 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         [Column("correlation_id")]
         public string? CorrelationId { get; set; }
-        
+
         // Tax details as JSONB (PostgreSQL)
         [Column(TypeName = "jsonb")]
         public JsonDocument TaxDetails { get; set; } = JsonDocument.Parse("{}");
-        
+
         // Payment items as JSONB
         [Column(TypeName = "jsonb")]
         public JsonDocument PaymentItems { get; set; } = JsonDocument.Parse("[]");
-        
+
         // Receipt/Invoice fields
         [Required]
         [Column(TypeName = "text")]
         public string ReceiptNumber { get; set; } = string.Empty; // Format: AT-{TSE_ID}-{YYYYMMDD}-{SEQ}
-        
+
         public bool IsPrinted { get; set; } = false;
 
         /// <summary>Immutable snapshot of customer benefits applied at payment time (e.g. percentage discount, free allowance). Null when no benefits applied.</summary>
@@ -214,6 +261,30 @@ namespace KasseAPI_Final.Models
         public bool RksvNullbelegActsAsJahresbeleg { get; set; }
 
         /// <summary>
+        /// True when a Monatsbeleg was created after the legal deadline for its target period had passed
+        /// (nachträglich / verspätet). This does NOT backdate the receipt: <see cref="BaseEntity.CreatedAt"/>
+        /// and <see cref="TseTimestamp"/> remain the real signing time. The covered period is carried by
+        /// <see cref="RksvSpecialReceiptYear"/> / <see cref="RksvSpecialReceiptMonth"/>. Used for transparent
+        /// compliance reporting during a Betriebsprüfung.
+        /// </summary>
+        [Column("rksv_is_late_created")]
+        public bool IsLateCreated { get; set; }
+
+        /// <summary>Operator-provided reason documenting why a late (nachträglich) Monatsbeleg was created; null for on-time receipts.</summary>
+        [MaxLength(500)]
+        [Column("rksv_late_creation_reason")]
+        public string? LateCreationReason { get; set; }
+
+        /// <summary>
+        /// The month/year (period end) this Sonderbeleg covers — Vienna calendar anchor, not the signing time.
+        /// Monatsbeleg: last day of <see cref="RksvSpecialReceiptYear"/>/<see cref="RksvSpecialReceiptMonth"/>.
+        /// Jahresbeleg: December 31 of <see cref="RksvSpecialReceiptYear"/>.
+        /// Does not affect <see cref="BaseEntity.CreatedAt"/> or TSE signing time.
+        /// </summary>
+        [Column("rksv_intended_period_date", TypeName = "date")]
+        public DateTime? IntendedPeriodDate { get; set; }
+
+        /// <summary>
         /// Set when this fiscal payment was accepted from an offline replay while NTP/system clock was outside RKSV tolerance.
         /// </summary>
         [Column("time_sync_warning")]
@@ -221,6 +292,7 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Customer? Customer { get; set; }
+
     }
 }
 

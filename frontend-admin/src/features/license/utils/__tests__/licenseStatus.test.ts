@@ -1,95 +1,390 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    resolveDeploymentLicenseStatus,
-    resolveTenantLicenseStatus,
-    resolveTenantRowLicenseStatus,
+  getLicenseStatusRemainingText,
+  mapPublicStatusToTenantLicenseStatus,
+  resolveDeploymentLicenseStatus,
+  resolveTenantLicenseFromPublicStatus,
+  resolveTenantLicenseStatus,
+  resolveTenantLockFlags,
+  resolveTenantRowLicenseStatus,
+  shouldShowSystemLockedAlert,
 } from '../licenseStatus';
 
 describe('licenseStatus', () => {
-    const nowMs = new Date('2026-05-20T12:00:00Z').getTime();
+  const nowMs = new Date('2026-05-20T12:00:00Z').getTime();
+  const t = (key: string, params?: Record<string, string | number>) => {
+    if (key === 'license.phase.hoursRemaining') return `${params?.hours ?? 0} Stunden verbleibend`;
+    if (key === 'license.phase.daysRemaining') return `${params?.days ?? 0} Tage verbleibend`;
+    if (key === 'license.phase.daysExpired') return `Seit ${params?.days ?? 0} Tagen abgelaufen`;
+    return key;
+  };
 
-    it('maps tenant grace_read_only to grace_readonly permissions', () => {
-        const status = resolveTenantLicenseStatus(
-            {
-                kind: 'grace_read_only',
-                licenseKey: 'REGK-KEY',
-                validUntilUtc: '2026-04-05T00:00:00Z',
-                daysRemaining: -45,
-            },
-            nowMs,
-        );
+  it('maps tenant grace_read_only to grace_readonly permissions', () => {
+    const status = resolveTenantLicenseStatus(
+      {
+        kind: 'grace_read_only',
+        licenseKey: 'REGK-KEY',
+        validUntilUtc: '2026-04-05T00:00:00Z',
+        daysRemaining: -45,
+      },
+      nowMs
+    );
 
-        expect(status.kind).toBe('grace_readonly');
-        expect(status.daysExpired).toBe(45);
-        expect(status.canWrite).toBe(false);
-        expect(status.canManageUsers).toBe(true);
-        expect(status.canAccess).toBe(true);
+    expect(status.kind).toBe('grace_readonly');
+    expect(status.daysExpired).toBe(45);
+    expect(status.canWrite).toBe(false);
+    expect(status.canManageUsers).toBe(true);
+    expect(status.canAccess).toBe(true);
+  });
+
+  it('derives tenant lockdown after grace when only validity is available', () => {
+    const status = resolveTenantRowLicenseStatus(
+      {
+        licenseKey: 'REGK-KEY',
+        licenseValidUntilUtc: '2026-04-25T00:00:00Z',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('lockdown');
+    expect(status.daysExpired).toBe(25);
+    expect(status.canAccess).toBe(false);
+  });
+
+  it('derives tenant lockdown from row data when only validity is available', () => {
+    const status = resolveTenantRowLicenseStatus(
+      {
+        licenseKey: 'REGK-KEY',
+        licenseValidUntilUtc: '2026-01-15T00:00:00Z',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('lockdown');
+    expect(status.daysExpired).toBe(125);
+    expect(status.canAccess).toBe(false);
+  });
+
+  it('maps deployment expired snapshot into grace_readonly phase', () => {
+    const status = resolveDeploymentLicenseStatus(
+      {
+        isValid: false,
+        isTrial: false,
+        isExpired: true,
+        daysRemaining: 0,
+        expiryDate: '2026-04-25T00:00:00Z',
+        machineHash: 'machine',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('grace_readonly');
+    expect(status.daysExpired).toBe(25);
+    expect(status.canWrite).toBe(false);
+    expect(status.canAccess).toBe(true);
+  });
+
+  it('treats active trial deployment snapshots as active', () => {
+    const status = resolveDeploymentLicenseStatus(
+      {
+        isValid: false,
+        isTrial: true,
+        isExpired: false,
+        daysRemaining: 12,
+        expiryDate: '2026-06-01T00:00:00Z',
+        machineHash: 'machine',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBe(12);
+    expect(status.canWrite).toBe(true);
+    expect(status.canAccess).toBe(true);
+  });
+
+  it('maps dev bypass public status to active tenant license', () => {
+    const status = resolveTenantLicenseFromPublicStatus({
+      licenseType: 'Licensed',
+      validUntil: null,
+      daysRemaining: 999,
+      features: [],
+      isExpired: false,
+      isValid: true,
+      canAccess: true,
+      canTransact: true,
+      isDevelopmentBypass: true,
     });
 
-    it('derives tenant lockdown after grace when only validity is available', () => {
-        const status = resolveTenantRowLicenseStatus(
-            {
-                licenseKey: 'REGK-KEY',
-                licenseValidUntilUtc: '2026-04-25T00:00:00Z',
-            },
-            nowMs,
-        );
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBe(999);
+    expect(status.canAccess).toBe(true);
+  });
 
-        expect(status.kind).toBe('lockdown');
-        expect(status.daysExpired).toBe(25);
-        expect(status.canAccess).toBe(false);
+  it('maps mandant grace period from public status overlay', () => {
+    const status = resolveTenantLicenseFromPublicStatus({
+      licenseType: 'Licensed',
+      validUntil: '2026-05-10T00:00:00Z',
+      daysRemaining: -5,
+      features: [],
+      isExpired: false,
+      isValid: true,
+      canAccess: true,
+      canTransact: true,
+      isInGracePeriod: true,
+      gracePeriodRemaining: 2,
     });
 
-    it('derives tenant lockdown from row data when only validity is available', () => {
-        const status = resolveTenantRowLicenseStatus(
-            {
-                licenseKey: 'REGK-KEY',
-                licenseValidUntilUtc: '2026-01-15T00:00:00Z',
-            },
-            nowMs,
-        );
+    expect(status.kind).toBe('grace_write');
+    expect(status.canWrite).toBe(true);
+    expect(status.daysExpired).toBe(5);
+  });
 
-        expect(status.kind).toBe('lockdown');
-        expect(status.daysExpired).toBe(125);
-        expect(status.canAccess).toBe(false);
-    });
+  it('ignores positive ValidUntil horizon daysRemaining while in grace', () => {
+    const status = resolveTenantLicenseFromPublicStatus(
+      {
+        licenseType: 'Licensed',
+        validUntil: '2029-04-13T00:00:00Z',
+        daysRemaining: 997,
+        features: [],
+        isExpired: true,
+        isValid: true,
+        canAccess: true,
+        canTransact: true,
+        isInGracePeriod: true,
+        gracePeriodRemaining: 5,
+      },
+      nowMs
+    );
 
-    it('maps deployment expired snapshot into grace_readonly phase', () => {
-        const status = resolveDeploymentLicenseStatus(
-            {
-                isValid: false,
-                isTrial: false,
-                isExpired: true,
-                daysRemaining: 0,
-                expiryDate: '2026-04-25T00:00:00Z',
-                machineHash: 'machine',
-            },
-            nowMs,
-        );
+    expect(status.kind).toBe('grace_write');
+    expect(status.daysRemaining).toBeLessThan(0);
+    expect(status.daysExpired).toBe(2);
+    expect(status.daysRemaining).not.toBe(997);
+  });
 
-        expect(status.kind).toBe('grace_readonly');
-        expect(status.daysExpired).toBe(25);
-        expect(status.canWrite).toBe(false);
-        expect(status.canAccess).toBe(true);
-    });
+  it('normalizes explicit grace_write with future ValidUntil horizon', () => {
+    const status = resolveTenantLicenseStatus(
+      {
+        kind: 'grace_write',
+        licenseKey: 'REGK-KEY',
+        validUntilUtc: '2029-04-13T00:00:00Z',
+        daysRemaining: 997,
+      },
+      nowMs
+    );
 
-    it('treats active trial deployment snapshots as active', () => {
-        const status = resolveDeploymentLicenseStatus(
-            {
-                isValid: false,
-                isTrial: true,
-                isExpired: false,
-                daysRemaining: 12,
-                expiryDate: '2026-06-01T00:00:00Z',
-                machineHash: 'machine',
-            },
-            nowMs,
-        );
+    expect(status.kind).toBe('grace_write');
+    expect(status.daysRemaining).toBeLessThan(0);
+    expect(status.daysRemaining).not.toBe(997);
+  });
 
-        expect(status.kind).toBe('active');
-        expect(status.daysRemaining).toBe(12);
-        expect(status.canWrite).toBe(true);
-        expect(status.canAccess).toBe(true);
-    });
+  it('shows overdue text for grace instead of ValidUntil remaining days', () => {
+    const text = getLicenseStatusRemainingText(
+      {
+        kind: 'grace_write',
+        daysRemaining: 997,
+        daysExpired: 2,
+        canWrite: true,
+        canManageUsers: true,
+        canAccess: true,
+      },
+      t,
+      '2029-04-13T00:00:00Z',
+      nowMs
+    );
+
+    expect(text).toBe('Seit 2 Tagen abgelaufen');
+    expect(text).not.toContain('997');
+  });
+
+  it('maps public status to tenant license display fields for Manager UI', () => {
+    const status = mapPublicStatusToTenantLicenseStatus(
+      {
+        licenseType: 'Licensed',
+        validUntil: '2026-07-16T00:00:00Z',
+        daysRemaining: 1,
+        features: ['admin_basic'],
+        isExpired: false,
+        isValid: true,
+        canAccess: true,
+        canTransact: true,
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.validUntilUtc).toBe('2026-07-16T00:00:00Z');
+    expect(status.daysRemaining).toBe(57);
+    expect(status.licenseKey).toBeNull();
+    expect(status.features).toEqual(['admin_basic']);
+  });
+
+  it('computes days remaining from validUntil even when API daysRemaining is stale', () => {
+    const status = resolveTenantLicenseStatus(
+      {
+        kind: 'active',
+        licenseKey: 'REGK-KEY',
+        validUntilUtc: '2026-06-19T12:00:00Z',
+        daysRemaining: 1,
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBe(30);
+  });
+
+  it('prefers hours remaining text when less than 24h left', () => {
+    const validUntil = new Date(nowMs + 5 * 60 * 60 * 1000).toISOString();
+    const text = getLicenseStatusRemainingText(
+      {
+        kind: 'active',
+        daysRemaining: 1,
+        daysExpired: 0,
+        canWrite: true,
+        canManageUsers: true,
+        canAccess: true,
+      },
+      t,
+      validUntil,
+      nowMs
+    );
+
+    expect(text).toBe('5 Stunden verbleibend');
+  });
+
+  it('keeps day remaining text when more than 24h left', () => {
+    const validUntil = new Date(nowMs + 36 * 60 * 60 * 1000).toISOString();
+    const text = getLicenseStatusRemainingText(
+      {
+        kind: 'active',
+        daysRemaining: 2,
+        daysExpired: 0,
+        canWrite: true,
+        canManageUsers: true,
+        canAccess: true,
+      },
+      t,
+      validUntil,
+      nowMs
+    );
+
+    expect(text).toBe('2 Tage verbleibend');
+  });
+
+  it('treats a future validUntil as active even with stale lockdown flags', () => {
+    const status = resolveTenantLicenseFromPublicStatus(
+      {
+        licenseType: 'Expired',
+        validUntil: '2026-12-01T00:00:00Z',
+        daysRemaining: -40,
+        features: [],
+        isExpired: true,
+        isValid: false,
+        canAccess: false,
+        canTransact: false,
+        isInGracePeriod: false,
+        isLocked: true,
+        requiresRenewal: true,
+        lockDate: '2026-05-27T00:00:00Z',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBeGreaterThan(0);
+    expect(status.canAccess).toBe(true);
+    expect(
+      resolveTenantLockFlags(status, { isLocked: true, isExpired: true, isInGracePeriod: false })
+    ).toEqual({ isLocked: false, isExpired: false });
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: status.kind,
+        daysRemaining: status.daysRemaining,
+        daysExpired: status.daysExpired,
+        state: 'Active',
+      })
+    ).toBe(false);
+  });
+
+  it('keeps lockdown when validUntil is past, grace is over, and no valid license exists', () => {
+    const status = resolveTenantLicenseFromPublicStatus(
+      {
+        licenseType: 'Expired',
+        validUntil: '2026-04-25T00:00:00Z',
+        daysRemaining: -25,
+        features: [],
+        isExpired: true,
+        isValid: false,
+        canAccess: false,
+        canTransact: false,
+        isInGracePeriod: false,
+        isLocked: true,
+        requiresRenewal: true,
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('lockdown');
+    expect(status.daysRemaining).toBeLessThan(0);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: status.kind,
+        daysRemaining: status.daysRemaining,
+        daysExpired: status.daysExpired,
+        state: 'Locked',
+      })
+    ).toBe(true);
+  });
+});
+
+describe('shouldShowSystemLockedAlert', () => {
+  it('hides System gesperrt for active, grace, and missing license', () => {
+    expect(
+      shouldShowSystemLockedAlert({ kind: 'active', daysRemaining: 10, state: 'Active' })
+    ).toBe(false);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'grace_write',
+        daysRemaining: -2,
+        daysExpired: 2,
+        state: 'Grace',
+      })
+    ).toBe(false);
+    expect(
+      shouldShowSystemLockedAlert({ kind: 'no_license', daysRemaining: 0, state: 'Locked' })
+    ).toBe(false);
+  });
+
+  it('hides System gesperrt when a valid license still has remaining days', () => {
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'lockdown',
+        daysRemaining: 200,
+        daysExpired: 0,
+        state: 'Locked',
+      })
+    ).toBe(false);
+  });
+
+  it('shows System gesperrt only after expiry and grace, with no valid license', () => {
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'lockdown',
+        daysRemaining: -10,
+        daysExpired: 10,
+        state: 'Locked',
+      })
+    ).toBe(true);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'expired',
+        daysRemaining: -40,
+        daysExpired: 40,
+        state: 'Archived',
+      })
+    ).toBe(true);
+  });
 });

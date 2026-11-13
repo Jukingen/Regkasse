@@ -1,0 +1,17 @@
+{
+  "title": "TSE knowledge base",
+  "subtitle": "Operational TSE documentation and FAQ for Super Admins. Not tax or RKSV legal advice.",
+  "cardTitle": "TSE knowledge base",
+  "searchPlaceholder": "Search TSE documentation…",
+  "tabPopular": "Popular",
+  "tabResults": "Search results",
+  "tabFaq": "FAQ",
+  "articleTitle": "Article",
+  "rateArticle": "Rate this article",
+  "feedbackThanks": "Thanks for your feedback",
+  "ratingLabel": "Rating {{rating}} · {{views}} views",
+  "empty": "No articles found.",
+  "forbidden": "You do not have permission for this page.",
+  "loadError": "Failed to load article.",
+  "diagnosticNote": "Operational guidance only (health, failover, healing, scaling). Does not change fiscal signature chains."
+}

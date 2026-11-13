@@ -1,8 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-
-
 interface Props {
   children: ReactNode;
 }
@@ -26,18 +24,13 @@ class ErrorBoundaryClass extends Component<Props, State> {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  private handleReset = () => {
+  private readonly handleReset = () => {
     this.setState({ hasError: false, error: null });
   };
 
   public render() {
     if (this.state.hasError) {
-      return (
-        <ErrorFallback
-          error={this.state.error}
-          onReset={this.handleReset}
-        />
-      );
+      return <ErrorFallback error={this.state.error} onReset={this.handleReset} />;
     }
 
     return this.props.children;
@@ -57,9 +50,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Something went wrong</Text>
-      <Text style={styles.message}>
-        {error?.message || 'An unexpected error occurred'}
-      </Text>
+      <Text style={styles.message}>{error?.message || 'An unexpected error occurred'}</Text>
       <TouchableOpacity style={styles.button} onPress={onReset}>
         <Text style={styles.buttonText}>Try Again</Text>
       </TouchableOpacity>
@@ -100,4 +91,4 @@ const defaultStyles = StyleSheet.create({
   },
 });
 
-export const ErrorBoundary = ErrorBoundaryClass; 
+export const ErrorBoundary = ErrorBoundaryClass;

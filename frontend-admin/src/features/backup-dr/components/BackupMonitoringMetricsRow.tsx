@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
 /**
  * Üst metrik kartları: son backup, boyut, 30g başarı oranı, son restore drill.
  */
+import { Col, Row } from 'antd';
+import React, { useMemo } from 'react';
 
-import React, { useMemo } from "react";
-import { Col, Row } from "antd";
 import type {
   BackupRunResponseDto,
   RestoreVerificationRunResponseDto,
-} from "@/api/generated/model";
-import { MetricCard } from "@/features/backup-dr/components/MetricCard";
-import { formatBackupBytes, formatBackupDurationMs } from "@/features/backup-dr/logic/backupFormat";
+} from '@/api/generated/model';
+import { MetricCard } from '@/features/backup-dr/components/MetricCard';
+import { formatBackupBytes, formatBackupDurationMs } from '@/features/backup-dr/logic/backupFormat';
 import {
   computeSuccessRateInWindow,
   computeSuccessRateTrendPercent,
   mapBackupRunToMetricStatus,
   mapRestoreDrillToMetricStatus,
-} from "@/features/backup-dr/logic/backupMonitoringMetrics";
-import { formatRunDurationMs, sumLogicalDumpBytes } from "@/features/backup-dr/logic/backupPipelineDerived";
-import { isBackupLatestRunActiveStatus } from "@/features/backup-dr/logic/backupRunDetailPollPolicy";
+} from '@/features/backup-dr/logic/backupMonitoringMetrics';
+import {
+  formatRunDurationMs,
+  sumLogicalDumpBytes,
+} from '@/features/backup-dr/logic/backupPipelineDerived';
+import { isBackupLatestRunActiveStatus } from '@/features/backup-dr/logic/backupRunDetailPollPolicy';
 
 export interface BackupMonitoringMetricsRowProps {
   latest: BackupRunResponseDto | undefined;
@@ -57,10 +60,7 @@ export function BackupMonitoringMetricsRow({
     return computeSuccessRateInWindow(runsForMetrics, now - 30 * 86_400_000, now);
   }, [runsForMetrics]);
 
-  const trend = useMemo(
-    () => computeSuccessRateTrendPercent(runsForMetrics),
-    [runsForMetrics],
-  );
+  const trend = useMemo(() => computeSuccessRateTrendPercent(runsForMetrics), [runsForMetrics]);
 
   const lastBackupStatus = mapBackupRunToMetricStatus(latest?.status, {
     simulated: simulatedOperationalMode || latest?.isSimulatedExecution,
@@ -71,17 +71,17 @@ export function BackupMonitoringMetricsRow({
 
   const lastBackupValue = `${backupStatusLabel(latest?.status)} · ${formatDt(
     latest?.completedAt ?? latest?.requestedAt,
-    formatLocale,
+    formatLocale
   )}`;
 
   const successRateValue =
-    successWindow.ratePercent === null ? "—" : `${successWindow.ratePercent}%`;
+    successWindow.ratePercent === null ? '—' : `${successWindow.ratePercent}%`;
 
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} lg={6}>
         <MetricCard
-          title={t("backupDr.monitoring.metrics.lastBackup")}
+          title={t('backupDr.monitoring.metrics.lastBackup')}
           value={lastBackupValue}
           status={lastBackupStatus}
           loading={loading}
@@ -89,40 +89,39 @@ export function BackupMonitoringMetricsRow({
       </Col>
       <Col xs={24} sm={12} lg={6}>
         <MetricCard
-          title={t("backupDr.monitoring.metrics.backupSize")}
+          title={t('backupDr.monitoring.metrics.backupSize')}
           value={formatBackupBytes(backupBytes, t)}
-          status={backupBytes !== undefined ? "info" : undefined}
+          status={backupBytes !== undefined ? 'info' : undefined}
           loading={loading}
         />
-        <div style={{ marginTop: 4, fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
-          {t("backupDr.monitoring.metrics.duration")}:{" "}
-          {formatBackupDurationMs(durationMs, t)}
+        <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
+          {t('backupDr.monitoring.metrics.duration')}: {formatBackupDurationMs(durationMs, t)}
         </div>
       </Col>
       <Col xs={24} sm={12} lg={6}>
         <MetricCard
-          title={t("backupDr.monitoring.metrics.successRate30d")}
+          title={t('backupDr.monitoring.metrics.successRate30d')}
           value={successRateValue}
           status={
             successWindow.ratePercent === null
               ? undefined
               : successWindow.ratePercent >= 90
-                ? "success"
+                ? 'success'
                 : successWindow.ratePercent >= 70
-                  ? "warning"
-                  : "error"
+                  ? 'warning'
+                  : 'error'
           }
           trend={trend}
-          trendLabel={t("backupDr.monitoring.metrics.trendVsPriorMonth")}
+          trendLabel={t('backupDr.monitoring.metrics.trendVsPriorMonth')}
           loading={loading}
         />
       </Col>
       <Col xs={24} sm={12} lg={6}>
         <MetricCard
-          title={t("backupDr.monitoring.metrics.lastRestoreDrill")}
+          title={t('backupDr.monitoring.metrics.lastRestoreDrill')}
           value={`${restoreStatusLabel(restoreLatest?.status)} · ${formatDt(
             restoreLatest?.completedAt ?? restoreLatest?.requestedAt,
-            formatLocale,
+            formatLocale
           )}`}
           status={drillStatus}
           loading={loading}

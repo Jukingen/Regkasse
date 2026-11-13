@@ -1,8 +1,13 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -14,14 +19,67 @@ public sealed class RksvController : ControllerBase
 {
     private readonly IMonatsbelegReminderService _monatsbelegReminder;
     private readonly IRksvReminderService _rksvReminder;
+    private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IConfiguration _configuration;
+    private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IRksvRuntimeConfigService? _runtimeConfig;
 
     public RksvController(
         IMonatsbelegReminderService monatsbelegReminder,
-        IRksvReminderService rksvReminder)
+        IRksvReminderService rksvReminder,
+        IRksvEnvironmentService rksvEnvironment,
+        IHostEnvironment hostEnvironment,
+        IConfiguration configuration,
+        IOptionsMonitor<TseOptions> tseOptions,
+        ICurrentTenantAccessor tenantAccessor,
+        IRksvRuntimeConfigService? runtimeConfig = null)
     {
         _monatsbelegReminder = monatsbelegReminder;
         _rksvReminder = rksvReminder;
+        _rksvEnvironment = rksvEnvironment;
+        _hostEnvironment = hostEnvironment;
+        _configuration = configuration;
+        _tseOptions = tseOptions;
+        _tenantAccessor = tenantAccessor;
+        _runtimeConfig = runtimeConfig;
     }
+
+    /// <summary>RKSV deployment environment (Demo/Production) for POS and Admin badges.</summary>
+    [HttpGet("environment")]
+    [ProducesResponseType(typeof(RksvEnvironmentStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<RksvEnvironmentStatusDto> GetEnvironment()
+    {
+        TseFiscalConfigLockEvaluator.RksvLockOverlay? overlay = null;
+        var runtime = _runtimeConfig?.GetEffective();
+        if (runtime != null)
+        {
+            overlay = new TseFiscalConfigLockEvaluator.RksvLockOverlay(
+                runtime.Mode,
+                runtime.TseMode,
+                runtime.IsFinanzOnlineSimulation);
+        }
+
+        var fiscalLock = TseFiscalConfigLockEvaluator.Evaluate(
+            _hostEnvironment,
+            _configuration,
+            _tseOptions.CurrentValue,
+            overlay);
+        return Ok(RksvEnvironmentStatusDto.FromService(
+            _rksvEnvironment,
+            _hostEnvironment,
+            _configuration,
+            fiscalLock,
+            _tenantAccessor.TenantId,
+            _tenantAccessor.TenantSlug));
+    }
+
+    /// <summary>RKSV environment status (simulation flag, labels, TSE display) for POS and Admin UI.</summary>
+    [HttpGet("status")]
+    [ProducesResponseType(typeof(RksvStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<RksvStatusDto> GetStatus() =>
+        Ok(RksvStatusDto.FromService(_rksvEnvironment));
 
     /// <summary>Monatsbeleg reminder status for the given cash register (Vienna calendar month).</summary>
     [HttpGet("monatsbeleg/status/{cashRegisterId:guid}")]

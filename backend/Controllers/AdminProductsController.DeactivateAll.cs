@@ -55,7 +55,10 @@ public partial class AdminProductsController
             }
 
             if (deactivated > 0)
+            {
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(tenantId);
+            }
 
             _logger.LogWarning(
                 "Admin deactivate-all products: tenant={TenantId} deactivated={Deactivated} alreadyInactive={AlreadyInactive} actor={Actor}",

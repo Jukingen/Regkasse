@@ -1,5 +1,5 @@
 import { canonicalDevTenantSlug } from '../../constants/devTenantCatalog';
-import { storage } from '../../utils/storage';
+import { secureStorage } from '../secureStorage';
 import { TENANT_HTTP_HEADER } from './tenantStorage';
 
 /** Runtime dev override (takes precedence over {@link DEV_TENANT_ENV_KEY}). */
@@ -15,6 +15,22 @@ export const DEV_TENANT_ENV_KEY = 'EXPO_PUBLIC_DEV_TENANT_ID';
 
 const isDev = __DEV__;
 
+const devTenantSlugListeners = new Set<() => void>();
+
+/** Fired when the development tenant override changes so catalog caches can refetch. */
+export function subscribeDevTenantSlug(listener: () => void): () => void {
+  devTenantSlugListeners.add(listener);
+  return () => {
+    devTenantSlugListeners.delete(listener);
+  };
+}
+
+function notifyDevTenantSlugListeners(): void {
+  devTenantSlugListeners.forEach((listener) => {
+    listener();
+  });
+}
+
 function normalizeSlug(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
@@ -26,19 +42,20 @@ function normalizeSlug(value: string | null | undefined): string | null {
 /** Slug from Expo env in development; defaults to <c>dev</c> when unset. */
 export function getEnvDevTenantSlug(): string | null {
   if (!isDev) return null;
-  return normalizeSlug(process.env[DEV_TENANT_ENV_KEY]) ?? 'dev';
+  // Static property access so Expo/Metro can inline EXPO_PUBLIC_* at bundle time.
+  return normalizeSlug(process.env.EXPO_PUBLIC_DEV_TENANT_ID) ?? 'dev';
 }
 
 export async function getDevTenantSlugOverride(): Promise<string | null> {
   if (!isDev) return null;
 
-  const primary = normalizeSlug(await storage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
+  const primary = normalizeSlug(await secureStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
   if (primary) return primary;
 
-  const legacy = normalizeSlug(await storage.getItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY));
+  const legacy = normalizeSlug(await secureStorage.getItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY));
   if (legacy) {
-    await storage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, legacy);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, legacy);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
     return legacy;
   }
 
@@ -49,12 +66,13 @@ export async function setDevTenantSlugOverride(slug: string | null): Promise<voi
   if (!isDev) return;
   const normalized = normalizeSlug(slug);
   if (normalized) {
-    await storage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
   } else {
-    await storage.removeItem(DEV_TENANT_LOCAL_STORAGE_KEY);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.removeItem(DEV_TENANT_LOCAL_STORAGE_KEY);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
   }
+  notifyDevTenantSlugListeners();
 }
 
 /** Persists slug and updates API base URL query (caller should reload the app). */
@@ -77,7 +95,7 @@ export async function resolveDevTenantSlug(): Promise<string | null> {
  * Dev: dev override/env → license/login persistence. Prod: persisted bootstrap only.
  */
 export async function resolveEffectiveTenantSlug(
-  persistedSlug: string | null | undefined,
+  persistedSlug: string | null | undefined
 ): Promise<string | null> {
   const devSlug = await resolveDevTenantSlug();
   if (devSlug) return devSlug;
@@ -86,7 +104,7 @@ export async function resolveEffectiveTenantSlug(
 
 /**
  * Appends <c>?tenant=slug</c> to a full request URL (not axios <c>baseURL</c>).
- * Prefer {@link applyTenantHeader} / {@link resolveTenantFetchHeaders} for API calls.
+ * Used in Development alongside {@link applyTenantHeader}.
  */
 export function appendTenantQueryParam(baseUrl: string, tenantSlug: string): string {
   const slug = normalizeSlug(tenantSlug);
@@ -97,14 +115,45 @@ export function appendTenantQueryParam(baseUrl: string, tenantSlug: string): str
     url.searchParams.set('tenant', slug);
     return url.toString();
   } catch {
-    const sep = baseUrl.includes('?') ? '&' : '?';
-    return `${baseUrl}${sep}tenant=${encodeURIComponent(slug)}`;
+    const stripped = baseUrl.replace(/([?&])tenant=[^&]*/i, '$1').replace(/[?&]$/, '');
+    const sep = stripped.includes('?') ? '&' : '?';
+    return `${stripped}${sep}tenant=${encodeURIComponent(slug)}`;
   }
+}
+
+/**
+ * Merges <c>tenant</c> into axios <c>params</c> (Development only; caller gates on __DEV__).
+ */
+export function applyDevTenantAxiosParams(
+  params: unknown,
+  tenantSlug: string
+): Record<string, unknown> | URLSearchParams {
+  const slug = normalizeSlug(tenantSlug);
+  if (!slug) {
+    if (params instanceof URLSearchParams) return params;
+    if (params && typeof params === 'object' && !Array.isArray(params)) {
+      return { ...(params as Record<string, unknown>) };
+    }
+    return {};
+  }
+
+  if (params instanceof URLSearchParams) {
+    const next = new URLSearchParams(params);
+    next.set('tenant', slug);
+    return next;
+  }
+
+  const base =
+    params && typeof params === 'object' && !Array.isArray(params)
+      ? { ...(params as Record<string, unknown>) }
+      : {};
+  base.tenant = slug;
+  return base;
 }
 
 export function applyTenantHeader(
   headers: Record<string, unknown> | undefined,
-  tenantSlug: string,
+  tenantSlug: string
 ): Record<string, unknown> {
   const next = { ...(headers ?? {}) };
   next[TENANT_HTTP_HEADER] = tenantSlug;

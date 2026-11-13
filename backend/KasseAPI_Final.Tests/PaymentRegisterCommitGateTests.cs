@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -12,9 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -36,7 +35,8 @@ public class PaymentRegisterCommitGateTests
             .UseInMemoryDatabase($"PayCommitGate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        // Customer is tenant-scoped; run under the primary tenant so the seeded customer is visible.
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(
@@ -93,7 +93,7 @@ public class PaymentRegisterCommitGateTests
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) =>
                 $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
-        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
+        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
@@ -139,12 +139,12 @@ public class PaymentRegisterCommitGateTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -163,7 +163,7 @@ public class PaymentRegisterCommitGateTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "K", Email = "k@test", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "K01",
             Location = "T",

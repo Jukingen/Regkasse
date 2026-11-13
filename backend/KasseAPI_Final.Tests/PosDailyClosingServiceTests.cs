@@ -4,10 +4,17 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Reports;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -15,13 +22,27 @@ namespace KasseAPI_Final.Tests;
 
 public class PosDailyClosingServiceTests
 {
+    private static IRksvEnvironmentService CreateRksvEnvironment() =>
+        new RksvEnvironmentService(
+            new ConfigurationBuilder().Build(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development));
+
+    private static Mock<UserManager<ApplicationUser>> CreateUserManager(ApplicationUser user)
+    {
+        var store = new Mock<IUserStore<ApplicationUser>>();
+        var mgr = new Mock<UserManager<ApplicationUser>>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        mgr.Setup(m => m.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        return mgr;
+    }
+
     private static AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"PosDailyClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -58,7 +79,7 @@ public class PosDailyClosingServiceTests
 
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -70,7 +91,7 @@ public class PosDailyClosingServiceTests
         });
         ctx.DailyClosings.Add(new DailyClosing
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             UserId = userId,
             ClosingDate = today,
@@ -108,7 +129,7 @@ public class PosDailyClosingServiceTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "Front",
@@ -123,7 +144,7 @@ public class PosDailyClosingServiceTests
         ctx.CashierShifts.Add(new CashierShift
         {
             Id = shiftId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -142,6 +163,22 @@ public class PosDailyClosingServiceTests
             CreatedAt = startedAt.AddMinutes(5),
             IsActive = true,
             ReceiptNumber = "R-1",
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            Id = closingId,
+            TenantId = SystemTenantIds.Platform,
+            CashRegisterId = regId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(
+                PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified()),
+            ClosingType = "Daily",
+            TotalAmount = 25m,
+            TotalTaxAmount = 5m,
+            TransactionCount = 1,
+            TseSignature = "jws.sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
         });
         await ctx.SaveChangesAsync();
 
@@ -162,7 +199,7 @@ public class PosDailyClosingServiceTests
 
         var dailySummary = new Mock<IDailyClosingService>();
         dailySummary.Setup(d => d.GenerateClosingSummaryAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 regId,
                 It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
@@ -172,14 +209,35 @@ public class PosDailyClosingServiceTests
         shiftSvc.Setup(s => s.GetShiftTotalsAsync(regId, startedAt, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShiftTotalsDto { Sales = 25m, Cash = 25m, Card = 0m });
 
+        var cashRegisterShift = new CashRegisterShiftService(
+            ctx,
+            CreateUserManager(new ApplicationUser
+            {
+                Id = userId,
+                UserName = userId,
+                Email = $"{userId}@test",
+                FirstName = "Max",
+                LastName = "Test",
+            }).Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
+
         var svc = new PosDailyClosingService(
             ctx,
             tagesabschluss.Object,
             shiftSvc.Object,
+            cashRegisterShift,
             dailySummary.Object,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ILogger<PosDailyClosingService>>());
+            Mock.Of<ILogger<PosDailyClosingService>>(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
+            Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
+            new ConfigurationBuilder().Build(),
+            CreateRksvEnvironment(),
+            CreateReportEnricherMock());
 
         var result = await svc.PerformDailyClosingAsync(
             userId,
@@ -195,19 +253,132 @@ public class PosDailyClosingServiceTests
         var persisted = await ctx.CashierShifts.FindAsync(shiftId);
         Assert.NotNull(persisted!.EndedAt);
         Assert.Equal(25m, persisted.CashCount);
+
+        var register = await ctx.CashRegisters.FindAsync(regId);
+        Assert.Equal(RegisterStatus.Closed, register!.Status);
+        Assert.Null(register.CurrentUserId);
     }
 
-    private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null)
+    [Fact]
+    public async Task GetStatus_AlreadyClosedToday_ReturnsBlockReason()
     {
-        var tages = tagesabschluss ?? Mock.Of<ITagesabschlussService>();
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            TenantId = SystemTenantIds.Platform,
+            CashRegisterId = regId,
+            CashierId = userId,
+            CashierName = "Max",
+            StartBalance = 0m,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            Status = CashierShiftStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = SystemTenantIds.Platform,
+            CashRegisterId = regId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),
+            ClosingType = "Daily",
+            TotalAmount = 10m,
+            TotalTaxAmount = 2m,
+            TransactionCount = 1,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tagesabschluss = new Mock<ITagesabschlussService>();
+        tagesabschluss.Setup(t => t.GetLastClosingDateAsync(regId))
+            .ReturnsAsync(PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday));
+        tagesabschluss.Setup(t => t.GetLastClosingPerformedAtForTypeAsync(regId, "Daily"))
+            .ReturnsAsync(DateTime.UtcNow);
+        tagesabschluss.Setup(t => t.GetPaymentsWithoutInvoiceCountAsync(regId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(0);
+
+        var svc = CreateService(ctx, tagesabschluss.Object);
+        var status = await svc.GetStatusAsync(userId);
+
+        Assert.True(status.HasActiveShift);
+        Assert.False(status.CanClose);
+        Assert.Equal(PosDailyClosingBlockReasons.AlreadyClosedToday, status.BlockReason);
+        Assert.NotNull(status.LastClosingPerformedAt);
+    }
+
+    private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null, string cashierUserId = "cashier-1")
+    {
+        var tages = tagesabschluss ?? CreateDefaultTagesabschlussService();
+        var cashRegisterShift = new CashRegisterShiftService(
+            ctx,
+            CreateUserManager(new ApplicationUser
+            {
+                Id = cashierUserId,
+                UserName = cashierUserId,
+                Email = $"{cashierUserId}@test",
+                FirstName = "Max",
+                LastName = "Test",
+            }).Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
 
         return new PosDailyClosingService(
             ctx,
             tages,
             Mock.Of<IPosShiftService>(),
+            cashRegisterShift,
             Mock.Of<IDailyClosingService>(),
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ILogger<PosDailyClosingService>>());
+            Mock.Of<ILogger<PosDailyClosingService>>(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
+            Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
+            new ConfigurationBuilder().Build(),
+            CreateRksvEnvironment(),
+            CreateReportEnricherMock());
+    }
+
+    private static ITagesabschlussReportEnricher CreateReportEnricherMock()
+    {
+        var mock = new Mock<ITagesabschlussReportEnricher>();
+        mock.Setup(e => e.BuildContextAsync(It.IsAny<DailyClosing>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TagesabschlussCloudContext
+            {
+                CompanyName = "Test GmbH",
+                CompanyAddress = "Wien",
+                CompanyVatId = "ATU99999999",
+                TseProviderLabel = "fiskaly Cloud-HSM",
+                DepExportStatusLabel = "Ausstehend",
+            });
+        return mock.Object;
+    }
+
+    private static ITagesabschlussService CreateDefaultTagesabschlussService()
+    {
+        var mock = new Mock<ITagesabschlussService>();
+        mock.Setup(t => t.GetLastClosingPerformedAtForTypeAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync((DateTime?)null);
+        return mock.Object;
     }
 }

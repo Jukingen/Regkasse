@@ -1,28 +1,23 @@
 // Settings screen: cash register assignment for POS payment (German UI copy).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+
+import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import {
   fetchPosSelectableRegisters,
   type CashRegisterSelectableRow,
   type PosSelectableEmptyReason,
 } from '../services/api/cashRegisterService';
+import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
-import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import {
   buildPosRegisterGateContext,
   registerGateBannerDetail,
   registerGateBannerTitle,
 } from '../utils/posRegisterGateCopy';
 import type { RegisterListFailureKind } from '../utils/registerListError';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 import { classifyRegisterListError } from '../utils/registerListError';
 
 /**
@@ -110,7 +105,10 @@ export function CashRegisterAssignmentSection() {
         setAssignedId(trimmedId);
       }
       await posReadiness.refreshAsync();
-      Alert.alert(t('settings:registerAssignment.savedTitle'), t('settings:registerAssignment.savedMessage'));
+      Alert.alert(
+        t('settings:registerAssignment.savedTitle'),
+        t('settings:registerAssignment.savedMessage')
+      );
     } catch (e) {
       console.warn('[CashRegisterAssignmentSection] save failed', e);
       Alert.alert(
@@ -164,9 +162,7 @@ export function CashRegisterAssignmentSection() {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('settings:registerAssignment.title')}</Text>
-      <Text style={styles.muted}>
-        {t('settings:registerAssignment.intro')}
-      </Text>
+      <Text style={styles.muted}>{t('settings:registerAssignment.intro')}</Text>
       {isValidPosCashRegisterId(assignedId) ? (
         <Text style={styles.assigned}>
           {t('settings:registerAssignment.assignedPrefix')}{' '}
@@ -187,8 +183,14 @@ export function CashRegisterAssignmentSection() {
             </TouchableOpacity>
           ) : null}
           {posReadiness.error ? (
-            <TouchableOpacity onPress={() => posReadiness.refresh()} style={styles.retryBtn}>
-              <Text style={styles.retryText}>{t('settings:registerAssignment.retryReadiness')}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                posReadiness.refresh();
+              }}
+              style={styles.retryBtn}>
+              <Text style={styles.retryText}>
+                {t('settings:registerAssignment.retryReadiness')}
+              </Text>
             </TouchableOpacity>
           ) : null}
           {listLoading || posReadiness.loading ? (
@@ -201,15 +203,17 @@ export function CashRegisterAssignmentSection() {
                   key={r.id}
                   style={[styles.chip, savingId === r.id && styles.chipDisabled]}
                   disabled={!!savingId}
-                  onPress={() => persist(r.id)}
-                >
+                  onPress={() => persist(r.id)}>
                   <Text style={styles.chipText}>{r.registerNumber || r.id.slice(0, 8)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           ) : null}
           {!listLoading && (listFailureKind === 'network' || listFailureKind === 'unknown') ? (
-            <TouchableOpacity onPress={() => setListRetryToken((n) => n + 1)}>
+            <TouchableOpacity
+              onPress={() => {
+                setListRetryToken((n) => n + 1);
+              }}>
               <Text style={styles.retryText}>{t('settings:registerAssignment.reloadList')}</Text>
             </TouchableOpacity>
           ) : null}
@@ -219,8 +223,7 @@ export function CashRegisterAssignmentSection() {
           style={styles.changeBtn}
           onPress={() => {
             setAssignedId(null);
-          }}
-        >
+          }}>
           <Text style={styles.changeBtnText}>{t('settings:registerAssignment.change')}</Text>
         </TouchableOpacity>
       )}

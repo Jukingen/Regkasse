@@ -2,13 +2,15 @@
  * useUsersList – liste yükleme (başarılı/boş/hatalı) ve parametre iletimi.
  * Gateway mock ile gerçek endpoint şekli kullanılır.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { useUsersList } from '../useUsersList';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { UserInfo } from '@/api/generated/model';
+
 import type { UsersListResponse } from '../../api/usersApi';
+import { useUsersList } from '../useUsersList';
 
 const mockGetUsersList = vi.fn();
 

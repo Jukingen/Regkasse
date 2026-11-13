@@ -1,0 +1,25 @@
+{
+  "name": "regkasse-sites",
+  "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "next dev --webpack -p 3001",
+    "build": "next build --webpack",
+    "start": "next start -p 3001",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}

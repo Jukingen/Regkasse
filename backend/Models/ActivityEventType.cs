@@ -2,6 +2,7 @@ namespace KasseAPI_Final.Models;
 
 /// <summary>
 /// Admin activity feed / notification event kinds (FA bell, email, webhook).
+/// <see cref="DTOs.ActivityDto.Type"/> serializes the member name (<c>UserCreated</c>).
 /// </summary>
 public enum ActivityEventType
 {
@@ -11,10 +12,23 @@ public enum ActivityEventType
     CashRegisterOpened = 10,
     CashRegisterClosed = 11,
     CashRegisterDecommissioned = 12,
+    /// <summary>Cashier requested Mandanten-Admin to open a closed cash register.</summary>
+    CashRegisterOpenRequested = 13,
+    /// <summary>Mandanten-Admin approved a cash register open request (register opened for the cashier).</summary>
+    CashRegisterOpenRequestApproved = 14,
+    /// <summary>Mandanten-Admin denied a cash register open request.</summary>
+    CashRegisterOpenRequestDenied = 15,
     LicenseExpiringSoon = 20,
     LicenseExpired = 21,
     OfflineQueueGrowing = 30,
+    OfflineOrdersBacklogGrowing = 31,
+    OfflineOrdersExpiringSoon = 32,
+    OfflineSyncStalled = 33,
+    /// <summary>TSE offline intent queue is at or above 80% of <c>maxOfflineTransactions</c>.</summary>
+    OfflineQueueApproachingLimit = 34,
     FinanzOnlineSubmissionFailed = 40,
+    /// <summary>More than five FinanzOnline outbox rows failed in the last hour.</summary>
+    FinanzOnlineOutboxFailureSpike = 41,
     BackupFailed = 50,
     BackupSucceeded = 51,
     RestoreDrillFailed = 52,
@@ -25,4 +39,289 @@ public enum ActivityEventType
     SuspiciousUnusualTime = 63,
     SuspiciousSameCardMultiple = 64,
     SuspiciousRapidTransactions = 65,
+    DailyClosingBackdatedCreated = 70,
+    /// <summary>Evening reminder: Tagesabschluss still pending (fallback auto-close may follow).</summary>
+    DailyClosingPendingReminder = 71,
+    /// <summary>Automatic Tagesabschluss fallback created the Daily closing.</summary>
+    DailyClosingAutoCreated = 72,
+    /// <summary>Open tables/orders existed when automatic Tagesabschluss ran (warning, still closed or blocked).</summary>
+    DailyClosingOpenOrdersWarning = 73,
+    /// <summary>Daily reminder: previous-month Monatsbeleg is still missing.</summary>
+    MonatsbelegMissingReminder = 75,
+    /// <summary>Optional Auto-Monatsbeleg created the previous-month TSE receipt (legacy alias of MonatsbelegCreated).</summary>
+    MonatsbelegAutoCreated = 76,
+    /// <summary>Cashier asked Mandanten-Admin to create a missing Monatsbeleg.</summary>
+    MonatsbelegManagerContacted = 77,
+    /// <summary>TSE-signed Monatsbeleg (or December Jahresbeleg) was created, including Auto-Monatsbeleg.</summary>
+    MonatsbelegCreated = 78,
+    /// <summary>Auto-Monatsbeleg exhausted retries for a register/month.</summary>
+    MonatsbelegAutoCreateFailed = 79,
+    /// <summary>Jahresbeleg exists but FinanzOnline Belegcheck is still pending (deadline 15 February).</summary>
+    JahresbelegFonReminder = 84,
+    /// <summary>1 December warning: Jahresbeleg for the Vienna year is due by 31 January.</summary>
+    JahresbelegDeadlineReminder = 86,
+    /// <summary>Auto-Monatsbeleg catch-up window closed and the previous-month receipt is still missing.</summary>
+    MonatsbelegAutoCreateMissed = 85,
+    /// <summary>Online order materialized into a POS cart (FA / kitchen alert).</summary>
+    OnlineOrderPushedToPos = 80,
+    /// <summary>Online order payment succeeded (Stripe / mock gateway).</summary>
+    OnlineOrderPaid = 81,
+    /// <summary>Online order lifecycle status changed (accepted / preparing / ready / …).</summary>
+    OnlineOrderStatusChanged = 82,
+    /// <summary>Customer confirmation dispatched (email/push) and staff inbox alert.</summary>
+    OnlineOrderConfirmed = 83,
+    /// <summary>Mandanten-Admin requested website or app creation (Super Admin queue).</summary>
+    DigitalServiceRequested = 90,
+    /// <summary>Mandanten-Admin requested GDPR non-RKSV data deletion (Super Admin notify).</summary>
+    DataAccessDeleteRequested = 91,
+    /// <summary>GDPR data export ZIP is ready; download link issued (7-day expiry).</summary>
+    DataExportReady = 92,
+
+    /// <summary>CH canary MWST QR payload built. No secrets.</summary>
+    ChMwstQrBuilt = 110,
+
+    /// <summary>Custom role created (permission management).</summary>
+    RoleCreated = 100,
+    /// <summary>Custom role deleted.</summary>
+    RoleDeleted = 101,
+    /// <summary>Role permission set updated.</summary>
+    RolePermissionsUpdated = 102,
+    /// <summary>Per-user permission override created/changed/removed.</summary>
+    UserPermissionOverridesChanged = 103,
+    /// <summary>System-critical permission change (e.g. SuperAdmin-related or mass update).</summary>
+    SystemPermissionChange = 104,
+    /// <summary>User requested a temporary permission grant.</summary>
+    PermissionRequested = 110,
+    /// <summary>Permission request approved.</summary>
+    PermissionRequestApproved = 111,
+    /// <summary>Permission request rejected.</summary>
+    PermissionRequestRejected = 112,
+    /// <summary>Time-bound override expiring soon.</summary>
+    UserPermissionOverrideExpiringSoon = 113,
+    /// <summary>Time-bound override expired (processed by background job).</summary>
+    UserPermissionOverrideExpired = 114,
+
+    /// <summary>Super Admin requested a sensitive tenant settings change (pending approval).</summary>
+    TenantSettingsChangeRequested = 120,
+    /// <summary>Super Admin approved a pending tenant settings change.</summary>
+    TenantSettingsChangeApproved = 121,
+    /// <summary>Super Admin rejected a pending tenant settings change.</summary>
+    TenantSettingsChangeRejected = 122,
+    /// <summary>Super Admin reverted a previously approved tenant settings change.</summary>
+    TenantSettingsChangeReverted = 123,
+
+    /// <summary>Elevated risk score detected for a tenant user action (Medium+).</summary>
+    RiskAnomalyDetected = 130,
+    /// <summary>Risk score marked resolved by an operator.</summary>
+    RiskScoreResolved = 131,
+
+    /// <summary>Critical admin action awaiting Super Admin approval.</summary>
+    CriticalActionApprovalRequested = 140,
+    /// <summary>Super Admin approved a critical action request.</summary>
+    CriticalActionApprovalApproved = 141,
+    /// <summary>Super Admin rejected a critical action request.</summary>
+    CriticalActionApprovalRejected = 142,
+
+    /// <summary>Scheduled platform maintenance reminder (7d / 3d / 1h milestones).</summary>
+    MaintenanceUpcoming = 150,
+    /// <summary>Force-display enabled (~24h before scheduled start).</summary>
+    MaintenanceForceDisplayEnabled = 151,
+    /// <summary>Scheduled maintenance window has started (InProgress).</summary>
+    MaintenanceStarted = 152,
+
+    /// <summary>Primary TSE device failed health check and a backup was activated.</summary>
+    TseFailoverActivated = 160,
+    /// <summary>Primary TSE is unhealthy and no healthy backup device is available.</summary>
+    TseFailoverNoBackup = 161,
+    /// <summary>Signing role reverted from backup to the primary TSE device.</summary>
+    TseFailoverReverted = 162,
+    /// <summary>Automatic/manual failover attempt began (backup validated).</summary>
+    TseFailoverStarted = 163,
+    /// <summary>Failover attempt failed (backup unhealthy or unexpected error).</summary>
+    TseFailoverFailed = 164,
+    /// <summary>Backup TSE device health is degraded / low score.</summary>
+    TseFailoverBackupLowHealth = 165,
+
+    /// <summary>TSE signing certificate expires within the warning window.</summary>
+    TseCertificateExpiringSoon = 170,
+
+    /// <summary>TSE signing certificate ExpiresAt is in the past.</summary>
+    TseCertificateExpired = 171,
+
+    /// <summary>TSE certificate metadata was renewed / synced from key provider.</summary>
+    TseCertificateRenewed = 172,
+
+    /// <summary>Operator scheduled a TSE certificate renewal date.</summary>
+    TseCertificateRenewalScheduled = 173,
+
+    /// <summary>
+    /// Mai 2027 Signaturkarte program reminder (independent of certificate ExpiresAt).
+    /// </summary>
+    SignaturkarteProgramReminder = 174,
+
+    /// <summary>Mai 2027 Signaturkarte program overdue (past DeadlineUtc with Open devices).</summary>
+    SignaturkarteProgramOverdue = 175,
+
+    /// <summary>Ausfall FON enqueue suggested (awaiting operator approval).</summary>
+    TseAusfallEnqueueSuggested = 176,
+
+    /// <summary>Ausfall reported / enqueued to FinanzOnline outbox.</summary>
+    TseAusfallReported = 177,
+
+    /// <summary>Wiederinbetriebnahme reported / enqueued to FinanzOnline outbox.</summary>
+    TseWiederinbetriebnahmeReported = 178,
+
+    /// <summary>TSE device health probe latency exceeded slow/critical thresholds.</summary>
+    TsePerformanceSlow = 180,
+
+    /// <summary>TSE device health probe failure/error rate exceeded thresholds.</summary>
+    TsePerformanceHighErrorRate = 181,
+
+    /// <summary>Indicative TSE operating cost spiked vs baseline or daily average.</summary>
+    TseCostAnomaly = 182,
+
+    /// <summary>Heuristic predictive analytics flagged elevated TSE failure risk.</summary>
+    TsePredictiveFailureRisk = 183,
+
+    /// <summary>A TSE operational incident was opened.</summary>
+    TseIncidentCreated = 184,
+
+    /// <summary>A TSE operational incident was resolved or closed.</summary>
+    TseIncidentResolved = 185,
+
+    /// <summary>TSE operational SLA target(s) violated for a tenant lookback window.</summary>
+    TseSlaViolation = 186,
+
+    /// <summary>TSE signing capacity is near or over configured utilization thresholds.</summary>
+    TseCapacityNearLimit = 187,
+
+    /// <summary>TSE disaster-recovery simulation drill completed.</summary>
+    TseDrDrillCompleted = 188,
+
+    /// <summary>TSE auto-scaling recommended or soft-applied a device count change.</summary>
+    TseAutoScaleRecommended = 189,
+
+    /// <summary>Statistical TSE anomaly detected (baseline deviation; diagnostic only).</summary>
+    TseAnomalyDetected = 190,
+
+    /// <summary>TSE auto-healing applied a safe recovery action (re-probe / clear error / optional failover).</summary>
+    TseAutoHealExecuted = 191,
+
+    /// <summary>DEP export requirement due soon (30 / 7 / 1 day milestones).</summary>
+    DepExportDueSoon = 200,
+
+    /// <summary>DEP export requirement past due date.</summary>
+    DepExportOverdue = 201,
+
+    /// <summary>Automatic post-export DEP JSON validation failed.</summary>
+    DepExportValidationFailed = 202,
+
+    /// <summary>Canary tenant exceeded absolute failed-audit threshold during soak.</summary>
+    CanaryTenantErrors = 210,
+
+    /// <summary>Canary tenant failed-audit rate exceeded threshold during soak.</summary>
+    CanaryTenantHighErrorRate = 211,
+
+    /// <summary>SaaS trial started or restarted for a mandant.</summary>
+    TrialStarted = 220,
+    /// <summary>SaaS trial ends soon (7 / 3 / 1 day anchors).</summary>
+    TrialExpiringSoon = 221,
+    /// <summary>SaaS trial ended; grace period started.</summary>
+    TrialExpired = 222,
+    /// <summary>SaaS trial converted to a paid license sale.</summary>
+    TrialConverted = 223,
+    /// <summary>SaaS trial soft-archived (cleanup or Super Admin).</summary>
+    TrialDeleted = 224,
+    /// <summary>SaaS trial end date extended by Super Admin.</summary>
+    TrialExtended = 225,
+    /// <summary>Mandanten-Admin opened a support ticket.</summary>
+    SupportTicketCreated = 230,
+    /// <summary>Super Admin replied to a support ticket.</summary>
+    SupportTicketStaffReplied = 231,
+    /// <summary>Mandanten-Admin replied to a support ticket.</summary>
+    SupportTicketTenantReplied = 232,
+    /// <summary>Support ticket marked resolved by Super Admin.</summary>
+    SupportTicketResolved = 233,
+    /// <summary>Support ticket closed.</summary>
+    SupportTicketClosed = 234,
+
+    /// <summary>A tenant operational cap is at or above 80% of the configured limit.</summary>
+    LimitApproaching = 240,
+    /// <summary>A tenant operational cap is at or above 100% of the configured limit.</summary>
+    LimitExceeded = 241,
+
+    /// <summary>Super Admin changed instance-wide RKSV Demo/Production overlay.</summary>
+    RksvRuntimeConfigChanged = 250,
+
+    /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
+    TenantCountryChanged = 251,
+
+    /// <summary>DE KassenSicherheit transaction finished. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxFinished = 252,
+
+    /// <summary>CH QR-Rechnung payload built. Metadata is a hash, not the SPC text.</summary>
+    QrRechnungPayloadBuilt = 253,
+
+    /// <summary>CH QR-Rechnung PDF rendered. Metadata is a relative path, not the PDF bytes.</summary>
+    QrRechnungPdfGenerated = 254,
+
+    /// <summary>
+    /// Country change left historical invoices, receipts, and payments stamped with the issue-time country.
+    /// Audit counterpart is <c>AuditEventType.TenantCountryChangedHistoricalPreserved</c> (98).
+    /// </summary>
+    TenantCountryChangedHistoricalPreserved = 255,
+
+    /// <summary>EN 16931 Schematron passed. Audit counterpart is 108.</summary>
+    EinvoiceValidated = 256,
+
+    /// <summary>Access point accepted the invoice. Audit counterpart is 109. Does not open Peppol HTTP by itself.</summary>
+    EinvoiceSubmitted = 257,
+
+    /// <summary>Schematron or access point rejected the invoice. Audit counterpart is 110.</summary>
+    EinvoiceSubmissionFailed = 258,
+
+    /// <summary>Super Admin stored a Peppol participant id. No credential. Audit counterpart is 113.</summary>
+    PeppolParticipantRegistered = 259,
+
+    /// <summary>
+    /// Operator acknowledged open CH QR print gaps. Audit counterpart is 114.
+    /// This is not a compliance claim.
+    /// </summary>
+    ChQrKnownGapsAccepted = 260,
+
+    /// <summary>
+    /// An invoice was built while one or more open CH QR print gaps were not in the tenant acceptance.
+    /// The invoice is not blocked.
+    /// </summary>
+    ChQrKnownGapsOutstanding = 261,
+
+    /// <summary>
+    /// Canary e-invoice was acknowledged by the Access Point. Audit counterpart is 115.
+    /// This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceAckReceived = 262,
+
+    /// <summary>
+    /// A transient Storecove ACK read will be tried again. Audit counterpart is 118.
+    /// Severity is Warning. This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceSubmissionRetry = 263,
+
+    /// <summary>
+    /// Anonymous marketing-site demo request. Metadata is request id, email, and industry.
+    /// The raw message is stored on <c>demo_requests</c> only, never in the activity payload.
+    /// </summary>
+    DemoRequestReceived = 265,
+
+    /// <summary>
+    /// Marketplace integration row reached a terminal failure (total mismatch, missing fee product, or sixth attempt).
+    /// Metadata is ids and a short reason. The raw webhook body is not included.
+    /// </summary>
+    OnlineOrderIntegrationFailed = 266,
+
+    /// <summary>
+    /// force=true signed a new Monatsbeleg for a month that already had one.
+    /// Metadata is register, period, the kept payment id, and the new receipt number. No JWS.
+    /// </summary>
+    MonatsbelegReissued = 267,
 }

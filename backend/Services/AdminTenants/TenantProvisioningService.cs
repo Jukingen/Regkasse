@@ -1,10 +1,12 @@
-using System.Security.Cryptography;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly IDemoProductImportService _demoProductImport;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
+    private readonly ITseProvisioningService _tseProvisioning;
+    private readonly ITrialService _trialService;
     private readonly ILogger<TenantProvisioningService> _logger;
 
     public TenantProvisioningService(
@@ -32,6 +36,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         IUserUniquenessValidationService uniquenessValidation,
         IDemoProductImportService demoProductImport,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
+        ITseProvisioningService tseProvisioning,
+        ITrialService trialService,
         ILogger<TenantProvisioningService> logger)
     {
         _db = db;
@@ -40,6 +46,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         _uniquenessValidation = uniquenessValidation;
         _demoProductImport = demoProductImport;
         _paymentMethodBootstrap = paymentMethodBootstrap;
+        _tseProvisioning = tseProvisioning;
+        _trialService = trialService;
         _logger = logger;
     }
 
@@ -49,8 +57,20 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         string? adminPassword,
         bool grantTrialLicense,
         bool importDemoMenu = false,
+        string? cashRegisterNumber = null,
+        bool seedIndustryStarterUsers = true,
+        int? trialDurationDays = null,
+        CountryProfile? countryProfile = null,
+        VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
+        bool skipGenericDemoProducts = false,
         CancellationToken cancellationToken = default)
     {
+        var profile = countryProfile ?? new CountryProfileRegistry().Default;
+        var isAustrian = string.Equals(
+            profile.Code,
+            CountryProfileCodes.Austria,
+            StringComparison.OrdinalIgnoreCase);
+
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
         if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(resolvedEmail, excludeUserId: null)
                 .ConfigureAwait(false))
@@ -63,17 +83,21 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             return (null, $"Admin email '{resolvedEmail}' is already in use.");
 
         var password = string.IsNullOrWhiteSpace(adminPassword)
-            ? GenerateCompliantPassword()
+            ? PasswordGenerator.GenerateSecurePassword(16)
             : adminPassword.Trim();
 
         if (password.Length < 8)
             return (null, "Admin password must be at least 8 characters.");
 
+        var resolvedRegisterNumber = ResolveRegisterNumber(cashRegisterNumber);
+
         var now = DateTime.UtcNow;
+        _db.CompanySettings.Add(CreateProvisionedSettings(tenant.Id, profile, vatRegime, now));
+
         var cashRegister = new CashRegister
         {
             TenantId = tenant.Id,
-            RegisterNumber = DefaultRegisterNumber,
+            RegisterNumber = resolvedRegisterNumber,
             Location = DefaultRegisterLocation,
             StartingBalance = 0m,
             CurrentBalance = 0m,
@@ -84,14 +108,43 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             IsDefaultForTenant = true,
         };
         _db.CashRegisters.Add(cashRegister);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        TseProvisioningResult? tseResult = null;
+        if (isAustrian)
+        {
+            tseResult = await _tseProvisioning
+                .ProvisionTseForCashRegisterAsync(cashRegister.Id, force: false, cancellationToken)
+                .ConfigureAwait(false);
+            if (!tseResult.IsSuccess)
+            {
+                _logger.LogWarning(
+                    "TSE provisioning failed for tenant {TenantId} register {CashRegisterId}: {Error}. Tenant create continues; operator can provision TSE later.",
+                    tenant.Id,
+                    cashRegister.Id,
+                    tseResult.Error);
+            }
+            else if (tseResult.FellBackToSoftTse)
+            {
+                _logger.LogWarning(
+                    "Fiskaly SCU provisioning fell back to Soft TSE for tenant {TenantId} register {CashRegisterId}: {Detail}",
+                    tenant.Id,
+                    cashRegister.Id,
+                    tseResult.Detail);
+            }
+        }
 
         Category category;
         IReadOnlyList<Guid> productIds;
 
-        if (importDemoMenu)
+        if (isAustrian)
         {
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await TaxGroupSeedData.SeedSystemTaxGroupsAsync(_db, tenant.Id, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
+        if (isAustrian && importDemoMenu)
+        {
             var importResult = await _demoProductImport
                 .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), progress: null, cancellationToken)
                 .ConfigureAwait(false);
@@ -113,6 +166,14 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         }
         else
         {
+            if (!isAustrian && importDemoMenu)
+            {
+                _logger.LogInformation(
+                    "Skipping AT demo catalog import for non-AT tenant {TenantId} country {Country}",
+                    tenant.Id,
+                    profile.Code);
+            }
+
             category = new Category
             {
                 TenantId = tenant.Id,
@@ -129,10 +190,18 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            var products = CreateDemoProducts(tenant.Id, category);
-            _db.Products.AddRange(products);
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            productIds = products.Select(p => p.Id).ToList();
+            if (isAustrian && !skipGenericDemoProducts)
+            {
+                var products = await CreateDemoProductsAsync(tenant.Id, category, cancellationToken)
+                    .ConfigureAwait(false);
+                _db.Products.AddRange(products);
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                productIds = products.Select(p => p.Id).ToList();
+            }
+            else
+            {
+                productIds = [];
+            }
         }
 
         var adminUser = new ApplicationUser
@@ -191,9 +260,9 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         DateTime? trialUntil = null;
         if (grantTrialLicense && !tenant.LicenseValidUntilUtc.HasValue)
         {
-            trialUntil = now.AddDays(30);
-            tenant.LicenseValidUntilUtc = trialUntil;
-            tenant.UpdatedAt = now;
+            var days = _trialService.ResolveDurationDays(trialDurationDays);
+            _trialService.ApplyTrialGrant(tenant, days, now);
+            trialUntil = tenant.TrialEndsAtUtc;
         }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -201,6 +270,12 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         await _paymentMethodBootstrap
             .EnsureDefaultsForCashRegisterAsync(tenant.Id, cashRegister.Id, cancellationToken)
             .ConfigureAwait(false);
+
+        if (seedIndustryStarterUsers)
+        {
+            await SeedIndustryStarterUsersAsync(tenant, cashRegister.Id, now, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         _logger.LogInformation(
             "Provisioned tenant {TenantId} slug {Slug}: register {RegisterId}, admin {AdminUserId}, {ProductCount} demo products (importDemoMenu={ImportDemoMenu})",
@@ -221,7 +296,100 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             CategoryId = category.Id,
             ProductIds = productIds,
             TrialLicenseValidUntilUtc = trialUntil,
+            TseDeviceId = tseResult?.Device?.Id,
+            TseProvisioned = tseResult?.Outcome == TseProvisioningOutcome.Success,
+            TseScuId = tseResult?.TseScuId,
+            TseStatus = tseResult?.TseStatus,
+            TseFellBackToSoft = tseResult?.FellBackToSoftTse ?? false,
         }, null);
+    }
+
+    /// <summary>
+    /// New at tenant create (Paket 4): persists a CompanySettings row.
+    /// Non-country fields match <c>CompanySettingsController.CreateSettingsShell</c>;
+    /// Country / VatRegime / Currency / Language / TimeZone come from the country profile.
+    /// </summary>
+    private static CompanySettings CreateProvisionedSettings(
+        Guid tenantId,
+        CountryProfile profile,
+        VatRegime vatRegime,
+        DateTime now) => new()
+    {
+        TenantId = tenantId,
+        CompanyName = string.Empty,
+        CompanyAddress = string.Empty,
+        CompanyTaxNumber = string.Empty,
+        BusinessHours = new Dictionary<string, string>(),
+        WorkingHours = WorkingHoursSettings.CreateDefault(),
+        AutoTagesabschluss = AutoTagesabschlussSettings.CreateDefault(),
+        Currency = profile.Currency,
+        Country = profile.Code,
+        VatRegime = vatRegime,
+        Language = profile.DefaultLocale,
+        TimeZone = profile.DefaultTimeZone,
+        DateFormat = "dd.MM.yyyy",
+        TimeFormat = "HH:mm:ss",
+        DecimalPlaces = 2,
+        TaxCalculationMethod = "Standard",
+        InvoiceNumbering = "Sequential",
+        ReceiptNumbering = "Sequential",
+        DefaultPaymentMethod = "Cash",
+        IsActive = true,
+        CreatedAt = now,
+        UpdatedAt = now,
+    };
+
+    private async Task SeedIndustryStarterUsersAsync(
+        Tenant tenant,
+        Guid cashRegisterId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var template = IndustryPermissionTemplates.Get(tenant.IndustryTemplateId);
+        if (template is null)
+            return;
+
+        foreach (var slot in template.Slots.Where(s => s.SeedStarterUser))
+        {
+            var email = $"{slot.Key}@{tenant.Slug}.regkasse.at";
+            if (await _userManager.FindByEmailAsync(email).ConfigureAwait(false) != null)
+                continue;
+
+            var password = PasswordGenerator.GenerateSecurePassword(16);
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                FirstName = slot.DisplayNameDe,
+                LastName = tenant.Name.Length > 40 ? tenant.Name[..40] : tenant.Name,
+                EmployeeNumber = $"SEED-{slot.Key}".ToUpperInvariant(),
+                Role = slot.SystemRole,
+                Notes = $"Industry template starter ({template.Id}/{slot.Key})",
+                IsActive = false,
+                EmailConfirmed = true,
+                AccountType = "Staff",
+                IsDemo = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CashRegisterId = cashRegisterId,
+                MustChangePasswordOnNextLogin = true,
+            };
+
+            var create = await _userManager.CreateAsync(user, password).ConfigureAwait(false);
+            if (!create.Succeeded)
+            {
+                _logger.LogWarning(
+                    "Industry starter user create failed for {Email}: {Errors}",
+                    email,
+                    string.Join("; ", create.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            await _userManager.AddToRoleAsync(user, slot.SystemRole).ConfigureAwait(false);
+            await _membershipProvisioner
+                .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: false, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private static string ResolveAdminEmail(Tenant tenant, string? adminEmail)
@@ -233,15 +401,43 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         return $"admin@{tenant.Slug}.regkasse.at";
     }
 
-    private static List<Product> CreateDemoProducts(Guid tenantId, Category category)
+    private static string ResolveRegisterNumber(string? cashRegisterNumber)
+    {
+        var trimmed = cashRegisterNumber?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return DefaultRegisterNumber;
+
+        return trimmed.Length > 20 ? trimmed[..20] : trimmed;
+    }
+
+    private async Task<List<Product>> CreateDemoProductsAsync(
+        Guid tenantId,
+        Category category,
+        CancellationToken cancellationToken)
     {
         var categoryLabel = category.Name;
-        return new List<Product>
+        var taxByType = await _db.TaxGroups
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(g => g.TenantId == tenantId && g.IsActive)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        Guid ResolveTaxGroupId(int taxType)
         {
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", "Demo Produkt 1 - Standard 20% MwSt", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", "Demo Produkt 2 - Besonders 13% MwSt", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", "Demo Produkt 3 - Ermäßigt 10% MwSt", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3),
-        };
+            var rate = TaxTypes.GetTaxRate(taxType);
+            return taxByType.FirstOrDefault(g => g.Rate == rate)?.Id
+                ?? taxByType.FirstOrDefault(g => g.IsDefault)?.Id
+                ?? taxByType.FirstOrDefault()?.Id
+                ?? throw new InvalidOperationException($"No tax group seeded for tenant {tenantId}.");
+        }
+
+        return
+        [
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", "Demo Produkt 1 - Standard 20% MwSt", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1, ResolveTaxGroupId(TaxTypes.Standard)),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", "Demo Produkt 2 - Besonders 13% MwSt", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2, ResolveTaxGroupId(TaxTypes.Special)),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", "Demo Produkt 3 - Ermäßigt 10% MwSt", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3, ResolveTaxGroupId(TaxTypes.Reduced)),
+        ];
     }
 
     private static Product BuildDemoProduct(
@@ -253,7 +449,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         decimal price,
         int taxType,
         string rksvType,
-        int sequence)
+        int sequence,
+        Guid taxGroupId)
     {
         var id = Guid.NewGuid();
         return new Product
@@ -265,6 +462,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             Price = price,
             TaxType = taxType,
             TaxRate = TaxTypes.GetTaxRate(taxType),
+            TaxGroupId = taxGroupId,
             Category = categoryLabel,
             CategoryId = category.Id,
             StockQuantity = 100,
@@ -282,29 +480,4 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         };
     }
 
-    internal static string GenerateCompliantPassword()
-    {
-        const string lowers = "abcdefghjkmnpqrstuvwxyz";
-        const string uppers = "ABCDEFGHJKMNPQRSTUVWXYZ";
-        const string digits = "23456789";
-        const string symbols = "!@#$%&*";
-        const string all = lowers + uppers + digits + symbols;
-
-        Span<char> buffer = stackalloc char[16];
-        buffer[0] = lowers[RandomNumberGenerator.GetInt32(lowers.Length)];
-        buffer[1] = uppers[RandomNumberGenerator.GetInt32(uppers.Length)];
-        buffer[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-        buffer[3] = symbols[RandomNumberGenerator.GetInt32(symbols.Length)];
-        for (var i = 4; i < buffer.Length; i++)
-            buffer[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-
-        // Fisher–Yates shuffle
-        for (var i = buffer.Length - 1; i > 0; i--)
-        {
-            var j = RandomNumberGenerator.GetInt32(i + 1);
-            (buffer[i], buffer[j]) = (buffer[j], buffer[i]);
-        }
-
-        return new string(buffer);
-    }
 }

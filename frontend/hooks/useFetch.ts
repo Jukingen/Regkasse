@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
+import { sessionManager } from '../services/session/sessionManager';
+
 interface UseFetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: any;
@@ -7,10 +9,7 @@ interface UseFetchOptions {
   skip?: boolean;
 }
 
-export function useFetch<T = any>(
-  url: string,
-  options: UseFetchOptions = {}
-) {
+export function useFetch<T = any>(url: string, options: UseFetchOptions = {}) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
@@ -19,7 +18,7 @@ export function useFetch<T = any>(
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
@@ -45,4 +44,4 @@ export function useFetch<T = any>(
   }, [fetchData, options.skip]);
 
   return { data, loading, error, refetch: fetchData };
-} 
+}

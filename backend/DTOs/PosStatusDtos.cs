@@ -19,6 +19,9 @@ public sealed class PosStatusOverviewDto
 
     /// <summary>Lightweight user settings revision for client cache invalidation.</summary>
     public PosStatusSettingsSnapshotDto Settings { get; init; } = new();
+
+    /// <summary>RKSV deployment environment for POS header badge.</summary>
+    public RksvEnvironmentStatusDto RksvEnvironment { get; init; } = new();
 }
 
 public sealed class PosStatusLicenseHealthDto

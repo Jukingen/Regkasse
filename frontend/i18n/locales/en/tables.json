@@ -8,5 +8,24 @@
   "capacity": "Capacity",
   "occupied": "Occupied",
   "free": "Free",
-  "reserved": "Reserved"
+  "reserved": "Reserved",
+  "billSplitMerge": {
+    "splitTitle": "Split bill",
+    "mergeTitle": "Merge tables",
+    "splitSubtitle": "Move items from table {{table}} to another table",
+    "mergeSubtitle": "Combine all items from table {{table}} with target table",
+    "targetTable": "Target table",
+    "positions": "Items",
+    "noPositions": "No items",
+    "split": "Split",
+    "merge": "Merge",
+    "alerts": {
+      "hintTitle": "Note",
+      "errorTitle": "Error",
+      "selectTargetTable": "Please select a target table.",
+      "selectAtLeastOne": "Please select at least one item.",
+      "splitFailed": "Split failed.",
+      "mergeFailed": "Merge failed."
+    }
+  }
 }

@@ -1,117 +1,159 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { Alert, Card, Col, Row, Typography } from 'antd';
 import {
-    TeamOutlined,
-    SafetyOutlined,
-    AuditOutlined,
-    FileSearchOutlined,
+  AppstoreOutlined,
+  AuditOutlined,
+  CloudUploadOutlined,
+  FileSearchOutlined,
+  HistoryOutlined,
+  LaptopOutlined,
+  PieChartOutlined,
+  SafetyOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
+import { Alert, Card, Col, Row, Typography } from 'antd';
+import Link from 'next/link';
+import React from 'react';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { useUsersPolicy } from '@/shared/auth/usersPolicy';
-import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 
 type HubCard = {
-    titleKey: string;
-    descriptionKey: string;
-    href: string;
-    icon: React.ReactNode;
-    permission: string;
+  titleKey: string;
+  descriptionKey: string;
+  href: string;
+  icon: React.ReactNode;
+  permission: string;
 };
 
 export default function AccessHubPage() {
-    const { t } = useI18n();
-    const policy = useUsersPolicy();
-    const { user } = useAuth();
-    const permissions = user?.permissions ?? [];
+  const { t } = useI18n();
+  const policy = useUsersPolicy();
+  const { user } = useAuth();
+  const permissions = user?.permissions ?? [];
 
-    const cards: HubCard[] = [
-        {
-            titleKey: 'access.hub.cardUsersTitle',
-            descriptionKey: 'access.hub.cardUsersDescription',
-            href: '/admin/users',
-            icon: <TeamOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
-            permission: PERMISSIONS.USER_VIEW,
-        },
-        {
-            titleKey: 'access.hub.cardRolesTitle',
-            descriptionKey: 'access.hub.cardRolesDescription',
-            href: '/admin/access/roles',
-            icon: <SafetyOutlined style={{ fontSize: 28, color: '#722ed1' }} />,
-            permission: PERMISSIONS.ROLE_VIEW,
-        },
-        {
-            titleKey: 'access.hub.cardMatrixTitle',
-            descriptionKey: 'access.hub.cardMatrixDescription',
-            href: '/admin/access/matrix',
-            icon: <AuditOutlined style={{ fontSize: 28, color: '#13c2c2' }} />,
-            permission: PERMISSIONS.ROLE_VIEW,
-        },
-        {
-            titleKey: 'access.hub.cardAuditTitle',
-            descriptionKey: 'access.hub.cardAuditDescription',
-            href: '/audit-logs',
-            icon: <FileSearchOutlined style={{ fontSize: 28, color: '#fa8c16' }} />,
-            permission: PERMISSIONS.AUDIT_VIEW,
-        },
-    ];
+  const cards: HubCard[] = [
+    {
+      titleKey: 'access.hub.cardUsersTitle',
+      descriptionKey: 'access.hub.cardUsersDescription',
+      href: '/admin/users',
+      icon: <TeamOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
+      permission: PERMISSIONS.USER_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardSessionsTitle',
+      descriptionKey: 'access.hub.cardSessionsDescription',
+      href: '/admin/sessions',
+      icon: <LaptopOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
+      permission: PERMISSIONS.USER_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardRolesTitle',
+      descriptionKey: 'access.hub.cardRolesDescription',
+      href: '/admin/access/roles',
+      icon: <SafetyOutlined style={{ fontSize: 28, color: '#722ed1' }} />,
+      permission: PERMISSIONS.ROLE_MANAGE,
+    },
+    {
+      titleKey: 'access.hub.cardMatrixTitle',
+      descriptionKey: 'access.hub.cardMatrixDescription',
+      href: '/admin/access/matrix',
+      icon: <AuditOutlined style={{ fontSize: 28, color: '#13c2c2' }} />,
+      permission: PERMISSIONS.ROLE_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardPermissionHistoryTitle',
+      descriptionKey: 'access.hub.cardPermissionHistoryDescription',
+      href: '/admin/access/permission-history',
+      icon: <HistoryOutlined style={{ fontSize: 28, color: '#eb2f96' }} />,
+      permission: PERMISSIONS.AUDIT_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardPermissionRequestsTitle',
+      descriptionKey: 'access.hub.cardPermissionRequestsDescription',
+      href: '/admin/access/permission-requests',
+      icon: <AuditOutlined style={{ fontSize: 28, color: '#2f54eb' }} />,
+      permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
+    {
+      titleKey: 'access.hub.cardPermissionPackagesTitle',
+      descriptionKey: 'access.hub.cardPermissionPackagesDescription',
+      href: '/admin/access/permission-packages',
+      icon: <AppstoreOutlined style={{ fontSize: 28, color: '#52c41a' }} />,
+      permission: PERMISSIONS.ROLE_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardPermissionBackupsTitle',
+      descriptionKey: 'access.hub.cardPermissionBackupsDescription',
+      href: '/admin/access/permission-backups',
+      icon: <CloudUploadOutlined style={{ fontSize: 28, color: '#fa541c' }} />,
+      permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
+    {
+      titleKey: 'access.hub.cardPermissionStatsTitle',
+      descriptionKey: 'access.hub.cardPermissionStatsDescription',
+      href: '/admin/access/permission-stats',
+      icon: <PieChartOutlined style={{ fontSize: 28, color: '#13c2c2' }} />,
+      permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
+    {
+      titleKey: 'access.hub.cardAuditTitle',
+      descriptionKey: 'access.hub.cardAuditDescription',
+      href: '/audit-logs',
+      icon: <FileSearchOutlined style={{ fontSize: 28, color: '#fa8c16' }} />,
+      permission: PERMISSIONS.AUDIT_VIEW,
+    },
+  ];
 
-    const visibleCards = cards.filter((c) => isMenuItemAllowed(c.href, permissions));
+  const visibleCards = cards.filter((c) => isMenuItemAllowed(c.href, permissions));
 
-    if (!policy.canView) {
-        return (
-            <AdminPageShell>
-                <AdminPageHeader
-                    title={t('access.hub.pageTitle')}
-                    breadcrumbs={[
-                        adminOverviewCrumb(t),
-                        { title: t('access.hub.pageTitle') },
-                    ]}
-                />
-                <Alert
-                    type="warning"
-                    showIcon
-                    title={t('access.hub.accessDeniedTitle')}
-                    description={t('access.hub.accessDeniedDescription')}
-                />
-            </AdminPageShell>
-        );
-    }
-
+  if (!policy.canView) {
     return (
-        <AdminPageShell>
-            <AdminPageHeader
-                title={t('access.hub.pageTitle')}
-                breadcrumbs={[
-                    adminOverviewCrumb(t),
-                    { title: t('access.hub.pageTitle') },
-                ]}
-            />
-            <Typography.Paragraph type="secondary">{t('access.hub.intro')}</Typography.Paragraph>
-            <Row gutter={[16, 16]}>
-                {visibleCards.map((card) => (
-                    <Col xs={24} sm={12} lg={6} key={card.href}>
-                        <Link href={card.href} prefetch={false} style={{ color: 'inherit' }}>
-                            <Card hoverable style={{ height: '100%' }}>
-                                <div style={{ marginBottom: 12 }}>{card.icon}</div>
-                                <Typography.Title level={5} style={{ marginTop: 0 }}>
-                                    {t(card.titleKey)}
-                                </Typography.Title>
-                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                                    {t(card.descriptionKey)}
-                                </Typography.Paragraph>
-                            </Card>
-                        </Link>
-                    </Col>
-                ))}
-            </Row>
-        </AdminPageShell>
+      <AdminPageShell>
+        <AdminPageHeader
+          title={t('access.hub.pageTitle')}
+          breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', { title: t('access.hub.pageTitle') })}
+        />
+        <Alert
+          type="warning"
+          showIcon
+          title={t('access.hub.accessDeniedTitle')}
+          description={t('access.hub.accessDeniedDescription')}
+        />
+      </AdminPageShell>
     );
+  }
+
+  return (
+    <AdminPageShell>
+      <AdminPageHeader
+        title={t('access.hub.pageTitle')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', { title: t('access.hub.pageTitle') })}
+      />
+      <Typography.Paragraph type="secondary">{t('access.hub.intro')}</Typography.Paragraph>
+      <Row gutter={[16, 16]}>
+        {visibleCards.map((card) => (
+          <Col xs={24} sm={12} lg={6} key={card.href}>
+            <Link href={card.href} prefetch={false} style={{ color: 'inherit' }}>
+              <Card hoverable style={{ height: '100%' }}>
+                <div style={{ marginBottom: 12 }}>{card.icon}</div>
+                <Typography.Title level={5} style={{ marginTop: 0 }}>
+                  {t(card.titleKey)}
+                </Typography.Title>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                  {t(card.descriptionKey)}
+                </Typography.Paragraph>
+              </Card>
+            </Link>
+          </Col>
+        ))}
+      </Row>
+    </AdminPageShell>
+  );
 }

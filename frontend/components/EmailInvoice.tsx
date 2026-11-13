@@ -1,8 +1,8 @@
 // Türkçe Açıklama: E-posta ile fatura gönderimi için kullanıcı arayüzü. Müşteri e-posta adresi alınır ve backend'e gönderilir.
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 type EmailInvoiceProps = {
   visible: boolean;
@@ -15,17 +15,12 @@ type EmailInvoiceProps = {
   onClose: () => void;
 };
 
-const EmailInvoice: React.FC<EmailInvoiceProps> = ({
-  visible,
-  invoiceData,
-  onSend,
-  onClose
-}) => {
+const EmailInvoice: React.FC<EmailInvoiceProps> = ({ visible, invoiceData, onSend, onClose }) => {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
-    if (!email || !email.includes('@')) {
+    if (!email?.includes('@')) {
       Alert.alert('Hata', 'Lütfen geçerli bir e-posta adresi girin.');
       return;
     }
@@ -54,7 +49,7 @@ const EmailInvoice: React.FC<EmailInvoiceProps> = ({
           <Text style={styles.title}>E-posta ile Fatura Gönder</Text>
           <Text style={styles.subtitle}>Fatura #{invoiceData.receiptNumber}</Text>
           <Text style={styles.amount}>{invoiceData.totalAmount.toFixed(2)} €</Text>
-          
+
           <TextInput
             style={styles.emailInput}
             placeholder="müşteri@email.com"
@@ -64,19 +59,16 @@ const EmailInvoice: React.FC<EmailInvoiceProps> = ({
             autoCapitalize="none"
             autoCorrect={false}
           />
-          
+
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.buttonText}>İptal</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.sendButton, { opacity: sending ? 0.6 : 1 }]} 
+            <TouchableOpacity
+              style={[styles.sendButton, { opacity: sending ? 0.6 : 1 }]}
               onPress={handleSend}
-              disabled={sending}
-            >
-              <Text style={styles.buttonText}>
-                {sending ? 'Gönderiliyor...' : 'Gönder'}
-              </Text>
+              disabled={sending}>
+              <Text style={styles.buttonText}>{sending ? 'Gönderiliyor...' : 'Gönder'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -90,7 +82,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   content: {
     backgroundColor: '#fff',
@@ -98,26 +90,26 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     width: '90%',
-    maxWidth: 350
+    maxWidth: 350,
   },
   icon: {
-    marginBottom: 12
+    marginBottom: 12,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8
+    marginBottom: 8,
   },
   amount: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#27ae60',
-    marginBottom: 20
+    marginBottom: 20,
   },
   emailInput: {
     width: '100%',
@@ -126,12 +118,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    marginBottom: 20
+    marginBottom: 20,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: '100%'
+    width: '100%',
   },
   cancelButton: {
     backgroundColor: '#757575',
@@ -139,7 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     flex: 1,
-    marginRight: 8
+    marginRight: 8,
   },
   sendButton: {
     backgroundColor: '#27ae60',
@@ -147,14 +139,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     flex: 1,
-    marginLeft: 8
+    marginLeft: 8,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-    textAlign: 'center'
-  }
+    textAlign: 'center',
+  },
 });
 
-export default EmailInvoice; 
+export default EmailInvoice;

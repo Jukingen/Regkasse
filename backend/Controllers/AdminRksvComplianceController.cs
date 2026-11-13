@@ -22,15 +22,18 @@ public sealed class AdminRksvComplianceController : ControllerBase
 {
     private readonly IRksvComplianceReportService _reportService;
     private readonly IRksvEvidenceBundleService _evidenceBundleService;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<AdminRksvComplianceController> _logger;
 
     public AdminRksvComplianceController(
         IRksvComplianceReportService reportService,
         IRksvEvidenceBundleService evidenceBundleService,
+        IFileNamingService fileNaming,
         ILogger<AdminRksvComplianceController> logger)
     {
         _reportService = reportService;
         _evidenceBundleService = evidenceBundleService;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -159,7 +162,7 @@ public sealed class AdminRksvComplianceController : ControllerBase
         return File(bundle.ZipBytes, "application/zip", bundle.FileName);
     }
 
-    private static string BuildPdfFileName(Guid? cashRegisterId, DateTime? fromUtc, DateTime? toUtc, DateTime generatedAtUtc)
+    private string BuildPdfFileName(Guid? cashRegisterId, DateTime? fromUtc, DateTime? toUtc, DateTime generatedAtUtc)
     {
         var inv = CultureInfo.InvariantCulture;
         var registerSegment = cashRegisterId.HasValue
@@ -167,7 +170,11 @@ public sealed class AdminRksvComplianceController : ControllerBase
             : "all-registers";
         var fromSegment = fromUtc?.ToString("yyyyMMdd", inv) ?? "any";
         var toSegment = toUtc?.ToString("yyyyMMdd", inv) ?? "any";
-        var stamp = generatedAtUtc.ToString("yyyyMMdd_HHmmss", inv);
-        return $"rksv-compliance-report_{registerSegment}_{fromSegment}-{toSegment}_{stamp}_UTC.pdf";
+        return _fileNaming.GenerateFileName(
+            "rksv-compliance-report",
+            "pdf",
+            registerId: registerSegment,
+            additional: $"{fromSegment}_{toSegment}",
+            at: generatedAtUtc.ToLocalTime());
     }
 }

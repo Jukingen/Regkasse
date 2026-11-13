@@ -1,0 +1,28 @@
+{
+  "title": "TSE logs",
+  "subtitle": "Centralized TSE operational log aggregation from activity, failover, incidents, and health probes.",
+  "emptySelect": "Select a tenant to view TSE logs.",
+  "forbidden": "You do not have permission to view this page.",
+  "refresh": "Refresh",
+  "errors": "Errors",
+  "warnings": "Warnings",
+  "info": "Info",
+  "filters": {
+    "dateRange": "Date range",
+    "level": "Level",
+    "source": "Source"
+  },
+  "table": {
+    "time": "Time",
+    "level": "Level",
+    "source": "Source",
+    "message": "Message"
+  },
+  "aggregate": {
+    "title": "Summary",
+    "count": "Count",
+    "errorRate": "Error rate"
+  },
+  "empty": "No logs matched the current filters.",
+  "error": "Failed to load logs."
+}

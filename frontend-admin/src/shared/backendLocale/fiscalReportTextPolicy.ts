@@ -28,7 +28,7 @@ export type FiscalReportResolvedText = {
 export function resolveFiscalReportBackendText(
   textDe: string | null | undefined,
   locale: TextLocale,
-  textEn?: string | null | undefined,
+  textEn?: string | null | undefined
 ): FiscalReportResolvedText | undefined {
   const de = (textDe ?? '').trim();
   const en = (textEn ?? '').trim();
@@ -61,7 +61,7 @@ const DEFAULT_REMEDIATION_SEPARATOR = ' | ';
 export function joinFiscalReportRemediationHints(
   hints: readonly string[] | null | undefined,
   locale: TextLocale,
-  separator: string = DEFAULT_REMEDIATION_SEPARATOR,
+  separator: string = DEFAULT_REMEDIATION_SEPARATOR
 ): FiscalReportResolvedText | undefined {
   if (!hints?.length) return undefined;
   const resolved: FiscalReportResolvedText[] = [];
@@ -92,7 +92,7 @@ export type FiscalExportProfileBackendRow = {
  */
 export function resolveFiscalExportProfileRow(
   p: FiscalExportProfileBackendRow,
-  locale: TextLocale,
+  locale: TextLocale
 ): { label: FiscalReportResolvedText; description: FiscalReportResolvedText } | undefined {
   const label = resolveFiscalReportBackendText(p.labelDe, locale, p.labelEn);
   const description = resolveFiscalReportBackendText(p.descriptionDe, locale, p.descriptionEn);
@@ -110,7 +110,7 @@ export type LegalExportCompletenessIssueText = {
  */
 export function resolveLegalExportCompletenessIssueMessage(
   issue: LegalExportCompletenessIssueText,
-  locale: TextLocale,
+  locale: TextLocale
 ): string {
   const r = resolveFiscalReportBackendText(issue.messageDe, locale, issue.messageEn);
   return r?.text ?? '';
@@ -118,7 +118,7 @@ export function resolveLegalExportCompletenessIssueMessage(
 
 export function fiscalReportFieldTooltip(
   t: (key: string, options?: Record<string, string | number>) => string,
-  contentLang: ReportContentLanguage,
+  contentLang: ReportContentLanguage
 ): string {
   return contentLang === 'en'
     ? t('reporting.backend.fiscalReportTextTitleEn')

@@ -1,5 +1,6 @@
 // Canonical roles – aligned with backend Roles.cs. SuperAdmin is sole top admin.
-export type UserRole = 'SuperAdmin' | 'Manager' | 'Cashier' | 'Waiter' | 'Kitchen' | 'ReportViewer' | 'Accountant';
+export type UserRole =
+  'SuperAdmin' | 'Manager' | 'Cashier' | 'Waiter' | 'Kitchen' | 'ReportViewer' | 'Accountant';
 
 export const ROLES = {
   SuperAdmin: 'SuperAdmin',
@@ -17,7 +18,7 @@ export interface Permission {
   name: string;
   description: string;
   resource: string; // users, products, sales, receipts, etc.
-  action: string;   // create, read, update, delete, export
+  action: string; // create, read, update, delete, export
   isActive: boolean;
 }
 
@@ -67,28 +68,28 @@ export interface UsePermissionReturn {
   hasRole: (role: UserRole) => boolean;
   hasAnyRole: (roles: UserRole[]) => boolean;
   hasAllRoles: (roles: UserRole[]) => boolean;
-  
+
   // Güvenli erişim kontrolü
   checkPermissionWithAlert: (resource: string, action: string) => boolean;
   checkRoleWithAlert: (role: UserRole) => boolean;
-  
+
   // Rol kısayolları
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isCashier: boolean;
   isManager: boolean;
-  
+
   // Kullanıcı durumu
   isDemoUser: boolean;
   isRealUser: boolean;
   isActiveUser: boolean;
-  
+
   // İşlem yetkileri
   canPerformCriticalOperations: boolean;
   canManageSystemSettings: boolean;
   canViewReports: boolean;
   canManageUsers: boolean;
-  
+
   // Kullanıcı bilgileri
   user: User | null;
   userPermissions: string[];
@@ -108,4 +109,4 @@ export interface PermissionGuardProps {
   action: string;
   children: React.ReactNode;
   fallback?: React.ReactNode;
-} 
+}

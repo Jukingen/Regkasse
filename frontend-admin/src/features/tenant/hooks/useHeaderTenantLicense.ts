@@ -2,83 +2,103 @@
 
 import { useMemo } from 'react';
 
-import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
-    resolveTenantLicenseLabel,
-    type TenantLicenseLabel,
-} from '@/features/super-admin/utils/tenantLicenseLabel';
+  TENANT_GRACE_PERIOD_DAYS,
+  clampTenantGraceRemaining,
+} from '@/features/license/constants/licenseGracePeriod';
+import type { LicenseStatus } from '@/features/license/hooks/useLicenseStatus';
+import {
+  getLicenseStatusMessage,
+  resolveTenantLicenseFromPublicStatus,
+} from '@/features/license/utils/licenseStatus';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useTenantLicense } from '@/hooks/useTenantLicense';
+import { useI18n } from '@/i18n';
 
 export type HeaderLicenseMode = 'hidden' | 'tenant';
 
-function resolveHeaderTenantLicenseLabel(
-    licenseValidUntilUtc: string | null | undefined,
-    licenseKey: string | null | undefined,
-    licenseDaysRemaining: number | null | undefined,
-    now = Date.now(),
-): TenantLicenseLabel {
-    if (!licenseValidUntilUtc?.trim()) {
-        return { kind: 'none', label: '—', daysRemaining: null };
-    }
-
-    return resolveTenantLicenseLabel(
-        licenseValidUntilUtc,
-        licenseKey,
-        now,
-        licenseDaysRemaining,
-    );
-}
-
 /**
  * Mandant SaaS license for header badge (Manager on tenant context only).
- * Data source: `useCurrentTenant` → `GET /api/tenants/switcher` resolved row — not deployment license.
+ * Data source: {@link useTenantLicense} — never stale tenant-switcher row fallback.
  */
 export function useHeaderTenantLicense() {
-    const ctx = useCurrentTenant();
+  const ctx = useCurrentTenant();
+  const { t } = useI18n();
+  const licenseQuery = useTenantLicense();
 
-    const mode: HeaderLicenseMode = useMemo(() => {
-        if (
-            !ctx.hasAuthToken ||
-            ctx.isSuperAdminPlatformMode ||
-            ctx.suppressLicenseWarnings ||
-            !ctx.showTenantLicenseInHeader
-        ) {
-            return 'hidden';
-        }
-        return 'tenant';
-    }, [
-        ctx.hasAuthToken,
-        ctx.isSuperAdminPlatformMode,
-        ctx.showTenantLicenseInHeader,
-        ctx.suppressLicenseWarnings,
-    ]);
+  const mode: HeaderLicenseMode = useMemo(() => {
+    if (
+      !ctx.hasAuthToken ||
+      ctx.isSuperAdminPlatformMode ||
+      ctx.suppressLicenseWarnings ||
+      !ctx.showTenantLicenseInHeader
+    ) {
+      return 'hidden';
+    }
+    return 'tenant';
+  }, [
+    ctx.hasAuthToken,
+    ctx.isSuperAdminPlatformMode,
+    ctx.showTenantLicenseInHeader,
+    ctx.suppressLicenseWarnings,
+  ]);
 
-    const license: TenantLicenseLabel | null = useMemo(() => {
-        if (mode !== 'tenant' || !ctx.isRealTenantSlug) {
-            return null;
-        }
-        if (ctx.isTenantRecordLoading) {
-            return null;
-        }
-        return resolveHeaderTenantLicenseLabel(
-            ctx.licenseValidUntilUtc,
-            ctx.licenseKey,
-            ctx.licenseDaysRemaining,
-        );
-    }, [
-        mode,
-        ctx.isRealTenantSlug,
-        ctx.isTenantRecordLoading,
-        ctx.licenseValidUntilUtc,
-        ctx.licenseKey,
-        ctx.licenseDaysRemaining,
-    ]);
+  const licenseValidUntilUtc = mode === 'tenant' ? (licenseQuery.data?.validUntil ?? null) : null;
 
-    const licenseValidUntilUtc = mode === 'tenant' ? ctx.licenseValidUntilUtc : null;
+  const isLoading = mode === 'tenant' && licenseQuery.isLoading;
+
+  const resolvedStatus: LicenseStatus | null | undefined = useMemo(() => {
+    if (mode !== 'tenant' || !ctx.isRealTenantSlug || licenseQuery.isLoading) {
+      return null;
+    }
+
+    if (!licenseQuery.data) {
+      return null;
+    }
+
+    const resolved = resolveTenantLicenseFromPublicStatus(licenseQuery.data);
+    const status: LicenseStatus = {
+      ...resolved,
+      daysRemainingInGrace:
+        resolved.kind === 'grace_write'
+          ? clampTenantGraceRemaining(TENANT_GRACE_PERIOD_DAYS - resolved.daysExpired)
+          : 0,
+      isExpired:
+        resolved.kind === 'grace_write' ||
+        resolved.kind === 'grace_readonly' ||
+        resolved.kind === 'lockdown' ||
+        resolved.kind === 'expired',
+      isLocked: resolved.kind === 'lockdown' || resolved.kind === 'expired',
+      lockDate: licenseQuery.data.lockDate ?? null,
+      message: getLicenseStatusMessage(resolved, 'tenant', t),
+    };
+    return status;
+  }, [mode, ctx.isRealTenantSlug, licenseQuery.isLoading, licenseQuery.data, t]);
+
+  const isUnavailable = useMemo(() => {
+    if (mode !== 'tenant' || licenseQuery.isLoading) {
+      return false;
+    }
+    if (resolvedStatus) {
+      return false;
+    }
+    return licenseQuery.isError || !licenseQuery.isAuthorized;
+  }, [
+    mode,
+    licenseQuery.isLoading,
+    licenseQuery.isError,
+    licenseQuery.isAuthorized,
+    resolvedStatus,
+  ]);
 
     return {
-        mode,
-        license,
-        licenseValidUntilUtc,
-        isLoading: mode === 'tenant' && ctx.isTenantRecordLoading,
+      mode,
+      resolvedStatus,
+      licenseValidUntilUtc,
+      isLoading,
+      isUnavailable,
+      licenseQuery,
+      anyActive: Boolean(licenseQuery.data?.anyActive ?? licenseQuery.data?.isValid),
+      allActive: Boolean(licenseQuery.data?.allActive),
     };
 }

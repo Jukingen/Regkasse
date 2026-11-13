@@ -1,15 +1,19 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
-using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -27,10 +31,16 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ILicenseIssuanceService _licenseIssuanceService;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAdminTenantLicenseService _adminTenantLicenseService;
+    private readonly IAdminTenantLicenseKeyService _tenantLicenseService;
+    private readonly IBillingTenantLicenseService _billingTenantLicenseService;
+    private readonly ICurrentTenantAccessor _currentTenantAccessor;
     private readonly AppDbContext _db;
     private readonly IAdminTenantService _adminTenantService;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
     private readonly IAuditLogService _auditLogService;
+    private readonly ILicenseExportService _licenseExport;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly ILogger<AdminLicenseController> _logger;
 
     public AdminLicenseController(
@@ -38,21 +48,74 @@ public sealed partial class AdminLicenseController : ControllerBase
         ILicenseIssuanceService licenseIssuanceService,
         ILicenseRenewalService licenseRenewalService,
         IAdminTenantLicenseService adminTenantLicenseService,
+        IAdminTenantLicenseKeyService tenantLicenseService,
+        IBillingTenantLicenseService billingTenantLicenseService,
+        ICurrentTenantAccessor currentTenantAccessor,
         AppDbContext db,
         IAdminTenantService adminTenantService,
+        ISettingsTenantResolver settingsTenantResolver,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
         IAuditLogService auditLogService,
+        ILicenseExportService licenseExport,
+        IUnifiedLicenseService unifiedLicenseService,
         ILogger<AdminLicenseController> logger)
     {
         _licenseService = licenseService;
         _licenseIssuanceService = licenseIssuanceService;
         _licenseRenewalService = licenseRenewalService;
         _adminTenantLicenseService = adminTenantLicenseService;
+        _tenantLicenseService = tenantLicenseService;
+        _billingTenantLicenseService = billingTenantLicenseService;
+        _currentTenantAccessor = currentTenantAccessor;
         _db = db;
         _adminTenantService = adminTenantService;
+        _settingsTenantResolver = settingsTenantResolver;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
         _auditLogService = auditLogService;
+        _licenseExport = licenseExport;
+        _unifiedLicenseService = unifiedLicenseService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Download a single issued license as plain text.
+    /// Filename: <c>license_{tenantSlug}_{stamp}.txt</c>.
+    /// </summary>
+    [HttpGet("{issuedLicenseId:guid}/export")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [Produces("text/plain")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportSingle(
+        Guid issuedLicenseId,
+        CancellationToken cancellationToken = default)
+    {
+        string? tenantSlug = null;
+        try
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (tenantId != Guid.Empty)
+            {
+                tenantSlug = await _db.Tenants.AsNoTracking()
+                    .Where(t => t.Id == tenantId)
+                    .Select(t => t.Slug)
+                    .FirstOrDefaultAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            // Platform-wide Super Admin: fall back to customer name / deployment in the export service.
+        }
+
+        var result = await _licenseExport
+            .ExportSingleAsync(issuedLicenseId, tenantSlug, cancellationToken)
+            .ConfigureAwait(false);
+        if (result is null)
+            return NotFound(new { message = "Issued license not found." });
+
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     /// <summary>Current license/trial snapshot for this machine.</summary>
@@ -60,7 +123,11 @@ public sealed partial class AdminLicenseController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<LicenseStatusResponse>> GetStatus(CancellationToken cancellationToken)
     {
-        var status = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var unified = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var status = unified.DeploymentSnapshot
+            ?? await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var reminders = _licenseReminderNotificationStore.GetReminders();
         return Ok(status with { Reminders = reminders });
     }
@@ -121,7 +188,8 @@ public sealed partial class AdminLicenseController : ControllerBase
 
     /// <summary>
     /// Paged list of issued licenses (<c>issued_licenses</c>). JWT is never returned.
-    /// <c>licenseKey</c> is masked as REGK-****-****- plus the real final segment only.
+    /// Super Admin / <c>system.critical</c> receives the full <c>licenseKey</c> for support.
+    /// Other callers with <c>settings.manage</c> get REGK-****-****- plus the real final segment only.
     /// Optional <paramref name="machineFingerprint"/> filters rows that have a matching <c>activated_licenses</c> machine hash substring.
     /// </summary>
     [HttpGet("list")]
@@ -230,7 +298,9 @@ public sealed partial class AdminLicenseController : ControllerBase
             return new IssuedLicenseListItemDto
             {
                 Id = r.Id,
-                LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
+                LicenseKey = CanRevealIssuedLicenseKeys()
+                    ? r.LicenseKey.Trim().ToUpperInvariant()
+                    : MaskIssuedLicenseKey(r.LicenseKey),
                 CustomerName = r.CustomerName,
                 ExpiryAtUtc = r.ExpiryAtUtc,
                 RequireFingerprint = r.RequireFingerprint,
@@ -606,26 +676,29 @@ public sealed partial class AdminLicenseController : ControllerBase
             return BadRequest(new { message = "licenseKey is required." });
 
         var normalizedKey = body.LicenseKey.Trim();
-        var row = await _db.IssuedLicenses
-            .FirstOrDefaultAsync(
-                il => EF.Functions.ILike(il.LicenseKey, normalizedKey),
+        Guid? actorUserId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsed)
+            ? parsed
+            : null;
+
+        var result = await _unifiedLicenseService
+            .DeactivateLicenseAsync(
+                normalizedKey,
+                new UnifiedLicenseDeactivationContext(actorUserId, body.Reason),
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (row is null)
-            return NotFound(new { message = "No issued license matches this license key." });
-
-        if (row.IsRevoked)
-            return BadRequest(new { message = "This license is already revoked." });
-
-        ApplyRevocationToRow(row, body.Reason);
-
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (!result.Success)
+        {
+            if (string.Equals(result.Message, "No issued license matches this license key.", StringComparison.Ordinal))
+                return NotFound(new { message = result.Message });
+            return BadRequest(new { message = result.Message });
+        }
 
         _logger.LogInformation(
-            "Issued license revoked: keyPrefix={Prefix} revokedBy={UserId}",
+            "License deactivated: keyPrefix={Prefix} kind={Kind} revokedBy={UserId}",
             normalizedKey.Length <= 14 ? normalizedKey : normalizedKey[..14] + "…",
-            row.RevokedByUserId ?? "(anonymous)");
+            result.LicenseKind,
+            actorUserId?.ToString("D") ?? "(anonymous)");
 
         return Ok();
     }
@@ -710,6 +783,17 @@ public sealed partial class AdminLicenseController : ControllerBase
 
         error = "expiryDate must be a valid date (YYYY-MM-DD).";
         return false;
+    }
+
+    /// <summary>
+    /// Full keys are for Super Admin support only. List responses still omit JWT.
+    /// </summary>
+    private bool CanRevealIssuedLicenseKeys()
+    {
+        if (User.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        return User.HasClaim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical);
     }
 
     /// <summary>REGK-****-****- plus last segment only; non-standard shapes are fully redacted.</summary>
@@ -857,7 +941,7 @@ public sealed class IssuedLicensesListResponse
     public IReadOnlyList<IssuedLicenseListItemDto> Items { get; set; } = Array.Empty<IssuedLicenseListItemDto>();
 }
 
-/// <summary>One masked row from <c>issued_licenses</c> (no JWT).</summary>
+/// <summary>One issued-license row from <c>issued_licenses</c> (no JWT). Full key for Super Admin; otherwise masked.</summary>
 public sealed class IssuedLicenseListItemDto
 {
     public Guid Id { get; set; }

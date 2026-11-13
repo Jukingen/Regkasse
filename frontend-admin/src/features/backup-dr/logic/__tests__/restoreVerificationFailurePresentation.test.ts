@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT,
+  PG_RESTORE_LIST_FAILED,
   interpretPgRestoreListFailure,
   parsePgRestoreListFailureContext,
-  PG_RESTORE_LIST_FAILED,
   shouldShowFakeStubPgRestoreListExplainer,
 } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
 
@@ -37,7 +38,7 @@ describe('shouldShowFakeStubPgRestoreListExplainer', () => {
         failureCode: 'NO_DUMP_AVAILABLE',
         detailsJson: null,
         isSimulatedPipelineHeuristic: true,
-      }),
+      })
     ).toBe(false);
   });
 
@@ -50,7 +51,7 @@ describe('shouldShowFakeStubPgRestoreListExplainer', () => {
         failureCode: PG_RESTORE_LIST_FAILED,
         detailsJson,
         isSimulatedPipelineHeuristic: false,
-      }),
+      })
     ).toBe(true);
   });
 
@@ -60,7 +61,7 @@ describe('shouldShowFakeStubPgRestoreListExplainer', () => {
         failureCode: PG_RESTORE_LIST_FAILED,
         detailsJson: null,
         isSimulatedPipelineHeuristic: true,
-      }),
+      })
     ).toBe(true);
   });
 
@@ -70,7 +71,7 @@ describe('shouldShowFakeStubPgRestoreListExplainer', () => {
         failureCode: PG_RESTORE_LIST_FAILED,
         detailsJson: null,
         isSimulatedPipelineHeuristic: false,
-      }),
+      })
     ).toBe(false);
   });
 });

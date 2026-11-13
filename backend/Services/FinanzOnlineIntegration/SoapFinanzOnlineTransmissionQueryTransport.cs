@@ -1,12 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -291,14 +284,16 @@ public sealed class SoapFinanzOnlineTransmissionQueryTransport : IFinanzOnlineTr
 
     private static string TruncateForOperator(string s)
     {
-        if (string.IsNullOrEmpty(s)) return string.Empty;
+        if (string.IsNullOrEmpty(s))
+            return string.Empty;
         const int max = 900;
         return s.Length <= max ? s : s.Substring(0, max - 3) + "...";
     }
 
     private static string TruncateForLog(string s)
     {
-        if (string.IsNullOrEmpty(s)) return string.Empty;
+        if (string.IsNullOrEmpty(s))
+            return string.Empty;
         const int max = 200;
         return s.Length <= max ? s : s.Substring(0, max - 3) + "...";
     }

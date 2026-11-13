@@ -3,8 +3,7 @@
  * Metinler i18n errors.json (errors.forbidden.REASON_CODE) ile yönetilir; axios interceptor getStoredLanguage kullanır.
  * API response message alanı 403 toast için kullanılmaz (dil tutarlılığı).
  */
-
-import { getCatalog, DEFAULT_TEXT_LOCALE, type TextLocale } from '@/i18n/config';
+import { DEFAULT_TEXT_LOCALE, type TextLocale, getCatalog } from '@/i18n/config';
 import { getStoredLanguage } from '@/i18n/languageStorage';
 
 export type ForbiddenReasonCode =
@@ -38,7 +37,7 @@ function readForbiddenMap(locale: TextLocale): ForbiddenMap {
 
 function normalizeReasonCode(
   reasonCode: ForbiddenReasonCode | null | undefined,
-  canonical: ForbiddenMap,
+  canonical: ForbiddenMap
 ): string {
   const c = (reasonCode ?? '').trim();
   const merged: ForbiddenMap = { ...LEGACY_DE_FALLBACK, ...canonical };
@@ -52,7 +51,7 @@ function normalizeReasonCode(
  */
 export function getForbiddenMessage(
   reasonCode?: ForbiddenReasonCode | null,
-  locale?: TextLocale,
+  locale?: TextLocale
 ): string {
   const loc = locale ?? getStoredLanguage();
   const canonical = readForbiddenMap(DEFAULT_TEXT_LOCALE);

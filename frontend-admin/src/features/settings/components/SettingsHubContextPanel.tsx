@@ -1,11 +1,11 @@
 'use client';
 
 // Collapsible panel describing settings domain boundaries without a large refactor.
-
-import React from 'react';
-import { Collapse, Space, Typography, Button } from 'antd';
-import { SimpleList as List } from '@/components/ui/SimpleList';
+import { Button, Collapse, Space, Typography } from 'antd';
 import Link from 'next/link';
+import React from 'react';
+
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { useI18n } from '@/i18n/I18nProvider';
 import { RKSV_HUB_PATH } from '@/shared/adminSidebarNavigation';
 
@@ -37,6 +37,9 @@ export function SettingsHubContextPanel() {
                 renderItem={(item) => <List.Item style={{ paddingLeft: 0 }}>{item}</List.Item>}
               />
               <Space wrap>
+                <Link href="/settings/receipt">
+                  <Button size="small">{t('settings.hub.linkReceiptSettings')}</Button>
+                </Link>
                 <Link href="/receipt-templates">
                   <Button size="small">{t('settings.hub.linkReceiptTemplates')}</Button>
                 </Link>

@@ -1,5 +1,3 @@
-using System.Globalization;
-using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Identity;
 using Xunit;
 

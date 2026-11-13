@@ -10,24 +10,47 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
-    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="FluentAssertions" Version="7.0.0" />
-    <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
-    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="FluentAssertions" Version="7.2.2" />
+    <PackageReference Include="Moq" Version="4.21.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\KasseAPI_Final.csproj" />
+  </ItemGroup>
+
+  <!-- Archived migrations are not in the EF assembly. These three Up/Down classes stay
+       compiled here so operation tests and Elmah EnsureSql still run. -->
+  <ItemGroup>
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260827170615_AddElmahUserColumn.cs" Link="ArchivedMigrations\20260827170615_AddElmahUserColumn.cs" />
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260916110000_AddCompanySettingsCountryBilling.cs" Link="ArchivedMigrations\20260916110000_AddCompanySettingsCountryBilling.cs" />
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260921180000_AddFiscalDocumentCountryAtIssueSnapshots.cs" Link="ArchivedMigrations\20260921180000_AddFiscalDocumentCountryAtIssueSnapshots.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\monatsbeleg_sig.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Fixtures\CountryBaseline\*.json" Exclude="Fixtures\CountryBaseline\*.actual.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

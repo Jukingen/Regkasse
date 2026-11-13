@@ -21,19 +21,13 @@ import {
   buildLicenseRenewalMailtoUrl,
   LICENSE_SUPPORT_EMAIL,
 } from '../../../constants/licenseRenewal';
-import { type LicenseStatus } from '../../../hooks/useLicenseStatus';
-import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
-import { openMailtoUrl } from '../../../utils/openLink';
+import { useLicenseStatus, type LicenseStatus } from '../../../hooks/useLicenseStatus';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
+import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
+import { isValidPosLicenseKey, sanitizeLicenseKeyInput } from '../../../utils/licenseKeyFormat';
+import { openMailtoUrl } from '../../../utils/openLink';
 
-const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
-
-function sanitizeLicenseKeyInput(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, '')
-    .slice(0, 22);
-}
+import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
 
 function formatExpiryDeAt(iso: string | null): string {
   if (!iso) return '—';
@@ -53,20 +47,23 @@ function readApiErrorMessage(err: unknown): string | undefined {
 
 function mapActivationFailureToGerman(
   serverMsg: string | undefined,
-  t: (key: string, opts?: Record<string, string>) => string,
+  t: (key: string, opts?: Record<string, string>) => string
 ): string {
   if (!serverMsg) return t('license:activationFailed');
   const m = serverMsg.trim();
   if (m.includes('Invalid license key format')) return t('license:activationInvalidFormat');
   if (m.includes('LicenseKey is required')) return t('license:activationKeyRequired');
-  if (m.includes('Machine fingerprint does not match')) return t('license:activationFingerprintMismatch');
+  if (m.includes('Machine fingerprint does not match'))
+    return t('license:activationFingerprintMismatch');
   if (m.includes('transferred or revoked')) return t('license:activationRevokedOrTransferred');
   if (m.includes('Remote license server')) return t('license:activationRemoteRejected');
   if (m.includes('OpenAPI export mode')) return t('license:activationDisabledExport');
-  if (m.includes('could not be recorded in the database')) return t('license:activationDbRecordFailed');
+  if (m.includes('could not be recorded in the database'))
+    return t('license:activationDbRecordFailed');
   if (m.includes('internal error')) return t('license:activationInternalError');
-  if (m.includes('OfflineVerificationPublicKeyPem is not configured')) return t('license:activationOfflinePemMissing');
-  return t('license:activationFailed');
+  if (m.includes('OfflineVerificationPublicKeyPem is not configured'))
+    return t('license:activationOfflinePemMissing');
+  return m;
 }
 
 export type LicenseModalProps = {
@@ -81,22 +78,35 @@ export type LicenseModalProps = {
 /**
  * POS license detail sheet: status, optional REGK activation (POST /api/license/activate), renewal shortcuts.
  */
-export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid, refetch }: LicenseModalProps) {
+export function LicenseModal({
+  visible,
+  onClose,
+  status,
+  loading,
+  unlimitedPaid,
+  refetch,
+}: LicenseModalProps) {
   const router = useRouter();
   const { t } = useTranslation(['license', 'common']);
+  const { applyLicenseActivation, setIsActivating } = useLicenseStatus();
   const [techDetailsOpen, setTechDetailsOpen] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [activationFeedback, setActivationFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(
-    null,
-  );
+  const [activationSucceeded, setActivationSucceeded] = useState(false);
+  const [activatedExpiryIso, setActivatedExpiryIso] = useState<string | null>(null);
+  const [activationFeedback, setActivationFeedback] = useState<{
+    kind: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const hasConfiguredExtensionUrl = useMemo(() => true, []);
 
   /** Active paid license (not trial, not expired) — hide key entry per product rules. */
   const isLicensedActive = Boolean(
-    status && status.isValid && !status.isTrial && !status.isExpired,
+    status && status.isValid && !status.isTrial && !status.isExpired
   );
+
+  const displayExpiryIso = activatedExpiryIso ?? status?.expiryDate ?? null;
 
   const handleExtendLicense = useCallback(async () => {
     const machineHash = status?.machineHash?.trim();
@@ -122,7 +132,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
             isTrial: status.isTrial,
             isExpired: status.isExpired,
           }
-        : null,
+        : null
     );
     const ok = await openMailtoUrl(mailto);
     if (!ok) {
@@ -135,53 +145,78 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
     setLicenseKey(sanitizeLicenseKeyInput(next));
   }, []);
 
+  const resetActivationUi = useCallback(() => {
+    setTechDetailsOpen(false);
+    setActivationFeedback(null);
+    setLicenseKey('');
+    setActivationSucceeded(false);
+    setActivatedExpiryIso(null);
+    setSubmitting(false);
+    setIsActivating(false);
+  }, [setIsActivating]);
+
+  const handleClose = useCallback(() => {
+    resetActivationUi();
+    onClose();
+  }, [onClose, resetActivationUi]);
+
   const onActivate = useCallback(async () => {
     setActivationFeedback(null);
     const trimmed = licenseKey.trim().toUpperCase();
-    if (!LICENSE_KEY_PATTERN.test(trimmed)) {
+    if (!isValidPosLicenseKey(trimmed)) {
       setActivationFeedback({ kind: 'error', text: t('license:activationInvalidFormat') });
       return;
     }
 
     setSubmitting(true);
+    setIsActivating(true);
     try {
       const res = await licenseApi.activate(trimmed);
       if (res.success) {
-        setActivationFeedback({ kind: 'success', text: t('license:activationSuccess') });
-        await refetch();
+        const expiry =
+          typeof res.validUntil === 'string' && res.validUntil.trim().length > 0
+            ? res.validUntil.trim()
+            : null;
+        setActivatedExpiryIso(expiry);
+        setActivationSucceeded(true);
+        setActivationFeedback({
+          kind: 'success',
+          text: t('license:activation.success'),
+        });
         setLicenseKey('');
-        setTimeout(() => {
-          setActivationFeedback(null);
-          onClose();
-        }, 900);
+        await applyLicenseActivation(res, trimmed);
         return;
       }
-      setActivationFeedback({ kind: 'error', text: t('license:activationFailed') });
+      setActivationFeedback({
+        kind: 'error',
+        text: t('license:activation.error', { error: t('license:activationFailed') }),
+      });
     } catch (err: unknown) {
       const st =
-        err && typeof err === 'object' && 'status' in err && typeof (err as ApiErrorShape).status === 'number'
+        err &&
+        typeof err === 'object' &&
+        'status' in err &&
+        typeof (err as ApiErrorShape).status === 'number'
           ? (err as ApiErrorShape).status
           : undefined;
       const serverMsg = readApiErrorMessage(err);
       const noResponse = st === undefined;
+      const mapped =
+        noResponse && !serverMsg
+          ? t('license:activationNetwork')
+          : mapActivationFailureToGerman(serverMsg, t);
       setActivationFeedback({
         kind: 'error',
-        text: noResponse && !serverMsg ? t('license:activationNetwork') : mapActivationFailureToGerman(serverMsg, t),
+        text: t('license:activation.error', { error: mapped }),
       });
     } finally {
       setSubmitting(false);
+      setIsActivating(false);
     }
-  }, [licenseKey, onClose, refetch, t]);
-
-  const handleClose = useCallback(() => {
-    setTechDetailsOpen(false);
-    setActivationFeedback(null);
-    setLicenseKey('');
-    onClose();
-  }, [onClose]);
+  }, [applyLicenseActivation, licenseKey, setIsActivating, t]);
 
   const openFullActivationScreen = useCallback(() => {
-    router.push('/(screens)/license-activate' as any);
+    router.push('/(screens)/license-activate');
     handleClose();
   }, [handleClose, router]);
 
@@ -201,22 +236,26 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
             <ScrollView
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
+              contentContainerStyle={styles.scrollContent}>
               {!status && loading ? (
-                <ActivityIndicator style={{ marginVertical: SoftSpacing.md }} color={SoftColors.accentDark} />
+                <ActivityIndicator
+                  style={{ marginVertical: SoftSpacing.md }}
+                  color={SoftColors.accentDark}
+                />
               ) : null}
 
               {!status && !loading ? (
                 <Text style={styles.bodyMuted}>{t('license:loadFailedHint')}</Text>
               ) : null}
 
-              {status ? (
+              {status || activationSucceeded ? (
                 <>
                   <View style={styles.row}>
                     <Text style={styles.label}>{t('license:typeLabel')}</Text>
                     <Text style={styles.valueStrong}>
                       {(() => {
+                        if (activationSucceeded) return t('license:typeLicensed');
+                        if (!status) return t('license:typeUnknown');
                         const lt = (status.licenseType ?? '').trim().toLowerCase();
                         if (status.isExpired) return t('license:typeExpired');
                         if (lt === 'demo') return t('license:typeDemo');
@@ -230,26 +269,44 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                   <View style={styles.row}>
                     <Text style={styles.label}>{t('license:expiryLabel')}</Text>
                     <Text style={styles.value}>
-                      {status.expiryDate ? formatExpiryDeAt(status.expiryDate) : t('license:expiryNone')}
+                      {displayExpiryIso
+                        ? formatExpiryDeAt(displayExpiryIso)
+                        : t('license:expiryNone')}
                     </Text>
                   </View>
 
                   <View style={styles.row}>
                     <Text style={styles.label}>{t('license:daysRemainingLabel')}</Text>
                     <Text style={styles.value}>
-                      {unlimitedPaid ? '—' : t('license:daysRemainingValue', { count: status.daysRemaining })}
+                      {unlimitedPaid && !activationSucceeded
+                        ? '—'
+                        : (() => {
+                            const remaining = preferLicenseHoursRemaining(
+                              status?.daysRemaining ?? 0,
+                              displayExpiryIso
+                            );
+                            if (remaining?.kind === 'hours') {
+                              return t('license:hoursRemainingValue', { count: remaining.hours });
+                            }
+                            return t('license:daysRemainingValue', {
+                              count: status?.daysRemaining ?? 0,
+                            });
+                          })()}
                     </Text>
                   </View>
 
-                  {status.machineHash?.trim() ? (
+                  {status?.machineHash?.trim() ? (
                     <>
                       <Pressable
-                        onPress={() => setTechDetailsOpen((v) => !v)}
+                        onPress={() => {
+                          setTechDetailsOpen((v) => !v);
+                        }}
                         style={({ pressed }) => [styles.techToggle, pressed && { opacity: 0.75 }]}
-                        accessibilityRole="button"
-                      >
+                        accessibilityRole="button">
                         <Text style={styles.techToggleText}>
-                          {techDetailsOpen ? t('license:technicalToggleHide') : t('license:technicalToggleShow')}
+                          {techDetailsOpen
+                            ? t('license:technicalToggleHide')
+                            : t('license:technicalToggleShow')}
                         </Text>
                       </Pressable>
                       {techDetailsOpen ? (
@@ -263,141 +320,201 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                     </>
                   ) : null}
 
-                  {status.isExpired ? (
+                  {status?.isExpired && !activationSucceeded ? (
                     <View style={styles.warnBox}>
                       <Text style={styles.warnText}>{t('license:warningExpired')}</Text>
                     </View>
                   ) : null}
 
-                  {!loading ? (
+                  {!loading || activationSucceeded ? (
                     <>
-                      {status && !isLicensedActive ? (
-                        <Pressable
-                          style={({ pressed }) => [styles.openFullActivationBtn, pressed && { opacity: 0.88 }]}
-                          onPress={openFullActivationScreen}
-                          accessibilityRole="button"
-                          accessibilityLabel={t('license:openActivationFromModal')}
-                        >
-                          <Ionicons name="document-text-outline" size={18} color={SoftColors.accentDark} />
-                          <Text style={styles.openFullActivationBtnText}>{t('license:openActivationFromModal')}</Text>
-                        </Pressable>
-                      ) : null}
-
-                      {isLicensedActive ? (
-                        <View style={styles.alreadyLicensedBox}>
-                          <Ionicons name="checkmark-circle" size={18} color="#2E7D32" />
-                          <Text style={styles.alreadyLicensedText}>{t('license:modalAlreadyLicensed')}</Text>
+                      {activationSucceeded ? (
+                        <View style={styles.successBlock} accessibilityLiveRegion="polite">
+                          <Ionicons name="checkmark-circle" size={28} color="#2E7D32" />
+                          <Text style={styles.successTitle}>{t('license:activation.success')}</Text>
+                          <Text style={styles.successMessage}>
+                            {t('license:activation.successMessage', {
+                              date: displayExpiryIso
+                                ? formatExpiryDeAt(displayExpiryIso)
+                                : t('license:expiryNone'),
+                            })}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.successOkBtn}
+                            onPress={handleClose}
+                            accessibilityRole="button"
+                            accessibilityLabel={t('common:continue')}>
+                            <Text style={styles.successOkBtnText}>{t('common:continue')}</Text>
+                          </TouchableOpacity>
                         </View>
                       ) : (
-                        <View style={styles.activationBlock}>
-                          <Text style={styles.activationLabel}>{t('license:modalActivationInputLabel')}</Text>
-                          <View style={styles.activationRow}>
-                            <TextInput
-                              value={licenseKey}
-                              onChangeText={onChangeKey}
-                              placeholder={t('license:activationKeyPlaceholder')}
-                              placeholderTextColor={SoftColors.textMuted}
-                              autoCapitalize="characters"
-                              autoCorrect={false}
-                              editable={!submitting}
-                              style={styles.activationInput}
-                              accessibilityLabel={t('license:modalActivationInputLabel')}
-                            />
-                            <TouchableOpacity
-                              style={[styles.activateBtn, submitting && styles.activateBtnDisabled]}
-                              onPress={() => void onActivate()}
-                              disabled={submitting}
+                        <>
+                          {status && !isLicensedActive ? (
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.openFullActivationBtn,
+                                pressed && { opacity: 0.88 },
+                              ]}
+                              onPress={openFullActivationScreen}
                               accessibilityRole="button"
-                              accessibilityLabel={t('license:activationSubmit')}
-                            >
+                              accessibilityLabel={t('license:openActivationFromModal')}>
+                              <Ionicons
+                                name="document-text-outline"
+                                size={18}
+                                color={SoftColors.accentDark}
+                              />
+                              <Text style={styles.openFullActivationBtnText}>
+                                {t('license:openActivationFromModal')}
+                              </Text>
+                            </Pressable>
+                          ) : null}
+
+                          {isLicensedActive ? (
+                            <View style={styles.alreadyLicensedBox}>
+                              <Ionicons name="checkmark-circle" size={18} color="#2E7D32" />
+                              <Text style={styles.alreadyLicensedText}>
+                                {t('license:modalAlreadyLicensed')}
+                              </Text>
+                            </View>
+                          ) : (
+                            <View style={styles.activationBlock}>
+                              <Text style={styles.activationLabel}>
+                                {t('license:modalActivationInputLabel')}
+                              </Text>
+                              <View style={styles.activationRow}>
+                                <TextInput
+                                  value={licenseKey}
+                                  onChangeText={onChangeKey}
+                                  placeholder={t('license:activationKeyPlaceholder')}
+                                  placeholderTextColor={SoftColors.textMuted}
+                                  autoCapitalize="characters"
+                                  autoCorrect={false}
+                                  editable={!submitting}
+                                  style={[
+                                    styles.activationInput,
+                                    submitting && styles.activationInputDisabled,
+                                  ]}
+                                  accessibilityLabel={t('license:modalActivationInputLabel')}
+                                />
+                                <TouchableOpacity
+                                  style={[
+                                    styles.activateBtn,
+                                    submitting && styles.activateBtnDisabled,
+                                  ]}
+                                  onPress={() => void onActivate()}
+                                  disabled={submitting}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={t('license:activationSubmit')}>
+                                  {submitting ? (
+                                    <ActivityIndicator
+                                      size="small"
+                                      color={SoftColors.textInverse}
+                                    />
+                                  ) : (
+                                    <Text style={styles.activateBtnText}>
+                                      {t('license:activationSubmit')}
+                                    </Text>
+                                  )}
+                                </TouchableOpacity>
+                              </View>
                               {submitting ? (
-                                <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                                <View style={styles.loadingRow}>
+                                  <ActivityIndicator size="small" color={SoftColors.accentDark} />
+                                  <Text style={styles.loadingText}>
+                                    {t('license:activation.loading')}
+                                  </Text>
+                                </View>
                               ) : (
-                                <Text style={styles.activateBtnText}>{t('license:activationSubmit')}</Text>
+                                <Text style={styles.activationHint}>
+                                  {t('license:activationKeyHint')}
+                                </Text>
                               )}
-                            </TouchableOpacity>
-                          </View>
-                          <Text style={styles.activationHint}>{t('license:activationKeyHint')}</Text>
-                        </View>
-                      )}
-
-                      {activationFeedback ? (
-                        <View
-                          style={[
-                            styles.feedbackBox,
-                            activationFeedback.kind === 'success' ? styles.feedbackOk : styles.feedbackErr,
-                          ]}
-                          accessibilityLiveRegion="polite"
-                        >
-                          <Ionicons
-                            name={activationFeedback.kind === 'success' ? 'checkmark-circle' : 'alert-circle'}
-                            size={16}
-                            color={activationFeedback.kind === 'success' ? '#1b5e20' : '#b71c1c'}
-                          />
-                          <Text
-                            style={[
-                              styles.feedbackText,
-                              activationFeedback.kind === 'success' ? styles.feedbackTextOk : styles.feedbackTextErr,
-                            ]}
-                          >
-                            {activationFeedback.text}
-                          </Text>
-                        </View>
-                      ) : null}
-
-                      <Pressable
-                        style={({ pressed }) => [styles.ctaPrimary, pressed && { opacity: 0.88 }]}
-                        onPress={() => void handleExtendLicense()}
-                      >
-                        <Ionicons
-                          name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
-                          size={18}
-                          color={SoftColors.textInverse}
-                        />
-                        <Text style={styles.ctaPrimaryText}>{t('license:renewCta')}</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => void handleExtendLicense()}
-                        hitSlop={12}
-                        style={({ pressed }) => [styles.ctaHintPressable, pressed && { opacity: 0.7 }]}
-                      >
-                        <Text style={styles.ctaHint}>
-                          {t(
-                            hasConfiguredExtensionUrl
-                              ? 'license:renewPrimaryHintBrowser'
-                              : 'license:renewPrimaryHintMail',
+                            </View>
                           )}
-                        </Text>
-                      </Pressable>
 
-                      {hasConfiguredExtensionUrl ? (
-                        <Pressable style={styles.ctaSecondary} onPress={() => void openRenewMail()}>
-                          <Ionicons name="mail-outline" size={18} color={SoftColors.accentDark} />
-                          <Text style={styles.ctaSecondaryText}>{t('license:renewOpenMail')}</Text>
-                        </Pressable>
-                      ) : null}
+                          {activationFeedback?.kind === 'error' ? (
+                            <View
+                              style={[styles.feedbackBox, styles.feedbackErr]}
+                              accessibilityLiveRegion="polite">
+                              <Ionicons name="alert-circle" size={16} color="#b71c1c" />
+                              <Text style={[styles.feedbackText, styles.feedbackTextErr]}>
+                                {activationFeedback.text}
+                              </Text>
+                            </View>
+                          ) : null}
+
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.ctaPrimary,
+                              pressed && { opacity: 0.88 },
+                            ]}
+                            onPress={() => void handleExtendLicense()}>
+                            <Ionicons
+                              name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
+                              size={18}
+                              color={SoftColors.textInverse}
+                            />
+                            <Text style={styles.ctaPrimaryText}>{t('license:renewCta')}</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => void handleExtendLicense()}
+                            hitSlop={12}
+                            style={({ pressed }) => [
+                              styles.ctaHintPressable,
+                              pressed && { opacity: 0.7 },
+                            ]}>
+                            <Text style={styles.ctaHint}>
+                              {t(
+                                hasConfiguredExtensionUrl
+                                  ? 'license:renewPrimaryHintBrowser'
+                                  : 'license:renewPrimaryHintMail'
+                              )}
+                            </Text>
+                          </Pressable>
+
+                          {hasConfiguredExtensionUrl ? (
+                            <Pressable
+                              style={styles.ctaSecondary}
+                              onPress={() => void openRenewMail()}>
+                              <Ionicons
+                                name="mail-outline"
+                                size={18}
+                                color={SoftColors.accentDark}
+                              />
+                              <Text style={styles.ctaSecondaryText}>
+                                {t('license:renewOpenMail')}
+                              </Text>
+                            </Pressable>
+                          ) : null}
+                        </>
+                      )}
                     </>
                   ) : null}
 
-                  <Text style={styles.contactFoot}>{t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}</Text>
+                  <Text style={styles.contactFoot}>
+                    {t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}
+                  </Text>
                 </>
               ) : null}
             </ScrollView>
 
             <View style={styles.modalFooter}>
               <Pressable style={styles.dismissBtnFlex} onPress={handleClose}>
-                <Text style={styles.dismissText}>{t('license:close')}</Text>
+                <Text style={styles.dismissText}>
+                  {activationSucceeded ? t('common:continue') : t('license:close')}
+                </Text>
               </Pressable>
-              <Pressable
-                style={styles.iconRefreshBtn}
-                onPress={() => {
-                  void refetch();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={t('common:retry')}
-              >
-                <Ionicons name="refresh" size={22} color={SoftColors.accentDark} />
-              </Pressable>
+              {!activationSucceeded ? (
+                <Pressable
+                  style={styles.iconRefreshBtn}
+                  onPress={() => {
+                    void refetch();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common:retry')}>
+                  <Ionicons name="refresh" size={22} color={SoftColors.accentDark} />
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>
@@ -411,7 +528,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalBackdropFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   modalLayerAboveBackdrop: {
@@ -538,10 +655,24 @@ const styles = StyleSheet.create({
     color: SoftColors.textPrimary,
     backgroundColor: SoftColors.bgPrimary,
   },
+  activationInputDisabled: {
+    opacity: 0.65,
+  },
   activationHint: {
     ...SoftTypography.caption,
     color: SoftColors.textMuted,
     marginTop: SoftSpacing.xs,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.xs,
+    marginTop: SoftSpacing.sm,
+  },
+  loadingText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accentDark,
+    fontWeight: '600',
   },
   activateBtn: {
     backgroundColor: SoftColors.accent,
@@ -561,6 +692,43 @@ const styles = StyleSheet.create({
     color: SoftColors.textInverse,
     fontWeight: '700',
   },
+  successBlock: {
+    marginTop: SoftSpacing.md,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: '#e8f5e9',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#a5d6a7',
+    alignItems: 'center',
+    gap: SoftSpacing.xs,
+  },
+  successTitle: {
+    ...SoftTypography.body,
+    fontWeight: '700',
+    color: '#1b5e20',
+    textAlign: 'center',
+  },
+  successMessage: {
+    ...SoftTypography.caption,
+    color: '#1b5e20',
+    textAlign: 'center',
+    marginBottom: SoftSpacing.sm,
+  },
+  successOkBtn: {
+    backgroundColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.sm,
+    minHeight: 44,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successOkBtnText: {
+    ...SoftTypography.label,
+    color: SoftColors.textInverse,
+    fontWeight: '700',
+  },
   feedbackBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -568,11 +736,6 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.sm,
     padding: SoftSpacing.sm,
     borderRadius: SoftRadius.md,
-  },
-  feedbackOk: {
-    backgroundColor: '#e8f5e9',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#a5d6a7',
   },
   feedbackErr: {
     backgroundColor: '#ffebee',
@@ -584,7 +747,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '600',
   },
-  feedbackTextOk: { color: '#1b5e20' },
   feedbackTextErr: { color: '#b71c1c' },
   techToggle: {
     marginTop: SoftSpacing.sm,

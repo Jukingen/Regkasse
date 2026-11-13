@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Tests;
 
 /// <summary>
 /// Permission-first: verifies user.view and user.manage via AddAppAuthorization (PermissionAuthorizationHandler).
-/// Admin and SuperAdmin have both; Manager has user.view only; Cashier and Waiter have neither.
+/// SuperAdmin and Manager have both; Cashier and Waiter have neither.
 /// </summary>
 public class UserManagementAuthorizationPolicyTests
 {
@@ -93,7 +93,7 @@ public class UserManagementAuthorizationPolicyTests
         Assert.False(result.Succeeded);
     }
 
-    // --- user.manage: Admin, SuperAdmin allowed; Manager, Cashier, Waiter denied ---
+    // --- user.manage: SuperAdmin + Manager allowed; Cashier / Waiter denied ---
 
     [Fact]
     public async Task UserManage_Permission_Allows_Admin_Role()
@@ -120,7 +120,7 @@ public class UserManagementAuthorizationPolicyTests
     }
 
     [Fact]
-    public async Task UserManage_Permission_Denies_Manager_Role()
+    public async Task UserManage_Permission_Allows_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
@@ -128,7 +128,7 @@ public class UserManagementAuthorizationPolicyTests
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

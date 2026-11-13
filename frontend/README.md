@@ -1,12 +1,400 @@
 # Regkasse POS (Mobile)
 
-Expo Router + React Native + TypeScript cashier client.
+Expo Router + React Native + TypeScript cashier client for Austrian RKSV-compliant POS operations.
 
-Historical dev notes: `DEVELOPMENT.md` (pointer) and `archive/DEVELOPMENT.md`.
+Historical dev notes: `DEVELOPMENT.md` (pointer) and `archive/DEVELOPMENT.md`.  
+Repo onboarding: [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) · agents: [`AGENTS.md`](../AGENTS.md).
+
+## Tech Stack
+
+Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` when upgrading Expo-locked packages so peer ranges stay aligned.
+
+| Layer | Package / tool | Version (approx.) |
+| ----- | -------------- | ----------------- |
+| Runtime | Expo | `~56.0.23` |
+| UI | React / React Native | `19.2.3` / `0.85.3` |
+| Navigation | `expo-router` | `~56.2.21` |
+| Screens | `react-native-screens` | `~4.26.0` |
+| Language | TypeScript | `~6.0.3` (`strict`, `jsx: react-jsx`) |
+| Bundler | Metro (`expo/metro-config`) | via Expo 56 |
+| Transform | `babel-preset-expo` + `module-resolver` | via Expo / Babel 7 |
+| HTTP | `axios` | `^1.18.1` |
+| i18n | `i18next` / `react-i18next` | `^26` / `^17` |
+| UI state | `zustand` | `^5` (ephemeral checkout UI only) |
+| Animations | `react-native-reanimated` + worklets | `4.3.1` / `0.8.3` |
+| Camera / QR | `expo-camera` | `~56.0.8` |
+| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.26` |
+| Build props | `expo-build-properties` | `~56.0.27` |
+| OTA | `expo-updates` | `~56.0.28` (`checkAutomatically`: `ON_LOAD`) |
+| Lint / format | ESLint 9 flat + `eslint-config-universe` / Prettier | `^9.39` / `^16` / `^3.9` |
+| Tests | Jest + `jest-expo` + RNTL | `^29` / `~56.0.5` / `^14` |
+
+**Tooling notes**
+
+- TypeScript **~6.0.3** (Expo SDK 56 expected): no `baseUrl` in `tsconfig.json` (paths are relative to the config file). Run `npm run typecheck`.
+- Babel: do **not** duplicate `transform-runtime` / Reanimated plugins — `babel-preset-expo` already provides them (`babel.config.js`).
+- Keep Expo-locked packages aligned with `npx expo install --check` / `--fix` **from `frontend/`** (or `npm exec -w cash-register -- expo install --check`). Do not run bare `npx expo` at the monorepo root — FA/Sites stay on TypeScript 5.9; POS uses `~6.0.3`. Do not jump to SDK 57 while on 56.
+- Metro: `maxWorkers: 2`, project-local `watchFolders`, blockList for `dist`/`archive`/`examples`/`coverage` only under `frontend/` (`metro.config.js`).
+- Assets: keep native icons as PNG; in-app login logo is `assets/images/logo.webp`. Receipt font: `OCRA-B` only.
 
 ## Setup
 
-See `package.json` scripts and repo root `REGKASSE_AI_ONBOARDING.md` for stack and fiscal constraints.
+### Prerequisites
+
+- Node.js 20+ (LTS recommended)
+- npm (repo uses `package-lock.json`)
+- Backend API running locally (default `http://localhost:5184`) — see repo root docs
+- Optional: Android Studio / Xcode / Expo Go for device runs
+
+### Install
+
+```bash
+cd frontend
+cp .env.example .env   # if you do not already have .env
+npm install --legacy-peer-deps
+```
+
+`--legacy-peer-deps` may be required while TypeScript 7 is ahead of `ts-jest`’s peer range (`typescript < 7`).
+
+### Environment
+
+Copy from `.env.example`. Common keys:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `EXPO_PUBLIC_API_BASE_URL` | API base including `/api` (e.g. `http://localhost:5184/api`) |
+| `EXPO_PUBLIC_DEV_TENANT_ID` | Dev tenant slug (`dev` by default in `__DEV__`) |
+| `EXPO_PUBLIC_ADMIN_BASE_URL` | Optional FA base for “extend license” deep links |
+| `EXPO_PUBLIC_SENTRY_DSN` | POS error reporting. Leave empty to keep Sentry off. |
+
+Restart Metro after changing `.env`.
+
+### Run
+
+```bash
+npm run dev               # preferred alias (same as start)
+npm start                 # Expo Dev Tools + Metro (max-workers=2)
+npm run android           # Android
+npm run ios               # iOS
+npm run web               # Web
+npm run build             # Static export (`expo export`)
+npm run start:clean       # start with --clear
+npm start -- --reset-cache
+```
+
+From repo root: `npm run dev:pos`, `npm run test:pos`, `npm run build:pos`.
+
+### Docker (POS web)
+
+Optional static **web** export served by nginx (not Metro / native). Prefer root Compose profile:
+
+```bash
+# From repository root
+docker compose --profile pos up --build
+# → http://localhost:8081
+```
+
+Manual image build (context = **repo root**):
+
+```bash
+docker build -f frontend/Dockerfile \
+  --build-arg EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api \
+  -t regkasse-frontend-pos-web:local .
+```
+
+`EXPO_PUBLIC_*` are baked at export time — use host-reachable API URLs. See root [`README.md`](../README.md#docker-compose) and [`docker-compose.yml`](../docker-compose.yml).
+
+Dev URLs (typical):
+
+```text
+POS UI:  http://localhost:8081
+API:     http://localhost:5184
+FA UI:   http://admin.regkasse.local:3000
+```
+
+### Quality scripts
+
+```bash
+npm run typecheck         # tsc --noEmit
+npm run lint              # ESLint flat config
+npm run test              # Jest (jest-expo)
+npm run test:contract     # payment / register gate contract suite
+npm run i18n:ci           # translation validate + boundary + usage budgets
+```
+
+### Native (CNG)
+
+`android/` and `ios/` are **not** committed. Generate when needed:
+
+```bash
+npx expo prebuild --clean
+```
+
+After changing `app.json` plugins / icons / splash / build properties, re-run prebuild before EAS or local native builds.
+
+## Testing
+
+Jest uses **`jest-expo`** (required for React Native + `@testing-library/react-native`). RNTL v14: `render` / `fireEvent` / `act` are **async** — always `await` them.
+
+```bash
+# Full suite
+npm test
+
+# Watch / coverage / debug
+npm run test:watch
+npm run test:coverage
+npm run test:debug
+
+# High-value payment / register contracts
+npm run test:contract
+
+# Single file
+npx jest __tests__/expoRouterStructure.contract.test.ts
+```
+
+Conventions:
+
+- Prefer testing-library queries over implementation details.
+- Mock `utils/storage` / `sessionManager` / `apiClient` at module boundaries; do not invent parallel offline queues.
+- Fiscal / payment tests must not assert on voucher plaintext in storage.
+
+## Offline queue UX
+
+POS keeps **two** local queues (`offline_orders` snapshots and `offline_transactions` payment intents). Persistence is unchanged by the header indicator.
+
+| Piece | Path |
+| ----- | ---- |
+| Header dot | `components/OfflineQueueIndicator.tsx` (tabs header) |
+| Detail screen | `app/(screens)/offline-queue.tsx` + `components/OfflineQueuePanel.tsx` |
+| TSE cap bar | `components/OfflineQueueLimitBar.tsx` (`GET /api/pos/offline-limit`) |
+| Cap modal | `components/OfflineLimitReachedModal.tsx` (`offline.limit.*`) |
+| Color rules | `utils/offlineQueueIndicator.ts` |
+| Cap math | `utils/offlineQueueLimit.ts` |
+
+Dot colors: green (online, empty), yellow (online, N syncing/pending), orange (offline, N queued), red (failed/stuck). Tap opens the queue. Fiscal items cannot be deleted; only local payment intents with `tseRequired === false` show **Löschen**.
+
+The queue panel shows tenant TSE-offline usage (`X von 50 Offline-Transaktionen verwendet`) from `GET /api/pos/offline-limit` (`currentOfflineTransactions` / `maxOfflineTransactions`, plus `approachingLimit` / `limitReached`; default cap 50). Local pending intents are merged with the server count. The bar is green 0–79%, yellow (`limitWarning`) 80–99%, and red (`limitExceeded`) at 100%. At the cap, or when payment returns HTTP 409 `LIMIT_EXCEEDED` (`limitKey=maxOfflineTransactions`), POS shows a dismissible modal (*Offline-Limit erreicht. Verkäufe blockiert, bis die Synchronisierung abgeschlossen ist.*) with **Jetzt synchronisieren** and **Abbrechen**. Cancel does not trap the sale UI — the queue remains reachable. POS maps 409 to `payment:errors.limitOfflineQueue`. At ≥80% the activity feed publishes **`OfflineQueueApproachingLimit`** once per crossing. See [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md). Hub: [`docs/OFFLINE_SYSTEM_INDEX.md`](../docs/OFFLINE_SYSTEM_INDEX.md).
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| ------- | ------------ | --- |
+| `Unable to resolve "react-native-web/dist/..."` | Metro `blockList` matching any `dist` folder | Keep blockList **project-root-only** (`metro.config.js`); never `/dist/` globally |
+| Stale bundle / odd Babel errors after config change | Metro cache | `npm start -- --reset-cache` or `npm run start:clean` |
+| `npm install` fails on `ts-jest` + TypeScript 7 | Peer dependency conflict | `npm install --legacy-peer-deps` |
+| Type errors about missing `@types/*` | TS 7 default `types: []` | `tsconfig.json` keeps `"types": ["*"]` |
+| Camera / splash / cleartext not applied on device | Config plugin change without native regen | `npx expo prebuild --clean`, then rebuild |
+| Dev API calls hit wrong tenant | Missing `EXPO_PUBLIC_DEV_TENANT_ID` / switcher | Set env or use `DevTenantSwitcher` (`__DEV__` only) |
+| Login works on web but not device | Device cannot reach `localhost` API | Use LAN IP in `EXPO_PUBLIC_API_BASE_URL`; Android cleartext already enabled via `expo-build-properties` |
+| Duplicate Reanimated / worklets transform errors | Manual Babel plugin + preset | Do not add `react-native-reanimated/plugin` in `babel.config.js` — Expo preset injects worklets/reanimated |
+| Assets missing after cleanup | Wrong path | Login logo: `assets/images/logo.webp`; icons/splash: `icon.png` / `adaptive-icon.png`; font: `assets/fonts/OCRA-B.ttf` |
+
+## Contributing
+
+1. Read [`AGENTS.md`](../AGENTS.md) and [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) before fiscal, payment, TSE/RKSV, or tenant changes.
+2. Prefer **small, reversible** diffs. Do not cross POS (`/api/pos/*`) and Admin (`/api/admin/*`) API boundaries.
+3. **POS UI copy is German (de-DE)** — do not translate cashier-facing strings to English/Turkish.
+4. Before opening a PR for this package:
+
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm test
+   ```
+
+   Run `npm run test:contract` when touching payments, register gates, or tax normalization.
+5. Do not commit secrets (`.env`, tokens). Do not commit generated `android/` / `ios/`.
+6. Keep Zustand limited to ephemeral UI (`stores/posCheckoutUiStore.ts`). Never store JWTs, voucher codes, or payment payloads in Zustand.
+7. After OpenAPI / shared contract changes, follow repo scripts from the monorepo root (FA client generation is separate — POS uses hand-written `services/api/*`).
+
+## Production hosts (Single POS UI)
+
+All tenants share one POS deployment. Tenant comes from the JWT after login — **not** from a per-tenant POS subdomain.
+
+```text
+POS UI:  https://pos.regkasse.at
+FA UI:   https://admin.regkasse.at
+API:     https://api.regkasse.at
+```
+
+Detail: [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md).
+
+---
+
+## Client state (Zustand and related)
+
+Zustand (`zustand` ^5) is used **narrowly** for ephemeral checkout UI only. It must never hold secrets or fiscal payloads.
+
+| Concern | Where it lives | Persisted? |
+| ------- | -------------- | ---------- |
+| Checkout payment-method chip + submit flag | `stores/posCheckoutUiStore.ts` (Zustand) | No (memory only) |
+| Cart lines / table carts | `contexts/CartContext.tsx` | Yes — non-sensitive UI snapshot via `utils/storage` |
+| Theme | `contexts/ThemeContext.tsx` | Yes — `storage` (`themeMode`) |
+| Language | `i18n/` + `i18n/languageStorage.ts` | Yes — `storage` (`user-language`) |
+| Auth tokens / user / tenant bootstrap | `services/session/sessionManager.ts` + `services/secureStorage.ts` | Yes — `expo-secure-store` on native |
+| Offline payment/order queues | `services/payment/*`, `services/offline/*` | Yes — `storage` / IndexedDB; **no** voucher plaintext |
+| Catalog / payments / receipts (server) | `services/api/*` + feature hooks / contexts | Fetched via `apiClient`; **not** in Zustand |
+
+### Zustand → React Query (TanStack Query) — audit result
+
+**No migration performed.** Inventory (2026-07-21):
+
+| Store | Server data? | Action |
+| ----- | ------------ | ------ |
+| `stores/posCheckoutUiStore.ts` | No — local UI flags only | **Keep** as Zustand (wrong fit for React Query) |
+| `stores/useCartStore.ts` | N/A | Already removed earlier (was a `CartContext` re-export) |
+
+- `@tanstack/react-query` is **not** a dependency of this POS app today.
+- Server state already lives outside Zustand (`AuthContext`, `CartContext`, `apiClient` services). Moving auth/cart/payment into React Query would be a separate, high-risk initiative — not a Zustand cleanup.
+- Do **not** put checkout UI chips into React Query caches; that is client UI state.
+
+If React Query is introduced later for catalog reads, add `QueryClientProvider` in the root layout with conservative defaults (e.g. `staleTime: 30_000`, `gcTime: 5 * 60_000`) and start with read-only product/category queries — never payment mutations as cache-as-truth.
+
+### Zustand rules (POS)
+
+1. **Only** short-lived UI flags that do not need SecureStore or long-lived persistence.
+2. **Do not** put JWT, refresh tokens, user profiles, card data, voucher codes, TSE signatures, or full payment request bodies in Zustand.
+3. Prefer **selectors** so components re-render only when their slice changes:
+
+```ts
+import {
+  usePosCheckoutUiStore,
+  selectSelectedPaymentMethodType,
+  posCheckoutUiActions,
+} from '@/stores/posCheckoutUiStore';
+
+const method = usePosCheckoutUiStore(selectSelectedPaymentMethodType);
+// Call actions without subscribing:
+posCheckoutUiActions.setSelectedPaymentMethodType('cash');
+```
+
+4. Cart uses `useCart()` from `CartContext` — not Zustand.
+
+Primary Zustand consumer today: `components/PaymentModal.tsx`.
+
+## Deep links and onboarding
+
+`app.json` `scheme` is `cashregister` and `regkasse`.
+
+| Link | Result |
+| ---- | ------ |
+| `regkasse://tenant/{slug}` | POS stores the slug. Signed out → login with that mandant prefilled. Signed in → cash register. |
+| `cashregister://tenant/{slug}` | Same route as `regkasse://tenant/{slug}`. |
+| Web `http://localhost:8081/tenant/{slug}` | Same handoff in the browser (`/login?tenant={slug}`). |
+
+Login can show `Regkasse — {industry}` from the public tenant profile before authentication. After the first successful login, `app/(auth)/onboarding.tsx` shows two or three profile slides (skip, next, done). The seen flag is `pos_onboarding_seen_v1`. Customer-surface builds still open `/customer`. Payment return stays `regkasse://payment-result`.
+
+One install handles every profile. Details: [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (Single Universal App vs. Per-Industry Binaries).
+
+## Vertical profiles
+
+After an authenticated POS session is restored or created, `VerticalProfileProvider`
+loads `GET /api/pos/vertical-profile`. The effective profile is cached under a
+tenant-scoped key through `secureStorage` (SecureStore on native, localStorage on web),
+so a previously loaded profile remains available offline without crossing tenant
+boundaries. Native builds stay a **single binary**; the profile is not an EAS flavor
+(see [Native build](#native-build)).
+
+Provider and hooks:
+
+```tsx
+import { IfVerticalFeature } from '@/components/IfVerticalFeature';
+import { DynamicField } from '@/components/DynamicField';
+import { useVerticalFeatures } from '@/contexts/VerticalProfileContext';
+
+const { posFeatures, requiredFields, optionalFields, posLayout } =
+  useVerticalFeatures();
+
+<IfVerticalFeature feature="patientRecord">
+  <DynamicField name="petName" entity="customer" />
+</IfVerticalFeature>;
+```
+
+Current web/POS behavior:
+
+- `tables`: table selector and table-order view.
+- `kitchenDisplay`: kitchen tab backed by carts currently loaded on this POS device.
+- `patientRecord`: patient-record tab; customer/pet data is saved through
+  `POST /api/pos/customers`.
+- `appointment`: appointment tab; `posLayout=appointment` opens it by default and
+  bookings are cached per tenant for the web-first phase.
+- `imeiTracking`: profile-driven IMEI/serial-number field in the product area.
+- `routeTracking`: profile-driven route field in the order area.
+- `posLayout=tables`: opens the table-order view by default.
+
+Rezept persistence, appointment server synchronization, staff-directory selection,
+IMEI/route persistence, and a shared multi-device kitchen lifecycle require dedicated
+backend contracts in a follow-up. No native binary regeneration is required for this
+TypeScript-only phase.
+
+## Camera / QR scanning (expo-camera)
+
+| Item | Detail |
+| ---- | ------ |
+| Version | `expo-camera` ~56.0.8 (Expo SDK 56) |
+| Plugin | `app.json` → `barcodeScannerEnabled: true`, German `cameraPermission`, `microphonePermission: false` |
+| Shared permission | `hooks/usePosCameraPermission.ts` (prompt / blocked → settings) |
+| Barcode presets | `constants/posCameraScan.ts` — QR-only for voucher/customer; product set for generic modal |
+| Scanners | `VoucherScanner`, `QrCustomerScanner`, `BarcodeScannerModal` |
+| Detector | Platform barcode pipeline inside expo-camera (not a separate `barcode-detector` package) |
+
+Optimizations: narrow `barcodeTypes`, pause with `active` while validating, unmount session when modal hidden, `onMountError` fallback UI.
+
+Device test: run on a physical iOS/Android device (simulators often lack a real camera). After plugin changes: `npx expo prebuild --clean` before native builds.
+
+## Receipt print / share (expo-print + expo-sharing)
+
+| Item | Detail |
+| ---- | ------ |
+| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.26 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
+| HTML receipts | `services/receiptFormatter.ts` → thermal layout (`max-width: 300px`), viewport meta, escaped text, RKSV QR as `data:image/png;base64,…` |
+| Print entry | `services/receiptPrinter.ts` → `utils/expoPrintShare.printHtmlAsync` (native print preview; PDF fallback if HTML print fails) |
+| Tagesabschluss | `utils/dailyClosingReportPrint.ts` (HTML + server PDF URI) |
+| PDF share | `shareDocumentAsync` (`isAvailableAsync` + share sheet); used from PaymentModal / invoices |
+| Cancel vs error | iOS dismiss of print UI → `PrintCancelledError` (soft success). Real printer/share faults surface German alerts / `print_error` UI |
+
+Device smoke (physical tablet recommended):
+
+1. Complete a payment → print preview opens → print or dismiss (dismiss must not show “Druck fehlgeschlagen”).
+2. Retry print from `print_error` UI if a real fault was forced (no printer).
+3. Share Beleg/Rechnung PDF → system share sheet; confirm unavailable path on locked-down profiles if possible.
+
+## Native build properties (`expo-build-properties`)
+
+| Item | Detail |
+| ---- | ------ |
+| Version | `expo-build-properties` ~56.0.27 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
+| Plugin | `app.json` → `plugins[]` entry for `expo-build-properties` |
+| Android cleartext | `usesCleartextTraffic: true` — required for LAN/`http://` API bases in development and optional on-device API IP (`ApiSettingsModal`) |
+| Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 56 defaults) |
+| iOS | `deploymentTarget` `16.4`; ATS cleartext for localhost/LAN also in `ios.infoPlist.NSAppTransportSecurity` |
+| EAS | Single `production` profile in `eas.json` (internal Android APK). One binary for all verticals — see [Native build](#native-build) |
+| Runtime | `runtimeVersion.policy: sdkVersion` in `app.json`. OTA updates use the same policy so a JS update only applies to binaries built with this SDK. |
+
+After changing this plugin: `npx expo prebuild --clean`, then native build (`eas build` or local Gradle/Xcode). JS-only Metro reload does **not** apply cleartext / SDK pins.
+
+## API client (axios)
+
+Shared client: `services/api/config.ts` (`apiClient` / `axiosInstance`). Reliability helpers: `services/api/axiosReliability.ts`.
+
+| Behavior | Detail |
+| -------- | ------ |
+| Version | `axios` ^1.18.x (keep aligned via `npx expo install axios` when upgrading Expo) |
+| Auth | Request interceptor attaches `Authorization: Bearer …` from `sessionManager` when token is present and not expired; anonymous paths never get a Bearer |
+| Tenant | Dev/local: `X-Tenant-Id` via `addTenantHeader` / `resolveTenantFetchHeaders` |
+| CSRF | Mutations get CSRF headers when enabled (`csrf.ts`) |
+| 401 | Refresh once (`/auth/refresh`), else `AUTH_SESSION_EXPIRED` |
+| 403 / 5xx | Logged safely in `__DEV__` only (status + URL + message — **no** bodies/tokens) |
+| Network retry | Exponential backoff (300ms × 2ⁿ), max 2 retries, **GET/HEAD/OPTIONS only** — never auto-retry payment/auth/RKSV POSTs |
+| Cancellation | Pass `{ signal }` from `createApiAbortController()` / `AbortController` into `apiClient.*` |
+
+```ts
+import { apiClient, createApiAbortController } from '@/services/api/config';
+
+const ac = createApiAbortController();
+void apiClient.get('/pos/products/active', { signal: ac.signal });
+// later: ac.abort();
+```
 
 ## Authentication
 
@@ -26,12 +414,14 @@ The login field accepts both formats. Usernames are generated automatically when
 1. Cashier enters email **or** username in the login field (`frontend/app/(auth)/login.tsx`).
 2. App calls `POST /api/Auth/login` with `loginIdentifier` (and legacy `email` for compatibility) plus `clientApp: "pos"` (`frontend/services/api/authService.ts`, `contexts/AuthContext.tsx`).
 3. Backend resolves the user by email, then by username, validates password and POS role policy.
-4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap.
+4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap in **SecureStore** (native) / localStorage (web). Backend also sets HttpOnly `rk_pos_*` cookies (distinct from FA `rk_admin_*`) so a shared browser does not collide.
+
+**Logout:** `POST /api/Auth/logout` with Bearer from SecureStore; backend expires `rk_pos_*` cookies, revokes POS refresh sessions, and rotates `SecurityStamp`. The app then clears SecureStore and offline queues. See [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
 
 **Examples:**
 
 - Username: `cashier1` + password
-- Email: `cashier@cafe.regkasse.at` + password
+- Email: `cashier@dev.regkasse.at` + password
 
 **Username generation (Admin only):**
 
@@ -46,7 +436,7 @@ The login field accepts both formats. Usernames are generated automatically when
 **Verified in code (no POS change required):**
 
 | Layer | Behavior |
-|-------|----------|
+| ----- | -------- |
 | UI | `login.tsx` — single field `loginIdentifier` (email or username) |
 | Context | `AuthContext.login()` → `buildLoginPayload(..., 'pos')` |
 | API client | `POST /api/Auth/login` body: `loginIdentifier`, mirrored `email`, `clientApp: "pos"` |
@@ -74,14 +464,16 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 ### Tenant Identification
 
-- Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
-- Super Admin is an admin-panel concern (`admin.regkasse.at`), not the POS app
+- **Production (POS):** shared host `pos.regkasse.at` — tenant from JWT `tenant_id` after login (not from Host slug).
+- **Production (API):** `api.regkasse.at` — authenticated traffic scoped by JWT `tenant_id`.
+- **Development:** `X-Tenant-Id` header or `?tenant={slug}` (`EXPO_PUBLIC_DEV_TENANT_ID` + `DevTenantSwitcher`).
+- Super Admin is an admin-panel concern (`admin.regkasse.at`), not the POS app.
+- Reserved labels (never tenant slugs): `pos`, `api`, `admin`, `www`.
 
 ### Data Isolation
 
-- All POS API data is scoped server-side by tenant; clients must target the correct tenant host or dev override
-- Cross-tenant IDs are not visible to other tenants (backend returns 404)
+- All POS API data is scoped server-side by tenant; clients must target the correct API and authenticated tenant.
+- Cross-tenant IDs are not visible to other tenants (backend returns **404**, not 403).
 
 ### Development Mode
 
@@ -93,32 +485,29 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Option 1: Header-based (simplest)
 
 ```bash
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
 ### Option 2: Query string
 
 ```bash
-curl "http://localhost:5184/api/health?tenant=test_cafe"
+curl "http://localhost:5184/api/health?tenant=dev"
 ```
 
-### Option 3: Hosts file (subdomain simulation)
+### Option 3: Hosts file (optional local labels)
 
 ```text
-127.0.0.1 cafe.regkasse.local
-127.0.0.1 bar.regkasse.local
-127.0.0.1 test-cafe.localhost
+127.0.0.1 admin.regkasse.local
+127.0.0.1 dev.regkasse.local
 ```
 
-Then open `http://cafe.regkasse.local:5184` or use header/query on `localhost:5184`.
+Then use header/query on `localhost:5184`, or FA at `http://admin.regkasse.local:3000`.
 
 ### Dev tenant override (POS)
 
 - `EXPO_PUBLIC_DEV_TENANT_ID` — default slug when unset in `__DEV__`
 - `services/tenant/tenantStorage.ts` — sends `X-Tenant-Id` on loopback API calls in Development
 - Effective slug order: dev switcher storage → env var → login/license bootstrap
-
-Then: `http://test-cafe.localhost:5184` — host first label must match `tenants.slug` (see onboarding doc).
 
 ### Option 4: POS UI
 
@@ -128,43 +517,144 @@ Then: `http://test-cafe.localhost:5184` — host first label must match `tenants
 
 ### Production
 
-- `tenant_id`, `tenant_slug`, and `api_base_url` from license activation → secure storage (`tenantStorage.ts`).
-- Requests use bootstrap `apiBaseUrl` (typically `https://{tenant}.regkasse.at/api`).
+- After login / license bootstrap: `tenant_id`, `tenant_slug`, and API base from session (`tenantStorage.ts`).
+- Shared POS UI talks to `https://api.regkasse.at` (or configured base); tenant boundary is the JWT.
 
 ### Development
 
 ```env
-EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```
 
 POS adds `X-Tenant-Id` and optional `?tenant=` on the API base URL automatically (`services/api/config.ts`, `services/tenant/devTenant.ts`).
 
 Full guide: `REGKASSE_AI_ONBOARDING.md`.
-- Login/license bootstrap persists `tenant_id` and `tenant_slug` for subsequent calls
-- Optional hosts file: `cafe.regkasse.local` pointing at the API machine (same slug rules as production)
 
 ### POS responsibilities
 
-- Use tenant-aware API base URL when deploying per customer subdomain
 - Do not cache or replay offline payment payloads across tenants
 - After login, respect `tenantId` / `tenantSlug` from auth and license bootstrap (`contexts/AuthContext.tsx`, `api/license.ts`)
+- Never invent a second offline queue or bypass RKSV/TSE gates
 
 ## API Headers
 
 ### Tenant Identification
 
-- **Production:** Subdomain on API base URL (automatic).
+- **Production:** JWT `tenant_id` on shared API host.
 - **Development:** `X-Tenant-Id: {slug}` or `?tenant={slug}`.
 
-## Native Android / iOS workflow (CNG)
+## Native build
+
+### Single binary (default)
+
+Regkasse POS ships **one** native binary for every mandant. [`app.json`](app.json) is the base identity (`name`: Cash Register, Android `package` / iOS `bundleIdentifier`: `com.registrierkasse.cashregister`, one `version`). After login, `VerticalProfileProvider` loads `GET /api/pos/vertical-profile`. Super Admin can reassign gastronomy, vet, hair-salon, and the other catalog profiles without a new binary.
+
+This matches [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md): tenant identity is the JWT `tenant_id` claim, not a branded package name.
+
+[`app.config.js`](app.config.js) returns that identity when `EXPO_PUBLIC_BRAND` is unset. Do not set the variable for daily `expo start`. Do not add `EXPO_PUBLIC_VERTICAL` or bake feature flags into a binary. A cashier can still serve more than one mandant from the universal app.
+
+### EAS profiles
+
+The default build is the universal app. [`eas.json`](eas.json) (`appVersionSource: local` — version is not auto-bumped):
+
+| Profile | Artifact | Identity |
+| ------- | -------- | -------- |
+| `production` | Play App Bundle (AAB) and App Store IPA (`distribution: store`) | Universal (`app.json`). **Default release.** |
+| `production-apk` | Sideload APK (`distribution: internal`). Same EAS cloud Android credentials as `production`. | Universal |
+
+`gastronomy-production` and `gastronomy-production-apk` are **future / experimental**. They set `EXPO_PUBLIC_BRAND=gastronomy` and are not a shipped industry binary. Use them only for a white-label trial or after the exception in [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (about 10,000 tenants in one industry, or a white-label request). They override `name`, `slug`, `icon`, splash, `android.package`, and `ios.bundleIdentifier`. Version stays the `app.json` version. Replacement art, if a trial needs it, goes under `assets/brands/gastronomy/` (`icon.png`, `adaptive-icon.png`, `splash.png`).
+
+```bash
+cd frontend
+# Default: universal store binary (same version, every tenant)
+npx eas build --platform android --profile production
+npx eas build --platform ios --profile production
+npx eas build --platform all --profile production
+
+# Universal sideload APK (EAS cloud credentials; see Android build credentials below)
+npx eas build --platform android --profile production-apk
+
+# Future / experimental only — not a release profile
+# npx eas build --platform all --profile gastronomy-production
+# npx eas build --platform android --profile gastronomy-production-apk
+```
+
+### Android build credentials
+
+Android signing defaults to **EAS cloud credentials**. No `credentials.json` and no keystore live in this repo. `production` and `production-apk` omit `android.credentialsSource`, so EAS stores the upload keystore on Expo's servers and signs both the Play App Bundle and the sideload APK with it. `gastronomy-production` and `gastronomy-production-apk` inherit that behavior. The first cloud build for the Android package asks you to generate or reuse that keystore; later builds reuse it.
+
+```bash
+cd frontend
+npx eas-cli login
+npx eas credentials --platform android
+```
+
+Use **local credentials** only when you must hold the keystore yourself (offline backup, or the manual `jarsigner` flow in [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md)).
+
+1. Create a release keystore outside git. Steps and the `credentials.json` shape are in that signing guide. `frontend/.gitignore` already ignores `credentials.json` and `*.keystore`.
+2. From `frontend/`, run the interactive helper. Do not run it in CI:
+
+   ```bash
+   npx eas credentials:configure-build --platform android
+   ```
+
+   It can generate a keystore and writes `frontend/credentials.json`. Do not commit either file.
+3. Opt that profile into the file by adding `"credentialsSource": "local"` under its `android` block. Without this flag, EAS ignores `credentials.json`. With the flag and no file, the build fails with `credentials.json does not exist in the project root directory`.
+
+`production-apk` does not set that flag. A sideload APK uses the same cloud keystore as the store build.
+
+GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). The release input is `profile=universal`. `profile=gastronomy` is future / experimental. The workflow runs `eas build` and does not submit or commit binaries.
+
+Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
+
+### Local release measurement
+
+| Check | Result |
+| ----- | ------ |
+| Android APK | `app-release.apk` is about **131 MiB** (137,631,483 bytes). One APK contains every ABI (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`). A Play device download from the `production` AAB is smaller. |
+| iOS archive | Requires **macOS** and `xcodebuild`. Windows `expo prebuild` skips the `ios/` tree, and this repo was measured on Windows. |
+| `npx expo-doctor` | **21/22** checks passed on Expo SDK 56. The remaining failure is Hermes V1 `250829098.0.10` (memory regression). The fix is Hermes V1 `250829098.0.16`, which ships with Expo SDK 57 (`expo@57.0.9` or later) and React Native 0.86.2. Stay on SDK 56 until that upgrade is planned. |
+
+### OTA updates (`expo-updates`)
+
+JS and asset changes can ship without a store binary. [`app.json`](app.json) sets `runtimeVersion.policy` to `sdkVersion` and `updates.checkAutomatically` to `ON_LOAD` (the Expo default: check when the app loads).
+
+`updates.url` is `https://u.expo.dev/60f5039c-20d6-4ebc-adc7-221311f5236c`. `extra.eas.projectId` in [`app.json`](app.json) is the same id. `eas init` still needs an Expo login on this machine before the CLI can confirm the remote binding.
+
+[`eas.json`](eas.json) sets one channel per build profile. A binary only receives updates published on the branch linked to its channel. The first `eas build` for a profile creates that link when the channel name matches the branch name.
+
+| Profile | Channel / branch |
+| ------- | ---------------- |
+| `production` | `production` |
+| `production-apk` | `production-apk` |
+| `gastronomy-production` | `gastronomy-production` |
+| `gastronomy-production-apk` | `gastronomy-production-apk` |
+
+Publish a JavaScript or asset update to the universal store binary:
+
+```bash
+cd frontend
+npx eas-cli update --branch production --message "Describe the JS change"
+```
+
+Use the matching branch for the other profiles (`production-apk`, `gastronomy-production`, `gastronomy-production-apk`).
+
+| Change | What to ship |
+| ------ | ------------ |
+| JavaScript, images, and other assets only | `eas update --branch production --message "..."`. No native rebuild. |
+| Native config (`plugins`, `android`, `ios`, new native modules, `runtimeVersion`) | A new binary (`eas build` or local Gradle/Xcode). An OTA update cannot apply those changes. |
+
+### CNG (prebuild)
 
 This project uses **Continuous Native Generation (prebuild-only)**. The `android/` and `ios/` folders are **not** committed — they are generated from `app.json` when needed.
 
 | Task | Command |
-|------|---------|
+| ---- | ------- |
 | Generate native projects | `cd frontend && npx expo prebuild` |
 | Clean regenerate | `cd frontend && npx expo prebuild --clean` |
 | Run on Android (Expo Go / dev client) | `npm run android` |
+| Universal store AAB (all profiles) | `cd frontend && npx eas build --platform android --profile production` |
+| Universal sideload APK | `cd frontend && npx eas build --platform android --profile production-apk` |
 
 After changing `plugins`, `android`, `ios`, splash, or icon entries in `app.json`, run **`npx expo prebuild --clean`** locally before native builds or EAS Build.
 
@@ -172,7 +662,11 @@ Native folders are listed in `frontend/.gitignore`.
 
 ## Deployment Requirements
 
-- Production API base URL should use the tenant subdomain (e.g. `https://cafe.regkasse.at/api`).
-- Wildcard DNS `*.regkasse.at` and TLS are required at infrastructure level — see `REGKASSE_AI_ONBOARDING.md` §16.
+- Production POS: `https://pos.regkasse.at` → API `https://api.regkasse.at`.
+- Wildcard DNS / TLS and reserved host labels are infrastructure concerns — see `REGKASSE_AI_ONBOARDING.md` and [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md).
 
 Repo-wide detail: `REGKASSE_AI_ONBOARDING.md` (Multi-Tenant Architecture, API Headers, Deployment).
+
+## License
+
+Proprietary — All rights reserved. See [`../LICENSE`](../LICENSE).

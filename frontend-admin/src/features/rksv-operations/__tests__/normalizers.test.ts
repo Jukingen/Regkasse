@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
+import type { PayloadHashRepairableItem } from '@/api/generated/model';
+
 import {
   buildCoverageCardCopy,
   buildFinanzOnlineCardCopy,
@@ -7,7 +10,6 @@ import {
   mapFinanzOnlineMetricsToHealth,
   mapPayloadHashAnalyzeToHealth,
 } from '../normalizers';
-import type { PayloadHashRepairableItem } from '@/api/generated/model';
 
 const basePayload = {
   legacyDataQualityRiskHigh: false,
@@ -29,10 +31,12 @@ describe('mapPayloadHashAnalyzeToHealth', () => {
   });
 
   it('escalates to critical for legacy flag, runtime mismatch, or conflict groups', () => {
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 1, legacyDataQualityRiskHigh: true })).toBe(
-      'critical'
-    );
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 1, runtimeMismatchCount: 1 })).toBe('critical');
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 1, legacyDataQualityRiskHigh: true })
+    ).toBe('critical');
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 1, runtimeMismatchCount: 1 })
+    ).toBe('critical');
     expect(
       mapPayloadHashAnalyzeToHealth({
         ...basePayload,
@@ -43,18 +47,18 @@ describe('mapPayloadHashAnalyzeToHealth', () => {
   });
 
   it('returns warning for ratio, null hashes, repairable, or skipped-would-conflict', () => {
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, mismatchRatioPercent: 0.1 })).toBe(
-      'warning'
-    );
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, nullOrEmptyPayloadHash: 1 })).toBe(
-      'warning'
-    );
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, repairableNoConflictCount: 1 })).toBe(
-      'warning'
-    );
-    expect(mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, skippedWouldConflictCount: 1 })).toBe(
-      'warning'
-    );
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, mismatchRatioPercent: 0.1 })
+    ).toBe('warning');
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, nullOrEmptyPayloadHash: 1 })
+    ).toBe('warning');
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, repairableNoConflictCount: 1 })
+    ).toBe('warning');
+    expect(
+      mapPayloadHashAnalyzeToHealth({ ...basePayload, scanned: 10, skippedWouldConflictCount: 1 })
+    ).toBe('warning');
   });
 
   it('healthy clean payload copy vs zero-row sample copy', () => {
@@ -68,7 +72,9 @@ describe('mapPayloadHashAnalyzeToHealth', () => {
   });
 
   it('unavailable copy is not conflated with all-clear', () => {
-    expect(buildPayloadHashCardCopy(null, 'unavailable').summaryLine).toContain('nicht gleichbedeutend');
+    expect(buildPayloadHashCardCopy(null, 'unavailable').summaryLine).toContain(
+      'nicht gleichbedeutend'
+    );
   });
 });
 
@@ -153,6 +159,8 @@ describe('mapFinanzOnlineMetricsToHealth', () => {
   });
 
   it('unavailable copy warns against reading as all-clear', () => {
-    expect(buildFinanzOnlineCardCopy(null, 'unavailable').summaryLine).toContain('nicht gleichbedeutend');
+    expect(buildFinanzOnlineCardCopy(null, 'unavailable').summaryLine).toContain(
+      'nicht gleichbedeutend'
+    );
   });
 });

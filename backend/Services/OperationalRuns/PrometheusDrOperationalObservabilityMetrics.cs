@@ -12,12 +12,12 @@ public sealed class PrometheusDrOperationalObservabilityMetrics : IDrOperational
 
     public PrometheusDrOperationalObservabilityMetrics()
     {
-        _staleRecoveries = Metrics.CreateCounter(
+        _staleRecoveries = global::Prometheus.Metrics.CreateCounter(
             "stale_run_recovery_total",
             "Lease-expired operational runs finalized by the stale reaper (backup or restore verification).",
             new CounterConfiguration { LabelNames = new[] { "run_kind", "phase" } });
 
-        _proofAge = Metrics.CreateGauge(
+        _proofAge = global::Prometheus.Metrics.CreateGauge(
             "recoverability_proof_age_seconds",
             "Seconds since last successful backup or restore-verification proof; -1 if no proof yet.",
             new GaugeConfiguration { LabelNames = new[] { "kind" } });

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +37,7 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == cashRegisterId && r.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
-        if (register == null)
+        if (register == null || !register.IsActive || register.Status == RegisterStatus.Decommissioned)
             return null;
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
@@ -90,11 +91,17 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
                 cashRegisterId, prevViennaMonthAnchor.Year, prevViennaMonthAnchor.Month, cancellationToken)
             .ConfigureAwait(false);
 
-        var currentMonthInComplianceWindow = currentMonthAnchor >= firstRequiredMonthAnchor;
         var lastMonthInComplianceWindow = prevViennaMonthAnchor >= firstRequiredMonthAnchor;
-        var currentMonthOverdue = !hasCurrentMonthMb && viennaNowLocal.Day > 7 && currentMonthInComplianceWindow;
+        // Current unfinished month is not a Monatsbeleg period (create only after month end).
+        var currentMonthOverdue = false;
         var lastMonthMissing = !hasLastMonthMb && lastMonthInComplianceWindow;
-        var warningMessage = BuildMonatsbelegWarningMessageDe(lastMonthMissing, currentMonthOverdue);
+        var gate = await _monatsbelegPolicy
+            .EvaluateSalesGateAsync(cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        if (lastMonthMissing && gate.WarningLevel != MonatsbelegSalesGateEvaluator.WarningNone)
+            warningLevel = gate.WarningLevel;
+        var warningMessage = gate.WarningMessageDe
+            ?? BuildMonatsbelegWarningMessageDe(lastMonthMissing, currentMonthOverdue);
 
         var lastMbUtc = await _db.PaymentDetails.AsNoTracking()
             .Where(p =>
@@ -121,7 +128,10 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
             LastMonthExists = hasLastMonthMb,
             CurrentMonthOverdue = currentMonthOverdue,
             LastMonthMissing = lastMonthMissing,
-            WarningMessage = warningMessage
+            WarningMessage = warningMessage,
+            BlockingMode = MonatsbelegBlockingModeNames.ToPersisted(gate.Mode),
+            SalesBlocked = gate.BlocksSales,
+            CanContinueWithWarning = gate.CanContinueWithWarning
         };
     }
 
@@ -131,7 +141,7 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var registerIds = await _db.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
+            .Where(r => r.TenantId == tenantId && r.IsActive && r.Status != RegisterStatus.Decommissioned)
             .OrderBy(r => r.RegisterNumber)
             .Select(r => r.Id)
             .ToListAsync(cancellationToken)

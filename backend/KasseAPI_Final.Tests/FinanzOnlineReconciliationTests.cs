@@ -1,12 +1,11 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -15,9 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -32,7 +28,7 @@ public class FinanzOnlineReconciliationTests
             .UseInMemoryDatabase(databaseName: $"FORecon_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, Mock<IFinanzOnlineService> finanzMock)
@@ -57,7 +53,7 @@ public class FinanzOnlineReconciliationTests
         receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(It.IsAny<IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
             .ReturnsAsync((IDbContextTransaction _, Guid _, string r, DateTime d) => $"AT-{r}-{d:yyyyMMdd}-{++seq}");
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
-        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
+        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
@@ -70,7 +66,7 @@ public class FinanzOnlineReconciliationTests
     {
         var regId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
-        context.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regId, RegisterNumber = "R1", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        context.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = regId, RegisterNumber = "R1", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "C", Email = "c@c.com", Phone = "1", IsActive = true });
         await context.SaveChangesAsync();
 
@@ -105,6 +101,7 @@ public class FinanzOnlineReconciliationTests
         context.Invoices.Add(new Invoice
         {
             Id = invoiceId,
+            TenantId = SystemTenantIds.Platform,
             SourcePaymentId = paymentId,
             InvoiceNumber = payment.ReceiptNumber,
             InvoiceDate = payment.CreatedAt,

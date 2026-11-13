@@ -3,50 +3,54 @@
  * Re-exports from Orval-generated model types for contract alignment.
  * InvoiceListParams kept as manual type for query param construction convenience.
  */
-
 // Re-export generated types
-export type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
-export type { PagedResultOfInvoiceListItemDto } from '@/api/generated/model/pagedResultOfInvoiceListItemDto';
-export type { GetInvoiceListParams } from '@/api/generated/model/getInvoiceListParams';
-export type { InvoiceStatus } from '@/api/generated/model/invoiceStatus';
-export type { ExportInvoicesParams } from '@/api/generated/model/exportInvoicesParams';
-
 import type { InvoiceStatus as _InvoiceStatus } from '@/api/generated/model/invoiceStatus';
+
+export type { ExportInvoicesParams } from '@/api/generated/model/exportInvoicesParams';
+export type { GetInvoiceListParams } from '@/api/generated/model/getInvoiceListParams';
+export type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
+export type { InvoiceStatus } from '@/api/generated/model/invoiceStatus';
+export type { PagedResultOfInvoiceListItemDto } from '@/api/generated/model/pagedResultOfInvoiceListItemDto';
 
 // Legacy compat alias
 export type PagedResult<T> = {
-    items?: T[];
-    page?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
+  items?: T[];
+  page?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
 };
 
 /** Must match table `dataIndex` / API expectations; keep in sync when OpenAPI documents allowed sort keys. */
-export const INVOICE_LIST_SORT_FIELDS = ['invoiceDate', 'invoiceNumber', 'totalAmount', 'status'] as const;
+export const INVOICE_LIST_SORT_FIELDS = [
+  'invoiceDate',
+  'invoiceNumber',
+  'totalAmount',
+  'status',
+] as const;
 export type InvoiceListSortBy = (typeof INVOICE_LIST_SORT_FIELDS)[number];
 
 export function coerceInvoiceListSortField(field: unknown): InvoiceListSortBy {
-    if (
-        field === 'invoiceDate' ||
-        field === 'invoiceNumber' ||
-        field === 'totalAmount' ||
-        field === 'status'
-    ) {
-        return field;
-    }
-    return 'invoiceDate';
+  if (
+    field === 'invoiceDate' ||
+    field === 'invoiceNumber' ||
+    field === 'totalAmount' ||
+    field === 'status'
+  ) {
+    return field;
+  }
+  return 'invoiceDate';
 }
 
 // Manual params type kept for backward compat with invoiceService.ts
 export interface InvoiceListParams {
-    page?: number;
-    pageSize?: number;
-    from?: string; // ISO Date
-    to?: string; // ISO Date
-    status?: _InvoiceStatus;
-    query?: string;
-    sortBy?: InvoiceListSortBy;
-    sortDir?: 'asc' | 'desc';
-    cashRegisterId?: string;
+  page?: number;
+  pageSize?: number;
+  from?: string; // ISO Date
+  to?: string; // ISO Date
+  status?: _InvoiceStatus;
+  query?: string;
+  sortBy?: InvoiceListSortBy;
+  sortDir?: 'asc' | 'desc';
+  cashRegisterId?: string;
 }

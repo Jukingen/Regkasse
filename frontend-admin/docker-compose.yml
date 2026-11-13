@@ -1,0 +1,40 @@
+# Local / staging Compose for frontend-admin only.
+# Build-args bake NEXT_PUBLIC_* into the client bundle at image build time.
+# Runtime `environment:` cannot change those inlined values.
+#
+# Usage (from frontend-admin/):
+#   docker compose build
+#   docker compose up -d
+#   curl -sI http://localhost:3000/login
+#
+# Production example:
+#   NEXT_PUBLIC_API_BASE_URL=https://api.regkasse.at \
+#   NEXT_PUBLIC_RKSV_ENVIRONMENT=PROD \
+#   docker compose build --no-cache
+
+services:
+  frontend-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://host.docker.internal:5184}
+        NEXT_PUBLIC_RKSV_ENVIRONMENT: ${NEXT_PUBLIC_RKSV_ENVIRONMENT:-TEST}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-}
+        NEXT_PUBLIC_SENTRY_RELEASE: ${NEXT_PUBLIC_SENTRY_RELEASE:-}
+    image: regkasse-frontend-admin:local
+    container_name: regkasse-frontend-admin
+    ports:
+      - '${ADMIN_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      HOSTNAME: 0.0.0.0
+      # Informational only for operators; client bundle already baked at build:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://host.docker.internal:5184}
+      NEXT_PUBLIC_RKSV_ENVIRONMENT: ${NEXT_PUBLIC_RKSV_ENVIRONMENT:-TEST}
+    restart: unless-stopped
+    # Uncomment when the API runs on the host (Docker Desktop / Windows):
+    # extra_hosts:
+    #   - 'host.docker.internal:host-gateway'

@@ -1,13 +1,10 @@
+import type { ReceiptDTO, ReceiptListItemDtoPagedResult } from '@/api/generated/model';
 import {
   getApiReceiptsByPaymentPaymentId,
   getApiReceiptsList,
   getApiReceiptsReceiptId,
   getApiReceiptsReceiptIdSignatureDebug,
 } from '@/api/generated/receipts/receipts';
-import type {
-  ReceiptDTO,
-  ReceiptListItemDtoPagedResult,
-} from '@/api/generated/model';
 import type {
   ReceiptDetailDto,
   ReceiptListItemDto,
@@ -19,7 +16,10 @@ import type {
   SignatureDebugApiResponse,
   SignatureDiagnosticStepDto,
 } from '@/features/receipts/types/signature-debug';
-function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[number]): ReceiptListItemDto {
+
+function toListItem(
+  row: NonNullable<ReceiptListItemDtoPagedResult['items']>[number]
+): ReceiptListItemDto {
   return {
     receiptId: row.receiptId ?? '',
     paymentId: row.paymentId ?? '',
@@ -34,6 +34,7 @@ function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[num
     createdAt: row.createdAt ?? '',
     rksvSpecialReceiptKind: row.rksvSpecialReceiptKind ?? null,
     rksvFinanzOnlineSubmissionStatus: row.rksvFinanzOnlineSubmissionStatus ?? null,
+    hasStoredPdf: row.hasStoredPdf ?? false,
   };
 }
 
@@ -94,7 +95,9 @@ export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
   };
 }
 
-export async function getReceiptListForensics(params: ReceiptListParams): Promise<ReceiptListResponse> {
+export async function getReceiptListForensics(
+  params: ReceiptListParams
+): Promise<ReceiptListResponse> {
   const data = await getApiReceiptsList({
     page: params.page,
     pageSize: params.pageSize,
@@ -138,12 +141,21 @@ function normalizeReceiptSignaturePayload(raw: unknown): PaymentSignatureDebugPa
       stepId: 1,
       name: 'Receipt signature present',
       status: hasSig ? 'PASS' : 'WARN',
-      evidence: hasSig ? 'signatureValue present on receipt signature debug response.' : String(o.message ?? 'No signature'),
+      evidence: hasSig
+        ? 'signatureValue present on receipt signature debug response.'
+        : String(o.message ?? 'No signature'),
     },
     {
       stepId: 2,
       name: 'TSE signature verification',
-      status: verifyResult === 'PASS' ? 'PASS' : verifyResult === 'FAIL' ? 'FAIL' : 'WARN',
+      status:
+        verifyResult === 'PASS'
+          ? 'PASS'
+          : verifyResult === 'FAIL'
+            ? 'FAIL'
+            : verifyResult === 'SIMULATED'
+              ? 'SIMULATED'
+              : 'WARN',
       evidence: `verifyResult=${verifyResult}`,
     },
   ];
@@ -153,7 +165,9 @@ function normalizeReceiptSignaturePayload(raw: unknown): PaymentSignatureDebugPa
   };
 }
 
-export async function getReceiptSignatureDebugForensics(receiptId: string): Promise<SignatureDebugApiResponse> {
+export async function getReceiptSignatureDebugForensics(
+  receiptId: string
+): Promise<SignatureDebugApiResponse> {
   const raw = await getApiReceiptsReceiptIdSignatureDebug(receiptId);
   return {
     success: true,

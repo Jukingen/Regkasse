@@ -1,9 +1,11 @@
-import React from 'react';
 import '@testing-library/jest-dom';
-import axios from 'axios';
-import { Modal } from 'antd';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { App, Modal } from 'antd';
+import axios from 'axios';
+import React from 'react';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -21,7 +23,6 @@ beforeAll(() => {
     })),
   });
 });
-import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 
 const getMock = vi.fn();
 const putMock = vi.fn();
@@ -43,7 +44,8 @@ const baseDto = {
   effectiveUserFacingMode: 'Fake',
   recommendedFallbackUserFacingMode: null,
   adapterKindIfConfigurationDefaultOnly: 'Fake',
-  effectiveModeResolutionSummaryEnglish: 'Requested=UseConfigurationDefault, effective=Fake, runnable=true.',
+  effectiveModeResolutionSummaryEnglish:
+    'Requested=UseConfigurationDefault, effective=Fake, runnable=true.',
   configurationExecutionAdapterKind: 'Fake',
   effectiveExecutionAdapterKind: 'Fake',
   effectiveModeRunnable: true,
@@ -51,7 +53,11 @@ const baseDto = {
   blockers: [],
   realModeBlockingDiagnostics: [],
   selectableModes: [
-    { userFacingMode: 'UseConfigurationDefault', internalMode: 'InheritFromConfiguration', selectable: true },
+    {
+      userFacingMode: 'UseConfigurationDefault',
+      internalMode: 'InheritFromConfiguration',
+      selectable: true,
+    },
     { userFacingMode: 'Fake', internalMode: 'SimulatedFake', selectable: true, blockReason: null },
     { userFacingMode: 'RealPgDump', internalMode: 'PostgreSqlPgDump', selectable: true },
   ],
@@ -143,6 +149,10 @@ function t(k: string, options?: Record<string, string | number>): string {
   return k;
 }
 
+function renderCard(ui: React.ReactElement) {
+  return render(<App>{ui}</App>);
+}
+
 describe('BackupExecutionModeCard', () => {
   beforeEach(() => {
     Modal.destroyAll();
@@ -158,7 +168,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('loads and shows requested / effective / default rows', async () => {
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Execution mode')).toBeInTheDocument());
     expect(screen.getByText('Requested')).toBeInTheDocument();
     expect(screen.getByText('Effective')).toBeInTheDocument();
@@ -166,7 +176,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('disables save when canManage is false', async () => {
-    render(<BackupExecutionModeCard canManage={false} t={t} />);
+    renderCard(<BackupExecutionModeCard canManage={false} t={t} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled());
     expect(screen.getByText('View only')).toBeInTheDocument();
   });
@@ -174,8 +184,10 @@ describe('BackupExecutionModeCard', () => {
   it('opens confirm modal before save', async () => {
     putMock.mockResolvedValue({ ...baseDto });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /Inherit/i })).toBeInTheDocument());
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Inherit/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /Fake opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -195,10 +207,16 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('authorized user can select Real and save uses confirm copy for Real (effective target PgDump)', async () => {
-    putMock.mockResolvedValue({ ...baseDto, requestedUserFacingMode: 'RealPgDump', storedMode: 'PostgreSqlPgDump' });
+    putMock.mockResolvedValue({
+      ...baseDto,
+      requestedUserFacingMode: 'RealPgDump',
+      storedMode: 'PostgreSqlPgDump',
+    });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeInTheDocument());
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /PgDump opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -219,7 +237,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('disables radios when canManage is false (cannot change requested mode)', async () => {
-    render(<BackupExecutionModeCard canManage={false} t={t} />);
+    renderCard(<BackupExecutionModeCard canManage={false} t={t} />);
     const card = await waitFor(() => {
       const title = screen.getByText('Execution mode');
       const el = title.closest('.ant-card');
@@ -235,7 +253,11 @@ describe('BackupExecutionModeCard', () => {
     getMock.mockResolvedValue({
       ...baseDto,
       selectableModes: [
-        { userFacingMode: 'UseConfigurationDefault', internalMode: 'InheritFromConfiguration', selectable: true },
+        {
+          userFacingMode: 'UseConfigurationDefault',
+          internalMode: 'InheritFromConfiguration',
+          selectable: true,
+        },
         { userFacingMode: 'Fake', internalMode: 'SimulatedFake', selectable: true },
         {
           userFacingMode: 'RealPgDump',
@@ -247,7 +269,7 @@ describe('BackupExecutionModeCard', () => {
       hypotheticalPgDumpHealthLevel: 'Unhealthy',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('BLOCK_REAL_ROW')).toBeInTheDocument());
     expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeDisabled();
   });
@@ -263,7 +285,7 @@ describe('BackupExecutionModeCard', () => {
       recommendedFallbackUserFacingMode: 'UseConfigurationDefault',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Real blocked title')).toBeInTheDocument());
     expect(screen.getByText('No silent fake')).toBeInTheDocument();
     expect(screen.getByText('Fallback title')).toBeInTheDocument();
@@ -280,7 +302,7 @@ describe('BackupExecutionModeCard', () => {
       effectiveModeResolutionSummaryEnglish: 'Requested=RealPgDump, effective=Fake.',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => {
       const realTags = screen.getAllByText('Real');
       expect(realTags.length).toBeGreaterThanOrEqual(1);
@@ -295,8 +317,10 @@ describe('BackupExecutionModeCard', () => {
       response: { status: 422, data: { code: 'BACKUP_PG_DUMP_PREREQUISITES_UNHEALTHY' } },
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /Fake opt/i })).toBeInTheDocument());
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Fake opt/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /Fake opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -313,7 +337,7 @@ describe('BackupExecutionModeCard', () => {
     vi.spyOn(axios, 'isAxiosError').mockReturnValue(true);
     getMock.mockRejectedValue({ response: { status: 403 } });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Load forbidden')).toBeInTheDocument());
   });
 });

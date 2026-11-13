@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
 
 export interface ModifierChipItem {

@@ -1,0 +1,36 @@
+# BuildKit ignore for: docker build -f frontend/Dockerfile <repo-root>
+
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+**/.DS_Store
+
+backend/
+frontend-admin/
+frontend-sites/
+localization/
+testsprite/
+docs/
+ai/
+scripts/
+deploy/
+monitoring/
+tools/
+
+# Keep frontend sources; drop heavy/local artifacts
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/coverage/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+**/node_modules/
+**/*.md
+!frontend/README.md
+
+**/*.user
+**/*.suo

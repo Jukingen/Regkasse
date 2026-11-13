@@ -1,0 +1,18 @@
+{
+  "pageTitle": "Database migrations",
+  "accessDenied": "Only Super Administrators can view migration status.",
+  "introTitle": "Additive schema strategy",
+  "introBody": "Pending and applied EF Core migrations for the connected database.",
+  "strategyHint": "Additive, backward-compatible changes only. See docs/DATABASE_MIGRATION_STRATEGY.md. Staging/Canary migrate automatically; Production requires Environment approval.",
+  "status": "Status",
+  "appliedCount": "Applied",
+  "pendingCount": "Pending",
+  "latestApplied": "Latest applied",
+  "pendingWarning": "Pending migrations detected — finish migrate/deploy before increasing traffic.",
+  "pendingTitle": "Pending migrations",
+  "recentTitle": "Recently applied migrations",
+  "noPending": "No pending migrations",
+  "columns": {
+    "id": "Migration ID"
+  }
+}

@@ -1,17 +1,14 @@
 using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Tests;
 
@@ -27,7 +24,7 @@ public class PaymentReceiptSignatureIntegrationTests
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static TseService CreateTseService(AppDbContext context, SignaturePipeline pipeline, SoftwareTseKeyProvider keyProvider)
@@ -89,14 +86,14 @@ public class PaymentReceiptSignatureIntegrationTests
             tseService,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         var customer = new Customer { Id = Guid.NewGuid(), Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true };
         context.Customers.Add(customer);
         var payRegId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = payRegId,
             RegisterNumber = "KASSE-01",
             Location = "T",

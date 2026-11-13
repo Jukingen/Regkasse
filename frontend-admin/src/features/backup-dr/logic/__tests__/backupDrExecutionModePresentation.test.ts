@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { fakeSwitchNeedsStrongWarning } from '@/features/backup-dr/logic/backupDrExecutionModePresentation';
 import { isRealRequestedNonRunnableState } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
@@ -32,8 +33,8 @@ describe('isRealRequestedNonRunnableState', () => {
           requestedUserFacingMode: 'RealPgDump',
           effectiveExecutionAdapterKind: 'PgDump',
           effectiveModeRunnable: false,
-        }),
-      ),
+        })
+      )
     ).toBe(true);
   });
 
@@ -44,8 +45,8 @@ describe('isRealRequestedNonRunnableState', () => {
           requestedUserFacingMode: 'RealPgDump',
           effectiveExecutionAdapterKind: 'PgDump',
           effectiveModeRunnable: true,
-        }),
-      ),
+        })
+      )
     ).toBe(false);
   });
 });
@@ -58,7 +59,7 @@ describe('fakeSwitchNeedsStrongWarning', () => {
         internalMode: 'SimulatedFake',
         selectable: true,
         blockReason: 'production',
-      }),
+      })
     ).toBe(false);
   });
 
@@ -69,7 +70,7 @@ describe('fakeSwitchNeedsStrongWarning', () => {
         internalMode: 'SimulatedFake',
         selectable: true,
         blockReason: 'Allowed with explicit API confirmation when saving.',
-      }),
+      })
     ).toBe(true);
   });
 
@@ -80,7 +81,7 @@ describe('fakeSwitchNeedsStrongWarning', () => {
         internalMode: 'SimulatedFake',
         selectable: false,
         blockReason: 'blocked',
-      }),
+      })
     ).toBe(false);
   });
 });

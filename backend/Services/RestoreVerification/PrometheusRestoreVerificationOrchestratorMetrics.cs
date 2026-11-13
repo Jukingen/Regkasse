@@ -16,12 +16,12 @@ public sealed class PrometheusRestoreVerificationOrchestratorMetrics : IRestoreV
 
     public PrometheusRestoreVerificationOrchestratorMetrics()
     {
-        _gateOutcomes = Metrics.CreateCounter(
+        _gateOutcomes = global::Prometheus.Metrics.CreateCounter(
             "restore_verification_orchestrator_distributed_gate_total",
             "Restore verification worker distributed gate (PostgreSQL advisory lock; separate key pair from backup).",
             new CounterConfiguration { LabelNames = new[] { "outcome" } });
 
-        _lockHoldSeconds = Metrics.CreateHistogram(
+        _lockHoldSeconds = global::Prometheus.Metrics.CreateHistogram(
             "restore_verification_orchestrator_advisory_lock_hold_seconds",
             "Non-pooled advisory lock connection held (weekly enqueue check + single drill run).",
             new HistogramConfiguration
@@ -29,12 +29,12 @@ public sealed class PrometheusRestoreVerificationOrchestratorMetrics : IRestoreV
                 Buckets = Histogram.ExponentialBuckets(1, 2, 20)
             });
 
-        _runTotal = Metrics.CreateCounter(
+        _runTotal = global::Prometheus.Metrics.CreateCounter(
             "restore_verification_run_total",
             "Terminal restore verification drill runs (Queued→Succeeded or Failed).",
             new CounterConfiguration { LabelNames = new[] { "status", "trigger_source" } });
 
-        _runDurationSeconds = Metrics.CreateHistogram(
+        _runDurationSeconds = global::Prometheus.Metrics.CreateHistogram(
             "restore_verification_run_duration_seconds",
             "Wall time from StartedAt to CompletedAt for terminal restore verification runs.",
             new HistogramConfiguration
@@ -43,12 +43,12 @@ public sealed class PrometheusRestoreVerificationOrchestratorMetrics : IRestoreV
                 Buckets = Histogram.ExponentialBuckets(1, 2, 20)
             });
 
-        _scheduledEnqueueSuppressed = Metrics.CreateCounter(
+        _scheduledEnqueueSuppressed = global::Prometheus.Metrics.CreateCounter(
             "restore_verification_scheduled_enqueue_suppressed_total",
             "Scheduled weekly drill was not enqueued (unhealthy configuration, etc.).",
             new CounterConfiguration { LabelNames = new[] { "reason" } });
 
-        _workerTickSuppressed = Metrics.CreateCounter(
+        _workerTickSuppressed = global::Prometheus.Metrics.CreateCounter(
             "restore_verification_worker_tick_suppressed_total",
             "Worker tick skipped before dequeue (e.g. distributed gate could not connect).",
             new CounterConfiguration { LabelNames = new[] { "reason" } });

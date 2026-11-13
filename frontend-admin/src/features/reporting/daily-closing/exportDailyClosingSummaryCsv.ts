@@ -28,7 +28,7 @@ export type DailyClosingSummaryCsvRow = {
  */
 export function dailyClosingSummaryToCsvRow(
   data: DailyClosingSummaryDto,
-  meta: { dateParam: string; registerLabel: string },
+  meta: { dateParam: string; registerLabel: string }
 ): DailyClosingSummaryCsvRow {
   const date =
     data.businessDate != null && data.businessDate !== ''
@@ -49,7 +49,7 @@ export function dailyClosingSummaryToCsvRow(
 export function dailyClosingSummaryToCsvMatrix(
   data: DailyClosingSummaryDto,
   meta: { dateParam: string; registerLabel: string },
-  labels: DailyClosingCsvColumnLabels,
+  labels: DailyClosingCsvColumnLabels
 ): unknown[][] {
   const row = dailyClosingSummaryToCsvRow(data, meta);
   return [
@@ -77,7 +77,7 @@ export function dailyClosingSummaryToCsvMatrix(
 export function convertDailyClosingSummaryToCsv(
   data: DailyClosingSummaryDto,
   meta: { dateParam: string; registerLabel: string },
-  labels: DailyClosingCsvColumnLabels,
+  labels: DailyClosingCsvColumnLabels
 ): string {
   return rowsToCsv(dailyClosingSummaryToCsvMatrix(data, meta, labels));
 }
@@ -85,14 +85,14 @@ export function convertDailyClosingSummaryToCsv(
 export function exportDailyClosingSummaryCsv(
   data: DailyClosingSummaryDto,
   meta: { dateParam: string; registerSlug: string },
-  labels: DailyClosingCsvColumnLabels,
+  labels: DailyClosingCsvColumnLabels
 ): void {
   const registerPart = meta.registerSlug.replace(/[^\w-]+/g, '_').slice(0, 40) || 'all';
   const fileName = `daily-closing_${meta.dateParam}_${registerPart}.csv`;
   const csv = convertDailyClosingSummaryToCsv(
     data,
     { dateParam: meta.dateParam, registerLabel: meta.registerSlug },
-    labels,
+    labels
   );
   downloadCsvText(csv, fileName);
 }

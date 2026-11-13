@@ -1,0 +1,78 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "FA API duration (p95 proxy via logs)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "avg_over_time({service=\"frontend-admin\"} |= \"api_metric\" | json | unwrap durationMs [5m])",
+          "legendFormat": "avg durationMs",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "FA API errors (ok=false)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"frontend-admin\"} |= \"api_metric\" | json | ok=\"false\" [5m]))",
+          "legendFormat": "errors / 5m",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Web Vitals LCP degraded",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"frontend-admin\"} |= \"web_vital\" | json | name=\"LCP\" | degraded=\"true\" [15m]))",
+          "legendFormat": "LCP degraded",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Health checks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"frontend-admin\"} |= \"health_ok\" [5m]))",
+          "legendFormat": "health_ok",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["regkasse", "frontend-admin"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Regkasse Frontend Admin",
+  "uid": "regkasse-fa-monitoring",
+  "version": 1
+}

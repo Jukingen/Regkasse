@@ -1,3 +1,7 @@
 'use client';
 
-export { DensityContext, useDensityContext, type DensityContextValue } from '@/lib/personalization/DensityContext';
+export {
+  DensityContext,
+  type DensityContextValue,
+  useDensityContext,
+} from '@/lib/personalization/DensityContext';

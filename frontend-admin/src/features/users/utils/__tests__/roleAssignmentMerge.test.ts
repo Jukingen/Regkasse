@@ -2,11 +2,9 @@
  * Role assignment merge logic – full catalog vs assigned-only for checked state.
  * Ensures UI is never driven by assigned subset for the visible list; assigned only for checked.
  */
-import { describe, it, expect } from 'vitest';
-import {
-  getAssignedRoleIdsFromUser,
-  isRoleChecked,
-} from '../roleAssignmentMerge';
+import { describe, expect, it } from 'vitest';
+
+import { getAssignedRoleIdsFromUser, isRoleChecked } from '../roleAssignmentMerge';
 
 describe('roleAssignmentMerge', () => {
   describe('getAssignedRoleIdsFromUser', () => {

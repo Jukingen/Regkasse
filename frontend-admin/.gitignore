@@ -1,43 +1,18 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Package-local ignores for frontend-admin.
+# Root `.gitignore` already covers: node_modules/, .next/, dist/, coverage/,
+# .env* / *.local, *.log, *.tsbuildinfo, .vercel/, .netlify/, IDE junk, etc.
+# Keep only artifacts that are specific to this package’s tooling.
 
-# Dependencies
-node_modules
-dist
-dist-ssr
-*.local
+# Playwright E2E
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Testing
-coverage
+# Coverage tooling extras (root covers coverage/)
 .nyc_output
 
-# Build
-build
-out
-
-# Cache
+# Tooling caches
 .cache
 .eslintcache
 .stylelintcache

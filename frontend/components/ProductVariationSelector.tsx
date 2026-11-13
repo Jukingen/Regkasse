@@ -1,9 +1,9 @@
 // Türkçe Açıklama: Ürün varyasyonları (boyut, porsiyon) seçimi için görsel komponent. Fiyat değişikliklerini otomatik hesaplar ve gösterir.
 
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 
 export interface ProductVariation {
   id: string;
@@ -31,21 +31,21 @@ const ProductVariationSelector: React.FC<ProductVariationSelectorProps> = ({
   selectedVariationId,
   basePrice,
   onVariationChange,
-  disabled = false
+  disabled = false,
 }) => {
   const { t } = useTranslation();
 
   // Aktif varyasyonları sırala
   const activeVariations = variations
-    .filter(v => v.isActive)
+    .filter((v) => v.isActive)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Varsayılan varyasyonu bul
-  const defaultVariation = activeVariations.find(v => v.isDefault) || activeVariations[0];
-  
+  const defaultVariation = activeVariations.find((v) => v.isDefault) || activeVariations[0];
+
   // Seçili varyasyonu belirle
-  const selectedVariation = selectedVariationId 
-    ? activeVariations.find(v => v.id === selectedVariationId) 
+  const selectedVariation = selectedVariationId
+    ? activeVariations.find((v) => v.id === selectedVariationId)
     : defaultVariation;
 
   // Fiyat hesaplama
@@ -67,56 +67,52 @@ const ProductVariationSelector: React.FC<ProductVariationSelectorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('product.variations', 'Seçenekler')}</Text>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
+        contentContainerStyle={styles.scrollContainer}>
         {activeVariations.map((variation) => {
           const isSelected = selectedVariation?.id === variation.id;
           const variationPrice = calculatePrice(variation);
           const priceDifference = variationPrice - basePrice;
-          
+
           return (
             <TouchableOpacity
               key={variation.id}
               style={[
                 styles.variationButton,
                 {
-                  backgroundColor: isSelected ? (variation.color || '#1976d2') : '#f5f5f5',
+                  backgroundColor: isSelected ? variation.color || '#1976d2' : '#f5f5f5',
                   borderColor: variation.color || '#1976d2',
-                }
+                },
               ]}
-              onPress={() => handleVariationSelect(variation)}
+              onPress={() => {
+                handleVariationSelect(variation);
+              }}
               disabled={disabled}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               {variation.icon && (
                 <Ionicons
                   name={variation.icon as any}
                   size={20}
-                  color={isSelected ? '#fff' : (variation.color || '#1976d2')}
+                  color={isSelected ? '#fff' : variation.color || '#1976d2'}
                   style={styles.icon}
                 />
               )}
-              <Text style={[
-                styles.variationName,
-                { color: isSelected ? '#fff' : '#333' }
-              ]}>
+              <Text style={[styles.variationName, { color: isSelected ? '#fff' : '#333' }]}>
                 {variation.name}
               </Text>
-              <Text style={[
-                styles.variationPrice,
-                { color: isSelected ? '#fff' : '#666' }
-              ]}>
+              <Text style={[styles.variationPrice, { color: isSelected ? '#fff' : '#666' }]}>
                 €{variationPrice.toFixed(2)}
               </Text>
               {priceDifference !== 0 && (
-                <Text style={[
-                  styles.priceDifference,
-                  { color: isSelected ? '#fff' : (priceDifference > 0 ? '#d32f2f' : '#388e3c') }
-                ]}>
-                  {priceDifference > 0 ? '+' : ''}{priceDifference.toFixed(2)} €
+                <Text
+                  style={[
+                    styles.priceDifference,
+                    { color: isSelected ? '#fff' : priceDifference > 0 ? '#d32f2f' : '#388e3c' },
+                  ]}>
+                  {priceDifference > 0 ? '+' : ''}
+                  {priceDifference.toFixed(2)} €
                 </Text>
               )}
             </TouchableOpacity>
@@ -172,4 +168,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductVariationSelector; 
+export default ProductVariationSelector;

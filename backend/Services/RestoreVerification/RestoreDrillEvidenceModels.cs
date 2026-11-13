@@ -316,4 +316,18 @@ public static class RestoreDrillEvidenceJson
     };
 
     public static string Serialize(RestoreDrillEvidenceDocument doc) => JsonSerializer.Serialize(doc, Options);
+
+    public static RestoreDrillEvidenceDocument? TryDeserialize(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<RestoreDrillEvidenceDocument>(json, Options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

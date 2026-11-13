@@ -29,12 +29,14 @@ export default function CustomerSelectionModal({
   onCustomerSelected,
   selectedCustomer,
 }: CustomerSelectionModalProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('customers');
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'Regular' | 'Premium' | 'VIP' | 'All'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<'Regular' | 'Premium' | 'VIP' | 'All'>(
+    'All'
+  );
 
   useEffect(() => {
     if (visible) {
@@ -49,10 +51,10 @@ export default function CustomerSelectionModal({
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const data = await customerService.getCustomers();
-      setCustomers(data.filter(c => c.isActive));
+      const data = await customerService.getAll();
+      setCustomers(data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load customers');
+      Alert.alert(t('common:error', { defaultValue: 'Fehler' }), t('errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -63,17 +65,18 @@ export default function CustomerSelectionModal({
 
     // Kategori filtresi
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(c => c.category === selectedCategory);
+      filtered = filtered.filter((c) => c.category === selectedCategory);
     }
 
     // Arama filtresi
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(c =>
-        c.name.toLowerCase().includes(query) ||
-        c.email.toLowerCase().includes(query) ||
-        c.phone.includes(query) ||
-        c.taxNumber.includes(query)
+      filtered = filtered.filter(
+        (c) =>
+          c.name.toLowerCase().includes(query) ||
+          c.email.toLowerCase().includes(query) ||
+          c.phone.includes(query) ||
+          c.taxNumber.includes(query)
       );
     }
 
@@ -87,74 +90,94 @@ export default function CustomerSelectionModal({
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'VIP': return Colors.light.warning;
-      case 'Premium': return Colors.light.primary;
-      default: return Colors.light.success;
+      case 'VIP':
+        return Colors.light.warning;
+      case 'Premium':
+        return Colors.light.primary;
+      default:
+        return Colors.light.success;
     }
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'VIP': return 'star';
-      case 'Premium': return 'diamond';
-      default: return 'person';
+      case 'VIP':
+        return 'star';
+      case 'Premium':
+        return 'diamond';
+      default:
+        return 'person';
     }
   };
 
   const renderCustomerItem = ({ item }: { item: Customer }) => (
     <TouchableOpacity
-      style={[
-        styles.customerItem,
-        selectedCustomer?.id === item.id && styles.selectedCustomerItem
-      ]}
-      onPress={() => handleCustomerSelect(item)}
-    >
+      style={[styles.customerItem, selectedCustomer?.id === item.id && styles.selectedCustomerItem]}
+      onPress={() => {
+        handleCustomerSelect(item);
+      }}>
       <View style={styles.customerInfo}>
         <View style={styles.customerHeader}>
           <Ionicons
-            name={getCategoryIcon(item.category) as any}
+            name={getCategoryIcon(item.category)}
             size={20}
             color={getCategoryColor(item.category)}
           />
           <Text style={styles.customerName}>{item.name}</Text>
-          <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(item.category) }]}>
+          <View
+            style={[styles.categoryBadge, { backgroundColor: getCategoryColor(item.category) }]}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
         </View>
-        
+
         <Text style={styles.customerEmail}>{item.email}</Text>
         <Text style={styles.customerPhone}>{item.phone}</Text>
-        
+
         {item.discountPercentage > 0 && (
           <View style={styles.discountInfo}>
             <Ionicons name="pricetag" size={16} color={Colors.light.success} />
-            <Text style={styles.discountText}>
-              {item.discountPercentage}% discount
-            </Text>
+            <Text style={styles.discountText}>{item.discountPercentage}% discount</Text>
           </View>
         )}
       </View>
-      
+
       <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
     </TouchableOpacity>
   );
 
+  const categoryLabel = (category: 'All' | 'Regular' | 'Premium' | 'VIP') => {
+    switch (category) {
+      case 'All':
+        return t('all');
+      case 'Regular':
+        return t('regular');
+      case 'Premium':
+        return t('premium');
+      case 'VIP':
+        return t('vip');
+      default:
+        return category;
+    }
+  };
+
   const renderCategoryFilter = () => (
     <View style={styles.categoryFilter}>
-      {(['All', 'Regular', 'Premium', 'VIP'] as const).map(category => (
+      {(['All', 'Regular', 'Premium', 'VIP'] as const).map((category) => (
         <TouchableOpacity
           key={category}
           style={[
             styles.categoryFilterButton,
-            selectedCategory === category && styles.categoryFilterButtonActive
+            selectedCategory === category && styles.categoryFilterButtonActive,
           ]}
-          onPress={() => setSelectedCategory(category)}
-        >
-          <Text style={[
-            styles.categoryFilterText,
-            selectedCategory === category && styles.categoryFilterTextActive
-          ]}>
-            {category}
+          onPress={() => {
+            setSelectedCategory(category);
+          }}>
+          <Text
+            style={[
+              styles.categoryFilterText,
+              selectedCategory === category && styles.categoryFilterTextActive,
+            ]}>
+            {categoryLabel(category)}
           </Text>
         </TouchableOpacity>
       ))}
@@ -162,18 +185,14 @@ export default function CustomerSelectionModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>Select Customer</Text>
+          <Text style={styles.title}>{t('selectionTitle')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -182,13 +201,16 @@ export default function CustomerSelectionModal({
           <Ionicons name="search" size={20} color={Colors.light.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search customers..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor={Colors.light.textSecondary}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+              }}>
               <Ionicons name="close-circle" size={20} color={Colors.light.textSecondary} />
             </TouchableOpacity>
           )}
@@ -201,7 +223,7 @@ export default function CustomerSelectionModal({
         {loading ? (
           <View style={styles.loadingContainer}>
             <WaveLoader size={32} color={Colors.light.primary} />
-            <Text style={styles.loadingText}>Loading customers...</Text>
+            <Text style={styles.loadingText}>{t('loadingCustomers')}</Text>
           </View>
         ) : (
           <FlatList
@@ -213,7 +235,7 @@ export default function CustomerSelectionModal({
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons name="people-outline" size={64} color={Colors.light.textSecondary} />
-                <Text style={styles.emptyText}>No customers found</Text>
+                <Text style={styles.emptyText}>{t('noResults')}</Text>
                 <Text style={styles.emptySubtext}>
                   Try adjusting your search or category filter
                 </Text>
@@ -384,4 +406,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
-}); 
+});

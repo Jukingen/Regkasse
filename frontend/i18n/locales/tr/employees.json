@@ -8,5 +8,26 @@
   "permissions": "İzinler",
   "shift": "Vardiya",
   "clockIn": "Giriş Yap",
-  "clockOut": "Çıkış Yap"
+  "clockOut": "Çıkış Yap",
+  "selectionSheet": {
+    "title": "Personel",
+    "employeeNumberLabel": "Çalışan no.",
+    "numberPlaceholder": "Numara girin",
+    "search": "Ara",
+    "benefitsHint": "Avantajlar ödeme sırasında uygulanır.",
+    "or": "veya",
+    "chooseFromList": "Listeden seç",
+    "filterPlaceholder": "Ad veya no. ile filtrele",
+    "back": "Geri",
+    "loadingList": "Liste yükleniyor…",
+    "emptyList": "Kayıt yok",
+    "numberPrefix": "No.",
+    "closeA11y": "Kapat",
+    "alertNotFoundTitle": "Bulunamadı",
+    "alertNotFoundMessage": "Bu numaraya sahip aktif çalışan bulunamadı.",
+    "alertSearchFailedTitle": "Hata",
+    "alertSearchFailedMessage": "Arama başarısız. Lütfen tekrar deneyin.",
+    "alertListFailedTitle": "Bilgi",
+    "alertListFailedMessage": "Çalışan listesi yüklenemedi."
+  }
 }

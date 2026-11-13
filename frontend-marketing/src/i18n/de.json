@@ -1,0 +1,122 @@
+{
+  "languageLabel": "Sprache",
+  "nav": {
+    "label": "Hauptnavigation",
+    "features": "Funktionen",
+    "industries": "Branchen",
+    "pricing": "Preise",
+    "demo": "Demo",
+    "login": "Login",
+    "legal": "Rechtliches"
+  },
+  "hero": {
+    "headline": "Die Kasse für jede Branche",
+    "subheadline": "RKSV-konform, mandantenfähig, in Minuten startklar.",
+    "primaryCta": "Demo anfordern",
+    "secondaryCta": "Funktionen ansehen"
+  },
+  "video": {
+    "title": "Produkt-Demo",
+    "body": "Video-Demo in Vorbereitung. Bis dahin: Demo-Mandant anfordern."
+  },
+  "featuresTitle": "Funktionen",
+  "features": [
+    {
+      "title": "RKSV & TSE",
+      "text": "Belege werden signiert. Sonderbelege, DEP-Export und FinanzOnline bleiben im Produkt."
+    },
+    {
+      "title": "Mandantenfähig",
+      "text": "Ein System, getrennte Mandanten. Jeder Betrieb sieht nur seine eigenen Daten."
+    },
+    {
+      "title": "Backup & DSGVO",
+      "text": "Sicherungen und Datenexporte. Fiskaldaten bleiben gesetzlich aufbewahrt."
+    }
+  ],
+  "industriesTitle": "Branchen",
+  "industries": {
+    "gastronomy": { "name": "Gastronomie", "description": "Speisen und Getränke an der Theke." },
+    "gastronomy-tables": { "name": "Gastronomie mit Tischen", "description": "Bestellung und Service am Tisch." },
+    "vet": { "name": "Tierarzt", "description": "Patientenakte und Behandlung." },
+    "doctor": { "name": "Arztpraxis", "description": "Termine und Behandlung." },
+    "hair-salon": { "name": "Friseursalon", "description": "Termine und Dienstleistungen." },
+    "mobile-services": { "name": "Mobile Dienste", "description": "Einsatz und Adresse vor Ort." },
+    "handy-shop": { "name": "Handyshop", "description": "Geräte, Zubehör und IMEI." },
+    "taxi": { "name": "Taxi", "description": "Fahrten und Tarife." },
+    "ticket-sales": { "name": "Ticketverkauf", "description": "Events, Plätze und Kategorien." },
+    "beherbergung": { "name": "Beherbergung", "description": "Zimmer und Folios." },
+    "retail": { "name": "Einzelhandel", "description": "Kasse, Waren und Barcode." }
+  },
+  "pricingTitle": "Preise",
+  "pricing": {
+    "annualToggle": "Jährlich zahlen, 2 Monate sparen",
+    "trialCta": "14 Tage kostenlos testen",
+    "vatNote": "Alle Preise zzgl. 20% USt.",
+    "perMonth": "Monat",
+    "perYear": "Jahr",
+    "custom": "Individuell",
+    "tiers": {
+      "starter": { "name": "Starter", "detail": "1 Kasse, bis 3 Nutzer, RKSV & TSE inklusive." },
+      "professional": { "name": "Professional", "detail": "3 Kassen, bis 10 Nutzer, Backup inklusive, Prioritäts-Support." },
+      "enterprise": { "name": "Enterprise", "detail": "unbegrenzt, eigene Infrastruktur, SLA, dedizierter Ansprechpartner." }
+    }
+  },
+  "demoTitle": "Demo anfordern",
+  "form": {
+    "name": "Name",
+    "email": "E-Mail",
+    "company": "Firma",
+    "industry": "Branche",
+    "message": "Nachricht",
+    "submit": "Demo anfordern",
+    "pending": "Wird gesendet…",
+    "success": "Vielen Dank. Wir haben Ihre Demo-Anfrage erhalten.",
+    "rateLimit": "Zu viele Anfragen. Bitte versuchen Sie es in einer Stunde erneut.",
+    "invalid": "Bitte prüfen Sie Ihre Angaben.",
+    "failed": "Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es später erneut."
+  },
+  "faqTitle": "Fragen",
+  "faq": [
+    {
+      "question": "RKSV-konform?",
+      "answer": "Ja. Die österreichische Kasse signiert Belege über die TSE und bleibt im RKSV-Pfad."
+    },
+    {
+      "question": "Wie lange dauert die Einrichtung?",
+      "answer": "Ein Demo-Mandant ist in Minuten startklar. Die produktive Einrichtung hängt von Kasse, TSE und Stammdaten ab."
+    },
+    {
+      "question": "Kann ich meine Daten exportieren?",
+      "answer": "Ja. Exporte und die DSGVO-Datenrechte bleiben verfügbar. Fiskaldaten werden gesetzlich aufbewahrt."
+    },
+    {
+      "question": "Welche Branchen?",
+      "answer": "Elf Branchenprofile, von Gastronomie und Arztpraxis bis Taxi, Beherbergung und Einzelhandel."
+    },
+    {
+      "question": "Was kostet die Kündigung?",
+      "answer": "14 Tage können kostenlos getestet werden. Danach endet ein Abo zum Laufzeitende, ohne zusätzliche Kündigungsgebühr."
+    },
+    {
+      "question": "Probe-Mandant?",
+      "answer": "Ja. Aus einer Demo-Anfrage kann ein Probe-Mandant mit Beispieldaten angelegt werden. Der Probezeitraum folgt dem Testangebot von 14 Tagen."
+    },
+    {
+      "question": "Backup-Frequenz?",
+      "answer": "Sicherungen lassen sich planen. Die Instanzsicherung läuft standardmäßig täglich. Im Professional-Paket ist Backup enthalten."
+    },
+    {
+      "question": "DSGVO?",
+      "answer": "Sie können Ihre Daten einsehen und exportieren. Eine Löschung entfernt keine Belege, die das Steuerrecht aufzubewahren verlangt."
+    },
+    {
+      "question": "Support-Sprachen?",
+      "answer": "Der Support antwortet auf Deutsch, Englisch und Türkisch."
+    },
+    {
+      "question": "Multi-Standort?",
+      "answer": "Ja. Ein Mandant kann mehrere Kassen und Standorte führen. Andere Betriebe sehen diese Daten nicht."
+    }
+  ]
+}

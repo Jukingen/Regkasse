@@ -1,6 +1,6 @@
 // Bu dosya, API response'larını zod ile otomatik doğrulamak ve hata yönetimini standartlaştırmak için yardımcı fonksiyonlar içerir.
-import { z, ZodSchema } from 'zod';
 import { Alert } from 'react-native';
+import { z, ZodSchema } from 'zod';
 
 /**
  * API'den gelen response'u verilen zod şeması ile doğrular.
@@ -10,13 +10,20 @@ import { Alert } from 'react-native';
  * @param context Hangi endpoint/model için kullanıldığı (log için)
  * @returns Doğrulanmış veri veya null
  */
-export function validateApiResponse<T>(data: unknown, schema: ZodSchema<T>, context: string): T | null {
+export function validateApiResponse<T>(
+  data: unknown,
+  schema: ZodSchema<T>,
+  context: string
+): T | null {
   const result = schema.safeParse(data);
   if (!result.success) {
     // Teknik log İngilizce
     console.error(`API response validation failed for ${context}:`, result.error);
     // Kullanıcıya uyarı
-    Alert.alert('Veri Hatası', 'Sunucudan beklenen formatta veri alınamadı. Lütfen tekrar deneyin.');
+    Alert.alert(
+      'Veri Hatası',
+      'Sunucudan beklenen formatta veri alınamadı. Lütfen tekrar deneyin.'
+    );
     return null;
   }
   return result.data;
@@ -33,4 +40,4 @@ export function handleApiError(err: any, fallbackMessage = 'Bilinmeyen hata') {
   Alert.alert('Hata', msg);
   // Teknik log İngilizce
   console.error('API error:', err?.response?.data || err);
-} 
+}

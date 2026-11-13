@@ -1,0 +1,380 @@
+[
+  {
+    "id": "TC001",
+    "title": "Admin signs in and reaches the authenticated session",
+    "description": "Verifies an admin can log in with valid credentials and the app loads the authenticated session user afterward.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated session user is loaded"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the authenticated app"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Expired session can be refreshed without losing user context",
+    "description": "Verifies an authenticated user can refresh access and continue using the app with the current user still available.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the session to require refresh"
+      },
+      {
+        "type": "action",
+        "description": "Continue the current session"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated session user remains loaded"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the app remains accessible without returning to login"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Authenticated user can log out and end the session",
+    "description": "Verifies an authenticated user can log out and the session is no longer available afterward.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the account menu"
+      },
+      {
+        "type": "action",
+        "description": "Click the logout action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is returned to the login screen"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated session is ended"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Current session can be signed out from all devices",
+    "description": "Verifies an authenticated user can end all active sessions and the current session becomes invalid afterward.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the account menu"
+      },
+      {
+        "type": "action",
+        "description": "Click the sign out all sessions action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is returned to the login screen"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the current session is no longer valid"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Admin updates a user's role from the edit drawer",
+    "description": "Verifies an admin can open a user drawer, see the full role catalog, change the assigned role, save, and observe the updated role after the drawer is reopened.",
+    "category": "User Role Assignment",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the user management drawer for an existing user"
+      },
+      {
+        "type": "action",
+        "description": "Change the user's role"
+      },
+      {
+        "type": "action",
+        "description": "Save the user changes"
+      },
+      {
+        "type": "action",
+        "description": "Reopen the same user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated role is shown for the user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify only the assigned role is selected"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Invalid login shows a failure message",
+    "description": "Verifies an admin sees a login failure message when submitting invalid credentials.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with invalid-user"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with invalid-password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login failure message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated app is not entered"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Admin sees validation errors when required user fields are missing",
+    "description": "Verifies an invalid user update keeps the drawer open and maps backend validation errors to the relevant fields.",
+    "category": "User Role Assignment",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the user management drawer for an existing user"
+      },
+      {
+        "type": "action",
+        "description": "Clear a required user field"
+      },
+      {
+        "type": "action",
+        "description": "Save the user changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user form remains open"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify field-level validation errors are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC008",
+    "title": "Admin can correct an invalid role selection and save successfully",
+    "description": "Verifies a user edit with invalid role data can be corrected in the same drawer and then saved successfully.",
+    "category": "User Role Assignment",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the user management drawer for an existing user"
+      },
+      {
+        "type": "action",
+        "description": "Choose an invalid role option if available in the form"
+      },
+      {
+        "type": "action",
+        "description": "Save the user changes"
+      },
+      {
+        "type": "action",
+        "description": "Correct the role selection to a valid role"
+      },
+      {
+        "type": "action",
+        "description": "Save the user changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated user record is saved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the form no longer shows validation errors"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC009",
+    "title": "Health check confirms the backend is ready",
+    "description": "Verifies support or ops users can check backend health and see a healthy readiness state before running dependent workflows.",
+    "category": "API Health Monitoring",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:5184/api/health (backend API, not the frontend port)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a healthy backend status is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the backend is marked as ready"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC010",
+    "title": "Health check surfaces an unavailable state",
+    "description": "Verifies the health monitoring view shows an unavailable state when the backend is not healthy.",
+    "category": "API Health Monitoring",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:5184/api/health (backend API, not the frontend port)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an unavailable backend status is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dependent checks are blocked"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

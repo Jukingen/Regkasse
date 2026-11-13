@@ -36,7 +36,9 @@ export function extractPaymentMethodsArrayFromApiBody(body: unknown): unknown[] 
 }
 
 function coerceCode(raw: unknown): string | null {
-  const s = String(raw ?? '').toLowerCase().trim();
+  const s = String(raw ?? '')
+    .toLowerCase()
+    .trim();
   if (!s || !CODE_PATTERN.test(s)) return null;
   return s;
 }
@@ -57,7 +59,10 @@ export function normalizeToPosPaymentMethods(body: unknown): NormalizedPosPaymen
     const name = String(row.name ?? row.Name ?? id);
     const type = coerceType(row.type ?? row.Type ?? row.code ?? row.Code);
     if (!type) {
-      console.warn('[normalizeToPosPaymentMethods] Unsupported payment method code dropped:', row.type ?? row.Type);
+      console.warn(
+        '[normalizeToPosPaymentMethods] Unsupported payment method code dropped:',
+        row.type ?? row.Type
+      );
       continue;
     }
     const icon = String(row.icon ?? row.Icon ?? 'ellipse-outline');

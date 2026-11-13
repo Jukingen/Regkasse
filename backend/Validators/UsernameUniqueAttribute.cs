@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 
 namespace KasseAPI_Final.Validators;
 

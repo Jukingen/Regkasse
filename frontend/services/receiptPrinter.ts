@@ -1,21 +1,25 @@
 import { Platform } from 'react-native';
-import * as Print from 'expo-print';
-import { paymentService } from './api/paymentService';
+
 import printerService from './PrinterService';
-import { ReceiptDTO } from '../types/ReceiptDTO';
+import { paymentService } from './api/paymentService';
 import { formatReceiptHtml } from './receiptFormatter';
-import { formatUserDate } from '../utils/dateFormatter';
 import {
   formatRefundReceiptHtml,
   formatStornoReceiptHtml,
   type ReversalReceiptSnapshot,
 } from './reversalReceiptFormatter';
+import { ReceiptDTO } from '../types/ReceiptDTO';
+import { formatUserDate, formatUserTime } from '../utils/dateFormatter';
+import { printHtmlAsync } from '../utils/expoPrintShare';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 
 export type { ReversalReceiptSnapshot } from './reversalReceiptFormatter';
 
 /** RKSV fiş print seçenekleri */
 export interface ReceiptPrintOptions {
-  /** Demo/fiscal modda "DEMO" etiketi göster */
+  /**
+   * @deprecated Ignored. Print reads `rksvFooterLabel` / `showDemoLabel` from GET receipt.
+   */
   isDemoFiscal?: boolean;
 }
 
@@ -26,9 +30,9 @@ class ReceiptPrinter {
   /**
    * Print receipt for payment. RKSV QR backend endpoint'ten base64 olarak gömülür.
    */
-  async print(paymentId: string, options?: ReceiptPrintOptions): Promise<void> {
+  async print(paymentId: string, _options?: ReceiptPrintOptions): Promise<void> {
     try {
-      const receiptData = await paymentService.getReceipt(paymentId) as ReceiptDTO;
+      const receiptData = (await paymentService.getReceipt(paymentId)) as ReceiptDTO;
 
       if (!receiptData) {
         throw new Error('Failed to fetch receipt data');
@@ -45,14 +49,13 @@ class ReceiptPrinter {
       const normalizedData = this.normalizeReceiptDTO(receiptData);
       const html = formatReceiptHtml(normalizedData, {
         qrBase64: qrBase64 ?? undefined,
-        isDemoFiscal: options?.isDemoFiscal ?? false,
         verificationUrl: normalizedData.verificationUrl,
       });
 
       if (Platform.OS === 'web') {
         await this.printWeb(html);
       } else {
-        await this.printNative(normalizedData, html);
+        await this.printNative(html);
       }
     } catch (error) {
       console.error('Receipt print failed:', error);
@@ -64,69 +67,8 @@ class ReceiptPrinter {
    * Helper to normalize PascalCase properties to camelCase
    * Because backend sends ReceiptNumber, Date, etc., but frontend expects receiptNumber, date
    */
-  private normalizeReceiptDTO(data: any): ReceiptDTO {
-    // If it's already normalized (camelCase), just return it
-    if (data.receiptNumber && !data.ReceiptNumber) {
-      return data as ReceiptDTO;
-    }
-
-    // Map PascalCase to camelCase
-    return {
-      receiptId: data.ReceiptId || data.receiptId || '',
-      receiptNumber: data.ReceiptNumber || data.receiptNumber || 'Unknown',
-      date: data.Date || data.date || new Date().toISOString(),
-      cashierId: data.cashierId || data.CashierId || '',
-      cashierDisplayName: data.cashierDisplayName ?? data.CashierDisplayName,
-      tableNumber: data.TableNumber || data.tableNumber,
-      kassenID: data.KassenID || data.kassenID || 'Unknown',
-
-      company: {
-        name: data.Company?.Name || data.company?.name || 'Unknown',
-        address: data.Company?.Address || data.company?.address || '',
-        taxNumber: data.Company?.TaxNumber || data.company?.taxNumber || ''
-      },
-
-      items: (data.Items || data.items || []).map((item: any) => ({
-        name: item.Name || item.name || '',
-        quantity: item.Quantity || item.quantity || 0,
-        unitPrice: item.UnitPrice || item.unitPrice || 0,
-        totalPrice: item.TotalPrice || item.totalPrice || 0,
-        taxRate: item.TaxRate || item.taxRate || 0
-      })),
-
-      subtotal: data.SubTotal || data.subtotal || 0,
-      taxAmount: data.TaxAmount || data.taxAmount || 0,
-      grandTotal: data.GrandTotal || data.grandTotal || 0,
-
-      taxRates: (data.TaxRates || data.taxRates || []).map((t: any) => ({
-        taxType: t.TaxType ?? t.taxType,
-        rate: t.Rate ?? t.rate ?? 0,
-        netAmount: t.NetAmount ?? t.netAmount ?? 0,
-        taxAmount: t.TaxAmount ?? t.taxAmount ?? 0,
-        grossAmount: t.GrossAmount ?? t.grossAmount ?? 0
-      })),
-
-      payments: (data.Payments || data.payments || []).map((p: any) => ({
-        method: p.Method || p.method || 'cash',
-        amount: p.Amount || p.amount || 0,
-        tendered: p.Tendered || p.tendered,
-        change: p.Change || p.change
-      })),
-
-      footerText: data.FooterText || data.footerText,
-
-      signature: data.Signature ? {
-        algorithm: data.Signature.Algorithm || data.signature?.algorithm || '',
-        value: data.Signature.Value || data.signature?.value || '',
-        serialNumber: data.Signature.SerialNumber || data.signature?.serialNumber || '',
-        timestamp: data.Signature.Timestamp || data.signature?.timestamp || '',
-        qrData: data.Signature.QrData || data.signature?.qrData || ''
-      } : data.signature,
-      verificationUrl: data.VerificationUrl ?? data.verificationUrl,
-      fiscalTraceKind: data.FiscalTraceKind ?? data.fiscalTraceKind ?? null,
-      originalPaymentId: data.OriginalPaymentId ?? data.originalPaymentId ?? null,
-      originalSaleReceiptId: data.OriginalSaleReceiptId ?? data.originalSaleReceiptId ?? null,
-    };
+  private normalizeReceiptDTO(data: unknown): ReceiptDTO {
+    return normalizeReceiptDto(data);
   }
 
   /**
@@ -167,10 +109,7 @@ class ReceiptPrinter {
       await this.printWeb(html);
       return;
     }
-    await Print.printAsync({
-      html,
-      width: 300,
-    });
+    await printHtmlAsync(html);
   }
 
   /**
@@ -189,21 +128,21 @@ class ReceiptPrinter {
       await printerService.printReceipt({
         receiptNumber: receiptData.receiptNumber,
         date: formatUserDate(receiptData.date),
-        time: new Date(receiptData.date).toLocaleTimeString('de-AT'),
+        time: formatUserTime(receiptData.date) || '—',
         cashier:
-          (receiptData.cashierDisplayName && receiptData.cashierDisplayName.trim()) ||
+          receiptData.cashierDisplayName?.trim() ||
           (receiptData.cashierId && receiptData.cashierId.trim()) ||
           '—',
         paymentMethod: receiptData.payments[0]?.method || 'cash',
-        items: receiptData.items.map(item => ({
+        items: receiptData.items.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           price: item.unitPrice,
-          total: item.totalPrice
+          total: item.totalPrice,
         })),
         subtotal: receiptData.subtotal,
         tax: receiptData.taxAmount,
-        total: receiptData.grandTotal
+        total: receiptData.grandTotal,
       });
     } catch (error) {
       console.error('Bondrucker print failed:', error);
@@ -212,13 +151,10 @@ class ReceiptPrinter {
   }
 
   /**
-   * Helper to safely format currency
-   */
-  /**
    * Print on web using iframe
    */
   private async printWeb(html: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       try {
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
@@ -235,7 +171,8 @@ class ReceiptPrinter {
 
         // Wait for content (and images like QR) to load
         iframe.onload = () => {
-          setTimeout(() => { // Extra delay for QR image rendering
+          setTimeout(() => {
+            // Extra delay for QR image rendering
             try {
               iframe.contentWindow?.focus();
               iframe.contentWindow?.print();
@@ -262,24 +199,16 @@ class ReceiptPrinter {
   }
 
   /**
-   * Print on native using Expo Print
+   * Print on native using Expo Print (preview + thermal width; PDF fallback on failure).
    */
-  private async printNative(data: ReceiptDTO, html: string): Promise<void> {
-    try {
-      await Print.printAsync({
-        html,
-        width: 300, // Thermal printer width
-      });
-    } catch (error) {
-      console.error('Native print failed:', error);
-      throw error;
-    }
+  private async printNative(html: string): Promise<void> {
+    await printHtmlAsync(html);
   }
 }
 
 /** QR PNG as base64 data URL from GET /api/pos/payment/{id}/qr.png (print template embed). */
 export async function fetchQrAsBase64(paymentId: string): Promise<string | null> {
-  return paymentService.getQrPngAsBase64(paymentId);
+  return await paymentService.getQrPngAsBase64(paymentId);
 }
 
 export const receiptPrinter = new ReceiptPrinter();
@@ -291,7 +220,7 @@ export async function printStornoReceipt(
   originalPayment: ReversalReceiptSnapshot,
   options?: ReceiptPrintOptions
 ): Promise<void> {
-  return receiptPrinter.printStornoReceipt(stornoPayment, originalPayment, options);
+  await receiptPrinter.printStornoReceipt(stornoPayment, originalPayment, options);
 }
 
 export async function printRefundReceipt(
@@ -299,5 +228,5 @@ export async function printRefundReceipt(
   originalPayment: ReversalReceiptSnapshot,
   options?: ReceiptPrintOptions
 ): Promise<void> {
-  return receiptPrinter.printRefundReceipt(refundPayment, originalPayment, options);
+  await receiptPrinter.printRefundReceipt(refundPayment, originalPayment, options);
 }

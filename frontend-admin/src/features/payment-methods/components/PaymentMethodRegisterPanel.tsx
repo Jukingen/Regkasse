@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import { EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Empty, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnType } from 'antd/es/table';
-import { EditOutlined, PlusOutlined } from '@ant-design/icons';
+import React from 'react';
 
 import type { PaymentMethodDefinitionAdmin } from '@/api/admin/payment-method-definitions';
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
@@ -45,7 +45,12 @@ export function PaymentMethodRegisterPanel({
   const selectedRegister = registers.find((r) => r.id === cashRegisterId);
 
   const columns: ColumnType<PaymentMethodDefinitionAdmin>[] = [
-    { title: t('settings.paymentMethods.columns.code'), dataIndex: 'code', key: 'code', width: 140 },
+    {
+      title: t('settings.paymentMethods.columns.code'),
+      dataIndex: 'code',
+      key: 'code',
+      width: 140,
+    },
     { title: t('settings.paymentMethods.columns.name'), dataIndex: 'name', key: 'name' },
     {
       title: t('settings.paymentMethods.columns.active'),
@@ -53,7 +58,11 @@ export function PaymentMethodRegisterPanel({
       key: 'isActive',
       width: 100,
       render: (v: boolean) =>
-        v ? <Tag color="green">{t('common.buttons.yes')}</Tag> : <Tag>{t('common.buttons.no')}</Tag>,
+        v ? (
+          <Tag color="green">{t('common.buttons.yes')}</Tag>
+        ) : (
+          <Tag>{t('common.buttons.no')}</Tag>
+        ),
     },
     {
       title: t('settings.paymentMethods.columns.default'),
@@ -63,7 +72,12 @@ export function PaymentMethodRegisterPanel({
       render: (v: boolean) =>
         v ? <Tag color="blue">{t('common.buttons.yes')}</Tag> : <Tag>{t('common.buttons.no')}</Tag>,
     },
-    { title: t('settings.paymentMethods.columns.order'), dataIndex: 'displayOrder', key: 'displayOrder', width: 90 },
+    {
+      title: t('settings.paymentMethods.columns.order'),
+      dataIndex: 'displayOrder',
+      key: 'displayOrder',
+      width: 90,
+    },
     {
       title: t('settings.paymentMethods.columns.legacy'),
       dataIndex: 'legacyPaymentMethodValue',
@@ -139,7 +153,12 @@ export function PaymentMethodRegisterPanel({
           columns={columns}
           pagination={{ pageSize: 20 }}
           locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('settings.paymentMethods.tableEmpty')} />,
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t('settings.paymentMethods.tableEmpty')}
+              />
+            ),
           }}
         />
       )}

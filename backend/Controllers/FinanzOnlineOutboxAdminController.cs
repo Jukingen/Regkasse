@@ -1,19 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.FinanzOnlineIntegration;
-using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -53,6 +50,12 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQueryOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> _simulationDeveloperOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenarioOptions;
+    private readonly IFinanzOnlineOutboxSettingsService _workerSettings;
+    private readonly IFinanzOnlineRuntimeSettingsService _runtimeSettings;
+    private readonly FinanzOnlineRuntimeOptionsAccessor _runtimeOptions;
+    private readonly IFinanzOnlineOutboxActionService _actions;
+    private readonly IFinanzOnlineOutboxMonitoringService _monitoring;
+    private readonly ICurrentTenantAccessor _tenant;
 
     public FinanzOnlineOutboxAdminController(
         AppDbContext context,
@@ -62,7 +65,13 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
         IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQueryOptions,
         IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> simulationDeveloperOptions,
-        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions)
+        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions,
+        IFinanzOnlineOutboxSettingsService workerSettings,
+        IFinanzOnlineRuntimeSettingsService runtimeSettings,
+        FinanzOnlineRuntimeOptionsAccessor runtimeOptions,
+        IFinanzOnlineOutboxActionService actions,
+        IFinanzOnlineOutboxMonitoringService monitoring,
+        ICurrentTenantAccessor tenant)
     {
         _context = context;
         _logger = logger;
@@ -72,6 +81,113 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         _transmissionQueryOptions = transmissionQueryOptions;
         _simulationDeveloperOptions = simulationDeveloperOptions;
         _simulationScenarioOptions = simulationScenarioOptions;
+        _workerSettings = workerSettings;
+        _runtimeSettings = runtimeSettings;
+        _runtimeOptions = runtimeOptions;
+        _actions = actions;
+        _monitoring = monitoring;
+        _tenant = tenant;
+    }
+
+    /// <summary>
+    /// Effective outbox worker flag (config + Super Admin overlay). Process-wide, not tenant-scoped.
+    /// </summary>
+    [HttpGet("worker-settings")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    [ProducesResponseType(typeof(FinanzOnlineOutboxWorkerSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<FinanzOnlineOutboxWorkerSettingsDto> GetWorkerSettings() =>
+        Ok(_workerSettings.GetSettings(User.IsInRole(Roles.SuperAdmin)));
+
+    /// <summary>
+    /// Super Admin overlay for <c>FinanzOnlineOutbox</c> worker options (enabled, poll, retry, timeout).
+    /// Does not rewrite appsettings. Production disable requires <c>confirmProductionDisable</c>.
+    /// </summary>
+    [HttpPut("worker-settings")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(FinanzOnlineOutboxWorkerSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<FinanzOnlineOutboxWorkerSettingsDto>> UpdateWorkerSettings(
+        [FromBody] UpdateFinanzOnlineOutboxWorkerRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity?.Name ?? "unknown";
+        try
+        {
+            var updated = await _workerSettings
+                .UpdateAsync(request, actor, canManage: true, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message == FinanzOnlineOutboxSettingsService.ProductionDisableConfirmRequiredCode)
+        {
+            return BadRequest(new
+            {
+                message = "Production outbox disable requires confirmProductionDisable=true.",
+                code = FinanzOnlineOutboxSettingsService.ProductionDisableConfirmRequiredCode,
+            });
+        }
+        catch (FinanzOnlineOutboxWorkerValidationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message,
+                code = FinanzOnlineOutboxWorkerValidationException.ErrorCode,
+                field = ex.Field,
+                min = ex.Min,
+                max = ex.Max,
+            });
+        }
+    }
+
+    /// <summary>
+    /// Optional FinanzOnline runtime flags (simulation, real TEST SOAP, retry job). Super Admin overlay.
+    /// </summary>
+    [HttpGet("runtime-settings")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    [ProducesResponseType(typeof(FinanzOnlineRuntimeSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<FinanzOnlineRuntimeSettingsDto> GetRuntimeSettings() =>
+        Ok(_runtimeSettings.GetSettings(User.IsInRole(Roles.SuperAdmin)));
+
+    [HttpPut("runtime-settings")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(FinanzOnlineRuntimeSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<FinanzOnlineRuntimeSettingsDto>> UpdateRuntimeSettings(
+        [FromBody] UpdateFinanzOnlineRuntimeRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity?.Name ?? "unknown";
+        try
+        {
+            var updated = await _runtimeSettings
+                .UpdateAsync(request, actor, canManage: true, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message is FinanzOnlineRuntimeSettingsService.ProductionSimulationForbiddenCode
+                or FinanzOnlineRuntimeSettingsService.ProductionRealTestForbiddenCode)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.Message });
+        }
+        catch (FinanzOnlineOutboxWorkerValidationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message,
+                code = FinanzOnlineOutboxWorkerValidationException.ErrorCode,
+                field = ex.Field,
+                min = ex.Min,
+                max = ex.Max,
+            });
+        }
     }
 
     /// <summary>
@@ -189,10 +305,96 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         return Ok(MapToDto(row, anySim));
     }
 
+    /// <summary>
+    /// Reset one row to Pending and wake the outbox worker. Does not submit SOAP itself.
+    /// ProtocolSuccess and AwaitingProtocol stay rejected so an already-sent row is not submitted again.
+    /// </summary>
+    [HttpPost("{id:guid}/retry")]
+    [HasPermission(AppPermissions.FinanzOnlineSubmit)]
+    public async Task<IActionResult> Retry(Guid id, CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.RetryAsync(id, User, cancellationToken).ConfigureAwait(false);
+        return ToActionResult(outcome);
+    }
+
+    /// <summary>
+    /// Pending count, failures in the last 24 hours, and the last protocol success.
+    /// Super Admin sees every mandant. Other callers see the ambient tenant only.
+    /// </summary>
+    [HttpGet("summary")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    public async Task<ActionResult<FinanzOnlineOutboxSummaryDto>> Summary(CancellationToken cancellationToken = default)
+    {
+        var allTenants = User.IsInRole(Roles.SuperAdmin);
+        if (!allTenants && _tenant.TenantId is not Guid)
+            return NotFound(new { message = "Outbox summary not found.", code = "FINANZONLINE_OUTBOX_NOT_FOUND" });
+
+        var tenantId = allTenants ? null : _tenant.TenantId;
+        var summary = await _monitoring.GetSummaryAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return Ok(summary);
+    }
+
+    /// <summary>
+    /// Reset matching failed rows to Pending and wake the worker once.
+    /// </summary>
+    [HttpPost("retry-failed")]
+    [HasPermission(AppPermissions.FinanzOnlineSubmit)]
+    public async Task<IActionResult> RetryFailed(
+        [FromBody] FinanzOnlineOutboxRetryFailedRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.RetryFailedAsync(request, User, cancellationToken).ConfigureAwait(false);
+        if (outcome.StatusCode != StatusCodes.Status200OK)
+            return ToActionResult(outcome);
+        return Ok(new { retriedCount = outcome.RetriedCount });
+    }
+
+    /// <summary>
+    /// Reset every failed outbox row to Pending and wake the worker once. Super Admin only.
+    /// Does not submit SOAP itself.
+    /// </summary>
+    [HttpPost("retry-all-failed")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    public async Task<IActionResult> RetryAllFailed(CancellationToken cancellationToken = default)
+    {
+        if (!User.IsInRole(Roles.SuperAdmin))
+            return Forbid();
+
+        var outcome = await _actions.RetryFailedAsync(request: null, User, cancellationToken).ConfigureAwait(false);
+        if (outcome.StatusCode != StatusCodes.Status200OK)
+            return ToActionResult(outcome);
+        return Ok(new { retriedCount = outcome.RetriedCount });
+    }
+
+    /// <summary>
+    /// Close a row without another FinanzOnline submit. Super Admin only.
+    /// </summary>
+    [HttpPost("{id:guid}/mark-resolved")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    public async Task<IActionResult> MarkResolved(
+        Guid id,
+        [FromBody] FinanzOnlineOutboxMarkResolvedRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.MarkResolvedAsync(id, request, User, cancellationToken).ConfigureAwait(false);
+        return ToActionResult(outcome);
+    }
+
+    private IActionResult ToActionResult(FinanzOnlineOutboxActionOutcome outcome)
+    {
+        if (outcome.StatusCode == StatusCodes.Status200OK && outcome.Row != null)
+            return Ok(MapToDto(outcome.Row, TransportSimulationActive()));
+        if (outcome.StatusCode == StatusCodes.Status404NotFound)
+            return NotFound(new { message = outcome.Message, code = outcome.Code });
+        if (outcome.StatusCode == StatusCodes.Status409Conflict)
+            return Conflict(new { message = outcome.Message, code = outcome.Code });
+        return BadRequest(new { message = outcome.Message, code = outcome.Code });
+    }
+
     private bool TransportSimulationActive() =>
-        _sessionOptions.CurrentValue.UseSimulation
-        || _registrierkassenOptions.CurrentValue.UseSimulation
-        || _transmissionQueryOptions.CurrentValue.UseSimulation;
+        _runtimeOptions.Session.UseSimulation
+        || _runtimeOptions.Registrierkassen.UseSimulation
+        || _runtimeOptions.TransmissionQuery.UseSimulation;
 
     private static bool IsKnownBucket(string bucket) =>
         KnownBuckets.Contains(bucket, StringComparer.OrdinalIgnoreCase);
@@ -279,6 +481,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             LastResponsePreview = TruncatePreview(x.LastResponseJson),
             CreatedAtUtc = x.CreatedAt,
             ProcessedAtUtc = x.ProcessedAt,
+            ResolutionReason = x.ResolutionReason,
+            ResolvedByUserId = x.ResolvedByUserId,
+            ResolvedAtUtc = x.ResolvedAtUtc,
             IsTerminal = IsTerminalStatus(x.Status),
             IdempotencyKeySuffix = IdempotencySuffix(x.IdempotencyKey)
         };
@@ -298,7 +503,8 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             or FinanzOnlineOutboxStatuses.ProtocolFailure
             or FinanzOnlineOutboxStatuses.PermanentFailure
             or FinanzOnlineOutboxStatuses.ManualReviewRequired
-            or FinanzOnlineOutboxStatuses.DeadLetter;
+            or FinanzOnlineOutboxStatuses.DeadLetter
+            or FinanzOnlineOutboxStatuses.Resolved;
     }
 
     private static string MapOperatorLabel(string status)
@@ -314,6 +520,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             FinanzOnlineOutboxStatuses.PermanentFailure => "Permanent failure",
             FinanzOnlineOutboxStatuses.ManualReviewRequired => "Manual review required",
             FinanzOnlineOutboxStatuses.DeadLetter => "Dead letter",
+            FinanzOnlineOutboxStatuses.Resolved => "Resolved",
             _ => status
         };
     }
@@ -447,6 +654,9 @@ public sealed class FinanzOnlineOutboxItemDto
     public string? LastResponsePreview { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
+    public string? ResolutionReason { get; set; }
+    public string? ResolvedByUserId { get; set; }
+    public DateTime? ResolvedAtUtc { get; set; }
     public bool IsTerminal { get; set; }
     public string? IdempotencyKeySuffix { get; set; }
 }

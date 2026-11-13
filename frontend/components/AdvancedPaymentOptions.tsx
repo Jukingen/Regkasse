@@ -32,6 +32,36 @@ interface AdvancedPaymentOptionsProps {
   totalAmount: number;
 }
 
+const PAYMENT_METHODS: PaymentMethod[] = [
+  {
+    id: 'cash',
+    name: 'Bar',
+    icon: 'cash-outline',
+    color: '#4CAF50',
+    requiresAmount: true,
+    supportsChange: true,
+    description: 'Barzahlung',
+  },
+  {
+    id: 'card',
+    name: 'Karte',
+    icon: 'card-outline',
+    color: '#2196F3',
+    requiresAmount: false,
+    supportsChange: false,
+    description: 'Kartenzahlung',
+  },
+  {
+    id: 'voucher',
+    name: 'Gutschein',
+    icon: 'ticket-outline',
+    color: '#9C27B0',
+    requiresAmount: true,
+    supportsChange: false,
+    description: 'Gutschein einlösen',
+  },
+];
+
 const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
   visible,
   onClose,
@@ -46,7 +76,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
   const handleMethodSelect = (method: PaymentMethod) => {
     setSelectedMethod(method);
-    
+
     if (method.requiresAmount) {
       setShowAmountInput(true);
       setPaymentAmount(totalAmount.toString());
@@ -59,7 +89,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
   const handleAmountConfirm = () => {
     const amount = parseFloat(paymentAmount);
-    
+
     if (isNaN(amount) || amount < totalAmount) {
       Alert.alert(
         t('payment.invalidAmount', 'Geçersiz Tutar'),
@@ -72,7 +102,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
     if (selectedMethod) {
       const change = amount - totalAmount;
       setChangeAmount(change);
-      
+
       Alert.alert(
         'Confirm Payment',
         `Amount: €${amount.toFixed(2)}\nChange: €${change.toFixed(2)}`,
@@ -83,8 +113,8 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
             onPress: () => {
               onPaymentMethodSelect(selectedMethod, amount);
               handleClose();
-            }
-          }
+            },
+          },
         ]
       );
     }
@@ -109,10 +139,11 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
       style={[
         styles.paymentMethodButton,
         { borderColor: method.color },
-        selectedMethod?.id === method.id && { backgroundColor: method.color + '20' }
+        selectedMethod?.id === method.id && { backgroundColor: method.color + '20' },
       ]}
-      onPress={() => handleMethodSelect(method)}
-    >
+      onPress={() => {
+        handleMethodSelect(method);
+      }}>
       <View style={styles.paymentMethodHeader}>
         <View style={[styles.paymentMethodIcon, { backgroundColor: method.color }]}>
           <Ionicons name={method.icon as any} size={24} color="white" />
@@ -121,21 +152,13 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
           <Text style={styles.paymentMethodName}>{method.name}</Text>
           <Text style={styles.paymentMethodDescription}>{method.description}</Text>
         </View>
-        <Ionicons 
-          name="chevron-forward" 
-          size={20} 
-          color={Colors.light.textSecondary} 
-        />
+        <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -151,17 +174,16 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
         {/* Payment Methods */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.paymentMethods}>
-            {PAYMENT_METHODS.map(renderPaymentMethod)}
-          </View>
+          <View style={styles.paymentMethods}>{PAYMENT_METHODS.map(renderPaymentMethod)}</View>
 
           {/* Amount Input */}
           {showAmountInput && selectedMethod && (
             <View style={styles.amountSection}>
               <Text style={styles.amountTitle}>
-                {t('payment.enterAmount', 'Enter')} {selectedMethod.name} {t('payment.amount', 'Amount')}
+                {t('payment.enterAmount', 'Enter')} {selectedMethod.name}{' '}
+                {t('payment.amount', 'Amount')}
               </Text>
-              
+
               <View style={styles.amountInputContainer}>
                 <Text style={styles.currencySymbol}>€</Text>
                 <TextInput
@@ -176,14 +198,17 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
               {/* Quick Amount Buttons */}
               <View style={styles.quickAmounts}>
-                <Text style={styles.quickAmountsTitle}>{t('payment.quickAmounts', 'Quick Amounts:')}</Text>
+                <Text style={styles.quickAmountsTitle}>
+                  {t('payment.quickAmounts', 'Quick Amounts:')}
+                </Text>
                 <View style={styles.quickAmountButtons}>
-                  {[1, 1.5, 2, 5, 10].map(multiplier => (
+                  {[1, 1.5, 2, 5, 10].map((multiplier) => (
                     <TouchableOpacity
                       key={multiplier}
                       style={styles.quickAmountButton}
-                      onPress={() => handleQuickAmount(multiplier)}
-                    >
+                      onPress={() => {
+                        handleQuickAmount(multiplier);
+                      }}>
                       <Text style={styles.quickAmountText}>
                         {multiplier === 1 ? t('payment.exact', 'Exact') : `${multiplier}x`}
                       </Text>
@@ -206,13 +231,14 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
               <TouchableOpacity
                 style={[
                   styles.confirmButton,
-                  (!paymentAmount || parseFloat(paymentAmount) < totalAmount) && 
-                  styles.confirmButtonDisabled
+                  (!paymentAmount || parseFloat(paymentAmount) < totalAmount) &&
+                    styles.confirmButtonDisabled,
                 ]}
                 onPress={handleAmountConfirm}
-                disabled={!paymentAmount || parseFloat(paymentAmount) < totalAmount}
-              >
-                <Text style={styles.confirmButtonText}>{t('payment.confirm', 'Confirm Payment')}</Text>
+                disabled={!paymentAmount || parseFloat(paymentAmount) < totalAmount}>
+                <Text style={styles.confirmButtonText}>
+                  {t('payment.confirm', 'Confirm Payment')}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -222,10 +248,10 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
         <View style={styles.tipsContainer}>
           <Text style={styles.tipsTitle}>{t('payment.tipsTitle', 'Payment Tips:')}</Text>
           <Text style={styles.tipsText}>
-            • {t('payment.tipCash', 'Cash payments require exact amount entry')}{'\n'}
-            • {t('payment.tipCard', 'Card payments are processed automatically')}{'\n'}
-            • {t('payment.tipSplit', 'Split payments can be managed separately')}{'\n'}
-            • {t('payment.tipRKSV', 'All payments are logged for RKSV compliance')}
+            • {t('payment.tipCash', 'Cash payments require exact amount entry')}
+            {'\n'}• {t('payment.tipCard', 'Card payments are processed automatically')}
+            {'\n'}• {t('payment.tipSplit', 'Split payments can be managed separately')}
+            {'\n'}• {t('payment.tipRKSV', 'All payments are logged for RKSV compliance')}
           </Text>
         </View>
       </View>
@@ -412,4 +438,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AdvancedPaymentOptions; 
+export default AdvancedPaymentOptions;

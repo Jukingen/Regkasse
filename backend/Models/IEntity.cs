@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace KasseAPI_Final.Models
 {
     /// <summary>
@@ -11,17 +9,17 @@ namespace KasseAPI_Final.Models
         /// Entity'nin benzersiz kimliği
         /// </summary>
         Guid Id { get; set; }
-        
+
         /// <summary>
         /// Entity'nin oluşturulma tarihi
         /// </summary>
         DateTime CreatedAt { get; set; }
-        
+
         /// <summary>
         /// Entity'nin son güncellenme tarihi
         /// </summary>
         DateTime? UpdatedAt { get; set; }
-        
+
         /// <summary>
         /// Entity'nin aktif olup olmadığı
         /// </summary>

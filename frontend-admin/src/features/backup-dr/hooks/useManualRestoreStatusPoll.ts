@@ -1,10 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
 import {
+  type RestoreRequestStatusDto,
   getManualRestoreRequest,
   getManualRestoreRequestQueryKey,
-  type RestoreRequestStatusDto,
 } from '@/features/backup-dr/logic/manualRestoreApi';
 import {
   isManualRestoreTerminalStatus,
@@ -18,7 +19,7 @@ export function useManualRestoreStatusPoll(
   enabled: boolean,
   pollMs = DEFAULT_POLL_MS,
   /** When true, poll until Completed/Failed/Rejected (approval modal). */
-  pollUntilTerminal = false,
+  pollUntilTerminal = false
 ) {
   return useQuery({
     queryKey: requestId ? getManualRestoreRequestQueryKey(requestId) : ['manual-restore', 'idle'],

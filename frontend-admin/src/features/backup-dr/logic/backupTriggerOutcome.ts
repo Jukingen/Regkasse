@@ -1,7 +1,6 @@
 /**
  * Manuel yedek tetikleme yanıtı: yalnızca Orval `BackupTriggerResponseDto` alanlarına dayanır.
  */
-
 import type { BackupTriggerResponseDto } from '@/api/generated/model';
 
 export type BackupTriggerFeedbackLevel = 'success' | 'info';

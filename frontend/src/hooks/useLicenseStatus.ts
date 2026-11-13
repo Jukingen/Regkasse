@@ -36,7 +36,6 @@ export function useLicenseStatus(): LicenseStatusReadModel {
           isLoading: false,
         });
       } catch {
-        // eslint-disable-next-line no-console
         console.warn('Failed to fetch license status, using fallback');
         setStatus((prev) => ({ ...prev, isLoading: false }));
       }
@@ -46,7 +45,9 @@ export function useLicenseStatus(): LicenseStatusReadModel {
     const interval = setInterval(() => {
       fetchStatus().then(() => undefined);
     }, POLL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   return status;

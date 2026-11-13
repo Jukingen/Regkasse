@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Cronos;
-using KasseAPI_Final;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -37,18 +36,24 @@ public sealed class AuditReportScheduler : IAuditReportScheduler
 {
     private readonly AppDbContext _context;
     private readonly IAuditExportService _exportService;
+    private readonly IPermissionAuditReportService _permissionReports;
     private readonly IAuditReportEmailService _emailService;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<AuditReportScheduler> _logger;
 
     public AuditReportScheduler(
         AppDbContext context,
         IAuditExportService exportService,
+        IPermissionAuditReportService permissionReports,
         IAuditReportEmailService emailService,
+        IFileNamingService fileNaming,
         ILogger<AuditReportScheduler> logger)
     {
         _context = context;
         _exportService = exportService;
+        _permissionReports = permissionReports;
         _emailService = emailService;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -152,17 +157,57 @@ public sealed class AuditReportScheduler : IAuditReportScheduler
             return;
         }
 
-        var bytes = await _exportService.ExportToBytesAsync(filters, schedule.Format, cancellationToken).ConfigureAwait(false);
-        var ext = schedule.Format == "json" ? "json" : "csv";
-        var fileName = $"audit_report_{schedule.Name.Replace(' ', '_')}_{DateTime.UtcNow:yyyyMMdd}.{ext}";
-        var contentType = ext == "json" ? "application/json" : "text/csv";
+        byte[] bytes;
+        string fileName;
+        string contentType;
+        string subject;
+        string body;
+
+        if (PermissionAuditScheduleFormats.IsPermissionFormat(schedule.Format))
+        {
+            var export = await _permissionReports.ExportAsync(
+                new PermissionAuditReportFilters
+                {
+                    RoleName = filters.Search,
+                    ActorUserId = filters.UserId,
+                    FromDate = filters.StartDate ?? DateTime.UtcNow.AddDays(-30),
+                    ToDate = filters.EndDate ?? DateTime.UtcNow,
+                },
+                schedule.Format,
+                cancellationToken).ConfigureAwait(false);
+            bytes = export.Content;
+            fileName = export.FileName;
+            contentType = export.ContentType;
+            subject = $"Regkasse Permission Audit Report: {schedule.Name}";
+            body =
+                $"Scheduled permission audit report \"{schedule.Name}\" ({schedule.Format}). Generated at {DateTime.UtcNow:u} UTC.";
+        }
+        else
+        {
+            bytes = await _exportService.ExportToBytesAsync(filters, schedule.Format, cancellationToken).ConfigureAwait(false);
+            var tenantSlug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == schedule.TenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            fileName = _fileNaming.GenerateFileName(
+                AuditExportFileNames.Prefix,
+                AuditExportFileNames.NormalizeExtension(schedule.Format),
+                registerId: ExportFileNameSegments.DateOnly(filters.StartDate),
+                additional: ExportFileNameSegments.DateOnly(filters.EndDate),
+                tenantSlug: tenantSlug);
+            contentType = AuditExportFileNames.ContentTypeForFormat(schedule.Format);
+            subject = $"Regkasse Audit Report: {schedule.Name}";
+            body =
+                $"Scheduled audit report \"{schedule.Name}\" ({schedule.Format}). Generated at {DateTime.UtcNow:u} UTC.";
+        }
 
         if (_emailService.IsConfigured)
         {
             await _emailService.SendReportAsync(
                 recipients,
-                $"Regkasse Audit Report: {schedule.Name}",
-                $"Scheduled audit report \"{schedule.Name}\" ({schedule.Format}). Generated at {DateTime.UtcNow:u} UTC.",
+                subject,
+                body,
                 fileName,
                 bytes,
                 contentType,
@@ -203,7 +248,10 @@ public sealed class AuditReportSchedulerHostedService : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var schedules = scope.ServiceProvider.GetRequiredService<IAuditReportScheduler>();
                 var tenants = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                // Cross-tenant due discovery: ambient tenant is unset. Keep IgnoreQueryFilters if schedules
+                // ever become ITenantEntity (fail-closed filter would otherwise return no rows).
                 var dueTenantIds = await tenants.AuditReportSchedules
+                    .IgnoreQueryFilters()
                     .Where(s => s.IsActive && s.NextRunUtc != null && s.NextRunUtc <= DateTime.UtcNow)
                     .Select(s => s.TenantId)
                     .Distinct()

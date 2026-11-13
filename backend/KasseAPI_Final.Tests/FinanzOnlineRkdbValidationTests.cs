@@ -1,4 +1,3 @@
-using System.Linq;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using Xunit;
 

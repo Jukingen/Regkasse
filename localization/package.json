@@ -1,0 +1,19 @@
+{
+  "name": "@regkasse/localization",
+  "private": true,
+  "license": "UNLICENSED",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared i18n import/export/validation for POS and Admin",
+  "scripts": {
+    "export": "node scripts/export-translations.mjs --app frontend && node scripts/export-translations.mjs --app frontend-admin",
+    "import": "node scripts/import-translations.mjs --app frontend && node scripts/import-translations.mjs --app frontend-admin",
+    "validate": "node scripts/validate-translations.mjs --app frontend && node scripts/validate-translations.mjs --app frontend-admin",
+    "boundary": "node scripts/check-translation-boundary.mjs --app frontend && node scripts/check-translation-boundary.mjs --app frontend-admin",
+    "usage": "node scripts/check-localization-usage.mjs --app frontend --budgetFile i18n-ci-budgets.json && node scripts/check-localization-usage.mjs --app frontend-admin --budgetFile i18n-ci-budgets.json",
+    "ci": "node scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error && node scripts/validate-translations.mjs --app frontend --strictMissing true && node scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile i18n-ci-budgets.json",
+    "test": "node -e \"console.log('@regkasse/localization: no unit tests — run npm run i18n:validate')\"",
+    "lint": "node -e \"console.log('@regkasse/localization: no ESLint suite — run npm run i18n:validate')\"",
+    "build": "node -e \"console.log('@regkasse/localization: tooling only — no build artifacts')\""
+  }
+}

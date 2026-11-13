@@ -1,21 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
+using TenantLicenseStatus = KasseAPI_Final.Services.Tenancy.TenantLicenseStatus;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -85,15 +83,26 @@ public enum LicenseAccessLevel
 public sealed class LicenseStatusInfo
 {
     public bool IsActive { get; set; }
+    /// <summary>True when <see cref="ValidUntil"/> is in the past (includes grace and lockdown).</summary>
+    public bool IsExpired { get; set; }
     public DateTime? ValidUntil { get; set; }
     public int DaysRemaining { get; set; }
     /// <summary>Positive when <see cref="ValidUntil"/> is in the past.</summary>
     public int DaysOverdue { get; set; }
     public bool IsInGracePeriod { get; set; }
+    /// <summary>True when expired past the grace window (POS locked; Super Admin unlock only).</summary>
+    public bool IsLocked { get; set; }
     public int GracePeriodRemaining { get; set; }
+    /// <summary>UTC date when POS lock starts (expiry + grace days); null when not expired.</summary>
+    public DateTime? LockDate { get; set; }
     public bool CanAccess { get; set; }
     public bool CanTransact { get; set; }
+    /// <summary>Stable key for clients (<see cref="LicenseStatusMessageKeys"/>).</summary>
+    public string StatusMessageKey { get; set; } = string.Empty;
+    /// <summary>Localized status copy (default language de when built without Accept-Language).</summary>
     public string StatusMessage { get; set; } = string.Empty;
+    /// <summary>Restriction codes (<see cref="LicenseStatusRestrictionCodes"/>).</summary>
+    public IReadOnlyList<string> Restrictions { get; set; } = Array.Empty<string>();
     public bool RequiresRenewal { get; set; }
 }
 
@@ -105,7 +114,8 @@ public static class LicenseStatusInfoBuilder
     public static LicenseStatusInfo Build(
         DateTime? validUntilUtc,
         bool isSuperAdmin = false,
-        DateTime? nowUtc = null)
+        DateTime? nowUtc = null,
+        string? language = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
         if (!validUntilUtc.HasValue)
@@ -113,14 +123,20 @@ public static class LicenseStatusInfoBuilder
             return new LicenseStatusInfo
             {
                 IsActive = false,
+                IsExpired = true,
                 ValidUntil = null,
                 DaysRemaining = 0,
                 DaysOverdue = 0,
                 IsInGracePeriod = false,
+                IsLocked = !isSuperAdmin,
                 GracePeriodRemaining = 0,
+                LockDate = null,
                 CanAccess = isSuperAdmin,
                 CanTransact = isSuperAdmin,
-                StatusMessage = "No tenant license configured.",
+                StatusMessageKey = LicenseStatusMessageKeys.None,
+                StatusMessage = LicenseStatusMessages.Format(LicenseStatusMessageKeys.None, language),
+                Restrictions = LicenseStatusMessages.GetRestrictions(isExpired: true, isGracePeriod: false, isLocked: !isSuperAdmin),
+                RequiresRenewal = true,
             };
         }
 
@@ -130,27 +146,68 @@ public static class LicenseStatusInfoBuilder
             ? Math.Max(0, (int)Math.Ceiling((until - now).TotalDays))
             : 0;
         var isActive = daysOverdue == 0;
+        var isExpired = !isActive;
         var tenantStatus = Validator.GetStatus(until, now);
         var permissions = Validator.GetPermissions(until, isSuperAdmin, now);
         var accessLevel = MapAccessLevel(tenantStatus, isSuperAdmin);
         var isInGrace = tenantStatus == TenantLicenseStatus.GraceWrite;
+        var isLocked = tenantStatus is (TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived)
+            && !isSuperAdmin;
         var graceRemaining = isInGrace
             ? Math.Max(0, LicenseGracePeriodConfig.GracePeriodDays - daysOverdue)
             : 0;
+        var lockDate = LicenseStatusMessages.ComputeLockDate(until, isExpired);
+        var messageKey = ResolveMessageKey(accessLevel, daysRemaining, daysOverdue, isInGrace, isLocked);
+        var restrictions = LicenseStatusMessages.GetRestrictions(isExpired, isInGrace, isLocked);
 
         return new LicenseStatusInfo
         {
             IsActive = isActive,
+            IsExpired = isExpired,
             ValidUntil = until,
             DaysRemaining = daysRemaining,
             DaysOverdue = daysOverdue,
             IsInGracePeriod = isInGrace,
+            IsLocked = isLocked,
             GracePeriodRemaining = graceRemaining,
+            LockDate = lockDate,
             CanAccess = permissions.CanAccess,
             CanTransact = permissions.CanWrite,
-            StatusMessage = BuildStatusMessage(accessLevel, daysRemaining, daysOverdue, graceRemaining),
-            RequiresRenewal = tenantStatus == TenantLicenseStatus.Lockdown,
+            StatusMessageKey = messageKey,
+            StatusMessage = LicenseStatusMessages.Format(
+                messageKey,
+                language,
+                daysRemaining,
+                daysOverdue,
+                graceRemaining,
+                lockDate),
+            Restrictions = restrictions,
+            RequiresRenewal = tenantStatus is TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived,
         };
+    }
+
+    private static string ResolveMessageKey(
+        LicenseAccessLevel accessLevel,
+        int daysRemaining,
+        int daysOverdue,
+        bool isInGrace,
+        bool isLocked)
+    {
+        if (isLocked || accessLevel == LicenseAccessLevel.Blocked)
+            return daysOverdue > 0 ? LicenseStatusMessageKeys.Locked : LicenseStatusMessageKeys.None;
+
+        if (isInGrace || (accessLevel == LicenseAccessLevel.FullAccess && daysOverdue > 0))
+            return LicenseStatusMessageKeys.Grace;
+
+        if (accessLevel == LicenseAccessLevel.FullAccess
+            && daysOverdue == 0
+            && daysRemaining <= LicenseGracePeriodConfig.WarningDaysBeforeExpiry)
+            return LicenseStatusMessageKeys.ExpiringSoon;
+
+        if (accessLevel == LicenseAccessLevel.ReadOnly)
+            return LicenseStatusMessageKeys.Locked;
+
+        return LicenseStatusMessageKeys.Active;
     }
 
     private static LicenseAccessLevel MapAccessLevel(
@@ -165,31 +222,9 @@ public static class LicenseStatusInfoBuilder
             TenantLicenseStatus.Active or TenantLicenseStatus.GraceWrite
                 => LicenseAccessLevel.FullAccess,
             TenantLicenseStatus.GraceReadOnly => LicenseAccessLevel.ReadOnly,
-            TenantLicenseStatus.Lockdown or TenantLicenseStatus.NoLicense
+            TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived or TenantLicenseStatus.NoLicense
                 => LicenseAccessLevel.Blocked,
             _ => LicenseAccessLevel.Blocked,
-        };
-    }
-
-    private static string BuildStatusMessage(
-        LicenseAccessLevel accessLevel,
-        int daysRemaining,
-        int daysOverdue,
-        int graceRemaining)
-    {
-        return accessLevel switch
-        {
-            LicenseAccessLevel.FullAccess when daysOverdue == 0 && daysRemaining <= LicenseGracePeriodConfig.WarningDaysBeforeExpiry =>
-                $"License expires in {daysRemaining} day(s). Renew before expiry to avoid service interruption.",
-            LicenseAccessLevel.FullAccess when daysOverdue == 0 =>
-                "License is active.",
-            LicenseAccessLevel.FullAccess =>
-                $"License expired {daysOverdue} day(s) ago. Grace period: {graceRemaining} day(s) remaining.",
-            LicenseAccessLevel.ReadOnly =>
-                $"Grace period ended {daysOverdue - LicenseGracePeriodConfig.GracePeriodDays} day(s) ago. Read-only access; transactions are blocked.",
-            LicenseAccessLevel.Blocked when daysOverdue > 0 =>
-                $"License expired {daysOverdue} day(s) ago. Access is blocked; renew to restore service.",
-            _ => "No valid tenant license.",
         };
     }
 }
@@ -204,6 +239,12 @@ public sealed class ActivateLicenseRequest
     /// <summary>Optional client-reported fingerprint; when set, must match this host.</summary>
     [JsonPropertyName("machineFingerprint")]
     public string? MachineFingerprint { get; set; }
+
+    /// <summary>
+    /// Optional mandant target for Super Admin (platform mode has no ambient tenant).
+    /// Ignored for <c>system</c> keys. When omitted, tenant is resolved from the key slug.
+    /// </summary>
+    public Guid? TenantId { get; set; }
 }
 
 public sealed record LicenseActivationResult(
@@ -213,7 +254,13 @@ public sealed record LicenseActivationResult(
     string? LicenseType = null,
     Guid? TenantId = null,
     string? TenantSlug = null,
-    string? ApiBaseUrl = null);
+    string? ApiBaseUrl = null,
+    /// <summary>Whole days remaining until <see cref="ValidUntil"/> (UTC); null when expiry unknown.</summary>
+    int? DaysRemaining = null,
+    /// <summary>Coarse lifecycle label for clients (e.g. <c>active</c>).</summary>
+    string? Status = null,
+    /// <summary>Stable machine code (e.g. <c>INVALID_LICENSE_FORMAT</c>, <c>LICENSE_ALREADY_ACTIVATED</c>).</summary>
+    string? ErrorCode = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
 public sealed record LicenseActivationClientInfo(
@@ -243,10 +290,6 @@ public sealed class LicenseService : ILicenseService
     {
         PropertyNameCaseInsensitive = true,
     };
-
-    private static readonly Regex LicenseKeyRegex = new(
-        @"^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly IOptions<LicenseOptions> _options;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -402,13 +445,13 @@ public sealed class LicenseService : ILicenseService
             if (snapshot.IsExpired)
             {
                 await _activityPublisher.TryPublishAsync(
-                    LegacyDefaultTenantIds.Primary,
+                    SystemTenantIds.Platform,
                     ActivityEventType.LicenseExpired,
                     new
                     {
                         DaysRemaining = 0,
                         ExpiryDate = snapshot.ExpiryDate,
-                        TenantId = LegacyDefaultTenantIds.Primary,
+                        TenantId = SystemTenantIds.Platform,
                     },
                     dedupKey: "deployment_license_expired").ConfigureAwait(false);
                 return;
@@ -418,13 +461,13 @@ public sealed class LicenseService : ILicenseService
                 return;
 
             await _activityPublisher.TryPublishAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 ActivityEventType.LicenseExpiringSoon,
                 new
                 {
                     DaysRemaining = snapshot.DaysRemaining,
                     ExpiryDate = snapshot.ExpiryDate,
-                    TenantId = LegacyDefaultTenantIds.Primary,
+                    TenantId = SystemTenantIds.Platform,
                 },
                 dedupKey: $"deployment_license_expiry_{snapshot.DaysRemaining}d").ConfigureAwait(false);
         }
@@ -546,10 +589,26 @@ public sealed class LicenseService : ILicenseService
                 _developmentModeService,
                 _options.Value))
         {
-            return CreateUnlimitedMandantLicenseStatus(
-                _hostEnvironment.IsDevelopment()
-                    ? "Development Mode - Unlimited Access"
-                    : "Demo Mode - Unlimited Access");
+            // Development: expose persisted mandant row for FA/POS status UI (QA scenarios).
+            // Middleware still skips enforcement when policy is disabled.
+            if (_hostEnvironment.IsDevelopment())
+            {
+                return await WithDbContextAsync(async (db, ct) =>
+                {
+                    var tenant = await db.Tenants
+                        .AsNoTracking()
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
+                        .ConfigureAwait(false);
+
+                    if (tenant == null)
+                        return new LicenseStatusInfo { CanAccess = false };
+
+                    return BuildTenantLicenseStatusInfo(tenant);
+                }, cancellationToken).ConfigureAwait(false);
+            }
+
+            return CreateUnlimitedMandantLicenseStatus("Demo Mode - Unlimited Access");
         }
 
         return await WithDbContextAsync(async (db, ct) =>
@@ -571,70 +630,120 @@ public sealed class LicenseService : ILicenseService
         new()
         {
             IsActive = true,
+            IsExpired = false,
             CanAccess = true,
             CanTransact = true,
             DaysRemaining = 999,
             DaysOverdue = 0,
             IsInGracePeriod = false,
+            IsLocked = false,
             GracePeriodRemaining = 0,
+            LockDate = null,
             RequiresRenewal = false,
+            StatusMessageKey = LicenseStatusMessageKeys.Active,
             StatusMessage = statusMessage,
+            Restrictions = Array.Empty<string>(),
         };
 
-    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(Tenant tenant)
+    /// <summary>
+    /// Builds mandant license status from the tenant row.
+    /// Preserves full <see cref="Tenant.LicenseValidUntilUtc"/> (no UTC-midnight truncation)
+    /// and uses ceiling day math for remaining time (same as <see cref="Tenancy.TenantLicenseStatusMapper"/>).
+    /// </summary>
+    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(
+        Tenant tenant,
+        DateTime? nowUtc = null,
+        string? language = null)
     {
-        var today = DateTime.UtcNow.Date;
-        var validUntil = tenant.LicenseValidUntilUtc?.Date;
+        var now = nowUtc ?? DateTime.UtcNow;
+        var lang = language ?? "de";
 
-        if (!validUntil.HasValue)
+        if (!tenant.LicenseValidUntilUtc.HasValue)
         {
             return new LicenseStatusInfo
             {
                 IsActive = tenant.IsActive,
+                IsExpired = false,
                 CanAccess = true,
                 CanTransact = true,
                 DaysRemaining = 999,
+                DaysOverdue = 0,
                 IsInGracePeriod = false,
-                StatusMessage = "Aktive Lizenz",
+                IsLocked = false,
+                GracePeriodRemaining = 0,
+                LockDate = null,
+                StatusMessageKey = LicenseStatusMessageKeys.Active,
+                StatusMessage = LicenseStatusMessages.Format(LicenseStatusMessageKeys.Active, lang),
+                Restrictions = Array.Empty<string>(),
+                RequiresRenewal = false,
             };
         }
 
-        var daysRemaining = (validUntil.Value - today).Days;
-        var isExpired = daysRemaining < 0;
-        var daysOverdue = isExpired ? Math.Abs(daysRemaining) : 0;
-        var isInGracePeriod = isExpired && daysOverdue <= GracePeriodDays;
-        var gracePeriodRemaining = isInGracePeriod ? GracePeriodDays - daysOverdue : 0;
-        var canAccess = !isExpired || isInGracePeriod;
-        var canTransact = canAccess;
-
-        string statusMessage;
-        if (!isExpired)
+        var validUntil = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc.Value, DateTimeKind.Utc);
+        var isExpired = now >= validUntil;
+        int daysRemaining;
+        int daysOverdue;
+        if (isExpired)
         {
-            statusMessage = daysRemaining <= WarningDaysBeforeExpiry
-                ? $"Lizenz läuft in {daysRemaining} Tagen ab"
-                : $"Lizenz gültig bis {validUntil.Value:dd.MM.yyyy}";
-        }
-        else if (isInGracePeriod)
-        {
-            statusMessage = $"Lizenz abgelaufen. Grace Period: noch {gracePeriodRemaining} Tage";
+            // Match LicenseStatusInfoBuilder / TenantLicenseValidator: whole elapsed days via TimeSpan.Days.
+            daysOverdue = Math.Max(0, (now - validUntil).Days);
+            if (daysOverdue == 0)
+                daysOverdue = 1;
+            daysRemaining = -daysOverdue;
         }
         else
         {
-            statusMessage = "Lizenz abgelaufen. Zugang gesperrt. Bitte Lizenz erneuern.";
+            daysRemaining = (int)Math.Ceiling((validUntil - now).TotalDays);
+            daysOverdue = 0;
+        }
+
+        var isInGracePeriod = isExpired && daysOverdue <= GracePeriodDays;
+        var isLocked = isExpired && daysOverdue > GracePeriodDays;
+        var gracePeriodRemaining = isInGracePeriod ? GracePeriodDays - daysOverdue : 0;
+        var canAccess = !isExpired || isInGracePeriod;
+        var canTransact = canAccess;
+        var lockDate = LicenseStatusMessages.ComputeLockDate(validUntil, isExpired);
+        var restrictions = LicenseStatusMessages.GetRestrictions(isExpired, isInGracePeriod, isLocked);
+
+        string messageKey;
+        if (!isExpired)
+        {
+            messageKey = daysRemaining <= WarningDaysBeforeExpiry
+                ? LicenseStatusMessageKeys.ExpiringSoon
+                : LicenseStatusMessageKeys.Active;
+        }
+        else if (isInGracePeriod)
+        {
+            messageKey = LicenseStatusMessageKeys.Grace;
+        }
+        else
+        {
+            messageKey = LicenseStatusMessageKeys.Locked;
         }
 
         return new LicenseStatusInfo
         {
-            IsActive = tenant.IsActive,
+            IsActive = tenant.IsActive && !isExpired,
+            IsExpired = isExpired,
             ValidUntil = validUntil,
             DaysRemaining = daysRemaining,
             DaysOverdue = daysOverdue,
             IsInGracePeriod = isInGracePeriod,
+            IsLocked = isLocked,
             GracePeriodRemaining = gracePeriodRemaining,
+            LockDate = lockDate,
             CanAccess = canAccess,
             CanTransact = canTransact,
-            StatusMessage = statusMessage,
-            RequiresRenewal = isExpired && !isInGracePeriod,
+            StatusMessageKey = messageKey,
+            StatusMessage = LicenseStatusMessages.Format(
+                messageKey,
+                lang,
+                daysRemaining: Math.Max(0, daysRemaining),
+                daysOverdue: daysOverdue,
+                gracePeriodRemaining: gracePeriodRemaining,
+                lockDateUtc: lockDate),
+            Restrictions = restrictions,
+            RequiresRenewal = isLocked,
         };
     }
 
@@ -655,7 +764,7 @@ public sealed class LicenseService : ILicenseService
             normalizedKeyUpper = key.Trim().ToUpperInvariant();
         }
 
-        if (!LicenseKeyRegex.IsMatch(normalizedKeyUpper))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(normalizedKeyUpper))
             return;
 
         var machine = _storage.MachineHashHex;
@@ -712,8 +821,9 @@ public sealed class LicenseService : ILicenseService
                 "LicenseKey is required.");
 
         var normalizedKey = request.LicenseKey.Trim().ToUpperInvariant();
-        if (!LicenseKeyRegex.IsMatch(normalizedKey))
-            return await FailAndLogAsync(normalizedKey, "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.");
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(normalizedKey)
+            && !LicenseKeyGenerator.IsDeploymentLicenseKey(request.LicenseKey.Trim()))
+            return await FailAndLogAsync(normalizedKey, "Invalid license key format. Expected REGK-YYYYMMDD-system-{code} (legacy REGK-XXXXX-XXXXX-XXXXX still accepted).");
 
         if (!string.IsNullOrWhiteSpace(request.MachineFingerprint))
         {
@@ -847,7 +957,14 @@ public sealed class LicenseService : ILicenseService
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             var licenseType = MapPublicLicenseTypeLabel(st);
-            return new LicenseActivationResult(true, "Lizenz erfolgreich aktiviert", st.ExpiryDate, licenseType);
+            var daysRemaining = ComputeActivationDaysRemaining(st.ExpiryDate);
+            return new LicenseActivationResult(
+                true,
+                "Lizenz erfolgreich aktiviert",
+                st.ExpiryDate,
+                licenseType,
+                DaysRemaining: daysRemaining,
+                Status: "active");
         }
         catch (Exception ex)
         {
@@ -866,6 +983,19 @@ public sealed class LicenseService : ILicenseService
         if (trialActive)
             return "Trial";
         return "Expired";
+    }
+
+    /// <summary>Whole calendar days remaining until expiry (ceil); null when expiry is unknown.</summary>
+    internal static int? ComputeActivationDaysRemaining(DateTime? expiryUtc, DateTime? nowUtc = null)
+    {
+        if (expiryUtc is not DateTime until)
+            return null;
+        var now = nowUtc ?? DateTime.UtcNow;
+        var untilUtc = until.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(until, DateTimeKind.Utc)
+            : until.ToUniversalTime();
+        var days = (int)Math.Ceiling((untilUtc - now).TotalDays);
+        return Math.Max(0, days);
     }
 
     private LicenseStatusResponse BuildSnapshot(LicensePersistedState blob, bool paidValid)
@@ -890,7 +1020,7 @@ public sealed class LicenseService : ILicenseService
             if (jwtExpUtc is null && !string.IsNullOrWhiteSpace(blob.LicenseKey))
             {
                 var k = keyUpper;
-                if (LicenseKeyRegex.IsMatch(k))
+                if (LicenseKeyGenerator.IsDeploymentLicenseKey(k))
                 {
                     TryResolveActivatedDbPaid(k, out activatedExpiryUtc);
                     TryResolveIssuedRegistryPaid(k, out registryExpiryUtc);
@@ -905,7 +1035,7 @@ public sealed class LicenseService : ILicenseService
             var days = expiryUtc.HasValue
                 ? Math.Max(0, (int)Math.Ceiling((expiryUtc.Value - nowUtc).TotalDays))
                 : 365;
-            var paidFeatures = !string.IsNullOrEmpty(keyUpper) && LicenseKeyRegex.IsMatch(keyUpper)
+            var paidFeatures = !string.IsNullOrEmpty(keyUpper) && LicenseKeyGenerator.IsDeploymentLicenseKey(keyUpper)
                 ? ResolveEnabledFeaturesForPaid(keyUpper, blob)
                 : LicenseFeatureIds.All;
             return new LicenseStatusResponse(
@@ -1083,7 +1213,7 @@ public sealed class LicenseService : ILicenseService
         if (string.IsNullOrWhiteSpace(blob.LicenseKey))
             return false;
 
-        if (!LicenseKeyRegex.IsMatch(blob.LicenseKey.Trim()))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(blob.LicenseKey.Trim()))
             return false;
 
         var key = blob.LicenseKey.Trim().ToUpperInvariant();
@@ -1163,7 +1293,7 @@ public sealed class LicenseService : ILicenseService
         _persisted ??= LoadOrCreatePersisted();
 
         var dbKey = row.LicenseKey.Trim().ToUpperInvariant();
-        if (!LicenseKeyRegex.IsMatch(dbKey))
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(dbKey))
             return;
 
         var needsSave = false;
@@ -1298,12 +1428,18 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            var row = WithDbContext(db => db.ActivatedLicenses.AsNoTracking()
-                .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
-                .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
-                .Where(a => EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-                .OrderByDescending(a => a.ActivatedAtUtc)
-                .FirstOrDefault());
+            var row = WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedKeyUpper);
+                return db.ActivatedLicenses.AsNoTracking()
+                    .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
+                    .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
+                    .Where(a =>
+                        EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
+                        || EF.Functions.ILike(a.LicenseKey, canonical))
+                    .OrderByDescending(a => a.ActivatedAtUtc)
+                    .FirstOrDefault();
+            });
 
             if (row is null)
                 return false;
@@ -1318,6 +1454,37 @@ public sealed class LicenseService : ILicenseService
         }
     }
 
+    private static string ResolveCanonicalLicenseKey(AppDbContext db, string licenseKey)
+    {
+        var trimmed = licenseKey.Trim();
+        var mapped = db.LicenseKeyMappings.AsNoTracking()
+            .Where(m => m.OldLicenseKey == trimmed || m.NewLicenseKey == trimmed)
+            .Select(m => m.NewLicenseKey)
+            .FirstOrDefault();
+        return string.IsNullOrEmpty(mapped) ? trimmed : mapped;
+    }
+
+    private bool LicenseKeysAreAliases(string left, string right)
+    {
+        if (string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            return WithDbContext(db =>
+            {
+                var canonicalLeft = ResolveCanonicalLicenseKey(db, left.Trim());
+                var canonicalRight = ResolveCanonicalLicenseKey(db, right.Trim());
+                return string.Equals(canonicalLeft, canonicalRight, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "License: alias lookup skipped.");
+            return false;
+        }
+    }
+
     /// <summary>
     /// Resolves paid entitlement from <c>issued_licenses</c> when this deployment issued the key (on-prem registry).
     /// Ignores revoked, transferred-away, superseded rows and enforces fingerprint when required.
@@ -1327,12 +1494,18 @@ public sealed class LicenseService : ILicenseService
         expiryUtc = null;
         try
         {
-            var row = WithDbContext(db => db.IssuedLicenses.AsNoTracking()
-                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
-                .Where(il => !il.IsDeleted && !il.IsCancelled)
-                .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
-                .OrderByDescending(il => il.IssuedAtUtc)
-                .FirstOrDefault());
+            var row = WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedKeyUpper);
+                return db.IssuedLicenses.AsNoTracking()
+                    .Where(il =>
+                        EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper)
+                        || EF.Functions.ILike(il.LicenseKey, canonical))
+                    .Where(il => !il.IsDeleted && !il.IsCancelled)
+                    .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
+                    .OrderByDescending(il => il.IssuedAtUtc)
+                    .FirstOrDefault();
+            });
 
             if (row is null)
                 return false;
@@ -1372,60 +1545,60 @@ public sealed class LicenseService : ILicenseService
 
         await WithDbContextAsync(async (db, ct) =>
         {
-        var customerName = await db.IssuedLicenses.AsNoTracking()
-            .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
-            .OrderByDescending(il => il.IssuedAtUtc)
-            .Select(il => il.CustomerName)
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
+            var customerName = await db.IssuedLicenses.AsNoTracking()
+                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+                .OrderByDescending(il => il.IssuedAtUtc)
+                .Select(il => il.CustomerName)
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
 
-        string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
+            string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
 
-        var stale = await db.ActivatedLicenses
-            .Where(a => a.MachineFingerprint == machine && a.IsActive)
-            .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+            var stale = await db.ActivatedLicenses
+                .Where(a => a.MachineFingerprint == machine && a.IsActive)
+                .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
 
-        foreach (var row in stale)
-            row.IsActive = false;
+            foreach (var row in stale)
+                row.IsActive = false;
 
-        var existing = await db.ActivatedLicenses
-            .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
+            var existing = await db.ActivatedLicenses
+                .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
 
-        var now = DateTime.UtcNow;
-        if (existing is null)
-        {
-            db.ActivatedLicenses.Add(new ActivatedLicense
+            var now = DateTime.UtcNow;
+            if (existing is null)
             {
-                Id = Guid.NewGuid(),
-                LicenseKey = normalizedKeyUpper,
-                CustomerName = displayCustomer,
-                ValidUntilUtc = validUntil,
-                MachineFingerprint = machine,
-                ActivatedAtUtc = now,
-                LastSeenAtUtc = now,
-                FeaturesJson = featuresJson,
-                IsActive = true,
-                CreatedByUserId = clientInfo?.InitiatingUserId,
-            });
-        }
-        else
-        {
-            existing.ValidUntilUtc = validUntil;
-            existing.ActivatedAtUtc = now;
-            existing.LastSeenAtUtc = now;
-            existing.FeaturesJson = featuresJson;
-            existing.IsActive = true;
-            if (!string.IsNullOrWhiteSpace(customerName))
-                existing.CustomerName = displayCustomer;
-            if (existing.CreatedByUserId is null && clientInfo?.InitiatingUserId is { } uid)
-                existing.CreatedByUserId = uid;
-        }
+                db.ActivatedLicenses.Add(new ActivatedLicense
+                {
+                    Id = Guid.NewGuid(),
+                    LicenseKey = normalizedKeyUpper,
+                    CustomerName = displayCustomer,
+                    ValidUntilUtc = validUntil,
+                    MachineFingerprint = machine,
+                    ActivatedAtUtc = now,
+                    LastSeenAtUtc = now,
+                    FeaturesJson = featuresJson,
+                    IsActive = true,
+                    CreatedByUserId = clientInfo?.InitiatingUserId,
+                });
+            }
+            else
+            {
+                existing.ValidUntilUtc = validUntil;
+                existing.ActivatedAtUtc = now;
+                existing.LastSeenAtUtc = now;
+                existing.FeaturesJson = featuresJson;
+                existing.IsActive = true;
+                if (!string.IsNullOrWhiteSpace(customerName))
+                    existing.CustomerName = displayCustomer;
+                if (existing.CreatedByUserId is null && clientInfo?.InitiatingUserId is { } uid)
+                    existing.CreatedByUserId = uid;
+            }
 
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -1529,9 +1702,14 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            return WithDbContext(db => db.IssuedLicenses.AsNoTracking().Any(il =>
-                EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
-                && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled)));
+            return WithDbContext(db =>
+            {
+                var canonical = ResolveCanonicalLicenseKey(db, normalizedLicenseKeyUpper);
+                return db.IssuedLicenses.AsNoTracking().Any(il =>
+                    (EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
+                     || EF.Functions.ILike(il.LicenseKey, canonical))
+                    && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled));
+            });
         }
         catch (Exception ex)
         {
@@ -1689,7 +1867,8 @@ public sealed class LicenseService : ILicenseService
                 return false;
             }
 
-            if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase)
+                && !LicenseKeysAreAliases(licenseKeyClaim, expectedLicenseKey))
             {
                 _logger.LogWarning(
                     "License JWT: licenseKey claim does not match request key. LicenseKeyPrefix={LicenseKeyPrefix}, ClaimKeyPrefix={ClaimKeyPrefix}",
@@ -1780,8 +1959,12 @@ public sealed class LicenseService : ILicenseService
         var s = segment.Replace("-", "+", StringComparison.Ordinal).Replace("_", "/", StringComparison.Ordinal);
         switch (s.Length % 4)
         {
-            case 2: s += "=="; break;
-            case 3: s += "="; break;
+            case 2:
+                s += "==";
+                break;
+            case 3:
+                s += "=";
+                break;
         }
 
         return Convert.FromBase64String(s);

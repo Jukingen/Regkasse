@@ -5,7 +5,6 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -19,7 +18,7 @@ public sealed class CashRegisterSettingsServiceTests
     public async Task GetOrCreateForEffectiveTenantAsync_Returns_Existing_Row_When_Query_Filter_Hides_It()
     {
         await using var db = CreateContext(new FixedTenantAccessor(TenantAId));
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = TenantBId,
@@ -48,7 +47,7 @@ public sealed class CashRegisterSettingsServiceTests
     public async Task GetOrCreateForEffectiveTenantAsync_Creates_Default_Row_When_Missing()
     {
         await using var db = CreateContext(new FixedTenantAccessor(TenantAId));
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = TenantBId,
@@ -92,5 +91,6 @@ public sealed class CashRegisterSettingsServiceTests
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;
+    public string? TenantSlug { get; set; }
     }
 }

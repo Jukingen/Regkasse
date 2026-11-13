@@ -27,6 +27,506 @@
     "jahresbeleg_not_required": "açık yükümlülük yok",
     "open_sonderbelege": "RKSV özel fişleri aç",
     "open_compliance": "Uyumluluk tanısı",
-    "multi_register_summary": "{{startbeleg}} kasada Startbeleg yok · {{jahresbeleg}} Jahresbeleg uyarısı · {{monatsbeleg}} gecikmiş Monatsbeleg"
+    "multi_register_summary": "{{startbeleg}} kasada Startbeleg yok · {{jahresbeleg}} Jahresbeleg uyarısı · {{monatsbeleg}} gecikmiş Monatsbeleg",
+    "loading_monatsbeleg": "Monatsbeleg durumu yükleniyor…",
+    "monatsbeleg_load_failed": "Monatsbeleg durumu yüklenemedi.",
+    "register_short": "Kasa",
+    "reload": "Yeniden yükle",
+    "permission_denied": "Bu işlem için yetkiniz yok.",
+    "monatsbeleg_already_exists": "Geçerli ay için Monatsbeleg zaten mevcut",
+    "only_current_month": "Yalnızca geçerli takvim ayı (Europe/Vienna) oluşturulabilir.",
+    "monatsbeleg_created_success": "Geçerli ay için Monatsbeleg oluşturuldu",
+    "monatsbeleg_create_failed": "Monatsbeleg oluşturulurken hata",
+    "monatsbeleg_missing_for_register": "Seçili kasa için {{month}} Monatsbeleg eksik.",
+    "registers_need_monatsbeleg": "{{count}} kasa {{month}} Monatsbeleg’ine ihtiyaç duyuyor.",
+    "all_current_widget_title": "Her şey güncel",
+    "all_current_widget_description": "{{month}} Monatsbeleg tüm kasalarda mevcut.",
+    "current_month_complete_title": "Geçerli ay tamamlandı",
+    "current_month_complete_description": "{{month}} Monatsbeleg tüm kasalarda mevcut. Lütfen önceki dönemlerdeki eksik ayları tamamlayın.",
+    "action_required": "İşlem gerekli"
+  },
+  "rksvReminderCard": {
+    "action_required": "İşlem gerekli",
+    "all_ok": "Her şey yolunda",
+    "manage": "Yönet",
+    "reload": "Yeniden yükle",
+    "load_error_title": "RKSV verileri yüklenemedi",
+    "load_error_description": "RKSV hatırlatmaları yüklenemedi. Lütfen daha sonra tekrar deneyin.",
+    "empty_description": "Kasa yok veya RKSV verisi mevcut değil",
+    "startbeleg_missing_title": "Startbeleg eksik",
+    "startbeleg_missing_description": "{{total}} kasadan {{missing}} tanesinde henüz Startbeleg yok.",
+    "monatsbeleg_overdue_title": "Monatsbeleg gecikmiş",
+    "monatsbeleg_overdue_description": "{{count}} kasa Monatsbeleg’i zamanında oluşturmadı.",
+    "monatsbeleg_pending_title": "Monatsbeleg eksik",
+    "monatsbeleg_pending_description": "{{count}} aktif kasa için Monatsbeleg eksik. Satışı olmayan aylar da oluşturulmalıdır. Hizmetten çıkarılan kasalar sayılmaz.",
+    "jahresbeleg_pending_title": "Jahresbeleg bekliyor",
+    "jahresbeleg_pending_description": "{{count}} kasa Jahresbeleg gerektiriyor.",
+    "all_current_title": "Tüm RKSV özel fişler güncel",
+    "all_current_description": "Tüm kasalarda gerekli Startbeleg, Monatsbeleg ve Jahresbeleg mevcut.",
+    "last_updated": "Son güncelleme: {{time}}",
+    "last_updated_unknown": "bilinmiyor"
+  },
+  "offlineQueue": {
+    "title": "Çevrimdışı kuyruk (TSE)",
+    "manage": "Yönet",
+    "backlog_title": "Artmış birikim",
+    "backlog_description": "{{pending}} ödeme mali imza bekliyor (eşik > 10).",
+    "pending": "Bekleyen",
+    "failed": "Başarısız",
+    "last_replay_utc": "Son tekrar (UTC)"
+  },
+  "tseHealth": {
+    "title": "TSE durumu",
+    "current_status": "Geçerli durum",
+    "last_successful_check": "Son başarılı TSE kontrolü",
+    "last_check_utc": "Son kontrol (UTC)",
+    "consecutive_failures": "Ardışık hatalar",
+    "status_healthy": "Sağlıklı",
+    "status_degraded": "Kısıtlı",
+    "status_offline": "Çevrimdışı",
+    "status_unknown": "Bilinmiyor",
+    "degraded_title": "TSE kısıtlı",
+    "offline_title": "TSE çevrimdışı",
+    "failures_in_row": "Ardışık hata: {{count}}.",
+    "next_probe_eta": "Sonraki planlı kontrol (ETA): {{time}}."
+  },
+  "fiskalyStatus": {
+    "disabled": "Devre dışı",
+    "not_configured": "Yapılandırılmadı",
+    "auth_failed": "Kimlik doğrulama başarısız",
+    "active": "Aktif",
+    "environment": "Ortam: {{env}}",
+    "last_check": "Son kontrol: {{time}}",
+    "refresh": "Yenile"
+  },
+  "cashRegistersWidget": {
+    "open_count_title": "Açık kasalar",
+    "status_open": "Açık",
+    "status_closed": "Kapalı",
+    "empty": "Kasa yok",
+    "more_count": "+{{count}} daha"
+  },
+  "finanzOnlineWidget": {
+    "pending": "Bekleyen",
+    "failed": "Başarısız",
+    "hint_failed": "Başarısız gönderimleri inceleyin",
+    "hint_pending": "Kuyruktaki bekleyen gönderimler",
+    "hint_ok": "Açık sorun yok",
+    "details": "Detaylar"
+  },
+  "finanzOnlineOutbox": {
+    "pending": "Bekleyen gönderimler",
+    "failed24h": "Başarısız (24 sa)",
+    "lastSuccess": "Son başarılı gönderim",
+    "lastSuccessNever": "henüz yok",
+    "openQueue": "Kuyruğu aç",
+    "retryAllFailed": "Başarısızların tümünü yeniden dene",
+    "retryConfirmTitle": "Başarısız gönderimlerin tümü yeniden denensin mi?",
+    "retryConfirmBody": "Başarısız kayıtlar kuyruğa geri alınır. SOAP gönderimi bu düğmeden doğrudan yapılmaz.",
+    "retryQueued": "{{count}} kayıt yeniden kuyruğa alındı.",
+    "retryError": "Yeniden deneme başarısız oldu."
+  },
+  "offlineStatusWidget": {
+    "badge_critical": "Kritik",
+    "badge_pending": "Bekliyor",
+    "badge_healthy": "Sağlıklı",
+    "pending_orders": "Bekleyen sipariş",
+    "total_pending": "Toplam bekleyen",
+    "sync_success_rate": "Sync başarı oranı",
+    "sync_status": "Sync durumu",
+    "sync_healthy": "Sağlıklı",
+    "sync_unhealthy": "Sorunlu",
+    "oldest_pending": "En eski bekleme: {{time}}",
+    "last_sync": "Son sync: {{time}}",
+    "view_details": "Detayları görüntüle",
+    "load_failed": "Offline durumu yüklenemedi."
+  },
+  "backupStatusWidget": {
+    "last_backup": "Son yedekleme",
+    "no_backup": "Henüz yedek yok",
+    "success_rate_30d": "Başarı oranı (30 gün)",
+    "storage": "Depolama",
+    "storage_alert": "Depolama limitine yaklaşıyor (staging ≥ %80)",
+    "config_health": "Yapılandırma: {{level}}",
+    "view_details": "Yedekleme özetini aç",
+    "load_failed": "Yedekleme durumu yüklenemedi.",
+    "health_score": "Yedek sağlığı",
+    "rpo_status": "RPO",
+    "rpo_ok": "Tamam",
+    "rpo_warning": "Uyarı",
+    "rpo_overdue": "Gecikmiş",
+    "rpo_unknown": "Bilinmiyor",
+    "last_verification": "Son doğrulama",
+    "verification_passed": "Geçti",
+    "verification_failed": "Başarısız",
+    "verification_none": "Yok",
+    "content_validation": "İçerik doğrulama",
+    "health_healthy": "Sağlıklı",
+    "health_warning": "Uyarı",
+    "health_critical": "Kritik",
+    "next_scheduled": "Sonraki zamanlanmış yedek",
+    "no_scheduled": "Zamanlama bildirilmedi",
+    "pending_runs": "{{count}} yedek koşusu hâlâ kuyrukta veya çalışıyor",
+    "alert_last_failed": "Son yedek başarısız — nedeni Backup & DR’de açın.",
+    "alert_rpo_critical": "RPO kritik — son başarılı yedek çok eski.",
+    "alert_rpo_warning": "RPO risk altında — son başarılı yedek yaşlanıyor.",
+    "alert_drill_failed": "Son restore tatbikatı başarısız — kurtarılabilirlik kanıtlanmadı."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Bekliyor",
+    "ready": "Hazir",
+    "collected": "Teslim alindi",
+    "openList": "On siparisleri ac",
+    "loadFailed": "On siparisler yuklenemedi."
+  },
+  "metricsWidget": {
+    "operational": "Çalışıyor",
+    "requests": "İstekler",
+    "requestsSuffix": "istek",
+    "avgResponse": "Ort. yanıt",
+    "errorRate": "Hata oranı",
+    "activeUsers": "Kayıtlı kullanıcılar",
+    "uptime": "Çalışma süresi",
+    "uptimeValue": "{{days}}g {{hours}}s {{minutes}}dk",
+    "cacheHit": "Önbellek isabeti: %{{percent}}",
+    "activeOrders": "Aktif siparişler: {{count}}",
+    "tenants": "Kiracılar: {{count}}",
+    "loadFailed": "Sistem metrikleri yüklenemedi."
+  },
+  "dataRetentionWidget": {
+    "viewAll": "Tümünü gör",
+    "loadFailed": "Veri saklama durumu yüklenemedi.",
+    "totalTenants": "Toplam kiracı",
+    "thisTenant": "Bu kiracı",
+    "inGrace": "Grace dönemi",
+    "locked": "Kilitli / süresi dolan",
+    "deletionRequests": "Silme talepleri",
+    "tagActive": "Aktif: {{count}}",
+    "tagGrace": "Grace: {{count}}",
+    "tagLocked": "Kilitli: {{count}}",
+    "rksvNote": "RKSV verileri en az 7 yıl saklanır",
+    "oldestRksv": "En eski RKSV ödemesi: {{date}}"
+  },
+  "widgetShell": {
+    "refresh": "Yenile",
+    "drag_widget": "Widget taşı"
+  },
+  "customize": {
+    "button": "Widget'ları özelleştir",
+    "drawerTitle": "Panoyu özelleştir",
+    "drawerIntro": "Widget'ları gösterin veya gizleyin. Görünür widget'lar panoda sürüklenerek sıralanabilir.",
+    "resetLayout": "Varsayılan düzene dön",
+    "resetConfirmTitle": "Düzen sıfırlansın mı?",
+    "resetConfirmContent": "Widget sırası ve görünürlük varsayılan değerlere döner.",
+    "loadError": "Pano yüklenemedi",
+    "saveError": "Düzen kaydedilemedi",
+    "toggleAria": "{{title}} göster"
+  },
+  "widgets": {
+    "actionRequired": {
+      "noPermission": "İşlem gerektiren hatırlatmaları görme yetkiniz yok."
+    },
+    "todaySales": {
+      "totalToday": "Bugünkü toplam ciro",
+      "salesCount": "{{count}} satış",
+      "noSalesToday": "Bugün satış yok"
+    },
+    "licenseExpiry": {
+      "daysRemaining": "Kalan gün",
+      "validUntil": "Geçerlilik: {{date}}",
+      "validUntilLabel": "Geçerlilik",
+      "remainingLabel": "Kalan",
+      "remainingValue": "{{days}} gün ({{hours}} saat)",
+      "statusLabel": "Durum",
+      "countdown": "Bitişe kalan: {{countdown}}",
+      "expiresSoon7": "Lisans yakında sona eriyor — lütfen yenileyin.",
+      "expiresSoon30": "Lisans 30 gün içinde sona eriyor.",
+      "noExpiryDate": "Lisans bitiş tarihi tanımlı değil",
+      "openSettings": "Ayarları aç",
+      "actionRequired": "Mandant lisansının yenilenmesi gerekiyor."
+    },
+    "licenseCountdown": {
+      "validUntilLabel": "Geçerlilik",
+      "expired": "Süresi dolmuş",
+      "expiredHint": "Süresi dolmuş",
+      "remainingHint": "kalan süre",
+      "renewNow": "Şimdi yenile",
+      "progressAria": "Lisans süresi: kalan {{days}} gün"
+    },
+    "licenseStatus": {
+      "title": "Lisans durumu",
+      "validUntil": "Geçerlilik",
+      "status": "Durum",
+      "expired": "Süresi dolmuş",
+      "remainingHint": "kalan süre",
+      "healthy": "Sorun yok",
+      "actionNeeded": "İşlem gerekli",
+      "daysLeft": "{{days}} gün",
+      "extend": "Uzat",
+      "extendNow": "Şimdi yenile",
+      "progressAria": "Lisans durumu: {{days}} gün"
+    },
+    "licenseHealth": {
+      "title": "Lisans durumu",
+      "statusLabel": "Durum",
+      "validUntil": "Geçerlilik",
+      "healthy": "Sorun yok",
+      "actionNeeded": "İşlem gerekli",
+      "daysLeft": "{{days}} gün",
+      "extend": "Uzat",
+      "extendNow": "Şimdi yenile",
+      "progressAria": "Lisans durumu: {{days}} gün",
+      "states": {
+        "Active": "Aktif",
+        "Grace": "Grace dönemi",
+        "Locked": "Kilitli",
+        "Archived": "Arşivlendi"
+      }
+    },
+    "licenseImpact": {
+      "title": "Lisans durumu",
+      "states": {
+        "Active": "Aktif",
+        "Grace": "Grace dönemi",
+        "Locked": "Kilitli",
+        "Archived": "Arşivlendi"
+      },
+      "current": {
+        "eyebrow": "Şu an",
+        "daysValid": "{{days}} gün geçerli",
+        "daysGrace": "Grace’te {{days}} gün kaldı",
+        "daysOverdue": "{{days}} gün gecikmiş"
+      },
+      "grace": {
+        "eyebrow": "Grace dönemi ({{days}} gün)",
+        "title": "Uyarı aşaması",
+        "description": "Tam erişim + uyarılar; zamanında yenileyin."
+      },
+      "locked": {
+        "eyebrow": "Grace sonrası",
+        "title": "Tam kilit",
+        "description": "POS kilitli; FA salt okunur + lisans yenileme."
+      },
+      "alert": {
+        "okTitle": "Her şey yolunda",
+        "okDescription": "Lisansınız hâlâ geçerli. Zamanında yenilemeyi planlayın.",
+        "actionTitle": "İşlem gerekli",
+        "actionDescription": "Lisansınız bitiyor veya bitti. Lütfen şimdi yenileyin."
+      }
+    },
+    "licenseRenewalChecklist": {
+      "title": "Lisans yenileme kontrol listesi",
+      "subtitle": "Yenilemeyi adım adım hazırlayın.",
+      "progressLabel": "{{completed}} / {{total}} tamamlandı",
+      "progressAria": "Kontrol listesi: yüzde {{percent}} tamamlandı",
+      "items": {
+        "reviewLicenseData": {
+          "label": "Güncel lisans verilerini kontrol et",
+          "description": "Geçerlilik: {{date}}"
+        },
+        "prepareLicenseKey": {
+          "label": "Yeni lisans anahtarını hazır tut"
+        },
+        "verifyPaymentMethod": {
+          "label": "Ödeme yöntemini kontrol et"
+        },
+        "updateContactData": {
+          "label": "İletişim bilgilerini güncelle"
+        },
+        "contactSupportIfNeeded": {
+          "label": "Sorularınız için destekle iletişime geçin"
+        }
+      }
+    },
+    "licenseSupportOptions": {
+      "title": "Lisans desteği",
+      "subtitle": "Lisans soruları ve yenileme için hızlı yardım.",
+      "liveChat": {
+        "title": "Canlı sohbet",
+        "description": "Anında yardım"
+      },
+      "ticket": {
+        "title": "Destek talebi",
+        "description": "24–48 saat içinde yanıt"
+      },
+      "faq": {
+        "title": "SSS",
+        "description": "Sık sorulan sorular",
+        "modalTitle": "Lisans SSS",
+        "modalClose": "Kapat",
+        "items": {
+          "renew": {
+            "q": "Lisansımı nasıl yenilerim?",
+            "a": "Gösterge panelinde veya Lisans sayfasında „Şimdi yenile“yi kullanın ve Super Admin’den aldığınız REGK anahtarını girin."
+          },
+          "grace": {
+            "q": "Grace döneminde ne olur?",
+            "a": "POS ve FA uyarılarla kullanılabilir kalır. Grace günleri içinde yenileyin."
+          },
+          "locked": {
+            "q": "POS neden kilitli?",
+            "a": "Grace sonrası lisans kilitlenir: POS engellenir, FA salt okunur + yenileme."
+          },
+          "key": {
+            "q": "Lisans anahtarını nereden alırım?",
+            "a": "Mandanten-Admin anahtarları Super Admin / faturalamadan alır. Sorun olursa support@regkasse.at yazın."
+          }
+        }
+      },
+      "phone": {
+        "title": "Telefon",
+        "description": "Pzt–Cum 9–17 · {{phone}}"
+      }
+    },
+
+    "recentUsers": {
+      "empty": "Kullanıcı yok"
+    },
+    "recentPermissionChanges": {
+      "empty": "Yetki değişikliği yok",
+      "viewAll": "Tümünü Gör →",
+      "roleLine": "Rol '{{role}}'",
+      "permissionLine": "İzin '{{permission}}'"
+    },
+    "lowStock": {
+      "summary": "{{count}} ürün minimum stok altında",
+      "empty": "Uyarı yok",
+      "productFallback": "Ürün",
+      "stockDescription": "Stok: {{current}} / Min: {{min}}"
+    },
+    "topProducts": {
+      "periodToday": "Bugün",
+      "periodWeek": "Hafta",
+      "colProduct": "Ürün",
+      "colQuantity": "Adet",
+      "colRevenue": "Ciro"
+    }
+  },
+  "monatsbeleg": {
+    "title": "Monatsbeleg (RKSV)",
+    "retry": "Yeniden dene",
+    "refresh": "Yenile",
+    "loadFailedTitle": "Veriler yüklenemedi",
+    "loadFailedDescription": "Lütfen daha sonra tekrar deneyin veya destekle iletişime geçin.",
+    "loadTimeout": "10 saniye sonra istek zaman aşımına uğradı. Lütfen tekrar deneyin.",
+    "loading": "Monatsbeleg verileri yükleniyor…",
+    "noDataTitle": "Veri yok",
+    "noDataDescription": "Henüz kasa bulunamadı. Kasa oluşturulduktan sonra Monatsbeleg verileri görünür.",
+    "refreshInterval": "5 dakikada bir güncellenir",
+    "colRegister": "Kasa",
+    "colLastMonatsbeleg": "Son Monatsbeleg",
+    "colMissingMonths": "Eksik aylar",
+    "colProgress": "İlerleme",
+    "colAction": "İşlem",
+    "noMonatsbeleg": "Monatsbeleg yok",
+    "noMissingMonths": "Eksik ay yok",
+    "overdueSuffix": " (gecikmiş)",
+    "loadingTag": "Yükleniyor…",
+    "statusFailed": "Durum başarısız",
+    "progressSummary": "Bu yıl {{total}} aydan {{completed}} tanesi tamamlandı",
+    "noPermission": "Yetki yok",
+    "createForMonth": "{{month}} için Monatsbeleg oluştur",
+    "createTestCurrentMonth": "Geçerli ay için Monatsbeleg oluştur (test)",
+    "alreadyExists": "Geçerli ay için Monatsbeleg zaten mevcut",
+    "createSuccess": "{{month}} için Monatsbeleg başarıyla oluşturuldu",
+    "createFailed": "Geçerli ay için Monatsbeleg oluşturulamadı.",
+    "refreshA11y": "Monatsbeleg verilerini yenile",
+    "demoModeTitle": "Demo modu: test için Monatsbeleg istediğiniz zaman oluşturabilirsiniz. Canlı ortamda yasal zorunluluktur.",
+    "intro": "Tüm kasaların özeti: Monatsbeleg son tarihi takvim ayına göre (Europe/Vienna). 5 dakikada bir ve pencere odağında güncellenir.",
+    "statusLoadFailed": "Monatsbeleg durumu yüklenemedi",
+    "noRegisters": "Kasa yok.",
+    "emptyTable": "Kasa bulunamadı."
+  },
+  "rksvCompliance": {
+    "missingTitle": "{{count}} Monatsbeleg eksik",
+    "catchUpNow": "Şimdi tamamla",
+    "missingHint": "Eksik aylık belgeler sonradan oluşturulabilir (gerçek oluşturma zamanı, gecikmeli işaretlenir).",
+    "daysLate": "{{count}} gün gecikmiş",
+    "overdue": "Süresi geçmiş",
+    "missing": "Eksik"
+  },
+  "tagesabschlussReminder": {
+    "title": "Gün sonu kapanışı bekliyor",
+    "cta": "Şimdi yap",
+    "body": "{{register}} için bugünkü Tagesabschluss henüz yapılmadı.",
+    "transactionsWaiting": "{{count}} işlem kasa kapanışını bekliyor.",
+    "deadlineHint": "Lütfen Tagesabschluss işlemini 00:00 (Europe/Vienna) öncesinde tamamlayın. Otomatik kapanış mümkün değildir."
+  },
+  "manager": {
+    "welcome": "Tekrar hoş geldiniz, {{name}}!",
+    "todaySales": "Bugünkü satışlar",
+    "transactions": "İşlemler",
+    "transactionCount": "{{count}} işlem",
+    "openShifts": "Açık vardiyalar",
+    "shiftOpen": "Vardiya açık",
+    "allClosed": "Hepsi kapalı",
+    "activeStaff": "Aktif personel",
+    "onDutyToday": "Bugün görevde",
+    "viewStaffHub": "Personel özeti",
+    "viewStaffShifts": "Vardiyaları göster",
+    "cashBalance": "Kasa bakiyesi",
+    "noRegister": "Kasa yok",
+    "recentActivities": "Son aktiviteler",
+    "viewAll": "Tümünü göster",
+    "noActivities": "Aktivite yok",
+    "pendingMonatsbeleg": "{{count}} kasa için Monatsbeleg eksik",
+    "pendingMonatsbelegPlural": "{{count}} kasa için Monatsbeleg eksik",
+    "pendingMonatsbelegDescription": "Yalnızca ayı gerçekten eksik olan aktif kasalar. Satışı olmayan bir ay da zorunludur. Hizmetten çıkarılan kasalar listelenmez.",
+    "createNow": "Eksikleri tamamla",
+    "openMonatsbelegRequests": {
+      "title": "Açık Monatsbeleg talepleri",
+      "count": "Talepler (7 gün)",
+      "empty": "Son 7 günde açık talep yok.",
+      "cta": "Monatsbeleg sayfasını aç"
+    }
+  },
+  "dailyClosing": {
+    "title": "Gün sonu",
+    "todayClosed": "Bugün kapalı",
+    "todayOpen": "Bugün açık ({{count}} işlem)",
+    "todayEmpty": "İşlem yok — boş kapanış mümkün",
+    "weekSummaryTitle": "Bu hafta",
+    "weekSummary": "{{closed}} / {{total}} kapalı",
+    "lastClosing": "Son kapanış: {{date}}",
+    "noClosingYet": "Henüz kapanış yok",
+    "open": "Gün sonunu aç",
+    "closeNow": "Bugünü kapat",
+    "closeNowConfirmTitle": "Bugünkü gün sonu çalıştırılsın mı?",
+    "closeNowConfirm": "RKSV işlemi. Kasayı hazır olduğunda kapatın.",
+    "noPermission": "Gün sonu için yetkiniz yok.",
+    "loadError": "Gün sonu durumu yüklenemedi"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE kullanımı",
+    "volumeTitle": "Ödeme hacmi (POS)",
+    "loadFailed": "İstatistikler yüklenemedi.",
+    "activeRegisters": "Aktif kasalar",
+    "signaturesToday": "Bugünkü imzalar",
+    "failedSignatures": "Başarısız",
+    "signatures": "İmzalar",
+    "revenueThisMonth": "Bu ay ciro",
+    "monthlyGrowth": "Aylık değişim",
+    "averageTicket": "Ort. fiş",
+    "revenue": "Ciro"
+  },
+  "handyLinks": {
+    "title": "Yararlı bağlantılar",
+    "subtitle": "Kasa yönetimi ve diğer araçlara kısayollar.",
+    "recentTitle": "Son kullanılanlar",
+    "recentEmpty": "Henüz açılmış bir sayfa yok."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Kiracı",
+    "year": "Yıl",
+    "deadline": "Son tarih",
+    "status": "Durum",
+    "created": "Oluşturuldu",
+    "missing": "Eksik",
+    "notDue": "Henüz gerekli değil",
+    "empty": "Jahresbeleg yükümlülüğü olan kasa yok.",
+    "loadError": "Jahresbeleg durumu yüklenemedi.",
+    "warning": "Jahresbeleg son tarihi 31 Ocak. Lütfen oluşturun.",
+    "open": "Jahresbeleg'i aç"
   }
 }

@@ -11,9 +11,9 @@ import { usePermissions } from '@/shared/auth/usePermissions';
  * FA gate: SuperAdmin role or system.critical permission (same as /admin/tenants route).
  */
 export function useCanManageTenantDeletion(): boolean {
-    const { user, hasPermission } = usePermissions();
-    return useMemo(
-        () => isSuperAdmin(user?.role) || hasPermission(PERMISSIONS.SYSTEM_CRITICAL),
-        [user?.role, hasPermission],
-    );
+  const { user, hasPermission } = usePermissions();
+  return useMemo(
+    () => isSuperAdmin(user?.role) || hasPermission(PERMISSIONS.SYSTEM_CRITICAL),
+    [user?.role, hasPermission]
+  );
 }

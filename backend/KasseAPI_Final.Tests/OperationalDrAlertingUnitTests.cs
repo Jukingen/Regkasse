@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;

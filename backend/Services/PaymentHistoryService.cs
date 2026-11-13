@@ -290,17 +290,17 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
         int totalCount,
         int limit,
         int offset) => new()
-    {
-        Payments = new List<PaymentHistoryItemDto>(),
-        TotalCount = totalCount,
-        Limit = limit,
-        Offset = offset,
-        HasMore = offset + limit < totalCount,
-        FromUtc = fromUtc,
-        ToUtc = toUtc,
-        CashRegisterId = registerId,
-        Language = language,
-    };
+        {
+            Payments = new List<PaymentHistoryItemDto>(),
+            TotalCount = totalCount,
+            Limit = limit,
+            Offset = offset,
+            HasMore = offset + limit < totalCount,
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            CashRegisterId = registerId,
+            Language = language,
+        };
 
     private async Task<Guid?> ResolveCashRegisterIdAsync(
         string userId,

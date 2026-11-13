@@ -6,155 +6,117 @@
 //     Products without add-on groups add directly. Inline chips (legacy path) still
 //     supported for existing cart lines. State: cart (context), modifierSheetProduct (sheet),
 //     pendingModifiersByProduct (legacy chip state).
+//
+// WORKING HOURS: never gate this screen. Do NOT add a closed-hours early return.
+// Restaurant hours are display-only (Header / WorkingHoursStatus). Cashiers always work.
 // =============================================================================
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextStyle,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
-import { CashRegisterHeader } from '../../components/CashRegisterHeader';
+import { CashRegisterHeader, CashRegisterTableBadge } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
-import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
+import { DynamicField } from '../../components/DynamicField';
 import { FavoritesBar } from '../../components/FavoritesBar';
+import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
+import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
+import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
+import { ProductBarcodeScan } from '../../components/ProductBarcodeScan';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
+import { ImeiPickerModal } from '../../components/ImeiPickerModal';
+import { VariantPickerModal } from '../../components/VariantPickerModal';
+import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
+import { FolioChargeBar } from '../../components/FolioChargeBar';
+import { consumeOpenPayment } from '../../components/lodging/folioCheckoutHandoff';
+import { RoomPicker } from '../../components/RoomPicker';
+import { TaxiSalePanel } from '../../components/TaxiSalePanel';
+import { TicketSeatBoard } from '../../components/TicketSeatBoard';
+import { ticketSeatToastMessage } from '../../components/ticketSeatNotice';
 import { ToastContainer } from '../../components/ToastNotification';
-import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftTypography,
+  Space8,
+} from '../../constants/SoftTheme';
+import { isPosSplitLayout, TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useVerticalFeatures } from '../../contexts/VerticalProfileContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
 import { useFavorites } from '../../hooks/useFavorites';
-import { useCashRegister } from '../../hooks/useCashRegister';
+import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
+import { productRequiresImeiPicker } from '../../services/api/imeiService';
 import {
-  getMonatsbelegStatus,
-  type MonatsbelegStatusDto,
-} from '../../services/api/rksvSpecialReceiptsService';
+  productRequiresVariantPicker,
+  variantCartLineLabel,
+  type ProductVariantDto,
+} from '../../services/api/variantService';
+import { createKitchenOrder } from '../../services/api/kitchenOrderService';
+import { autoOpenShiftApi } from '../../services/api/shiftService';
+import {
+  clearShiftAutoOpenFailure,
+  getShiftAutoOpenFailureCode,
+  publishShiftAutoOpenFailure,
+  subscribeShiftAutoOpenFailure,
+} from '../../services/shift/shiftAutoOpenNotice';
 import { formatPrice } from '../../utils/formatPrice';
-import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
-import { resolveProductDisplayName } from '../../utils/productLocalization';
-import type { ProductTextLocale } from '../../utils/productLocalization';
-import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
+import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
+import { isValidPosCashRegisterId, resolveAutoOpenShiftRegisterId } from '../../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  resolveRegisterSelectAutoOpenUx,
+} from '../../utils/shiftAutoOpenError';
+import { hasPermission } from '../../utils/posPermissions';
 import {
   isReadinessRegisterDecommissioned,
+  isReadinessOpenRegisterGateActive,
   isReadinessStartbelegGateActive,
+  isReadinessMonatsbelegGateActive,
+  registerGateAlertMessage,
+  buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { showConfirm } from '../../utils/alert';
+import { collectOpenTableNumbers } from '../../utils/openTableNumbers';
+import { resolveProductDisplayName } from '../../utils/productLocalization';
+import type { ProductTextLocale } from '../../utils/productLocalization';
 
 /** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
 type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
-
-/** RKSV Monatsbeleg reminder strip (Vienna month); yellow dismissible, red must be resolved. */
-function MonatsbelegWarningBannerStrip({
-  monatsbelegStatus,
-  yellowDismissed,
-  onDismissYellow,
-  onNavigateCreate,
-  t,
-}: {
-  monatsbelegStatus:
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' };
-  yellowDismissed: boolean;
-  onDismissYellow: () => void;
-  onNavigateCreate: () => void;
-  t: (key: string, options?: Record<string, string | number>) => string;
-}) {
-  if (monatsbelegStatus.phase !== 'success') {
-    return null;
-  }
-  const { warningLevel, daysUntilDeadline } = monatsbelegStatus.data;
-  if (warningLevel !== 'yellow' && warningLevel !== 'red') {
-    return null;
-  }
-  if (warningLevel === 'yellow' && yellowDismissed) {
-    return null;
-  }
-
-  const isRed = warningLevel === 'red';
-  const message = isRed
-    ? t('checkout:posFlow.monatsbelegBanner.red')
-    : t('checkout:posFlow.monatsbelegBanner.yellow', { days: daysUntilDeadline });
-
-  return (
-    <View
-      style={[styles.mbBanner, isRed ? styles.mbBannerRed : styles.mbBannerYellow]}
-      accessibilityRole="alert"
-    >
-      <Text style={[styles.mbBannerText, isRed && styles.mbBannerTextRed]}>{message}</Text>
-      <View style={styles.mbBannerRow}>
-        <Pressable
-          onPress={onNavigateCreate}
-          style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.createNow')}
-        >
-          <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegBanner.createNow')}</Text>
-        </Pressable>
-        {!isRed ? (
-          <Pressable
-            onPress={onDismissYellow}
-            style={({ pressed }) => [styles.mbDismissBtn, pressed && styles.mbBannerCtaPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.dismissA11y')}
-            hitSlop={8}
-          >
-            <Ionicons name="close" size={22} color={SoftColors.textPrimary} />
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-/** RKSV: prominent notice when the current Vienna month Monatsbeleg is past the 7th-day grace (server: currentMonthOverdue). */
-function MonatsbelegCurrentMonthOverduePanel({
-  monatsbelegStatus,
-  onNavigateCreate,
-  t,
-}: {
-  monatsbelegStatus:
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' };
-  onNavigateCreate: () => void;
-  t: (key: string, options?: Record<string, string | number>) => string;
-}) {
-  if (monatsbelegStatus.phase !== 'success' || monatsbelegStatus.data.currentMonthOverdue !== true) {
-    return null;
-  }
-  return (
-    <View style={styles.mbOverduePanel} accessibilityRole="alert">
-      <Text style={styles.mbOverdueTitle}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.title')}</Text>
-      <Text style={styles.mbOverdueBody}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.description')}</Text>
-      <Pressable
-        onPress={onNavigateCreate}
-        style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
-        accessibilityRole="button"
-        accessibilityLabel={t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}
-      >
-        <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 /** Presentational: step number + section title (used for Category and Summary headers). */
 function SectionHeader({
@@ -173,7 +135,9 @@ function SectionHeader({
   return (
     <View style={[styles.sectionTitleRow, rowStyle]}>
       <Text style={[styles.stepLabel, stepStyle]}>{step}</Text>
-      <Text style={[styles.sectionTitle, titleStyle]} accessibilityRole="header">{title}</Text>
+      <Text style={[styles.sectionTitle, titleStyle]} accessibilityRole="header">
+        {title}
+      </Text>
     </View>
   );
 }
@@ -192,6 +156,8 @@ function POSSummaryBlock({
   incrementModifier,
   decrementModifier,
   onPayment,
+  onSendToKitchen,
+  sendingToKitchen,
   paddingBottom,
   saleCustomer,
   onOpenCustomerSheet,
@@ -199,6 +165,7 @@ function POSSummaryBlock({
   onOpenSplitSheet,
   onOpenMergeSheet,
   benefitSummaryCount,
+  pinCheckout = false,
   t,
 }: {
   activeTableId: number;
@@ -213,6 +180,8 @@ function POSSummaryBlock({
   incrementModifier: (itemId: string, modifierId: string) => void;
   decrementModifier: (itemId: string, modifierId: string) => void;
   onPayment: () => void;
+  onSendToKitchen?: () => void;
+  sendingToKitchen?: boolean;
   paddingBottom: number;
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
   onOpenCustomerSheet?: () => void;
@@ -221,8 +190,11 @@ function POSSummaryBlock({
   onOpenMergeSheet?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
+  /** Wide layout: receipt scrolls, pay stays at the bottom of the order column. */
+  pinCheckout?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }) {
+  const [dockHeight, setDockHeight] = useState(0);
   const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
   const benefitBadgeText =
     (benefitSummaryCount ?? 0) === 1
@@ -230,17 +202,27 @@ function POSSummaryBlock({
       : (benefitSummaryCount ?? 0) > 1
         ? t('checkout:posFlow.personal.benefitMultiple', { count: benefitSummaryCount ?? 0 })
         : '';
-  return (
-    <View style={[styles.summaryBlock, { paddingBottom }]}>
-      <SectionHeader step="4" title={t('checkout:posFlow.section.summary')} rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
+  const receiptBody = (
+    <>
+      <View style={styles.summaryBlockHeader}>
+        <Text style={styles.stepLabel}>4</Text>
+        <Text style={styles.summaryBlockTitle} accessibilityRole="header">
+          {t('checkout:posFlow.section.summary')}
+        </Text>
+        <CashRegisterTableBadge tableNumber={activeTableId} tone="onCard" />
+      </View>
       {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
           <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
           {saleCustomer ? (
             <>
-              <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
+              <Text style={styles.personalValue} numberOfLines={1}>
+                {saleCustomer.name}
+              </Text>
               {showBenefitBadge && benefitBadgeText ? (
-                <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
+                <Text style={styles.benefitBadge} numberOfLines={1}>
+                  {benefitBadgeText}
+                </Text>
               ) : null}
               <Pressable style={styles.personalBtn} onPress={onOpenCustomerSheet}>
                 <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.change')}</Text>
@@ -296,12 +278,61 @@ function POSSummaryBlock({
         onIncrementModifier={incrementModifier}
         onDecrementModifier={decrementModifier}
       />
-      <CartSummary
-        cart={cart}
-        loading={cartLoading}
-        error={cartError}
-        onPayment={onPayment}
-      />
+      {onSendToKitchen && summaryTotals.itemCount > 0 ? (
+        <Pressable
+          style={styles.kitchenSendBtn}
+          onPress={onSendToKitchen}
+          disabled={sendingToKitchen}
+          accessibilityRole="button"
+          accessibilityLabel={t('verticalProfiles:screens.kitchen.send')}>
+          <Text style={styles.kitchenSendText}>
+            {sendingToKitchen
+              ? t('verticalProfiles:screens.kitchen.sending')
+              : t('verticalProfiles:screens.kitchen.send')}
+          </Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+  const checkoutDock = (
+    <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
+  );
+
+  if (pinCheckout) {
+    return (
+      <View
+        testID="pos-order-panel"
+        style={[styles.summaryBlock, styles.summaryBlockPinned]}>
+        <View style={styles.summaryScrollClip}>
+          <ScrollView
+            testID="pos-order-scroll"
+            style={styles.summaryScroll}
+            contentContainerStyle={[
+              styles.summaryScrollContent,
+              { paddingBottom: dockHeight + SoftSpacing.sm },
+            ]}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled">
+            {receiptBody}
+          </ScrollView>
+        </View>
+        <View
+          testID="pos-checkout-dock"
+          style={[styles.checkoutDock, styles.checkoutDockPinned]}
+          onLayout={(event) => {
+            const next = Math.ceil(event.nativeEvent.layout.height);
+            setDockHeight((prev) => (prev === next ? prev : next));
+          }}>
+          {checkoutDock}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.summaryBlock, { paddingBottom }]}>
+      {receiptBody}
+      {checkoutDock}
     </View>
   );
 }
@@ -310,34 +341,60 @@ function POSSummaryBlock({
 // Hook: Sepet ekleme + modifier pending state (tek tık akışı, minimal re-render)
 // -----------------------------------------------------------------------------
 function usePOSOrderFlow(
-  addItem: (productId: string, qty?: number, options?: { productName?: string; unitPrice?: number }) => Promise<void>,
+  addItem: (
+    productId: string,
+    qty?: number,
+    options?: { productName?: string; unitPrice?: number; variantId?: string }
+  ) => Promise<void>,
   activeTableId: number,
-  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
+  addToast: (
+    type: 'error' | 'success' | 'info' | 'warning',
+    message: string,
+    duration?: number
+  ) => void,
   t: (key: string, options?: Record<string, string | number>) => string,
-  displayLocale: ProductTextLocale,
+  displayLocale: ProductTextLocale
 ) {
-  const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
+  const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<
+    Record<string, SelectedModifier[]>
+  >({});
 
   const handleAddProduct = useCallback(
-    async (product: Product) => {
+    async (product: Product, variant?: { id: string; label: string; unitPrice: number }) => {
       if (!activeTableId) {
         addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
       try {
-        const displayName = resolveProductDisplayName(product, displayLocale);
+        const baseName = resolveProductDisplayName(product, displayLocale);
+        const displayName = variant ? variantCartLineLabel(baseName, variant.label) : baseName;
         await addItem(product.id, 1, {
           productName: displayName,
-          unitPrice: product.price ?? 0,
+          unitPrice: variant?.unitPrice ?? product.price ?? 0,
+          variantId: variant?.id,
         });
-        addToast('success', t('checkout:posFlow.toast.productAddedToTable', { name: displayName, table: activeTableId }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.productAddedToTable', {
+            name: displayName,
+            table: activeTableId,
+          }),
+          2000
+        );
         setPendingModifiersByProduct((prev) => {
           const next = { ...prev };
           delete next[product.id];
           return next;
         });
       } catch (error: any) {
-        addToast('error', t('checkout:posFlow.toast.productAddError', { name: resolveProductDisplayName(product, displayLocale), reason: error?.message || t('common:error') }), 5000);
+        addToast(
+          'error',
+          t('checkout:posFlow.toast.productAddError', {
+            name: resolveProductDisplayName(product, displayLocale),
+            reason: error?.message || t('common:error'),
+          }),
+          5000
+        );
       }
     },
     [addItem, activeTableId, addToast, t, displayLocale]
@@ -354,7 +411,11 @@ function usePOSOrderFlow(
           productName: addOn.productName,
           unitPrice: addOn.price,
         });
-        addToast('success', t('checkout:posFlow.toast.addOnAdded', { name: addOn.productName }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.addOnAdded', { name: addOn.productName }),
+          2000
+        );
       } catch (e: any) {
         addToast('error', e?.message ?? t('checkout:posFlow.toast.addOnAddFailed'), 3000);
       }
@@ -369,36 +430,55 @@ function usePOSOrderFlow(
   };
 }
 
+/**
+ * POS cash register — always operational.
+ * No working-hours check, no closed-hours early return, no order intake gate.
+ * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
+ */
 export default function CashRegisterScreen() {
-  const { t } = useTranslation(['checkout', 'common']);
+  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles']);
+  const { posLayout, posFeatures, profileId } = useVerticalFeatures();
+  const showTables =
+    posFeatures.tables === true ||
+    profileId === 'gastronomy-tables' ||
+    posLayout === 'tables';
+  const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const router = useRouter();
-  const [monatsbelegStatus, setMonatsbelegStatus] = useState<
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' }
-  >({ phase: 'idle' });
-  const [yellowBannerDismissed, setYellowBannerDismissed] = useState(false);
-  const prevMbWarningLevelRef = useRef<string | null>(null);
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
+  const [monatsbelegHardBlockVisible, setMonatsbelegHardBlockVisible] = useState(false);
+  const [generateTickets, setGenerateTickets] = useState(true);
   const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
   const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [imeiValue, setImeiValue] = useState('');
+  const [pendingImeiProduct, setPendingImeiProduct] = useState<Product | null>(null);
+  const [pendingVariantProduct, setPendingVariantProduct] = useState<Product | null>(null);
+  const { reserve: reserveImei } = useImeiSelections();
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
   /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
   const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
   const benefitFetchRef = useRef<string | null>(null);
 
-  const { categories } = useProductsUnified();
-  const { toasts, addToast, removeToast } = useCashRegister();
+  const { categories, products } = useProductsUnified();
+  const [taxiProductId, setTaxiProductId] = useState<string | null>(null);
+  const { toasts, addToast, removeToast } = useCashRegisterCart();
   const {
     recoveryData,
     isLoading: recoveryLoading,
+    error: recoveryError,
     provisioningMessage: recoveryProvisioningMessage,
+    refreshTableOrders,
   } = useTableOrdersRecoveryOptimized();
+  const shiftFailureCode = useSyncExternalStore(
+    subscribeShiftAutoOpenFailure,
+    getShiftAutoOpenFailureCode,
+    getShiftAutoOpenFailureCode
+  );
+  const [shiftRetrying, setShiftRetrying] = useState(false);
+  const shiftOpenUx = shiftFailureCode ? resolveRegisterSelectAutoOpenUx(shiftFailureCode) : null;
   const {
     activeTableId,
     currentCart,
@@ -410,6 +490,7 @@ export default function CashRegisterScreen() {
     addItemWithAddOns,
     removeByItemId,
     clearCart,
+    fetchTableCart,
     getCartForTable,
     updateItemQuantityByItemId,
     incrementModifier,
@@ -423,6 +504,34 @@ export default function CashRegisterScreen() {
   } = useCart();
 
   const posReadiness = usePosRegisterReadiness();
+  const { user } = useAuth();
+  const retryShiftOpen = useCallback(async () => {
+    setShiftRetrying(true);
+    try {
+      await autoOpenShiftApi(resolveAutoOpenShiftRegisterId(user?.currentCashRegisterId));
+      clearShiftAutoOpenFailure();
+    } catch (err: unknown) {
+      publishShiftAutoOpenFailure(parseShiftAutoOpenError(err).code);
+    } finally {
+      setShiftRetrying(false);
+    }
+  }, [user?.currentCashRegisterId]);
+  const { canTakeOrders } = usePosPermissions();
+  const canOpenReceiptList = hasPermission(user, 'sale.view');
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!POS_ENSURE_READY_ON_ENTRY) return undefined;
+      let cancelled = false;
+      void (async () => {
+        await posReadiness.refreshAsync();
+        if (cancelled) return;
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [posReadiness.refreshAsync])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -435,40 +544,21 @@ export default function CashRegisterScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const id = posReadiness.data?.effectiveRegisterId?.trim();
-      if (!id || !isValidPosCashRegisterId(id)) {
-        setMonatsbelegStatus({ phase: 'idle' });
-        return;
-      }
+      const pending = consumeOpenPayment();
+      if (!pending) return undefined;
       let cancelled = false;
-      setMonatsbelegStatus({ phase: 'loading' });
-      getMonatsbelegStatus(id)
-        .then((data) => {
-          if (cancelled) return;
-          setMonatsbelegStatus({ phase: 'success', data });
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setMonatsbelegStatus({ phase: 'error' });
-        });
+      void (async () => {
+        if (activeTableId !== pending.tableNumber) {
+          await switchTable(pending.tableNumber);
+        }
+        await fetchTableCart(pending.tableNumber, true);
+        if (!cancelled) setIsPaymentModalVisible(true);
+      })();
       return () => {
         cancelled = true;
       };
-    }, [posReadiness.data?.effectiveRegisterId])
+    }, [activeTableId, fetchTableCart, setIsPaymentModalVisible, switchTable])
   );
-
-  useEffect(() => {
-    if (monatsbelegStatus.phase !== 'success') return;
-    const w = monatsbelegStatus.data.warningLevel;
-    if (w !== prevMbWarningLevelRef.current) {
-      prevMbWarningLevelRef.current = w;
-      setYellowBannerDismissed(false);
-    }
-  }, [monatsbelegStatus]);
-
-  const handleMonatsbelegNavigate = useCallback(() => {
-    router.push('/(tabs)/settings' as const);
-  }, [router]);
 
   const handleOpenPaymentHistory = useCallback(() => {
     const registerId = posReadiness.data?.effectiveRegisterId?.trim();
@@ -481,6 +571,18 @@ export default function CashRegisterScreen() {
     }
     router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [posReadiness.data?.effectiveRegisterId, router]);
+
+  const handleOpenReceiptList = useCallback(() => {
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!isValidPosCashRegisterId(registerId)) {
+      Alert.alert(
+        t('receipts:noRegister'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [posReadiness.data?.effectiveRegisterId, router, t]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {
@@ -510,6 +612,8 @@ export default function CashRegisterScreen() {
   // Use context's currentCart so summary/checkout always follow active table (no stale table cart)
   const cart = currentCart;
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const splitLayout = posLayout !== 'taxi' && isPosSplitLayout(windowWidth);
   const footerBottomPadding = TAB_BAR_HEIGHT + insets.bottom;
 
   // ——— Derived UI state (from cart / tables) ———
@@ -528,38 +632,105 @@ export default function CashRegisterScreen() {
 
   const productDisplayLocale = useProductDisplayLocale();
 
-  const {
-    pendingModifiersByProduct,
-    handleAddProduct,
-    handleAddAddOn,
-  } = usePOSOrderFlow(addItem, activeTableId, addToast, t, productDisplayLocale);
+  const { pendingModifiersByProduct, handleAddProduct, handleAddAddOn } = usePOSOrderFlow(
+    addItem,
+    activeTableId,
+    addToast,
+    t,
+    productDisplayLocale
+  );
+
+  const guardTakeOrder = useCallback((): boolean => {
+    if (canTakeOrders) return true;
+    addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+    return false;
+  }, [addToast, canTakeOrders, t]);
+
+  const onAddProductGuarded = useCallback(
+    (product: Parameters<typeof handleAddProduct>[0]) => {
+      if (!guardTakeOrder()) return;
+      if (productRequiresVariantPicker(product)) {
+        setPendingVariantProduct(product);
+        return;
+      }
+      if (productRequiresImeiPicker(product)) {
+        setPendingImeiProduct(product);
+        return;
+      }
+      return handleAddProduct(product);
+    },
+    [guardTakeOrder, handleAddProduct]
+  );
+
+  const onImeiPicked = useCallback(
+    async (imei: string) => {
+      if (!pendingImeiProduct) return;
+      reserveImei(pendingImeiProduct.id, imei);
+      const product = pendingImeiProduct;
+      setPendingImeiProduct(null);
+      await handleAddProduct(product);
+    },
+    [handleAddProduct, pendingImeiProduct, reserveImei]
+  );
+
+  const onVariantPicked = useCallback(
+    async (variant: ProductVariantDto) => {
+      if (!pendingVariantProduct) return;
+      const product = pendingVariantProduct;
+      setPendingVariantProduct(null);
+      await handleAddProduct(product, {
+        id: variant.id,
+        label: variant.variantLabel,
+        unitPrice: (product.price ?? 0) + variant.priceDelta,
+      });
+    },
+    [handleAddProduct, pendingVariantProduct]
+  );
+
+  const onAddAddOnGuarded = useCallback(
+    (addOn: Parameters<typeof handleAddAddOn>[0]) => {
+      if (!guardTakeOrder()) return;
+      return handleAddAddOn(addOn);
+    },
+    [guardTakeOrder, handleAddAddOn]
+  );
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
     const pids = new Set([
       ...Object.keys(lastCartItemModifiersByProductId),
-      ...Object.keys(pendingModifiersByProduct)
+      ...Object.keys(pendingModifiersByProduct),
     ]);
     pids.forEach((pid) => {
-      out[pid] =
-        lastCartItemModifiersByProductId[pid]?.length
-          ? lastCartItemModifiersByProductId[pid]
-          : pendingModifiersByProduct[pid] ?? [];
+      out[pid] = lastCartItemModifiersByProductId[pid]?.length
+        ? lastCartItemModifiersByProductId[pid]
+        : (pendingModifiersByProduct[pid] ?? []);
     });
     return out;
   }, [lastCartItemModifiersByProductId, pendingModifiersByProduct]);
 
   const handleApplyWithBase = useCallback(
-    async (base: { productId: string; productName: string; price: number }, addOns: { productId: string; productName: string; price: number }[]) => {
+    async (
+      base: { productId: string; productName: string; price: number },
+      addOns: { productId: string; productName: string; price: number }[]
+    ) => {
+      if (!guardTakeOrder()) {
+        setModifierSheetProduct(null);
+        return;
+      }
       try {
         await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
-        addToast('success', t('checkout:posFlow.toast.baseProductAdded', { name: base.productName }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.baseProductAdded', { name: base.productName }),
+          2000
+        );
       } catch (e: any) {
         addToast('error', e?.message ?? t('checkout:posFlow.toast.addingFailed'), 3000);
       }
       setModifierSheetProduct(null);
     },
-    [addItemWithAddOns, addToast]
+    [addItemWithAddOns, addToast, guardTakeOrder, t]
   );
 
   /** Table number → { items, totalItems } for table selector badges. */
@@ -580,64 +751,83 @@ export default function CashRegisterScreen() {
   }, []);
 
   // Contract: User can always switch table; having items on current table must not block.
-  const handleTableSelect = useCallback(async (tableNumber: number) => {
-    if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
-      addToast('error', t('checkout:posFlow.toast.invalidTableNumber'), 3000);
-      return;
-    }
+  const handleTableSelect = useCallback(
+    async (tableNumber: number) => {
+      if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
+        addToast('error', t('checkout:posFlow.toast.invalidTableNumber'), 3000);
+        return;
+      }
 
-    if (activeTableId === tableNumber) {
-      return;
-    }
+      if (activeTableId === tableNumber) {
+        return;
+      }
 
-    setTableSelectionLoading(tableNumber);
-    const clearLoading = () => setTableSelectionLoading(null);
-    const loadingTimeout = setTimeout(clearLoading, 8000);
+      setTableSelectionLoading(tableNumber);
+      const clearLoading = () => {
+        setTableSelectionLoading(null);
+      };
+      const loadingTimeout = setTimeout(clearLoading, 8000);
 
-    try {
-      // Timeout so loading always clears even if fetch hangs (regression: stuck loading blocked other tables)
-      await Promise.race([
-        switchTable(tableNumber),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Table switch timeout')), 6000)
-        ),
-      ]);
-      addToast('info', t('checkout:posFlow.toast.switchingToTable', { table: tableNumber }), 2000);
-    } catch (error) {
-      console.error('❌ Masa seçim hatası:', error);
-      addToast('error', t('checkout:posFlow.toast.tableSwitchFailed'), 3000);
-    } finally {
-      clearTimeout(loadingTimeout);
-      setTimeout(clearLoading, 300);
-    }
-  }, [activeTableId, switchTable, addToast]);
+      try {
+        // Timeout so loading always clears even if fetch hangs (regression: stuck loading blocked other tables)
+        await Promise.race([
+          switchTable(tableNumber),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => {
+              reject(new Error('Table switch timeout'));
+            }, 6000)
+          ),
+        ]);
+        addToast(
+          'info',
+          t('checkout:posFlow.toast.switchingToTable', { table: tableNumber }),
+          2000
+        );
+      } catch (error) {
+        console.error('❌ Masa seçim hatası:', error);
+        addToast('error', t('checkout:posFlow.toast.tableSwitchFailed'), 3000);
+      } finally {
+        clearTimeout(loadingTimeout);
+        setTimeout(clearLoading, 300);
+      }
+    },
+    [activeTableId, switchTable, addToast]
+  );
 
-  const handleQuantityUpdate = useCallback(async (itemId: string, action: 'increment' | 'decrement') => {
-    if (!activeTableId) return;
+  const handleQuantityUpdate = useCallback(
+    async (itemId: string, action: 'increment' | 'decrement') => {
+      if (!activeTableId) return;
 
-    const currentCart = getCartForTable(activeTableId);
-    const item = currentCart?.items?.find((i: any) => (i.itemId || i.id || i.productId) === itemId);
-    if (!item) return;
+      const currentCart = getCartForTable(activeTableId);
+      const item = currentCart?.items?.find(
+        (i: any) => (i.itemId || i.id || i.productId) === itemId
+      );
+      if (!item) return;
 
-    const currentQty = (item as any).quantity ?? item.qty ?? 0;
-    const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
+      const currentQty = (item as any).quantity ?? item.qty ?? 0;
+      const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
 
-    try {
-      await updateItemQuantityByItemId(itemId, newQty);
-    } catch (err: any) {
-      addToast('error', t('checkout:posFlow.toast.updateFailed'), 2000);
-    }
-  }, [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]);
+      try {
+        await updateItemQuantityByItemId(itemId, newQty);
+      } catch (err: any) {
+        addToast('error', t('checkout:posFlow.toast.updateFailed'), 2000);
+      }
+    },
+    [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]
+  );
 
-  const handleItemRemove = useCallback(async (itemId: string) => {
-    if (!activeTableId) return;
-    try {
-      await removeByItemId(itemId);
-      addToast('success', t('checkout:posFlow.toast.itemRemoved'), 2000);
-    } catch {
-      addToast('error', t('checkout:posFlow.toast.itemRemoveFailed'), 3000);
-    }
-  }, [activeTableId, removeByItemId, addToast]);
+  const handleItemRemove = useCallback(
+    async (itemId: string) => {
+      if (!activeTableId) return;
+      try {
+        await removeByItemId(itemId);
+        addToast('success', t('checkout:posFlow.toast.itemRemoved'), 2000);
+      } catch {
+        addToast('error', t('checkout:posFlow.toast.itemRemoveFailed'), 3000);
+      }
+    },
+    [activeTableId, removeByItemId, addToast]
+  );
 
   const handleClearCart = useCallback(async () => {
     if (!activeTableId) {
@@ -647,38 +837,116 @@ export default function CashRegisterScreen() {
 
     try {
       await clearCart(activeTableId);
-      addToast('success', t('checkout:posFlow.toast.cartClearedForTable', { table: activeTableId }), 2000);
-
+      addToast(
+        'success',
+        t('checkout:posFlow.toast.cartClearedForTable', { table: activeTableId }),
+        2000
+      );
     } catch (err) {
       console.error(`❌ Error clearing table ${activeTableId}:`, err);
-      addToast('error', t('checkout:posFlow.toast.tableClearFailed', { table: activeTableId }), 3000);
+      addToast(
+        'error',
+        t('checkout:posFlow.toast.tableClearFailed', { table: activeTableId }),
+        3000
+      );
     }
   }, [activeTableId, clearCart, addToast]);
 
-  const handleClearAllTables = useCallback(async () => {
+  const handleSendToKitchen = useCallback(async () => {
+    const items = (currentCart?.items ?? []).filter((item) => (item.qty ?? 0) > 0);
+    if (items.length === 0) {
+      addToast('error', t('verticalProfiles:screens.kitchen.sendEmpty'), 3000);
+      return;
+    }
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!registerId || !isValidPosCashRegisterId(registerId)) {
+      addToast('error', t('verticalProfiles:screens.kitchen.noRegister'), 3000);
+      return;
+    }
+    setSendingToKitchen(true);
     try {
-      if (!activeTableId) {
-        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
-        return;
-      }
-
-      // Capture active table explicitly to avoid race conditions
-      const targetTableId = activeTableId;
-
-      // Call clearCart directly for the active table
-      // Note: We use clearCart from context, which handles the API call and local state update
-      await clearCart(targetTableId);
-
-      // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
-      // ✅ Behavior: UI stays on the same table (targetTableId)
-
-      addToast('success', t('checkout:posFlow.toast.tableCleared', { table: targetTableId }), 3000);
-
-    } catch (err: any) {
-      console.error('❌ Error clearing table:', err);
-      addToast('error', err?.message ?? t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+      await createKitchenOrder({
+        cartId: currentCart?.cartRowId ?? null,
+        tableNumber: activeTableId ? String(activeTableId) : null,
+        cashRegisterId: registerId,
+        items: items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.qty,
+          notes: item.notes,
+        })),
+      });
+      await clearCart(activeTableId);
+      addToast('success', t('verticalProfiles:screens.kitchen.sendSuccess'), 2000);
+    } catch (err) {
+      console.error('Kitchen order create failed', err);
+      addToast('error', t('verticalProfiles:screens.kitchen.sendFailed'), 3000);
+    } finally {
+      setSendingToKitchen(false);
     }
-  }, [activeTableId, clearCart, addToast]);
+  }, [activeTableId, addToast, clearCart, currentCart, posReadiness.data?.effectiveRegisterId, t]);
+
+  const handleClearAllTables = useCallback(() => {
+    const openTables = collectOpenTableNumbers(cartsByTable, recoveryData);
+    if (openTables.length === 0) {
+      addToast('info', t('checkout:posFlow.toast.noOpenTables'), 2500);
+      return;
+    }
+
+    showConfirm(
+      t('checkout:posFlow.toast.clearAllConfirmTitle'),
+      t('checkout:posFlow.toast.clearAllConfirmMessage', { count: openTables.length }),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('checkout:posFlow.tableSelector.clearAll'),
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              let cleared = 0;
+              for (const tableId of openTables) {
+                try {
+                  await clearCart(tableId);
+                  cleared += 1;
+                } catch (err) {
+                  console.error(`Error clearing table ${tableId}:`, err);
+                }
+              }
+
+              if (cleared === 0) {
+                addToast('error', t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+                return;
+              }
+
+              try {
+                await refreshTableOrders();
+              } catch (err) {
+                console.error('Table recovery refresh after clear-all failed', err);
+              }
+
+              if (cleared < openTables.length) {
+                addToast(
+                  'warning',
+                  t('checkout:posFlow.toast.tablesClearedPartial', {
+                    cleared,
+                    total: openTables.length,
+                  }),
+                  3500
+                );
+                return;
+              }
+
+              addToast(
+                'success',
+                t('checkout:posFlow.toast.tablesCleared', { count: cleared }),
+                3000
+              );
+            })();
+          },
+        },
+      ]
+    );
+  }, [addToast, cartsByTable, clearCart, recoveryData, refreshTableOrders, t]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {
@@ -695,11 +963,44 @@ export default function CashRegisterScreen() {
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
       return;
     }
-    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+    if (
+      isReadinessMonatsbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
+      setMonatsbelegHardBlockVisible(true);
+      return;
+    }
+    if (
+      isReadinessStartbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
       Alert.alert(
         'Startbeleg erforderlich',
         'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
       );
+      return;
+    }
+    if (
+      isReadinessOpenRegisterGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
+      const gateCtx = buildPosRegisterGateContext({
+        settingsLoadFailed: false,
+        registerListFailureKind: null,
+        registerListLoading: false,
+        registerPicklistCount: 0,
+        readiness: {
+          loading: false,
+          error: false,
+          nextAction: posReadiness.data?.nextAction ?? null,
+          messageCode: posReadiness.data?.messageCode ?? null,
+          registerStatus: posReadiness.data?.registerStatus ?? null,
+        },
+      });
+      Alert.alert('Kasse geschlossen', registerGateAlertMessage(gateCtx));
       return;
     }
 
@@ -713,16 +1014,125 @@ export default function CashRegisterScreen() {
     t,
   ]);
 
+  const tablePane = showTables ? (
+    <>
+      <TableSelector
+        selectedTable={activeTableId}
+        onTableSelect={handleTableSelect}
+        tableCarts={tableCartsMap}
+        recoveryData={recoveryData}
+        tableSelectionLoading={tableSelectionLoading}
+        onClearAllTables={handleClearAllTables}
+        layout={splitLayout ? 'wrap' : 'scroll'}
+      />
+      {shiftOpenUx ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={shiftRetrying}
+            onPress={() => {
+              void retryShiftOpen();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>
+              {shiftRetrying ? t('common:loading') : t('common:retry')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {recoveryError && !recoveryLoading ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>
+            {t('checkout:posFlow.tableSelector.loadFailed')}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void refreshTableOrders();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </>
+  ) : null;
+
+  const orderPane = (
+    <POSSummaryBlock
+      activeTableId={activeTableId}
+      summaryTotals={summaryTotals}
+      cart={cart}
+      cartLoading={cartLoading}
+      cartError={cartError}
+      onQuantityUpdate={handleQuantityUpdate}
+      onItemRemove={handleItemRemove}
+      onClearCart={handleClearCart}
+      onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
+      incrementModifier={incrementModifier}
+      decrementModifier={decrementModifier}
+      onPayment={handlePayment}
+      onSendToKitchen={posFeatures.kitchenDisplay ? handleSendToKitchen : undefined}
+      sendingToKitchen={sendingToKitchen}
+      paddingBottom={footerBottomPadding}
+      saleCustomer={saleCustomer}
+      onOpenCustomerSheet={() => {
+        setCustomerSheetVisible(true);
+      }}
+      onClearCustomer={() => {
+        setSaleCustomer(null);
+      }}
+      onOpenSplitSheet={() => {
+        router.push({
+          pathname: '/(screens)/SplitScreen',
+          params: { tableNumber: String(activeTableId) },
+        });
+      }}
+      onOpenMergeSheet={() => {
+        setSplitMergeMode('merge');
+        setSplitMergeVisible(true);
+      }}
+      benefitSummaryCount={benefitSummaryCount}
+      pinCheckout={splitLayout}
+      t={t}
+    />
+  );
+
+  // Top inset is applied once in (tabs)/_layout (licenseStatusBar); bottom by tab bar + footerBottomPadding.
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LicenseModeIndicator />
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+      <VariantPickerModal
+        visible={pendingVariantProduct != null}
+        productId={pendingVariantProduct?.id ?? null}
+        productName={pendingVariantProduct?.name}
+        productPrice={pendingVariantProduct?.price ?? 0}
+        onClose={() => setPendingVariantProduct(null)}
+        onSelect={(variant) => {
+          void onVariantPicked(variant);
+        }}
+      />
+
+      <ImeiPickerModal
+        visible={pendingImeiProduct != null}
+        productId={pendingImeiProduct?.id ?? null}
+        productName={pendingImeiProduct?.name}
+        onClose={() => setPendingImeiProduct(null)}
+        onSelect={(imei) => {
+          void onImeiPicked(imei);
+        }}
+      />
+
       {/* Customer identification sheet for customer attachment */}
       <CustomerSelectionSheet
         visible={customerSheetVisible}
-        onClose={() => setCustomerSheetVisible(false)}
+        onClose={() => {
+          setCustomerSheetVisible(false);
+        }}
         onSelect={(c) => {
           setSaleCustomer(c);
           setCustomerSheetVisible(false);
@@ -734,7 +1144,9 @@ export default function CashRegisterScreen() {
         mode={splitMergeMode}
         activeTableId={activeTableId}
         cartItems={cart?.items ?? []}
-        onClose={() => setSplitMergeVisible(false)}
+        onClose={() => {
+          setSplitMergeVisible(false);
+        }}
         onSplitItems={(target, ids) => splitCartItems(activeTableId, target, ids)}
         onMergeTables={(source, target) => mergeTableCarts(source, target)}
       />
@@ -747,7 +1159,9 @@ export default function CashRegisterScreen() {
           productName={resolveProductDisplayName(modifierSheetProduct, productDisplayLocale)}
           productPrice={modifierSheetProduct.price ?? 0}
           modifierGroups={modifierSheetProduct.modifierGroups ?? undefined}
-          onClose={() => setModifierSheetProduct(null)}
+          onClose={() => {
+            setModifierSheetProduct(null);
+          }}
           onApplyWithBase={handleApplyWithBase}
         />
       )}
@@ -758,30 +1172,55 @@ export default function CashRegisterScreen() {
         recoveryLoading={recoveryLoading}
         provisioningMessage={recoveryProvisioningMessage}
         onOpenPaymentHistory={handleOpenPaymentHistory}
+        onOpenReceiptList={canOpenReceiptList ? handleOpenReceiptList : undefined}
       />
 
-      <MonatsbelegWarningBannerStrip
-        monatsbelegStatus={monatsbelegStatus}
-        yellowDismissed={yellowBannerDismissed}
-        onDismissYellow={() => setYellowBannerDismissed(true)}
-        onNavigateCreate={handleMonatsbelegNavigate}
-        t={t}
-      />
-
-      <MonatsbelegCurrentMonthOverduePanel
-        monatsbelegStatus={monatsbelegStatus}
-        onNavigateCreate={handleMonatsbelegNavigate}
-        t={t}
+      <MonatsbelegSalesWarningBanner />
+      <MonatsbelegSessionBlockModal
+        forcedVisible={monatsbelegHardBlockVisible}
+        onRequestClose={() => setMonatsbelegHardBlockVisible(false)}
       />
 
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+      {posLayout === 'taxi' ? (
+        <TaxiSalePanel
+          products={products}
+          selectedProductId={taxiProductId}
+          onSelectProduct={(product) => {
+            setTaxiProductId(product.id);
+            onAddProductGuarded(product);
+          }}
+          onPayment={handlePayment}
+          canPay={canTakeOrders && (cart?.items?.length ?? 0) > 0}
+        />
+      ) : (
+      <View
+        testID={splitLayout ? 'pos-split-layout' : 'pos-stack-layout'}
+        style={splitLayout ? styles.splitRow : styles.stackFill}>
+        {splitLayout ? (
+          <View style={styles.splitCartColumn}>
+            {tablePane ? (
+              <ScrollView
+                style={styles.splitTablesPane}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled">
+                {tablePane}
+              </ScrollView>
+            ) : null}
+            <View style={styles.splitOrderPane}>{orderPane}</View>
+          </View>
+        ) : null}
+        <View style={splitLayout ? styles.splitCatalogColumn : styles.stackFill}>
       <ProductList
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
-        onAddProduct={handleAddProduct}
-        onAddAddOn={handleAddAddOn}
-        onOpenAddOnSheet={setModifierSheetProduct}
+        onAddProduct={onAddProductGuarded}
+        onAddAddOn={onAddAddOnGuarded}
+        onOpenAddOnSheet={(product) => {
+          if (!guardTakeOrder()) return;
+          setModifierSheetProduct(product);
+        }}
         onLongPressProduct={(product) => {
           const wasFavorite = isFavorite(product.id);
           void toggleFavorite(product.id)
@@ -803,7 +1242,11 @@ export default function CashRegisterScreen() {
             <FavoritesBar
               favorites={favorites}
               removeFavorite={removeFavorite}
-              onProductAdded={(name) =>
+              canAddToCart={canTakeOrders}
+              onAddDenied={() => {
+                addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+              }}
+              onProductAdded={(name) => {
                 addToast(
                   'success',
                   t('checkout:posFlow.toast.productAddedToTable', {
@@ -811,22 +1254,88 @@ export default function CashRegisterScreen() {
                     table: activeTableId,
                   }),
                   2000
-                )
-              }
+                );
+              }}
             />
-            {/* Table Selector */}
-            <TableSelector
-              selectedTable={activeTableId}
-              onTableSelect={handleTableSelect}
-              tableCarts={tableCartsMap}
-              recoveryData={recoveryData}
-              tableSelectionLoading={tableSelectionLoading}
-              onClearAllTables={handleClearAllTables}
-            />
+            {profileId === 'mobile-services' ? (
+              <MobileServiceRoutePanel
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <RoomPicker
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <FolioChargeBar
+                amount={summaryTotals.grandTotalGross}
+                customerId={saleCustomer?.id ?? null}
+                description={
+                  (currentCart?.items ?? [])
+                    .filter((item) => (item.qty ?? 0) > 0 && item.productName)
+                    .map((item) => `${item.qty}× ${item.productName}`)
+                    .join(', ')
+                    .slice(0, 255) || undefined
+                }
+                onCharged={() => {
+                  if (!activeTableId) return;
+                  void clearCart(activeTableId).catch(() => undefined);
+                }}
+              />
+            ) : null}
+
+            {splitLayout ? null : tablePane}
+
+            <IfVerticalFeature feature="ticketScan">
+              <TicketSeatBoard
+                onError={(notice) =>
+                  addToast(
+                    'error',
+                    ticketSeatToastMessage((key) => t(`verticalProfiles:${key}`), notice),
+                    3000,
+                  )
+                }
+              />
+              <View style={styles.verticalFieldSection}>
+                <View style={styles.ticketToggleRow}>
+                  <Text style={styles.ticketToggleLabel}>
+                    {t('verticalProfiles:screens.tickets.generateToggle')}
+                  </Text>
+                  <Switch
+                    value={generateTickets}
+                    onValueChange={setGenerateTickets}
+                    accessibilityLabel={t('verticalProfiles:screens.tickets.generateToggle')}
+                  />
+                </View>
+              </View>
+            </IfVerticalFeature>
+
+            <IfVerticalFeature feature="imeiTracking">
+              <View style={styles.verticalFieldSection}>
+                <DynamicField
+                  name="imei"
+                  entity="product"
+                  value={imeiValue}
+                  onChangeText={setImeiValue}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </IfVerticalFeature>
 
             {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
-              <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+              <View style={styles.categoryHeaderRow}>
+                <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+                <ProductBarcodeScan
+                  enabled={posFeatures.barcodeScan === true}
+                  scanBlocked={pendingVariantProduct != null}
+                  onProduct={onAddProductGuarded}
+                  onNotify={(kind, message) => addToast(kind, message, 3000)}
+                />
+              </View>
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -836,40 +1345,13 @@ export default function CashRegisterScreen() {
           </>
         }
         ListFooterComponent={
-          <POSSummaryBlock
-            activeTableId={activeTableId}
-            summaryTotals={summaryTotals}
-            cart={cart}
-            cartLoading={cartLoading}
-            cartError={cartError}
-            onQuantityUpdate={handleQuantityUpdate}
-            onItemRemove={handleItemRemove}
-            onClearCart={handleClearCart}
-            onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
-            incrementModifier={incrementModifier}
-            decrementModifier={decrementModifier}
-            onPayment={handlePayment}
-            paddingBottom={footerBottomPadding}
-            saleCustomer={saleCustomer}
-            onOpenCustomerSheet={() => setCustomerSheetVisible(true)}
-            onClearCustomer={() => setSaleCustomer(null)}
-            onOpenSplitSheet={() => {
-              router.push({
-                pathname: '/(screens)/SplitScreen',
-                params: { tableNumber: String(activeTableId) },
-              });
-            }}
-            onOpenMergeSheet={() => {
-              setSplitMergeMode('merge');
-              setSplitMergeVisible(true);
-            }}
-            benefitSummaryCount={benefitSummaryCount}
-            t={t}
-          />
-        } 
+          splitLayout ? <View style={{ height: footerBottomPadding }} /> : orderPane
+        }
       />
-
-    </SafeAreaView>
+        </View>
+      </View>
+      )}
+    </View>
   );
 }
 
@@ -878,74 +1360,78 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
   },
-
-  mbBanner: {
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SoftColors.borderLight,
-    gap: SoftSpacing.sm,
+  stackFill: {
+    flex: 1,
+    minHeight: 0,
   },
-  mbBannerYellow: {
-    backgroundColor: SoftColors.warningBg,
-  },
-  mbBannerRed: {
-    backgroundColor: SoftColors.errorBg,
-    borderLeftWidth: 4,
-    borderLeftColor: SoftColors.error,
-  },
-  mbBannerText: {
-    ...SoftTypography.bodySmall,
-    color: SoftColors.textPrimary,
-    fontWeight: '600',
-  },
-  mbBannerTextRed: {
-    color: SoftColors.error,
-  },
-  mbBannerRow: {
+  splitRow: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SoftSpacing.sm,
+    alignItems: 'stretch',
+    minHeight: 0,
   },
-  mbBannerCta: {
-    alignSelf: 'flex-start',
-    backgroundColor: SoftColors.accent,
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
-    borderRadius: SoftRadius.md,
+  splitCartColumn: {
+    width: 380,
+    maxWidth: '40%',
+    minWidth: 280,
+    minHeight: 0,
+    flexDirection: 'column',
+    borderRightWidth: 1,
+    borderRightColor: SoftColors.borderLight,
+    backgroundColor: SoftColors.bgCard,
   },
-  mbBannerCtaPressed: {
-    opacity: 0.85,
+  splitTablesPane: {
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: 128,
   },
-  mbBannerCtaText: {
-    color: SoftColors.textInverse,
-    fontWeight: '600',
-    ...SoftTypography.label,
+  splitOrderPane: {
+    flex: 1,
+    minHeight: 240,
+    minWidth: 0,
   },
-  mbDismissBtn: {
-    padding: SoftSpacing.xs,
-    marginLeft: 'auto',
+  splitCatalogColumn: {
+    flex: 1,
+    minWidth: 300,
+    minHeight: 0,
   },
-
-  mbOverduePanel: {
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.md,
-    backgroundColor: SoftColors.warningBg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SoftColors.borderLight,
-    borderLeftWidth: 4,
-    borderLeftColor: SoftColors.warning,
-    gap: SoftSpacing.xs,
+  summaryBlockPinned: {
+    flex: 1,
+    flexDirection: 'column',
+    minHeight: 0,
+    marginTop: 0,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  mbOverdueTitle: {
-    ...SoftTypography.body,
-    color: SoftColors.textPrimary,
-    fontWeight: '700',
+  summaryScrollClip: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minHeight: 0,
+    overflow: 'hidden',
   },
-  mbOverdueBody: {
-    ...SoftTypography.bodySmall,
-    color: SoftColors.textPrimary,
+  summaryScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  summaryScrollContent: {
+    flexGrow: 1,
+  },
+  checkoutDock: {
+    marginTop: 'auto',
+    flexShrink: 0,
+    zIndex: 2,
+    backgroundColor: SoftColors.bgCard,
+  },
+  checkoutDockPinned: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   tableOpsRow: {
@@ -969,6 +1455,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: SoftColors.accent,
+  },
+  tableNotice: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    gap: SoftSpacing.sm,
+  },
+  tableNoticeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: SoftColors.textPrimary,
+  },
+  tableNoticeButton: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableNoticeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  categoryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SoftSpacing.sm,
   },
   categorySection: {
     backgroundColor: SoftColors.bgCard,
@@ -1005,9 +1526,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...SoftShadows.sm,
   },
+  verticalFieldSection: {
+    backgroundColor: SoftColors.bgCard,
+    paddingHorizontal: SoftSpacing.md,
+    paddingTop: SoftSpacing.md,
+  },
+  ticketToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: SoftSpacing.sm,
+  },
+  ticketToggleLabel: {
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
+    flex: 1,
+    paddingRight: SoftSpacing.md,
+  },
   summaryBlockHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: SoftSpacing.xs,
     paddingHorizontal: SoftSpacing.md,
     paddingTop: SoftSpacing.md,
@@ -1073,4 +1611,18 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     color: SoftColors.textSecondary,
   },
-}); 
+  kitchenSendBtn: {
+    marginHorizontal: SoftSpacing.md,
+    marginTop: SoftSpacing.sm,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    paddingVertical: SoftSpacing.sm,
+    alignItems: 'center',
+  },
+  kitchenSendText: {
+    color: SoftColors.accentDark,
+    fontWeight: '600',
+  },
+});

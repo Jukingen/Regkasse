@@ -26,13 +26,4 @@ namespace KasseAPI_Final.DTOs
         /// </summary>
         public string ListRowOrigin { get; set; } = "PersistedInvoice";
     }
-
-    public class PagedResult<T>
-    {
-        public IEnumerable<T> Items { get; set; } = new List<T>();
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalCount { get; set; }
-        public int TotalPages { get; set; }
-    }
 }

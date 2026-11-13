@@ -14,7 +14,7 @@ namespace KasseAPI_Final.Tests;
 
 public class PosStatusControllerTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     [Fact]
     public async Task GetOverview_WithoutTenant_Returns404()

@@ -4,11 +4,11 @@
  * Auth session context — bridges React Query `/me` bootstrap to consumers that expect a provider.
  * Permissions come from GET `/api/Auth/me` (not a separate admin permissions API).
  *
- * Login flow remains in `LoginForm` (Orval login + `fetchAuthUser` cache warm).
+ * Login flow remains in `LoginForm` (Orval login + cookie session + `fetchAuthUser` cache warm).
  */
-
-import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import React, { type ReactNode, createContext, useContext, useMemo } from 'react';
+
 import { refreshUserPermissions } from '@/features/auth/api/fetchUserPermissions';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { AuthUser } from '@/shared/auth/types';
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refetchMe,
       refreshUserPermissions: () => refreshUserPermissions(queryClient),
     }),
-    [user, userPermissions, isAuthenticated, isLoading, logout, refetchMe, queryClient],
+    [user, userPermissions, isAuthenticated, isLoading, logout, refetchMe, queryClient]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

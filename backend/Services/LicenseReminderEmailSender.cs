@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.Email;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -14,7 +15,7 @@ public interface ILicenseReminderEmailSender
     Task<bool> TrySendTenantLicenseReminderAsync(
         string toEmail,
         string subject,
-        string plainBody,
+        string htmlBody,
         CancellationToken cancellationToken = default);
 
     /// <summary>Sends to <see cref="EmailSmtpOptions.LicenseReportRecipients"/> or reminder recipients when SMTP is ready.</summary>
@@ -116,7 +117,7 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
     public async Task<bool> TrySendTenantLicenseReminderAsync(
         string toEmail,
         string subject,
-        string plainBody,
+        string htmlBody,
         CancellationToken cancellationToken = default)
     {
         var opt = _options.Value;
@@ -131,8 +132,8 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         {
             From = new MailAddress(opt.From!.Trim()),
             Subject = subject,
-            Body = plainBody,
-            IsBodyHtml = false,
+            Body = htmlBody,
+            IsBodyHtml = true,
         };
         msg.To.Add(recipient);
 
@@ -153,12 +154,12 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Tenant license reminder email sent to {Email}.", recipient);
+            _logger.LogInformation("Tenant license reminder email sent to {EmailMasked}.", EmailLogMask.Mask(recipient));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Tenant license reminder email could not be sent to {Email}.", recipient);
+            _logger.LogWarning(ex, "Tenant license reminder email could not be sent to {EmailMasked}.", EmailLogMask.Mask(recipient));
             return false;
         }
     }
@@ -221,7 +222,8 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         foreach (var p in parts)
         {
             var t = p.Trim();
-            if (t.Length == 0) continue;
+            if (t.Length == 0)
+                continue;
             try
             {
                 list.Add(new MailAddress(t));

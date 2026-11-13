@@ -1,9 +1,19 @@
 export {
   ENVIRONMENT_CONFIG,
+  type EnvironmentBadgeColor,
+  type EnvironmentBadgeSnapshot,
+  type EnvironmentBannerKind,
+  type ReleaseStage,
   getEnvironmentBadge,
   getEnvironmentBadgeColor,
   getEnvironmentBadgeText,
+  getReleaseStageBannerColor,
+  getReleaseStageBannerKind,
+  getReleaseStageBannerLabel,
+  getReleaseStageFromConfig,
+  getReleaseStageTagColor,
+  getReleaseStageTagLabel,
+  normalizeReleaseStage,
   readEnvironmentSnapshot,
-  type EnvironmentBadgeColor,
-  type EnvironmentBadgeSnapshot,
-} from '../../../../shared/constants/environment';
+  readRawReleaseStageFromConfig,
+} from '@/shared/constants/environment';

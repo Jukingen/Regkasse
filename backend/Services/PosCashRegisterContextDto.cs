@@ -5,7 +5,8 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 /// <remarks>
 /// <para><see cref="PreferredRegisterId"/> is an echo of persisted <c>UserSettings.CashRegisterId</c> (preference only).</para>
-/// <para><see cref="EffectiveRegisterId"/> is the register row this readiness pass resolved for UX (settings match, or sole-register fallback).
+/// <para><see cref="EffectiveRegisterId"/> is the register row this readiness pass resolved for UX
+/// (settings match, sole-register fallback, or tenant-default fallback — same preference order as FA auto-select).
 /// It is not a standalone payment authorization; payment POST validates the body id with occupancy and policy rules.</para>
 /// </remarks>
 public sealed class PosCashRegisterContextDto
@@ -25,6 +26,25 @@ public sealed class PosCashRegisterContextDto
     public bool AutoOpened { get; set; }
     public string NextAction { get; set; } = "none";
     public string MessageCode { get; set; } = PosCashRegisterReadinessMessageCodes.CashRegisterRequired;
+
+    /// <summary><c>Strict</c> | <c>GracePeriod</c> | <c>WarningOnly</c>.</summary>
+    public string? MonatsbelegBlockingMode { get; set; }
+
+    /// <summary>none | yellow | red</summary>
+    public string? MonatsbelegWarningLevel { get; set; }
+
+    public bool MonatsbelegSalesBlocked { get; set; }
+
+    public bool MonatsbelegCanContinueWithWarning { get; set; }
+
+    public int? MonatsbelegViennaDayOfMonth { get; set; }
+
+    public string? MonatsbelegWarningMessageDe { get; set; }
+}
+
+public sealed class SetDefaultCashRegisterRequest
+{
+    public Guid RegisterId { get; set; }
 }
 
 /// <summary>
@@ -45,7 +65,7 @@ public static class PosCashRegisterReadinessMessageCodes
     /// <summary>RKSV Startbeleg missing; client must create zero receipt before shift/sales.</summary>
     public const string StartbelegRequired = "CASH_REGISTER_STARTBELEG_REQUIRED";
 
-    /// <summary>RKSV Monatsbeleg missing for the current Vienna calendar month; client must create zero receipt before shift/sales.</summary>
+    /// <summary>RKSV Monatsbeleg missing for the previous Vienna calendar month; client must create zero receipt before shift/sales.</summary>
     public const string MonatsbelegRequired = "CASH_REGISTER_MONATSBELEG_REQUIRED";
 
     /// <summary>RKSV Schlussbeleg was issued; this register cannot be used for new sessions or receipts.</summary>

@@ -117,10 +117,45 @@ public sealed class EffectivePermissionResolverTests
 public sealed class PermissionImplicationTests
 {
     [Fact]
-    public void UserManage_Satisfies_UserCreate()
+    public void FiskalyOperationsNullbeleg_Satisfies_FiskalyOperationsView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.FiskalyOperationsNullbeleg,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.FiskalyOperationsView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.FiskalyOperationsConfig, effective));
+    }
+
+    [Fact]
+    public void FiskalyHistoryRetry_Satisfies_FiskalyHistoryView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.FiskalyHistoryRetry,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.FiskalyHistoryView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.FiskalyHistoryRetry,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.FiskalyHistoryView }));
+    }
+
+    [Fact]
+    public void UserManage_Satisfies_UserView_ResetPassword_And_UserDelete()
     {
         var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.UserManage };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserResetPassword, effective));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserDelete, effective));
+    }
+
+    [Fact]
+    public void ReportExport_Satisfies_ReportView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ReportExport };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.ReportView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.ReportExport,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ReportView }));
     }
 
     [Fact]
@@ -128,6 +163,26 @@ public sealed class PermissionImplicationTests
     {
         var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.UserCreate };
         Assert.False(PermissionImplication.IsSatisfied(AppPermissions.UserDelete, effective));
+    }
+
+    [Fact]
+    public void CashRegisterManage_Satisfies_CashRegisterView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.CashRegisterManage,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterView, effective));
+    }
+
+    [Fact]
+    public void CashRegisterView_DoesNotSatisfy_CashRegisterManage()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.CashRegisterView,
+        };
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterManage, effective));
     }
 
     [Fact]
@@ -143,5 +198,105 @@ public sealed class PermissionImplicationTests
             AppPermissions.UserResetPassword,
         };
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserManage, effective));
+    }
+
+    [Fact]
+    public void DigitalManage_Satisfies_Simplified_And_Legacy()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalManage,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalPreview, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalRequest, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalPublish, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalEdit, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalDelete, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalAppCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalPricingManage, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalActivate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersManage, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersApprove, effective));
+    }
+
+    [Fact]
+    public void DigitalOrdersManage_Satisfies_View_Not_Approve()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalOrdersManage,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersApprove, effective));
+    }
+
+    [Fact]
+    public void DigitalView_Satisfies_Legacy_WebAndApp_View()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalView,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalAppView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalCreate, effective));
+    }
+
+    [Fact]
+    public void WebsiteManage_Satisfies_Digital_ViewPreviewRequest_NotCreate()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.WebsiteManage,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalPreview, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalRequest, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalCreate, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebUse, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalManage, effective));
+    }
+
+    [Fact]
+    public void DigitalCreate_Satisfies_Legacy_CreateAndUse()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalCreate,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalAppCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebUse, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalPublish, effective));
+    }
+
+    [Fact]
+    public void DigitalWebCreate_Satisfies_DigitalWebViewPreviewAndUse()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalWebCreate,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebPreview, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebUse, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalAppCreate, effective));
+    }
+
+    [Fact]
+    public void DigitalWebUse_Satisfies_DigitalWebView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.DigitalWebUse,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalWebView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.DigitalAppUse, effective));
     }
 }

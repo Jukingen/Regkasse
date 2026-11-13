@@ -1,0 +1,298 @@
+'use client';
+
+import { FileExcelOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Button, Card, DatePicker, Input, Select, Space, Table, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { Dayjs } from 'dayjs';
+import { useCallback, useMemo, useState } from 'react';
+
+import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
+import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
+import { downloadAuditLogExport } from '@/features/audit-logs/utils/exportAuditLogs';
+import { UserInfoDisplay } from '@/features/audit/components/UserInfoDisplay';
+import {
+  ACTIVITY_LOG_ACTION_FILTER_VALUES,
+  activityLogActionTagColor,
+} from '@/features/audit/constants/activityLogActions';
+import {
+  type ActivityLogFilters,
+  type ActivityLogRow,
+  defaultActivityLogFilters,
+  useActivityLog,
+} from '@/features/audit/hooks/useActivityLog';
+import { resolveActivityActionLabel } from '@/features/audit/utils/resolveActivityActionLabel';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useUsersList } from '@/features/users/hooks/useUsersList';
+import { formatRoleDisplayLabel } from '@/features/users/utils/roleDisplayLabel';
+import { activityRoleFilterValues, isPlatformUserRole } from '@/features/users/utils/userScope';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+
+const { RangePicker } = DatePicker;
+
+function staffDisplayName(
+  firstName?: string | null,
+  lastName?: string | null,
+  userName?: string | null
+): string {
+  const full = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return full || userName?.trim() || '—';
+}
+
+export function ActivityLog() {
+  const { t, formatLocale } = useI18n();
+  const { message } = useAntdApp();
+  const { user: currentUser } = useAuth();
+  const actorIsSuperAdmin = isSuperAdmin(currentUser?.role);
+  const [filters, setFilters] = useState<ActivityLogFilters>(defaultActivityLogFilters);
+  const [searchDraft, setSearchDraft] = useState('');
+
+  const usersQuery = useUsersList({ page: 1, pageSize: 100 });
+  const staffLoading = usersQuery.isLoading;
+  const { activities, total, isLoading, isFetching, refetch } = useActivityLog(filters);
+
+  const actionOptions = useMemo(
+    () =>
+      ACTIVITY_LOG_ACTION_FILTER_VALUES.map((value) => {
+        const labelKey = value ? getAuditActionLabelKey(value) : null;
+        return {
+          value,
+          label: value
+            ? labelKey
+              ? t(labelKey as 'common.auditLogs.actionLabels.login')
+              : t(`activity.actions.${value}` as 'activity.actions.USER_LOGIN')
+            : t('activity.filters.allActions'),
+        };
+      }),
+    [t]
+  );
+
+  const staffOptions = useMemo(
+    () =>
+      (usersQuery.data?.items ?? [])
+        .filter((user) => Boolean(user.id))
+        .filter((user) => actorIsSuperAdmin || !isPlatformUserRole(user.role))
+        .map((user) => ({
+          value: user.id!,
+          label: staffDisplayName(user.firstName, user.lastName, user.userName),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, formatLocale)),
+    [actorIsSuperAdmin, formatLocale, usersQuery.data?.items]
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      activityRoleFilterValues(actorIsSuperAdmin).map((value) => ({
+        value,
+        label: formatRoleDisplayLabel(t, value),
+      })),
+    [actorIsSuperAdmin, t]
+  );
+
+  const formatActionLabel = useCallback(
+    (action: string) => resolveActivityActionLabel(action, t),
+    [t]
+  );
+
+  const columns: ColumnsType<ActivityLogRow> = useMemo(
+    () => [
+      {
+        title: t('activity.table.time'),
+        dataIndex: 'timestamp',
+        key: 'timestamp',
+        width: 168,
+        render: dateColumnRender('datetime'),
+      },
+      {
+        title: t('activity.table.user'),
+        key: 'user',
+        width: 240,
+        render: (_: unknown, record: ActivityLogRow) => (
+          <UserInfoDisplay
+            user={record.user}
+            userId={record.userId}
+            userRole={record.userRole}
+          />
+        ),
+      },
+      {
+        title: t('activity.table.action'),
+        dataIndex: 'action',
+        key: 'action',
+        render: (action: string) => (
+          <Tag color={activityLogActionTagColor(action)}>{formatActionLabel(action)}</Tag>
+        ),
+      },
+      {
+        title: t('activity.table.description'),
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+      },
+      {
+        title: t('activity.table.details'),
+        dataIndex: 'details',
+        key: 'details',
+        ellipsis: true,
+        render: (details: ActivityLogRow['details']) => {
+          if (details == null) return '—';
+          const text = typeof details === 'string' ? details : JSON.stringify(details);
+          return (
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>
+              {text.length > 80 ? `${text.slice(0, 80)}…` : text}
+            </span>
+          );
+        },
+      },
+    ],
+    [formatActionLabel, t]
+  );
+
+  const exportToCsv = useCallback(async () => {
+    try {
+      const [from, to] = filters.dateRange ?? [null, null];
+      const query = buildAuditLogExportQuery({
+        startDate: from?.format('YYYY-MM-DD'),
+        endDate: to?.format('YYYY-MM-DD'),
+        userId: filters.userId,
+        action: filters.actionType || undefined,
+        page: 1,
+        pageSize: 1000,
+      });
+      await downloadAuditLogExport('csv', query, {
+        exportFailedMessage: t('activity.exportFailed'),
+      });
+      message.success(t('activity.exportSuccess'));
+    } catch {
+      message.error(t('activity.exportFailed'));
+    }
+  }, [filters.actionType, filters.dateRange, filters.userId, message, t]);
+
+  const onDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
+    setFilters((prev) => ({
+      ...prev,
+      dateRange: dates,
+      page: 1,
+    }));
+  };
+
+  return (
+    <Card
+      title={t('activity.title')}
+      extra={
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
+            {t('common.buttons.refresh')}
+          </Button>
+          <Button icon={<FileExcelOutlined />} onClick={exportToCsv}>
+            {t('activity.export')}
+          </Button>
+        </Space>
+      }
+    >
+      <Space wrap style={{ marginBottom: 16 }}>
+        <RangePicker
+          value={filters.dateRange}
+          format={DAYJS_DATE_FORMAT}
+          onChange={onDateRangeChange}
+          allowClear
+        />
+
+        {!staffLoading && staffOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('activity.filters.userPlaceholder')}
+            style={{ minWidth: 180 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            loading={staffLoading}
+            value={filters.userId}
+            options={staffOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userId: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
+
+        {roleOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('staff.list.roleFilter')}
+            style={{ minWidth: 160 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            value={filters.userRole}
+            options={roleOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userRole: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
+
+        <Select
+          placeholder={t('activity.filters.actionTypePlaceholder')}
+          style={{ minWidth: 180 }}
+          allowClear
+          value={filters.actionType || undefined}
+          options={actionOptions}
+          onChange={(value) =>
+            setFilters((prev) => ({
+              ...prev,
+              actionType: value ?? '',
+              page: 1,
+            }))
+          }
+        />
+
+        <Input.Search
+          placeholder={t('activity.filters.search')}
+          allowClear
+          value={searchDraft}
+          onChange={(e) => setSearchDraft(e.target.value)}
+          onSearch={(value) => {
+            setSearchDraft(value);
+            setFilters((prev) => ({
+              ...prev,
+              search: value,
+              page: 1,
+            }));
+          }}
+          style={{ width: 220 }}
+        />
+      </Space>
+
+      <Table<ActivityLogRow>
+        columns={columns}
+        dataSource={activities}
+        loading={isLoading}
+        rowKey="id"
+        pagination={{
+          current: filters.page,
+          pageSize: filters.pageSize,
+          total,
+          showSizeChanger: true,
+          showTotal: (count) => t('activity.totalEntries', { count }),
+          onChange: (page, pageSize) =>
+            setFilters((prev) => ({
+              ...prev,
+              page,
+              pageSize,
+            })),
+        }}
+        locale={{ emptyText: t('activity.table.noData') }}
+        scroll={{ x: 960 }}
+      />
+    </Card>
+  );
+}
