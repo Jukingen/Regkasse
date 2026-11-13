@@ -393,6 +393,7 @@
           "OfflineQueueGrowing",
           "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
+          "FinanzOnlineOutboxFailureSpike",
           "BackupFailed",
           "BackupSucceeded",
           "RestoreDrillFailed",

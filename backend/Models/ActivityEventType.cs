@@ -27,6 +27,8 @@ public enum ActivityEventType
     /// <summary>TSE offline intent queue is at or above 80% of <c>maxOfflineTransactions</c>.</summary>
     OfflineQueueApproachingLimit = 34,
     FinanzOnlineSubmissionFailed = 40,
+    /// <summary>More than five FinanzOnline outbox rows failed in the last hour.</summary>
+    FinanzOnlineOutboxFailureSpike = 41,
     BackupFailed = 50,
     BackupSucceeded = 51,
     RestoreDrillFailed = 52,

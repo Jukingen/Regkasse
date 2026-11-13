@@ -114,6 +114,18 @@
     "hint_ok": "Açık sorun yok",
     "details": "Detaylar"
   },
+  "finanzOnlineOutbox": {
+    "pending": "Bekleyen gönderimler",
+    "failed24h": "Başarısız (24 sa)",
+    "lastSuccess": "Son başarılı gönderim",
+    "lastSuccessNever": "henüz yok",
+    "openQueue": "Kuyruğu aç",
+    "retryAllFailed": "Başarısızların tümünü yeniden dene",
+    "retryConfirmTitle": "Başarısız gönderimlerin tümü yeniden denensin mi?",
+    "retryConfirmBody": "Başarısız kayıtlar kuyruğa geri alınır. SOAP gönderimi bu düğmeden doğrudan yapılmaz.",
+    "retryQueued": "{{count}} kayıt yeniden kuyruğa alındı.",
+    "retryError": "Yeniden deneme başarısız oldu."
+  },
   "offlineStatusWidget": {
     "badge_critical": "Kritik",
     "badge_pending": "Bekliyor",

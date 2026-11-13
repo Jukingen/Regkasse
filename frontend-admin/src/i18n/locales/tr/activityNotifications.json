@@ -65,6 +65,7 @@
     "OfflineQueueGrowing": "Çevrimdışı kuyruk büyüyor",
     "OfflineQueueApproachingLimit": "Çevrimdışı kuyruk limite yaklaşıyor",
     "FinanzOnlineSubmissionFailed": "FinanzOnline gönderim hatası",
+    "FinanzOnlineOutboxFailureSpike": "FinanzOnline outbox hata artışı",
     "BackupFailed": "Yedekleme başarısız",
     "BackupSucceeded": "Yedekleme başarılı",
     "RestoreDrillFailed": "Geri yükleme tatbikatı başarısız",

@@ -114,6 +114,18 @@
     "hint_ok": "Keine offenen Probleme",
     "details": "Details"
   },
+  "finanzOnlineOutbox": {
+    "pending": "Ausstehende Übermittlungen",
+    "failed24h": "Fehlgeschlagen (24 Std.)",
+    "lastSuccess": "Letzte erfolgreiche Übermittlung",
+    "lastSuccessNever": "noch keine",
+    "openQueue": "Warteschlange öffnen",
+    "retryAllFailed": "Alle Fehlgeschlagenen erneut senden",
+    "retryConfirmTitle": "Alle fehlgeschlagenen Übermittlungen erneut senden?",
+    "retryConfirmBody": "Fehlgeschlagene Einträge werden zurück in die Warteschlange gestellt. Es wird keine neue SOAP-Übermittlung direkt ausgelöst.",
+    "retryQueued": "{{count}} Einträge wurden erneut eingereiht.",
+    "retryError": "Erneutes Senden ist fehlgeschlagen."
+  },
   "offlineStatusWidget": {
     "badge_critical": "Kritisch",
     "badge_pending": "Ausstehend",

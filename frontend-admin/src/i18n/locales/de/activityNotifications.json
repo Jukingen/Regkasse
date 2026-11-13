@@ -65,6 +65,7 @@
     "OfflineQueueGrowing": "Offline-Warteschlange wächst",
     "OfflineQueueApproachingLimit": "Offline-Warteschlange nähert sich dem Limit",
     "FinanzOnlineSubmissionFailed": "FinanzOnline-Fehler",
+    "FinanzOnlineOutboxFailureSpike": "FinanzOnline-Outbox: viele Fehler",
     "BackupFailed": "Backup fehlgeschlagen",
     "BackupSucceeded": "Backup erfolgreich",
     "RestoreDrillFailed": "Restore-Übung fehlgeschlagen",

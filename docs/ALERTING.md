@@ -2,7 +2,7 @@
 
 How critical signals reach Slack, email, and on-call — without duplicate noise.
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-11-13
 
 | Related | Link |
 |---------|------|
@@ -52,6 +52,7 @@ Default tracked `monitoring/alertmanager/alertmanager.yml` uses a **null** recei
 | Alert | Severity | Channel | Meaning |
 |-------|----------|---------|---------|
 | `RegkasseFinanzOnlineFailures` | critical | pager | FON submit failures elevated |
+| FinanzOnline outbox spike | warning | Slack + email | More than 5 outbox rows failed in the last hour. One alert per UTC hour. Slack: `ActivityNotifications:WebhookEnabled` + `WebhookUrl` (`WebhookFormat=Slack`). Email: SMTP plus `ActivityNotifications:FallbackEmailRecipients`. In-app row on the platform tenant (`FinanzOnlineOutboxFailureSpike`). |
 | `RegkasseTseFleetUnhealthy` | critical | pager | `tse_fleet_status` degraded |
 | `RegkasseOfflineReplayFailures` | warning | slack | replay fail ratio >10% |
 

@@ -9,6 +9,7 @@ internal static class ActivityEventSeverityRules
         {
             ActivityEventType.LicenseExpired => ActivitySeverityNames.Critical,
             ActivityEventType.FinanzOnlineSubmissionFailed => ActivitySeverityNames.Error,
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => ActivitySeverityNames.Error,
             ActivityEventType.BackupFailed => ActivitySeverityNames.Critical,
             ActivityEventType.RestoreDrillFailed => ActivitySeverityNames.Critical,
             ActivityEventType.OfflineQueueGrowing => ActivitySeverityNames.Warning,
