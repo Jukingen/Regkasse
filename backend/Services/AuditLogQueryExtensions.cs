@@ -95,15 +95,33 @@ internal static class AuditLogQueryExtensions
         if (!string.IsNullOrWhiteSpace(filters.Search))
         {
             var term = $"%{filters.Search.Trim()}%";
-            // AuditLog.User is Ignore()'d — search only columns on audit_logs (no AspNetUsers join).
-            query = query.Where(a =>
-                EF.Functions.ILike(a.Action, term)
-                || (a.Description != null && EF.Functions.ILike(a.Description, term))
-                || EF.Functions.ILike(a.EntityType, term)
-                || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
-                || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
-                || EF.Functions.ILike(a.UserId, term)
-                || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term)));
+            // AuditLog.User is Ignore()'d. Email lives on AspNetUsers, so match it with a subquery.
+            if (db == null)
+            {
+                query = query.Where(a =>
+                    EF.Functions.ILike(a.Action, term)
+                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
+                    || EF.Functions.ILike(a.EntityType, term)
+                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
+                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
+                    || EF.Functions.ILike(a.UserId, term)
+                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term)));
+            }
+            else
+            {
+                query = query.Where(a =>
+                    EF.Functions.ILike(a.Action, term)
+                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
+                    || EF.Functions.ILike(a.EntityType, term)
+                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
+                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
+                    || EF.Functions.ILike(a.UserId, term)
+                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
+                    || db.Users.Any(u =>
+                        u.Id == a.UserId
+                        && u.Email != null
+                        && EF.Functions.ILike(u.Email, term)));
+            }
         }
 
         return query;

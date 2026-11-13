@@ -68,7 +68,7 @@ function mapAuditRow(row: AuditLogEntryDto): ActivityLogRow {
     details,
   };
 }
-function buildQueryParams(
+export function buildActivityLogQueryParams(
   filters: ActivityLogFilters
 ): Record<string, string | number | boolean | undefined> {
   const [from, to] = filters.dateRange ?? [null, null];
@@ -96,7 +96,7 @@ async function fetchActivityAuditLogs(
   return customInstance<AuditLogsListResponse>({
     url: '/api/AuditLog',
     method: 'GET',
-    params: buildQueryParams(filters),
+    params: buildActivityLogQueryParams(filters),
     signal,
   });
 }

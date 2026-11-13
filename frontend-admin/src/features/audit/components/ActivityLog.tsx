@@ -4,7 +4,7 @@ import { FileExcelOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Card, DatePicker, Input, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
@@ -28,6 +28,7 @@ import { formatRoleDisplayLabel } from '@/features/users/utils/roleDisplayLabel'
 import { activityRoleFilterValues, isPlatformUserRole } from '@/features/users/utils/userScope';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
@@ -49,6 +50,12 @@ export function ActivityLog() {
   const actorIsSuperAdmin = isSuperAdmin(currentUser?.role);
   const [filters, setFilters] = useState<ActivityLogFilters>(defaultActivityLogFilters);
   const [searchDraft, setSearchDraft] = useState('');
+  const debouncedSearch = useDebounce(searchDraft, 300);
+
+  useEffect(() => {
+    const search = debouncedSearch.trim();
+    setFilters((prev) => (prev.search === search ? prev : { ...prev, search, page: 1 }));
+  }, [debouncedSearch]);
 
   const usersQuery = useUsersList({ page: 1, pageSize: 100 });
   const staffLoading = usersQuery.isLoading;
@@ -159,6 +166,7 @@ export function ActivityLog() {
         endDate: to?.format('YYYY-MM-DD'),
         userId: filters.userId,
         action: filters.actionType || undefined,
+        search: filters.search.trim() || undefined,
         page: 1,
         pageSize: 1000,
       });
@@ -169,7 +177,7 @@ export function ActivityLog() {
     } catch {
       message.error(t('activity.exportFailed'));
     }
-  }, [filters.actionType, filters.dateRange, filters.userId, message, t]);
+  }, [filters.actionType, filters.dateRange, filters.search, filters.userId, message, t]);
 
   const onDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setFilters((prev) => ({
@@ -255,22 +263,25 @@ export function ActivityLog() {
           }
         />
 
-        <Input.Search
-          placeholder={t('activity.filters.search')}
-          allowClear
-          value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
-          onSearch={(value) => {
-            setSearchDraft(value);
-            setFilters((prev) => ({
-              ...prev,
-              search: value,
-              page: 1,
-            }));
-          }}
-          style={{ width: 220 }}
-        />
       </Space>
+
+      <Input.Search
+        placeholder={t('activity.filters.search')}
+        aria-label={t('activity.filters.search')}
+        allowClear
+        value={searchDraft}
+        onChange={(e) => setSearchDraft(e.target.value)}
+        onSearch={(value) => {
+          const search = value.trim();
+          setSearchDraft(search);
+          setFilters((prev) => ({
+            ...prev,
+            search,
+            page: 1,
+          }));
+        }}
+        style={{ width: '100%', maxWidth: 480, marginBottom: 16 }}
+      />
 
       <Table<ActivityLogRow>
         columns={columns}
