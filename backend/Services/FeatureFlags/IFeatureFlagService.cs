@@ -44,6 +44,15 @@ public sealed class FeatureFlagStatusDto
     /// </summary>
     public string Source { get; init; } = FeatureFlagSources.Config;
     public string? TenantId { get; init; }
+    /// <summary>Every mandant row for this flag. Global listing includes these even when <see cref="TenantId"/> is omitted.</summary>
+    public IReadOnlyList<FeatureFlagTenantOverrideDto> TenantOverrides { get; init; } =
+        Array.Empty<FeatureFlagTenantOverrideDto>();
+}
+
+public sealed class FeatureFlagTenantOverrideDto
+{
+    public string TenantId { get; init; } = string.Empty;
+    public bool Enabled { get; init; }
 }
 
 public sealed class SetFeatureFlagRequest

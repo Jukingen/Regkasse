@@ -2,27 +2,36 @@
   "pageTitle": "Feature Flags",
   "accessDenied": "Nur Super-Administratoren können Feature Flags verwalten.",
   "introTitle": "Stufenweise Freigabe",
-  "introBody": "Globale Defaults kommen aus appsettings (FeatureFlags). Mandanten-Overrides liegen in tenant_settings. Code kann mit deaktivierten Features deployed werden und danach pro Mandant aktiviert werden.",
-  "tenantScope": "Mandanten-Scope (optional)",
-  "tenantIdInputPlaceholder": "Tenant-UUID für Overrides (leer = global)",
-  "tenantIdPasteHint": "Leer lassen für globale Overrides. Gültige UUID aktiviert den Mandanten-Scope.",
+  "introBody": "Der Schalter setzt den globalen Wert. Die Mandanten-Liste wählt, für wen ein Override gilt. Reservierte Flags (Peppol) bleiben aus.",
   "saved": "Feature Flag gespeichert.",
   "saveFailed": "Feature Flag konnte nicht gespeichert werden.",
   "clearOverride": "Override entfernen",
-  "bool": {
-    "true": "Ja",
-    "false": "Nein"
-  },
+  "overrideForTenant": "Override für Mandant",
+  "overridePlaceholder": "Mandant wählen",
+  "noOverrides": "Keine",
+  "globalSwitch": "{{name}} global",
+  "tenantSwitch": "{{name}} für Mandant",
+  "on": "An",
+  "off": "Aus",
   "columns": {
     "name": "Flag",
-    "enabled": "Aktiv",
-    "configDefault": "Config-Default",
-    "source": "Quelle",
-    "actions": "Aktionen"
+    "description": "Beschreibung",
+    "value": "Aktueller Wert",
+    "tenantOverrides": "Mandanten-Overrides"
   },
-  "source": {
-    "config": "Config",
-    "global_override": "Global Override",
-    "tenant_override": "Mandant Override"
+  "descriptions": {
+    "EnableNewPaymentFlow": "Alternativer Zahlungs-Pfad in PaymentService. Standard aus.",
+    "EnableDepExportV2": "DEP-Export setzt den Header X-Regkasse-Dep-Export-Schema: v2. Der BMF-JSON-Body bleibt gleich.",
+    "EnableOnlineOrdersV2": "Online-Bestellungen markieren intakeVersion v2.",
+    "EnableAutoAusfall": "TSE-Failover darf einen FON-Ausfall sofort einreihen, wenn Ausfall:AutoEnqueue an ist.",
+    "fiscalRksvAt": "Österreichische RKSV-Signatur. Für AT gesperrt und immer an.",
+    "fiscalKassenSicherheitDe": "Deutsche KassenSichV. Profil-Default aus, bis das Paket produktionsreif ist.",
+    "fiscalMwstCh": "Schweizer MWST. Für CH-Profile an.",
+    "eInvoicingZugferd": "ZUGFeRD-Builder. Standard aus.",
+    "eInvoicingXRechnung": "XRechnung-Builder. Standard aus.",
+    "eInvoicingQrRechnung": "QR-Rechnung. Für CH an.",
+    "eInvoicingEn16931": "EN 16931 / UBL. Für EU_DEFAULT an. Steuert nicht die Reverse-Charge-Steuer.",
+    "viesCheckEnabled": "VIES-Prüfung der USt-IdNr. Standard aus.",
+    "eInvoicingPeppol": "Peppol-Versand. Reserviert und aus, bis Paket 22-b-5 den Namen freigibt."
   }
 }

@@ -61,6 +61,13 @@ public static class FeatureFlagNames
         EInvoicingPeppol,
     ];
 
+    /// <summary>
+    /// Every declared flag, including <see cref="Reserved"/>. Listing uses this set.
+    /// Resolution and writes stay on <see cref="All"/> so a reserved name cannot be turned on here.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Catalog =
+        All.Concat(Reserved).ToArray();
+
     public static bool IsExperimental(string canonicalName) =>
         Experimental.Contains(canonicalName);
 

@@ -3,13 +3,19 @@
  */
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
+export type FeatureFlagTenantOverrideDto = {
+  tenantId: string;
+  enabled: boolean;
+};
+
 export type FeatureFlagStatusDto = {
   name: string;
   enabled: boolean;
   configDefault: boolean;
   overrideValue?: boolean | null;
-  source: 'config' | 'global_override' | 'tenant_override' | string;
+  source: 'config' | 'global_override' | 'tenant_override' | 'reserved' | string;
   tenantId?: string | null;
+  tenantOverrides?: FeatureFlagTenantOverrideDto[];
 };
 
 export type SetFeatureFlagRequest = {
