@@ -472,6 +472,7 @@ internal static class ApplicationHost
             .AddCheck<TseCachedHealthCheck>(
                 TseCachedHealthCheck.Name,
                 tags: new[] { TseCachedHealthCheck.DepsTag })
+            .AddCheck<FiskalyTseHealthCheck>(FiskalyTseHealthCheck.Name)
             .AddCheck<TseFiscalConfigHealthCheck>(
                 TseFiscalConfigHealthCheck.Name,
                 tags: new[] { DatabaseHealthCheck.ReadyTag })
@@ -1514,6 +1515,7 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<ICacheMetricsService, CacheMetricsService>();
         builder.Services.AddSingleton<IDbMetricsService, DbMetricsService>();
         builder.Services.AddSingleton<IBusinessMetricsService, BusinessMetricsService>();
+        builder.Services.AddScoped<IPlatformBusinessMetricsService, PlatformBusinessMetricsService>();
         builder.Services.AddSingleton<ApiRequestMetricsAccumulator>();
         builder.Services.AddSingleton<DbQueryDurationInterceptor>();
         builder.Services.AddSingleton<DbConnectionMetricsInterceptor>();
@@ -2094,6 +2096,17 @@ internal static class ApplicationHost
         {
             Predicate = check => check.Name == "backup",
             AllowCachingResponses = false,
+        }).AllowAnonymous();
+        app.MapHealthChecks("/health/fiskaly", new HealthCheckOptions
+        {
+            Predicate = check => check.Name == FiskalyTseHealthCheck.Name,
+            AllowCachingResponses = false,
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            },
         }).AllowAnonymous();
         app.MapHealthChecks("/health/tse/mode", new HealthCheckOptions
         {
