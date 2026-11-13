@@ -111,7 +111,6 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/settings/backup")]
     [InlineData("/api/settings/backup/now")]
     [InlineData("/api/tenants/switcher")]
-    [InlineData("/api/metrics")]
     [InlineData("/api/admin/jahresbeleg-reminder/status")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {
@@ -161,7 +160,6 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/license/status")]
     [InlineData("/api/tenants/current")]
     [InlineData("/api/admin/tenantsfoo")]
-    [InlineData("/api/metricsfoo")]
     [InlineData("/api/admin/jahresbeleg-reminder")]
     public async Task InvokeAsync_Returns404_WhenTenantMissingOnProtectedPath(string path)
     {

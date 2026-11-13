@@ -14,6 +14,7 @@ import Link from 'next/link';
 import React, { memo, useMemo } from 'react';
 
 import { dateColumnRender } from '@/components/DateColumn';
+import { InitialTableSkeleton } from '@/components/Skeleton';
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import type { UserInfo } from '@/features/users/api/usersGateway';
@@ -214,10 +215,13 @@ export const UsersTable = memo(function UsersTable({
   const useVirtual = virtual ?? shouldUseAdminTableVirtual(rowCount);
   const resolvedScroll = scroll ?? adminTableScrollXy(1100, rowCount);
 
+  const showInitialSkeleton = Boolean(loading) && !isPlaceholderData && users.length === 0;
+
   return (
+    <InitialTableSkeleton loading={showInitialSkeleton} rowCount={0} rows={8} cols={5}>
     <VirtualTable
       rowKey={(r) => r.id ?? ''}
-      loading={loading && !isPlaceholderData}
+      loading={Boolean(loading) && !isPlaceholderData && users.length > 0}
       dataSource={users}
       columns={columns}
       forceVirtual={useVirtual}
@@ -231,5 +235,6 @@ export const UsersTable = memo(function UsersTable({
         emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyDescription} />,
       }}
     />
+    </InitialTableSkeleton>
   );
 });

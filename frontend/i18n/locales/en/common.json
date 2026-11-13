@@ -54,5 +54,11 @@
     "openSettings": "Open settings",
     "cameraUnavailable": "Camera is unavailable. Please restart the device or enter the code manually.",
     "loading": "Preparing camera…"
+  },
+  "errors": {
+    "http400": "The request could not be processed. Please check your entries.",
+    "http403": "You do not have permission for this action.",
+    "http404": "The requested entry was not found.",
+    "http409": "This table is open by another cashier. Please close it first."
   }
 }

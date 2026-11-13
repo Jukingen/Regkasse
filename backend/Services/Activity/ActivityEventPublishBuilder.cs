@@ -88,6 +88,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",
             ActivityEventType.OfflineSyncStalled => "Offline sync stalled",
             ActivityEventType.FinanzOnlineSubmissionFailed => "FinanzOnline submission failed",
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => "FinanzOnline outbox failures",
             ActivityEventType.BackupFailed => "Backup failed",
             ActivityEventType.BackupSucceeded => "Backup succeeded",
             ActivityEventType.RestoreDrillFailed => "Restore drill failed",

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BusyButton } from '../../components/BusyButton';
 import { DynamicField } from '../../components/DynamicField';
 import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { SoftColors, SoftRadius, SoftSpacing } from '../../constants/SoftTheme';
@@ -181,23 +182,23 @@ export default function PatientRecordScreen() {
               />
             </>
           )}
-          <Pressable
+          <BusyButton
             accessibilityRole="button"
             accessibilityLabel={t(
               isDoctor ? 'screens.patientRecord.doctorSave' : 'screens.patientRecord.save'
             )}
-            disabled={saving}
+            busy={saving}
+            label={
+              saving
+                ? t('screens.patientRecord.saving')
+                : t(isDoctor ? 'screens.patientRecord.doctorSave' : 'screens.patientRecord.save')
+            }
             onPress={() => {
               saveCustomer().catch(() => undefined);
             }}
             style={[styles.saveButton, saving && styles.disabled]}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving
-                ? t('screens.patientRecord.saving')
-                : t(isDoctor ? 'screens.patientRecord.doctorSave' : 'screens.patientRecord.save')}
-            </Text>
-          </Pressable>
+            textStyle={styles.saveButtonText}
+          />
         </ScrollView>
       </SafeAreaView>
     </IfVerticalFeature>
