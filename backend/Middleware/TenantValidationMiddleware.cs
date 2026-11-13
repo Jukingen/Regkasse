@@ -64,6 +64,7 @@ public class TenantValidationMiddleware
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
+    /// Exact path <c>/api/metrics</c> is the deployment-wide business snapshot (<c>system.critical</c>).
     /// </remarks>
     private static readonly string[] SuperAdminPlatformPathPrefixes =
     [
@@ -87,6 +88,7 @@ public class TenantValidationMiddleware
     private static readonly string[] SuperAdminExactExemptPaths =
     [
         "/api/tenants/switcher",
+        "/api/metrics",
     ];
 
     public TenantValidationMiddleware(RequestDelegate next, ILogger<TenantValidationMiddleware> logger)

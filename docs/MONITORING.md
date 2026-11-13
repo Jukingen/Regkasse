@@ -86,6 +86,41 @@ Never log passwords, voucher codes, raw PEMs, or unredacted card data ([`CONFIGU
 
 Full catalog: [`METRICS.md`](METRICS.md).
 
+### Business snapshot (`GET /api/metrics`)
+
+JSON for operators. This is **not** the Prometheus text endpoint `GET /metrics`.
+
+| Field | Meaning |
+|-------|---------|
+| `totalTenants` | Mandant rows, excluding the platform sentinel and soft-deleted tenants |
+| `activeTenantsLast30Days` | Distinct mandants with a receipt in the last 30 days |
+| `receiptsIssued` | Receipt counts for 24 hours, 7 days, and 30 days |
+| `revenueEur` | Sum of `receipts.grand_total` for the same windows |
+| `activePosSessions` | POS auth sessions that are not revoked (`client_app=pos`) |
+| `failedFinanzOnlineSubmissions` | Outbox rows in retryable failure, protocol failure, permanent failure, dead letter, or manual review |
+
+Auth: JWT with `system.critical`. Super Admin may call it without an ambient tenant. Anyone else still needs an ambient tenant and is denied without that permission (403). Do not scrape it every few seconds; a 5-minute interval is enough. The query reads the last 30 days of receipts.
+
+**UptimeRobot** (or Better Stack): HTTP(s) monitor on `https://api.regkasse.at/api/metrics`.
+
+- Method GET. Custom header `Authorization: Bearer <super-admin token>`.
+- Keyword: `failedFinanzOnlineSubmissions`. Alert when the status is not 200.
+- Rotate the token. Do not put it in a public status page.
+- For process uptime without a token, keep probing `GET /api/health/live` and `GET /health/fiskaly` (no auth). `/health/fiskaly` is Healthy when Fiskaly is disabled, Degraded when it is enabled without credentials (HTTP 200), and Unhealthy when authentication fails (HTTP 503). It is not part of `/health/ready`, so a Fiskaly outage does not remove the API from the load balancer.
+
+**Prometheus / Grafana:** keep scraping `GET /metrics` (Prometheus text, IP-restricted, no JWT). That path already feeds the Regkasse API dashboard.
+
+To graph this JSON snapshot, add a Grafana Infinity datasource (or Prometheus `json_exporter`) aimed at `/api/metrics` with the same bearer token. Example `json_exporter` metric:
+
+```yaml
+metrics:
+  - name: regkasse_failed_finanzonline_submissions
+    path: "{ .failedFinanzOnlineSubmissions }"
+    type: value
+```
+
+Do not point Prometheus at `/api/metrics` directly. The body is JSON, so the scrape will fail.
+
 Resource usage (CPU/memory/disk): scrape **cAdvisor** / **node_exporter** on the host if needed (not bundled); Grafana panels can be added later.
 
 ---

@@ -111,6 +111,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/settings/backup")]
     [InlineData("/api/settings/backup/now")]
     [InlineData("/api/tenants/switcher")]
+    [InlineData("/api/metrics")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };
@@ -158,6 +159,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/license/status")]
     [InlineData("/api/tenants/current")]
     [InlineData("/api/admin/tenantsfoo")]
+    [InlineData("/api/metricsfoo")]
     public async Task InvokeAsync_Returns404_WhenTenantMissingOnProtectedPath(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };
