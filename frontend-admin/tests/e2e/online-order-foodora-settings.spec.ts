@@ -135,7 +135,10 @@ test.describe('Foodora provider settings', () => {
     });
     await openAs(page, 'Manager');
 
-    await expect(page.getByText('Vom Super-Admin deaktiviert', { exact: true })).toBeVisible({
+    const section = page.locator('section').filter({
+      has: page.getByRole('heading', { name: 'Foodora-Zugang' }),
+    });
+    await expect(section.getByText('Vom Super-Admin deaktiviert', { exact: true })).toBeVisible({
       timeout: 20_000,
     });
     await expect(page.getByLabel('Foodora-Client-Geheimnis')).toBeDisabled();

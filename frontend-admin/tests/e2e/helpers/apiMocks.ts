@@ -4,6 +4,9 @@ import { makeE2eJwt } from './jwt';
 
 const DEMO_TENANT_ID = '22222222-2222-4222-8222-222222222222';
 
+/** Mandanten-Admin login accepted by the mocked `/api/Auth/login`. */
+export const E2E_TENANT_ADMIN_LOGIN = 'manager@dev.example';
+
 const SUPER_ADMIN_ME = {
   id: '11111111-1111-4111-8111-111111111111',
   userName: 'admin@admin.com',
@@ -22,6 +25,13 @@ const SUPER_ADMIN_ME = {
     'backup.manage',
     'report.view',
     'report.export',
+    'receipt.reprint',
+    'sale.view',
+    'cash_register.view',
+    'cash_register.manage',
+    'finanzonline.manage',
+    'rksv.monatsbeleg.view',
+    'rksv.monatsbeleg.create',
     'audit.view',
     'online-payments.manage',
   ],
@@ -83,8 +93,58 @@ async function hasAdminSession(
  * Intercepts backend API calls so CI E2E does not need a live ASP.NET + Postgres stack.
  * Live runs should skip this helper (`E2E_LIVE=1`).
  */
+const TENANT_ADMIN_ME = {
+  ...SUPER_ADMIN_ME,
+  id: '77777777-7777-4777-8777-777777777777',
+  userName: E2E_TENANT_ADMIN_LOGIN,
+  email: E2E_TENANT_ADMIN_LOGIN,
+  firstName: 'Mandant',
+  lastName: 'Admin',
+  role: 'Manager',
+  roles: ['Manager'],
+  permissions: [
+    'user.view',
+    'user.manage',
+    'settings.view',
+    'report.view',
+    'receipt.reprint',
+    'sale.view',
+    'cash_register.view',
+    'cash_register.manage',
+    'finanzonline.manage',
+    'rksv.monatsbeleg.view',
+    'rksv.monatsbeleg.create',
+  ],
+};
+
+type StoredE2EUser = {
+  id: string;
+  email: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+};
+
 export async function installAdminApiMocks(page: Page): Promise<void> {
   const accessToken = makeE2eJwt();
+  let sessionKind: 'super' | 'manager' = 'super';
+  const storedUsers: StoredE2EUser[] = [];
+
+  const rememberUser = (
+    body: { email?: string; firstName?: string; lastName?: string; role?: string },
+    id: string,
+    userName: string
+  ) => {
+    storedUsers.push({
+      id,
+      email: body.email?.trim() || `${userName}@example.com`,
+      userName,
+      firstName: body.firstName?.trim() || 'E2E',
+      lastName: body.lastName?.trim() || 'User',
+      role: body.role?.trim() || 'Cashier',
+    });
+  };
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -117,10 +177,11 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
         .toLowerCase();
       const password = String(body.password ?? '');
 
-      if (
-        password !== 'Admin123!' ||
-        (identifier !== 'admin@admin.com' && identifier !== 'admin')
-      ) {
+      const isSuperAdmin =
+        password === 'Admin123!' &&
+        (identifier === 'admin@admin.com' || identifier === 'admin');
+      const isTenantAdmin = password === 'Admin123!' && identifier === E2E_TENANT_ADMIN_LOGIN;
+      if (!isSuperAdmin && !isTenantAdmin) {
         await json(route, 401, {
           message: 'Invalid login credentials',
           title: 'Unauthorized',
@@ -128,13 +189,15 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
         return;
       }
 
+      sessionKind = isTenantAdmin ? 'manager' : 'super';
+      const profile = sessionKind === 'manager' ? TENANT_ADMIN_ME : SUPER_ADMIN_ME;
       await json(route, 200, {
         token: accessToken,
         refreshToken: 'e2e-refresh',
         requires2FA: false,
         user: {
-          tenantId: SUPER_ADMIN_ME.tenantId,
-          tenantSlug: SUPER_ADMIN_ME.tenantSlug,
+          tenantId: profile.tenantId,
+          tenantSlug: profile.tenantSlug,
           mustChangePasswordOnNextLogin: false,
         },
       });
@@ -146,7 +209,7 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
         await json(route, 401, { message: 'Unauthorized' });
         return;
       }
-      await json(route, 200, SUPER_ADMIN_ME);
+      await json(route, 200, sessionKind === 'manager' ? TENANT_ADMIN_ME : SUPER_ADMIN_ME);
       return;
     }
 
@@ -294,6 +357,24 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/admin/users' && method === 'GET') {
+      if (url.searchParams.get('type') === 'tenant') {
+        await json(
+          route,
+          200,
+          storedUsers.map((user) => ({
+            userId: user.id,
+            email: user.email,
+            userName: user.userName,
+            name: `${user.firstName} ${user.lastName}`.trim(),
+            role: user.role,
+            tenantId: DEMO_TENANT_ID,
+            tenantSlug: DEMO_TENANT.slug,
+            tenantName: DEMO_TENANT.name,
+            isActive: true,
+          }))
+        );
+        return;
+      }
       await json(route, 200, []);
       return;
     }
@@ -308,17 +389,39 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/UserManagement' && method === 'GET') {
+      const role = url.searchParams.get('role');
+      const items = storedUsers
+        .filter((user) => !role || user.role === role)
+        .map((user) => ({
+          id: user.id,
+          email: user.email,
+          userName: user.userName,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: true,
+        }));
       await json(route, 200, {
-        items: [],
-        pagination: { page: 1, pageSize: 20, totalCount: 0, totalPages: 0 },
+        items,
+        pagination: { page: 1, pageSize: 20, totalCount: items.length, totalPages: 1 },
       });
       return;
     }
 
     if (path === '/api/admin/users' && method === 'POST') {
+      const body = (request.postDataJSON() as StoredE2EUser | null) ?? {
+        id: '',
+        email: '',
+        userName: '',
+        firstName: '',
+        lastName: '',
+        role: 'Cashier',
+      };
+      const id = '44444444-4444-4444-8444-444444444444';
+      rememberUser(body, id, 'cashier1');
       await json(route, 201, {
-        id: '44444444-4444-4444-8444-444444444444',
-        email: 'new.user@example.com',
+        id,
+        email: body.email || 'new.user@example.com',
         userName: 'cashier1',
         generatedPassword: 'TempPass1!',
       });
@@ -339,15 +442,24 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (/\/api\/admin\/tenants\/[^/]+\/users$/.test(path) && method === 'POST') {
+      const body = (request.postDataJSON() as {
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+        role?: string;
+      } | null) ?? {};
+      const id = '66666666-6666-4666-8666-666666666666';
+      rememberUser(body, id, 'cashier1');
       await json(route, 201, {
-        userId: '66666666-6666-4666-8666-666666666666',
-        id: '66666666-6666-4666-8666-666666666666',
-        email: 'tenant.user@example.com',
-        userName: 'manager1',
+        userId: id,
+        id,
+        email: body.email || 'tenant.user@example.com',
+        userName: 'cashier1',
         generatedPassword: 'TenantPass1!',
         temporaryPassword: 'TenantPass1!',
         forcePasswordChangeOnNextLogin: true,
         success: true,
+        role: body.role || 'Cashier',
       });
       return;
     }
