@@ -1,3 +1,5 @@
+import { isAxiosStatusMessage, userFacingPosHttpMessage } from './userFacingHttpError';
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -55,7 +57,15 @@ export function readPosApiErrorMessage(error: unknown, fallback: string): string
     const errorText = readText(record, 'error');
     if (errorText) return errorText;
   }
-  const e = error as { message?: string } | null;
-  if (typeof e?.message === 'string' && e.message.trim()) return e.message.trim();
+  const e = error as { message?: string; response?: { status?: number }; status?: number } | null;
+  if (typeof e?.message === 'string' && e.message.trim()) {
+    const trimmed = e.message.trim();
+    if (isAxiosStatusMessage(trimmed)) {
+      const status = e.response?.status ?? e.status;
+      const friendly = typeof status === 'number' ? userFacingPosHttpMessage(status) : undefined;
+      if (friendly) return friendly;
+    }
+    return trimmed;
+  }
   return fallback;
 }

@@ -54,5 +54,11 @@
     "openSettings": "Ayarları aç",
     "cameraUnavailable": "Kamera kullanılamıyor. Lütfen cihazı yeniden başlatın veya kodu manuel girin.",
     "loading": "Kamera hazırlanıyor…"
+  },
+  "errors": {
+    "http400": "İstek işlenemedi. Lütfen girişlerinizi kontrol edin.",
+    "http403": "Bu işlem için yetkiniz yok.",
+    "http404": "Aranan kayıt bulunamadı.",
+    "http409": "Bu masa başka bir kasiyer tarafından açılmış. Lütfen önce kapatın."
   }
 }

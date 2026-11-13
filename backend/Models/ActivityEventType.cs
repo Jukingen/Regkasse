@@ -58,6 +58,8 @@ public enum ActivityEventType
     MonatsbelegAutoCreateFailed = 79,
     /// <summary>Jahresbeleg exists but FinanzOnline Belegcheck is still pending (deadline 15 February).</summary>
     JahresbelegFonReminder = 84,
+    /// <summary>1 December warning: Jahresbeleg for the Vienna year is due by 31 January.</summary>
+    JahresbelegDeadlineReminder = 86,
     /// <summary>Auto-Monatsbeleg catch-up window closed and the previous-month receipt is still missing.</summary>
     MonatsbelegAutoCreateMissed = 85,
     /// <summary>Online order materialized into a POS cart (FA / kitchen alert).</summary>

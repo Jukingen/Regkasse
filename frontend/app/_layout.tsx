@@ -36,6 +36,7 @@ import { OfflineSyncService } from '../services/offline/offlineSyncService';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
 import { initPosSentry } from '../src/monitoring/initPosSentry';
 import { safeLog } from '../utils/loggingUtils';
+import { applyPosWebDocument } from '../utils/posWebDocument';
 
 initPosSentry();
 
@@ -75,6 +76,11 @@ function DeepLinkNavigationBridge() {
 }
 
 export default function RootLayout() {
+  React.useLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+    applyPosWebDocument();
+  }, []);
+
   const [isI18nReady, setIsI18nReady] = React.useState(false);
   const [fontsLoaded, fontError] = useFonts(CUSTOM_FONT_MAP);
 

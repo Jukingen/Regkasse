@@ -14,6 +14,7 @@ import {
   Pressable,
   Platform,
   Switch,
+  ActivityIndicator,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -2550,7 +2551,11 @@ export default function PaymentModal({
                       }}>
                       {showPayWorking ? (
                         <View style={styles.payButtonContent}>
-                          <WaveLoader size={18} color={SoftColors.textInverse} />
+                          <ActivityIndicator
+                            size="small"
+                            color={SoftColors.textInverse}
+                            testID="pay-button-spinner"
+                          />
                           <Text style={styles.payButtonText}>
                             {onlinePaymentPhase === 'awaiting_action'
                               ? t('checkout:posFlow.payment.onlinePayment.awaitingGateway')

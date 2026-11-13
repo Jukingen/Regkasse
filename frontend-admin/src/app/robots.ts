@@ -2,7 +2,8 @@ import type { MetadataRoute } from 'next';
 
 /**
  * Admin FA must not be indexed (auth-gated operator UI).
- * Served at `/robots.txt` via App Router.
+ * Served at `/robots.txt` via App Router. Do not add `public/robots.txt`;
+ * Next.js rejects that pair and returns HTTP 500.
  */
 export default function robots(): MetadataRoute.Robots {
   return {

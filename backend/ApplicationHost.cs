@@ -1707,6 +1707,8 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
+        builder.Services.AddScoped<IJahresbelegReminderService, JahresbelegReminderService>();
+        builder.Services.AddHostedService<JahresbelegReminderHostedService>();
         builder.Services.AddHostedService<MonatsbelegSchedulerHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.AutoTagesabschlussHostedService>();
         builder.Services.AddSingleton<TseHealthStateStore>();

@@ -5,6 +5,7 @@ import { Button, Popconfirm, Space, Table, Tag } from 'antd';
 import React from 'react';
 
 import { Product } from '@/api/generated/model';
+import { InitialTableSkeleton } from '@/components/Skeleton';
 import { formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
 import { useLicenseGuard } from '@/hooks/useLicenseGuard';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
@@ -129,15 +130,17 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
   ];
 
   return (
+    <InitialTableSkeleton loading={loading} rowCount={data.length} rows={8} cols={6}>
     <Table
       dataSource={data}
       columns={columns}
       rowKey="id"
-      loading={loading}
+      loading={loading && data.length > 0}
       pagination={{
         pageSize: 10,
         showSizeChanger: true,
       }}
     />
+    </InitialTableSkeleton>
   );
 }

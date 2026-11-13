@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { safeLog } from '../../utils/loggingUtils';
+import { resolvePosHttpErrorMessage } from '../../utils/userFacingHttpError';
 
 import {
   createApiAbortController,
@@ -476,10 +477,20 @@ axiosInstance.interceptors.response.use(
     }
 
     // Normalized error for callers (no Axios internals / no secret headers).
+    const responseData = error.response?.data;
+    const bodyMessage =
+      responseData && typeof responseData === 'object' && !Array.isArray(responseData)
+        ? (responseData as { message?: unknown }).message
+        : undefined;
+    const friendlyMessage = resolvePosHttpErrorMessage(
+      error.response?.status,
+      bodyMessage,
+      error.message
+    );
     throw {
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message,
+      message: friendlyMessage ?? error.message,
       code: error.code,
       isNetworkError: !error.response,
       isCanceled: error.code === 'ERR_CANCELED' || error.name === 'CanceledError',
