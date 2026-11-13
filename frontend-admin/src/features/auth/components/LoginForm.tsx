@@ -2,7 +2,7 @@
 
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
+import { App, Button, Card, ConfigProvider, Form, Input, Typography } from 'antd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import React, { FC, useEffect, useState } from 'react';
@@ -161,7 +161,16 @@ export const LoginForm: FC = () => {
   };
 
   return (
-    <div
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#1d4ed8',
+          colorLink: '#1d4ed8',
+          colorTextSecondary: '#595959',
+        },
+      }}
+    >
+    <main
       style={{
         position: 'relative',
         display: 'flex',
@@ -179,7 +188,9 @@ export const LoginForm: FC = () => {
           <Title level={3}>
             {twoFactorChallenge ? t('common.auth.twoFactor.title') : t('common.auth.appTitle')}
           </Title>
-          {!twoFactorChallenge ? <Text type="secondary">{t('common.auth.subtitle')}</Text> : null}
+          {!twoFactorChallenge ? (
+            <Text style={{ color: '#595959' }}>{t('common.auth.subtitle')}</Text>
+          ) : null}
         </div>
 
         {twoFactorChallenge ? (
@@ -204,7 +215,7 @@ export const LoginForm: FC = () => {
               label={t('common.auth.loginIdentifierLabel')}
               tooltip={t('common.auth.loginIdentifierTooltip')}
               extra={
-                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                <Text style={{ color: '#595959', fontSize: 12, display: 'block', marginTop: 4 }}>
                   {t('common.auth.loginIdentifierCaseHint')}
                 </Text>
               }
@@ -241,6 +252,7 @@ export const LoginForm: FC = () => {
           </Form>
         )}
       </Card>
-    </div>
+    </main>
+    </ConfigProvider>
   );
 };
