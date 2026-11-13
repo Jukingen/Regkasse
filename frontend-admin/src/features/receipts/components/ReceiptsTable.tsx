@@ -9,6 +9,7 @@ import Link from 'next/link';
 import React, { memo } from 'react';
 
 import { DateColumn } from '@/components/DateColumn';
+import { InitialTableSkeleton } from '@/components/Skeleton';
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
@@ -292,12 +293,15 @@ export default memo(function ReceiptsTable({
     (showPdfReprintColumn ? 170 : 0) +
     (showStoredPdfColumn ? 120 : 0);
 
+  const showInitialSkeleton = loading && !isPlaceholderData && data.length === 0;
+
   return (
+    <InitialTableSkeleton loading={showInitialSkeleton} rowCount={0} rows={8} cols={6}>
     <VirtualTable<ReceiptListItemDto>
       columns={columnsWithSort}
       dataSource={data}
       rowKey="receiptId"
-      loading={loading && !isPlaceholderData}
+      loading={loading && !isPlaceholderData && data.length > 0}
       onChange={onTableChange}
       rowSelection={rowSelection}
       pagination={{
@@ -321,5 +325,6 @@ export default memo(function ReceiptsTable({
       }}
       size="middle"
     />
+    </InitialTableSkeleton>
   );
 });

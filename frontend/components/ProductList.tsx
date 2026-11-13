@@ -27,6 +27,7 @@ import {
 import { getContentPaddingHorizontal } from '../constants/breakpoints';
 import { useProductsUnified } from '../hooks/useProductsUnified';
 import { Product } from '../services/api/productService';
+import { PosListSkeleton } from './PosListSkeleton';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   categoryColorTint,
@@ -349,7 +350,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   );
 
   const renderFooter = () => {
-    if (!cacheLoading) return null;
+    if (!cacheLoading || products.length === 0) return null;
     return (
       <View style={styles.loadingFooter}>
         <WaveLoader size={18} color={SoftColors.accent} />
@@ -432,7 +433,9 @@ export const ProductList: React.FC<ProductListProps> = ({
           </>
         }
         ListEmptyComponent={
-          !cacheLoading && !cacheError ? (
+          cacheLoading && !cacheError ? (
+            <PosListSkeleton testID="pos-product-skeleton" />
+          ) : !cacheLoading && !cacheError ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {searchQuery ? t('noSearchResults') : t('noProductsFound')}

@@ -63,4 +63,14 @@ describe('ProductList catalog error', () => {
     expect(screen.getByText('Failed to load catalog')).toBeTruthy();
     expect(screen.getByText('Produkte')).toBeTruthy();
   });
+
+  it('shows a skeleton while the catalog is loading and still empty', async () => {
+    mockCatalog.error = null;
+    mockCatalog.loading = true;
+    mockCatalog.products = [];
+
+    await render(<ProductList />);
+
+    expect(screen.getByTestId('pos-product-skeleton')).toBeTruthy();
+  });
 });

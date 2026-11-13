@@ -26,6 +26,7 @@ import {
   canShowReceiptStornoButton,
   type PosReceiptStornoActor,
 } from '../utils/posReceiptStorno';
+import { PosListSkeleton } from './PosListSkeleton';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   SoftColors,
@@ -289,7 +290,7 @@ export function ReceiptList({
   if (loading && receipts.length === 0) {
     return (
       <View style={styles.centered}>
-        <WaveLoader size={32} color={SoftColors.accent} />
+        <PosListSkeleton testID="pos-receipt-skeleton" />
       </View>
     );
   }

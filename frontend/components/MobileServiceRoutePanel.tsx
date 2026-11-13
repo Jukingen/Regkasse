@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { BusyButton } from './BusyButton';
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import {
   formatServiceAddress,
@@ -80,19 +81,19 @@ function MobileServiceRouteFields({
         onChange={job.setCustomerAddress}
         prefix="customer"
       />
-      <Pressable
+      <BusyButton
         accessibilityRole="button"
         accessibilityLabel={t('screens.mobileServices.saveAddress')}
-        disabled={saving}
+        busy={saving}
+        label={
+          saving ? t('screens.mobileServices.saving') : t('screens.mobileServices.saveAddress')
+        }
         onPress={() => {
           saveCustomerAddress().catch(() => undefined);
         }}
         style={[styles.saveButton, saving && styles.disabled]}
-      >
-        <Text style={styles.saveButtonText}>
-          {saving ? t('screens.mobileServices.saving') : t('screens.mobileServices.saveAddress')}
-        </Text>
-      </Pressable>
+        textStyle={styles.saveButtonText}
+      />
 
       <Text style={styles.section}>{t('screens.mobileServices.jobLocation')}</Text>
       <AddressFields value={job.jobLocation} onChange={job.setJobLocation} prefix="job" />
