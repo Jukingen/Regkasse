@@ -1,5 +1,7 @@
 import { Alert } from 'react-native';
 
+import { resolvePosHttpErrorMessage } from '../utils/userFacingHttpError';
+
 export interface APIError {
   status?: number;
   data?: any;
@@ -20,11 +22,9 @@ export const handleAPIError = (error: any): APIError => {
     };
   }
 
-  // 400: data?.message -> error?.message -> fallback (net sıra)
+  const transportMessage = typeof error?.message === 'string' ? error.message : undefined;
   const msg400 =
-    (typeof data?.message === 'string' ? data.message : undefined) ??
-    (typeof error?.message === 'string' ? error.message : undefined) ??
-    'Invalid request. Please check your input and try again.';
+    resolvePosHttpErrorMessage(400, data?.message, transportMessage) ?? transportMessage ?? '';
 
   // default: data?.message -> error?.message -> generic
   const msgDefault =
@@ -50,21 +50,22 @@ export const handleAPIError = (error: any): APIError => {
       return {
         status,
         data,
-        message: 'Access denied. You do not have permission to perform this action.',
+        message:
+          resolvePosHttpErrorMessage(403, data?.message, transportMessage) ?? transportMessage ?? '',
       };
     case 404:
       return {
         status,
         data,
-        message: 'Resource not found. Please check the URL and try again.',
+        message:
+          resolvePosHttpErrorMessage(404, data?.message, transportMessage) ?? transportMessage ?? '',
       };
     case 409:
       return {
         status,
         data,
         message:
-          (typeof data?.message === 'string' ? data.message : undefined) ??
-          'Conflict occurred. The resource already exists.',
+          resolvePosHttpErrorMessage(409, data?.message, transportMessage) ?? transportMessage ?? '',
       };
     case 422:
       return {

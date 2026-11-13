@@ -74,11 +74,11 @@
     "furtherLabel": "Daha fazla incele"
   },
   "errors": {
-    "http400": "Gecersiz istek.",
+    "http400": "İstek işlenemedi. Lütfen girişlerinizi kontrol edin.",
     "http401": "Kimlik dogrulama gerekli.",
-    "http403": "Erisim reddedildi.",
-    "http404": "Bulunamadi.",
-    "http409": "Cakisma.",
+    "http403": "Bu işlem için yetkiniz yok.",
+    "http404": "Aranan kayıt bulunamadı.",
+    "http409": "Bu masa başka bir kasiyer tarafından açılmış. Lütfen önce kapatın.",
     "http422": "Dogrulama basarisiz.",
     "http429": "Cok fazla istek. Sonra tekrar deneyin.",
     "http500": "Sunucu hatasi. Sonra tekrar deneyin.",

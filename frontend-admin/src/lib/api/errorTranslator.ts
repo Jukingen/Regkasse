@@ -82,6 +82,7 @@ export function isUnsafeTechnicalErrorDetail(message: string | undefined | null)
   const m = message.trim();
   if (!m) return true;
   if (m.length > 280) return true;
+  if (/^Request failed with status code \d{3}$/i.test(m)) return true;
   if (/Exception\b|StackTrace|stack trace|InnerException/i.test(m)) return true;
   if (/System\.|Microsoft\.(AspNetCore|EntityFramework)|Npgsql\.|at [A-Za-z0-9_$.]+\(/i.test(m))
     return true;
