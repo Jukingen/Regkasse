@@ -1443,6 +1443,15 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ICardPaymentService, CardPaymentService>();
         builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
         builder.Services.AddScoped<IAdminCardTransactionListService, AdminCardTransactionListService>();
+        builder.Services.AddScoped<IPaymentFinanzOnlineSubmissionService>(sp => new PaymentFinanzOnlineSubmissionService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<ICompanyProfileProvider>(),
+            sp.GetRequiredService<IFinanzOnlineService>(),
+            sp.GetRequiredService<IAuditLogService>(),
+            sp.GetRequiredService<IUserService>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<ILogger<PaymentService>>(),
+            sp.GetService<IFinanzOnlineMetrics>()));
         builder.Services.AddScoped<IPaymentQueryService>(sp => new PaymentQueryService(
             sp.GetRequiredService<IGenericRepository<PaymentDetails>>(),
             sp.GetRequiredService<AppDbContext>(),
