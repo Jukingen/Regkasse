@@ -38,7 +38,7 @@ public sealed class AdminTenantDataExportController : ControllerBase
         {
             return BadRequest(new
             {
-                message = "Export type must be products, customers, receipts, payments, or users.",
+                message = "Export type must be products, customers, receipts, payments, users, orders, audit_logs, inventory, or tse_signatures.",
                 code = "TENANT_EXPORT_TYPE",
             });
         }
@@ -65,6 +65,15 @@ public sealed class AdminTenantDataExportController : ControllerBase
             });
         }
 
+        if (normalizedType == "tse_signatures" && !User.IsInRole(Roles.SuperAdmin))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "Forbidden",
+                code = "TENANT_EXPORT_FORBIDDEN",
+            });
+        }
+
         var includeAllTenants = User.IsInRole(Roles.SuperAdmin);
         var fileName = TenantDataExportService.FileNameFor(normalizedType, normalizedFormat, DateTime.UtcNow);
         var contentType = TenantDataExportService.ContentTypeFor(normalizedFormat);
@@ -80,6 +89,10 @@ public sealed class AdminTenantDataExportController : ControllerBase
         "receipts" => AppPermissions.SaleView,
         "payments" => AppPermissions.PaymentView,
         "users" => AppPermissions.UserView,
+        "orders" => AppPermissions.OrderView,
+        "audit_logs" => AppPermissions.AuditView,
+        "inventory" => AppPermissions.InventoryView,
+        "tse_signatures" => AppPermissions.SystemCritical,
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 

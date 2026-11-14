@@ -26,6 +26,7 @@ import {
   categoryColorTint,
   isCategoryColor,
   resolveCategoryIcon,
+  textOnHex,
 } from '../utils/categoryDisplay';
 
 type CategoryFilterProps = {
@@ -74,13 +75,14 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           <Ionicons
             name="grid-outline"
             size={16}
-            color={isSelected ? SoftColors.textInverse : SoftColors.textPrimary}
+            color={isSelected ? textOnHex(SoftColors.accent) : SoftColors.textPrimary}
           />
         )}
         <Text
           style={[
             compact ? styles.tileLabel : styles.chipText,
             isSelected && (compact ? styles.tileLabelSelected : styles.chipTextSelected),
+            isSelected && { color: textOnHex(SoftColors.accent) },
           ]}
           numberOfLines={compact ? 2 : 1}
           ellipsizeMode="tail">
@@ -95,6 +97,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
     const icon = resolveCategoryIcon(cat.icon);
     const color = isCategoryColor(cat.color) ? cat.color : undefined;
     const selectedBg = color ?? SoftColors.accent;
+    const selectedText = textOnHex(selectedBg);
     const unselectedBg = color ? categoryColorTint(color, 0.16) : SoftColors.bgCard;
     const unselectedBorder = color ?? SoftColors.borderLight;
 
@@ -128,6 +131,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           style={[
             compact ? styles.tileLabel : styles.chipText,
             isSelected && (compact ? styles.tileLabelSelected : styles.chipTextSelected),
+            isSelected && { color: selectedText },
           ]}
           numberOfLines={compact ? 2 : 1}
           ellipsizeMode="tail">
@@ -145,13 +149,13 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           onPress={() => {
             setViewMode('chips');
           }}
-          accessibilityRole="tab"
+          accessibilityRole="button"
           accessibilityState={{ selected: viewMode === 'chips' }}
-          accessibilityLabel={t('products:a11y.chipView')}>
+          accessibilityLabel={`${t('products:viewChips')}, ${t('products:a11y.chipView')}`}>
           <Ionicons
             name="ellipsis-horizontal"
             size={16}
-            color={viewMode === 'chips' ? SoftColors.textInverse : SoftColors.textPrimary}
+            color={SoftColors.textPrimary}
           />
           <Text
             style={[
@@ -166,13 +170,13 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           onPress={() => {
             setViewMode('grid');
           }}
-          accessibilityRole="tab"
+          accessibilityRole="button"
           accessibilityState={{ selected: viewMode === 'grid' }}
-          accessibilityLabel={t('products:a11y.gridView')}>
+          accessibilityLabel={`${t('products:viewGrid')}, ${t('products:a11y.gridView')}`}>
           <Ionicons
             name="grid-outline"
             size={16}
-            color={viewMode === 'grid' ? SoftColors.textInverse : SoftColors.textPrimary}
+            color={SoftColors.textPrimary}
           />
           <Text
             style={[
@@ -242,7 +246,7 @@ const styles = StyleSheet.create({
     color: SoftColors.textSecondary,
   },
   viewToggleTextActive: {
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
     fontWeight: '600',
   },
   container: {

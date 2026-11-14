@@ -81,7 +81,7 @@ export function DevTenantSwitcher() {
         }}
         style={styles.chip}
         accessibilityRole="button"
-        accessibilityLabel="Mandant (Entwicklung)">
+        accessibilityLabel={`Mandant: ${currentLabel}`}>
         <Text style={styles.chipText} numberOfLines={1}>
           Mandant: {currentLabel}
         </Text>

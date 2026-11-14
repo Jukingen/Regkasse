@@ -5,6 +5,7 @@ import { Alert, Typography } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { ActivityLog } from '@/features/audit/components/ActivityLog';
+import { TenantDataExportButton } from '@/features/data-export/TenantDataExportButton';
 import { AuditLogsSubNav } from '@/features/audit/components/AuditLogsSubNav';
 import { useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -36,6 +37,7 @@ export default function AuditLogsActivityPage() {
           { title: t(ADMIN_NAV_LABEL_KEYS.auditLogs), href: '/audit-logs' },
           { title: t('activity.title') },
         ]}
+        actions={<TenantDataExportButton type="audit_logs" />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 720 }}>
           {t('activity.pageIntro')}

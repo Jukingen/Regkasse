@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -302,9 +301,10 @@ export default function LoginScreen() {
               accessibilityRole="header"
               accessibilityLabel={`${t('brandName')}. ${industryLine ?? t('brandSubtitle')}`}>
               <Image
-                source={require('../../assets/images/logo.webp')}
+                source={require('../../assets/images/logo-128.webp')}
                 style={styles.logoImage}
                 resizeMode="contain"
+                accessibilityLabel={t('brandName')}
                 accessibilityIgnoresInvertColors
               />
               <Text style={styles.brandText}>{t('brandName')}</Text>
@@ -357,6 +357,7 @@ export default function LoginScreen() {
                 autoCorrect={false}
                 autoComplete="username"
                 textContentType="username"
+                accessibilityLabel={t('loginIdentifierPlaceholder')}
                 editable={!isLoading}
                 returnKeyType="next"
                 blurOnSubmit={false}
@@ -370,12 +371,9 @@ export default function LoginScreen() {
                 style={styles.hintContainer}
                 accessibilityRole="text"
                 accessibilityLabel={t('loginIdentifierCaseHint')}>
-                <Ionicons
-                  name="information-circle"
-                  size={18}
-                  color="#475569"
-                  style={styles.hintIcon}
-                />
+                <Text style={styles.hintMark} accessibilityElementsHidden>
+                  i
+                </Text>
                 <Text style={styles.hintText}>{t('loginIdentifierCaseHint')}</Text>
               </View>
               <View style={styles.exampleContainer}>
@@ -410,6 +408,7 @@ export default function LoginScreen() {
                   autoCorrect={false}
                   autoComplete="current-password"
                   textContentType="password"
+                  accessibilityLabel={t('password')}
                   editable={!isLoading}
                   returnKeyType="go"
                   enablesReturnKeyAutomatically
@@ -432,11 +431,9 @@ export default function LoginScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={showPassword ? t('hidePassword') : t('showPassword')}
                   disabled={isLoading}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={22}
-                    color="#666"
-                  />
+                  <Text style={styles.eyeMark} accessibilityElementsHidden>
+                    {showPassword ? '–' : 'o'}
+                  </Text>
                 </Pressable>
               </View>
               <View style={styles.inputLine} />
@@ -652,8 +649,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
-  hintIcon: {
+  hintMark: {
+    width: 18,
     marginRight: 8,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  eyeMark: {
+    width: 22,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#666',
   },
   hintText: {
     flex: 1,
