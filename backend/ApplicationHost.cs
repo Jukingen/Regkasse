@@ -1443,6 +1443,27 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ICardPaymentService, CardPaymentService>();
         builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
         builder.Services.AddScoped<IAdminCardTransactionListService, AdminCardTransactionListService>();
+        builder.Services.AddScoped<IPaymentReceiptReadService>(sp => new PaymentReceiptReadService(
+            sp.GetRequiredService<IReceiptService>(),
+            sp.GetRequiredService<IGenericRepository<PaymentDetails>>(),
+            sp.GetRequiredService<IAuditLogService>(),
+            sp.GetRequiredService<IUserService>(),
+            sp.GetRequiredService<ILogger<PaymentService>>()));
+        builder.Services.AddScoped<IPaymentFinanzOnlineSubmissionService>(sp => new PaymentFinanzOnlineSubmissionService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<ICompanyProfileProvider>(),
+            sp.GetRequiredService<IFinanzOnlineService>(),
+            sp.GetRequiredService<IAuditLogService>(),
+            sp.GetRequiredService<IUserService>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<ILogger<PaymentService>>(),
+            sp.GetService<IFinanzOnlineMetrics>()));
+        builder.Services.AddScoped<IPaymentQueryService>(sp => new PaymentQueryService(
+            sp.GetRequiredService<IGenericRepository<PaymentDetails>>(),
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<IPaymentMethodCatalogService>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<ILogger<PaymentService>>()));
         builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
         builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();
