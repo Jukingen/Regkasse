@@ -5,8 +5,15 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 /**
  * Live POS web E2E. The Development API and the vertical-profile cashiers
- * must already exist. This config does not start the backend and does not
- * enable profiles in production.
+ * must already exist. This config starts the Expo web app only. It does not
+ * start the backend, does not enable profiles in production, and does not
+ * put TSE settings on the Expo process.
+ *
+ * Receipt QR tests need the `_R1-AT1_` machine code from Fake TSE. Start the
+ * API with `frontend/e2e/run-e2e.sh` or `frontend/e2e/run-e2e.ps1`
+ * (`Tse__TseMode=Demo`, `Tse__Mode=Fake`, `Tse__Provider=fake`, plus the
+ * Development soft-fallback flags). A normal `npm run dev:backend` keeps
+ * Fiskaly for manual testing. See `docs/E2E_GUIDE.md`.
  */
 export default defineConfig({
   testDir: '.',
