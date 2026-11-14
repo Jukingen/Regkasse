@@ -187,6 +187,7 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | [`beta-env-matrix.md`](beta-env-matrix.md) / [`beta-smoke-checklist.md`](beta-smoke-checklist.md) | Beta |
 | [`ops-known-gaps.md`](ops-known-gaps.md) | Known ops gaps |
 | [`backend-postgresql-integration-tests.md`](backend-postgresql-integration-tests.md) | PG integration tests |
+| [`E2E_GUIDE.md`](E2E_GUIDE.md) | POS Playwright: Fake TSE for E2E, Fiskaly for manual testing |
 | [`acceptance-authoritative-simulation-tests.md`](acceptance-authoritative-simulation-tests.md) | Acceptance simulation |
 | [`inventory-lager-optional.md`](inventory-lager-optional.md) | Optional inventory |
 | [`contributing-i18n.md`](contributing-i18n.md) | i18n contribution notes |
@@ -257,6 +258,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) / [`.de.md`](DOCKER_WINDOWS_SETUP.de.md) | Docker Desktop + WSL2 |
 | [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md) / [`.de.md`](DOCKER_WINDOWS_TROUBLESHOOTING.de.md) | Docker Windows troubleshooting |
 | [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md) | SMTP |
+| [`E2E_GUIDE.md`](E2E_GUIDE.md) | POS Playwright: Fake TSE for E2E, Fiskaly for manual testing |
 | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) | FO cutover |
 | [`finanzonline-*.md`](finanzonline-pilot-go-no-go-gate.md) | FO pilot / BMF templates |
 | [`IMPERSONATION.md`](IMPERSONATION.md) / [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md) | Super Admin impersonation |
