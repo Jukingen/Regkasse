@@ -94,6 +94,9 @@ namespace KasseAPI_Final.Services
         private readonly IVerticalProfileGuard? _profileGuard;
         private readonly ITicketRedemptionService? _ticketRedemptions;
         private readonly ITenantExtensionRegistry? _extensionRegistry;
+        private readonly IPaymentQueryService _paymentQuery;
+        private readonly IPaymentFinanzOnlineSubmissionService _finanzOnlineSubmission;
+        private readonly IPaymentReceiptReadService _receiptRead;
 
         public PaymentService(
             AppDbContext context,
@@ -146,7 +149,10 @@ namespace KasseAPI_Final.Services
             IVerticalProfileService? verticalProfiles = null,
             ITicketRedemptionService? ticketRedemptions = null,
             IVerticalProfileGuard? profileGuard = null,
-            ITenantExtensionRegistry? extensionRegistry = null)
+            ITenantExtensionRegistry? extensionRegistry = null,
+            IPaymentQueryService? paymentQuery = null,
+            IPaymentFinanzOnlineSubmissionService? finanzOnlineSubmission = null,
+            IPaymentReceiptReadService? receiptRead = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -201,6 +207,27 @@ namespace KasseAPI_Final.Services
             _ticketRedemptions = ticketRedemptions;
             _profileGuard = profileGuard;
             _extensionRegistry = extensionRegistry;
+            _paymentQuery = paymentQuery ?? new PaymentQueryService(
+                _paymentRepository,
+                _context,
+                _paymentMethodCatalog,
+                _settingsTenantResolver,
+                _logger);
+            _finanzOnlineSubmission = finanzOnlineSubmission ?? new PaymentFinanzOnlineSubmissionService(
+                _context,
+                _companyProfileProvider,
+                _finanzOnlineService,
+                _auditLogService,
+                _userService,
+                _settingsTenantResolver,
+                _logger,
+                _finanzOnlineMetrics);
+            _receiptRead = receiptRead ?? new PaymentReceiptReadService(
+                _receiptService,
+                _paymentRepository,
+                _auditLogService,
+                _userService,
+                _logger);
         }
 
         private Task RunPaymentHookAsync(
@@ -2598,170 +2625,26 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Ödeme detaylarını getir
         /// </summary>
-        public async Task<PaymentDetails?> GetPaymentAsync(Guid paymentId)
-        {
-            try
-            {
-                var payment = await _paymentRepository.GetByIdAsync(paymentId);
-                if (payment == null)
-                {
-                    _logger.LogDebug("Payment not found with ID: {PaymentId}", paymentId);
-                    return null;
-                }
-
-                if (!await PaymentBelongsToEffectiveTenantAsync(payment))
-                {
-                    _logger.LogDebug("Payment {PaymentId} is not in the effective tenant", paymentId);
-                    return null;
-                }
-
-                _logger.LogDebug("Payment retrieved successfully: {PaymentId}", paymentId);
-                return payment;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting payment {PaymentId}", paymentId);
-                return null;
-            }
-        }
+        public Task<PaymentDetails?> GetPaymentAsync(Guid paymentId) =>
+            _paymentQuery.GetPaymentAsync(paymentId);
 
         /// <summary>
         /// Müşteri ödemelerini getir
         /// </summary>
-        public async Task<IEnumerable<PaymentDetails>> GetCustomerPaymentsAsync(Guid customerId, int pageNumber = 1, int pageSize = 20)
-        {
-            try
-            {
-                // Sayfa boyutu validasyonu
-                if (pageSize <= 0 || pageSize > 100)
-                {
-                    _logger.LogWarning("Invalid page size: {PageSize}. Using default value 20", pageSize);
-                    pageSize = 20;
-                }
-
-                if (pageNumber <= 0)
-                {
-                    _logger.LogWarning("Invalid page number: {PageNumber}. Using default value 1", pageNumber);
-                    pageNumber = 1;
-                }
-
-                var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber,
-                    pageSize,
-                    p => p.CustomerId == customerId && p.IsActive,
-                    p => p.CreatedAt,
-                    false);
-
-                _logger.LogDebug("Retrieved {Count} payments for customer {CustomerId} (page {PageNumber}/{TotalPages})",
-                    items.Count(), customerId, pageNumber, Math.Ceiling((double)totalCount / pageSize));
-
-                return items;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting payments for customer {CustomerId}", customerId);
-                return Enumerable.Empty<PaymentDetails>();
-            }
-        }
+        public Task<IEnumerable<PaymentDetails>> GetCustomerPaymentsAsync(Guid customerId, int pageNumber = 1, int pageSize = 20) =>
+            _paymentQuery.GetCustomerPaymentsAsync(customerId, pageNumber, pageSize);
 
         /// <summary>
         /// Ödeme yöntemine göre ödemeleri getir
         /// </summary>
-        public async Task<IEnumerable<PaymentDetails>> GetPaymentsByMethodAsync(string paymentMethod, int pageNumber = 1, int pageSize = 20)
-        {
-            try
-            {
-                // Sayfa boyutu validasyonu
-                if (pageSize <= 0 || pageSize > 100)
-                {
-                    _logger.LogWarning("Invalid page size: {PageSize}. Using default value 20", pageSize);
-                    pageSize = 20;
-                }
-
-                if (pageNumber <= 0)
-                {
-                    _logger.LogWarning("Invalid page number: {PageNumber}. Using default value 1", pageNumber);
-                    pageNumber = 1;
-                }
-
-                var methodRaw = await _paymentMethodCatalog.ResolveRawForFilterAsync(paymentMethod);
-
-                var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber,
-                    pageSize,
-                    p => p.PaymentMethodRaw == methodRaw && p.IsActive,
-                    p => p.CreatedAt,
-                    false);
-
-                _logger.LogDebug("Retrieved {Count} payments for method {PaymentMethod} (page {PageNumber}/{TotalPages})",
-                    items.Count(), paymentMethod, pageNumber, Math.Ceiling((double)totalCount / pageSize));
-
-                return items;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting payments by method {PaymentMethod}", paymentMethod);
-                return Enumerable.Empty<PaymentDetails>();
-            }
-        }
+        public Task<IEnumerable<PaymentDetails>> GetPaymentsByMethodAsync(string paymentMethod, int pageNumber = 1, int pageSize = 20) =>
+            _paymentQuery.GetPaymentsByMethodAsync(paymentMethod, pageNumber, pageSize);
 
         /// <summary>
         /// Tarih aralığına göre ödemeleri getir
         /// </summary>
-        public async Task<IEnumerable<PaymentDetails>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate, int pageNumber = 1, int pageSize = 20)
-        {
-            try
-            {
-                // Tarih validasyonu
-                if (startDate > endDate)
-                {
-                    _logger.LogWarning("Invalid date range: startDate {StartDate} is after endDate {EndDate}", startDate, endDate);
-                    return Enumerable.Empty<PaymentDetails>();
-                }
-
-                // Maksimum tarih aralığı kontrolü (7 yıl)
-                var maxDateRange = TimeSpan.FromDays(365 * 7);
-                if (endDate - startDate > maxDateRange)
-                {
-                    _logger.LogWarning("Date range too large: {Days} days. Maximum allowed: {MaxDays} days",
-                        (endDate - startDate).Days, maxDateRange.Days);
-                    return Enumerable.Empty<PaymentDetails>();
-                }
-
-                // Sayfa boyutu validasyonu
-                if (pageSize <= 0 || pageSize > 100)
-                {
-                    _logger.LogWarning("Invalid page size: {PageSize}. Using default value 20", pageSize);
-                    pageSize = 20;
-                }
-
-                if (pageNumber <= 0)
-                {
-                    _logger.LogWarning("Invalid page number: {PageNumber}. Using default value 1", pageNumber);
-                    pageNumber = 1;
-                }
-
-                var (fromUtc, toExclusiveUtc) =
-                    PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startDate, endDate);
-
-                var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber,
-                    pageSize,
-                    p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive,
-                    p => p.CreatedAt,
-                    false);
-
-                _logger.LogDebug("Retrieved {Count} payments for date range {StartDate} to {EndDate} (page {PageNumber}/{TotalPages})",
-                    items.Count(), startDate, endDate, pageNumber, Math.Ceiling((double)totalCount / pageSize));
-
-                return items;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting payments by date range {StartDate} to {EndDate}", startDate, endDate);
-                return Enumerable.Empty<PaymentDetails>();
-            }
-        }
+        public Task<IEnumerable<PaymentDetails>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate, int pageNumber = 1, int pageSize = 20) =>
+            _paymentQuery.GetPaymentsByDateRangeAsync(startDate, endDate, pageNumber, pageSize);
 
         private async Task TryAttachPreorderAfterSaleAsync(
             CreatePaymentRequest request,
@@ -3984,120 +3867,8 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Get payment statistics for date range
         /// </summary>
-        public async Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate)
-        {
-            // Initialize DTO with request dates immediately (never returns DateTime.MinValue)
-            var statistics = new PaymentStatistics
-            {
-                StartDate = startDate,
-                EndDate = endDate,
-                TotalPayments = 0,
-                TotalAmount = 0,
-                AverageAmount = 0,
-                PaymentsByMethod = new Dictionary<string, int>(),
-                AmountByMethod = new Dictionary<string, decimal>(),
-                PaymentsByTaxType = new Dictionary<string, int>(),
-                TseSignedPayments = 0,
-                TseSignedAmount = 0
-            };
-
-            var (fromUtc, toExclusiveUtc) =
-                PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startDate, endDate);
-
-            var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-            // Query using PaymentMethodRaw - no InvalidCastException since it's varchar
-            var payments = await _context.PaymentDetails
-                .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive)
-                .Where(p => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == effectiveTenantId))
-                .ToListAsync();
-
-            // Diagnostic log to confirm PaymentMethodRaw reads as string
-            if (payments.Any())
-            {
-                var firstPayment = payments.First();
-                _logger.LogInformation("DIAGNOSTIC: PaymentMethodRaw type={Type}, value={Value}",
-                    firstPayment.PaymentMethodRaw?.GetType().Name ?? "null",
-                    firstPayment.PaymentMethodRaw ?? "null");
-            }
-
-            if (!payments.Any())
-            {
-                _logger.LogInformation("No payments found for period {StartDate} to {EndDate}", startDate, endDate);
-                return statistics;
-            }
-
-            // Calculate basic statistics
-            statistics.TotalPayments = payments.Count;
-            statistics.TotalAmount = payments.Sum(p => p.TotalAmount);
-            statistics.AverageAmount = payments.Average(p => p.TotalAmount);
-
-            // Group by payment method - parse varchar numeric strings to enum names
-            var paymentMethodGroups = payments
-                .Select(p => new
-                {
-                    Payment = p,
-                    MethodName = ParsePaymentMethodName(p.PaymentMethodRaw)
-                })
-                .GroupBy(x => x.MethodName)
-                .ToList();
-
-            statistics.PaymentsByMethod = paymentMethodGroups
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            statistics.AmountByMethod = paymentMethodGroups
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Payment.TotalAmount));
-
-            // Group by tax type (safe JSON parsing)
-            foreach (var payment in payments)
-            {
-                try
-                {
-                    if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
-                    {
-                        var jsonText = payment.PaymentItems.RootElement.GetRawText();
-                        var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(jsonText);
-
-                        if (paymentItems != null)
-                        {
-                            foreach (var item in paymentItems)
-                            {
-                                var taxType = item.TaxType.ToString();
-                                if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
-                                    statistics.PaymentsByTaxType[taxType] = 0;
-                                statistics.PaymentsByTaxType[taxType]++;
-                            }
-                        }
-                    }
-                }
-                catch (Exception jsonEx)
-                {
-                    _logger.LogWarning(jsonEx, "Failed to deserialize payment items for payment {PaymentId}", payment.Id);
-                }
-            }
-
-            // TSE statistics
-            var tsePayments = payments.Where(p => !string.IsNullOrEmpty(p.TseSignature)).ToList();
-            statistics.TseSignedPayments = tsePayments.Count;
-            statistics.TseSignedAmount = tsePayments.Sum(p => p.TotalAmount);
-
-            _logger.LogInformation("Payment statistics: {StartDate} to {EndDate}, {Count} payments, {Amount} total",
-                startDate, endDate, statistics.TotalPayments, statistics.TotalAmount);
-
-            return statistics;
-            // No try-catch - exceptions propagate to controller for proper 500 response
-        }
-
-        /// <summary>
-        /// Parse varchar payment method string ('0', '1', etc.) to readable enum name
-        /// </summary>
-        private string ParsePaymentMethodName(string rawValue)
-        {
-            if (int.TryParse(rawValue, out int methodInt) && Enum.IsDefined(typeof(PaymentMethod), methodInt))
-            {
-                return ((PaymentMethod)methodInt).ToString();
-            }
-            return "Unknown";
-        }
+        public Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate) =>
+            _paymentQuery.GetPaymentStatisticsAsync(startDate, endDate);
 
         /// <summary>
         /// TSE imzası oluştur
@@ -4182,287 +3953,25 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// FinanzOnline entegrasyonu
         /// </summary>
-        public async Task<bool> SendToFinanzOnlineAsync(PaymentDetails payment)
-        {
-            try
-            {
-                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
-
-                // TSE imzası kontrolü - FinanzOnline için zorunlu
-                if (string.IsNullOrEmpty(payment.TseSignature))
-                {
-                    _logger.LogWarning("Payment {PaymentId} has no TSE signature. Cannot send to FinanzOnline", payment.Id);
-                    return false;
-                }
-
-                // PaymentDetails'den Invoice oluştur
-                var invoice = new Invoice
-                {
-                    InvoiceNumber = payment.Id.ToString(),
-                    InvoiceDate = payment.CreatedAt,
-                    DueDate = payment.CreatedAt.AddDays(30),
-                    Status = InvoiceStatus.Paid,
-                    Subtotal = payment.TotalAmount - payment.TaxAmount,
-                    TaxAmount = payment.TaxAmount,
-                    TotalAmount = payment.TotalAmount,
-                    PaidAmount = payment.TotalAmount,
-                    RemainingAmount = 0,
-                    CustomerName = payment.CustomerName,
-                    CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
-                    CompanyTaxNumber = payment.Steuernummer,
-                    CompanyAddress = payment.CompanyAddress
-                        ?? CompanyProfileMapper.FormatCompanyAddress(
-                            companyProfile.Street, companyProfile.ZipCode, companyProfile.City),
-                    TseSignature = payment.TseSignature,
-                    KassenId = (await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId))?.RegisterNumber
-                        ?? throw new InvalidOperationException("Cash register not found for FinanzOnline submit."),
-                    TseTimestamp = payment.CreatedAt,
-                    CashRegisterId = payment.CashRegisterId,
-                    PaymentMethod = payment.PaymentMethod,
-                    PaymentReference = payment.TransactionId,
-                    PaymentDate = payment.CreatedAt
-                };
-                FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment);
-
-                var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice);
-
-                if (result.Success)
-                {
-                    _logger.LogInformation("Payment {PaymentId} successfully sent to FinanzOnline", payment.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to send payment {PaymentId} to FinanzOnline: {Error}",
-                        payment.Id, result.ErrorMessage);
-                }
-
-                return result.Success;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending payment to FinanzOnline: {PaymentId}", payment.Id);
-                return false;
-            }
-        }
+        public Task<bool> SendToFinanzOnlineAsync(PaymentDetails payment) =>
+            _finanzOnlineSubmission.SendToFinanzOnlineAsync(payment);
 
         /// <summary>Retry FinanzOnline submit for a payment (reconciliation). No-op if already Submitted.</summary>
-        public async Task<FinanzOnlineSubmitResponse> RetryFinanzOnlineSubmitAsync(Guid paymentId)
-        {
-            var payment = await _context.PaymentDetails.AsNoTracking().FirstOrDefaultAsync(p => p.Id == paymentId).ConfigureAwait(false);
-            if (payment == null)
-            {
-                return new FinanzOnlineSubmitResponse
-                {
-                    Success = false,
-                    ErrorMessage = "Payment not found.",
-                    Status = "Failed",
-                    SubmittedAt = DateTime.UtcNow,
-                    FailureKind = FinanzOnlineFailureKind.Permanent
-                };
-            }
-            if (!await PaymentBelongsToEffectiveTenantAsync(payment).ConfigureAwait(false))
-            {
-                return new FinanzOnlineSubmitResponse
-                {
-                    Success = false,
-                    ErrorMessage = "Payment not found.",
-                    Status = "Failed",
-                    SubmittedAt = DateTime.UtcNow,
-                    FailureKind = FinanzOnlineFailureKind.Permanent
-                };
-            }
-            if (payment.FinanzOnlineStatus == "Submitted")
-            {
-                _finanzOnlineMetrics?.IncrementSubmitTotal();
-                return new FinanzOnlineSubmitResponse
-                {
-                    Success = true,
-                    ReferenceId = payment.FinanzOnlineReferenceId,
-                    Status = "Submitted",
-                    SubmittedAt = payment.FinanzOnlineLastAttemptAtUtc ?? DateTime.UtcNow,
-                    FailureKind = FinanzOnlineFailureKind.None
-                };
-            }
-            _finanzOnlineMetrics?.IncrementSubmitTotal();
-            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId).ConfigureAwait(false);
-            if (invoice == null)
-            {
-                return new FinanzOnlineSubmitResponse
-                {
-                    Success = false,
-                    ErrorMessage = "Invoice not found for payment.",
-                    Status = "Failed",
-                    SubmittedAt = DateTime.UtcNow,
-                    FailureKind = FinanzOnlineFailureKind.Permanent
-                };
-            }
-            var foCorrelationId = payment.OfflineReplayBatchCorrelationId?.ToString("N") ?? paymentId.ToString("N");
-            try
-            {
-                var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice).ConfigureAwait(false);
-                if (!result.Success)
-                    _finanzOnlineMetrics?.IncrementSubmitFailed(result.FailureKind);
-                await UpdatePaymentFinanzOnlineStateAsync(paymentId, result, isRetry: true,
-                    userIdForAudit: "system",
-                    correlationIdForAudit: foCorrelationId).ConfigureAwait(false);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                var classified = ClassifyFinanzOnlineFailure(ex);
-                _finanzOnlineMetrics?.IncrementSubmitFailed(classified);
-                var response = new FinanzOnlineSubmitResponse
-                {
-                    Success = false,
-                    ErrorMessage = ex.Message,
-                    SubmittedAt = DateTime.UtcNow,
-                    Status = "Failed",
-                    FailureKind = classified
-                };
-                await UpdatePaymentFinanzOnlineStateAsync(paymentId, response, isRetry: true,
-                    userIdForAudit: "system",
-                    correlationIdForAudit: foCorrelationId).ConfigureAwait(false);
-                return response;
-            }
-        }
+        public Task<FinanzOnlineSubmitResponse> RetryFinanzOnlineSubmitAsync(Guid paymentId) =>
+            _finanzOnlineSubmission.RetryFinanzOnlineSubmitAsync(paymentId);
 
         /// <summary>
         /// Returns persisted receipt for payment. Receipt is created at payment time and includes totals, tax breakdown, signature, QR payload.
         /// When userId is provided, audit is written for ReceiptGenerated or ReceiptReprinted (append-only).
         /// </summary>
-        public async Task<ReceiptDTO?> GetReceiptDataAsync(Guid paymentId, string? userId = null)
-        {
-            try
-            {
-                var receiptDto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId);
-                if (receiptDto == null)
-                {
-                    _logger.LogWarning("Receipt not found for payment {PaymentId} (receipt must be created at payment time)", paymentId);
-                    return null;
-                }
-
-                // Audit: ReceiptGenerated (first) or ReceiptReprinted. Append-only; best-effort when userId provided.
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    var payment = await _paymentRepository.GetByIdAsync(paymentId);
-                    var action = payment?.IsPrinted == true ? "ReceiptReprinted" : "ReceiptGenerated";
-                    await LogPaymentAuditAsync(action, "Payment", paymentId, userId,
-                        amount: receiptDto.GrandTotal,
-                        description: $"{action} for payment {paymentId}",
-                        responseData: new { PaymentId = paymentId, receiptDto.ReceiptNumber, IsPrinted = payment?.IsPrinted });
-                }
-
-                return receiptDto;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting receipt data for payment {PaymentId}", paymentId);
-                return null;
-            }
-        }
+        public Task<ReceiptDTO?> GetReceiptDataAsync(Guid paymentId, string? userId = null) =>
+            _receiptRead.GetReceiptDataAsync(paymentId, userId);
 
         /// <summary>
         /// Backoffice: bestätigter Nachdruck — eine strukturierte Audit-Zeile (<c>ReceiptReprintConfirmed</c> / <c>ReceiptReprintRejected</c>), kein neuer Beleg, keine TSE-Neuerzeugung.
         /// </summary>
-        public async Task<ReceiptReprintOperationResult> ConfirmReceiptReprintAsync(Guid paymentId, ReceiptReprintRequest? request, string userId, CancellationToken cancellationToken = default)
-        {
-            _ = cancellationToken;
-            const int maxNote = 500;
-            static string? TrimCap(string? s, int max)
-            {
-                if (string.IsNullOrWhiteSpace(s))
-                    return null;
-                s = s.Trim();
-                return s.Length <= max ? s : s.Substring(0, max);
-            }
-
-            var routing = new PrintRoutingContext
-            {
-                DeviceId = TrimCap(request?.DeviceId, 64),
-                PrinterProfileId = TrimCap(request?.PrinterProfileId, 64),
-                Resolved = false,
-                IsSimulated = true
-            };
-
-            var requestSnapshot = new
-            {
-                ReprintReasonCode = request?.ReprintReasonCode,
-                ReasonDetail = TrimCap(request?.ReasonDetail, maxNote),
-                DeviceId = routing.DeviceId,
-                PrinterProfileId = routing.PrinterProfileId,
-                Note = TrimCap(request?.Note, maxNote),
-                IdempotencyKey = TrimCap(request?.IdempotencyKey, 128)
-            };
-
-            if (request == null || string.IsNullOrWhiteSpace(request.ReprintReasonCode))
-            {
-                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
-                    new { ErrorCode = "VALIDATION_MISSING_REASON" }, AuditLogStatus.Failed, "Missing reprintReasonCode").ConfigureAwait(false);
-                return new ReceiptReprintOperationResult
-                {
-                    Success = false,
-                    ErrorCode = "VALIDATION_MISSING_REASON",
-                    ErrorMessage = "reprintReasonCode is required.",
-                    AuditLogId = id,
-                    Routing = routing
-                };
-            }
-
-            if (!ReceiptReprintReasonCodes.IsValid(request.ReprintReasonCode))
-            {
-                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
-                    new { ErrorCode = "VALIDATION_INVALID_REASON", ReasonCode = request.ReprintReasonCode }, AuditLogStatus.Failed, "Invalid reprintReasonCode").ConfigureAwait(false);
-                return new ReceiptReprintOperationResult
-                {
-                    Success = false,
-                    ErrorCode = "VALIDATION_INVALID_REASON",
-                    ErrorMessage = "Invalid reprintReasonCode.",
-                    AuditLogId = id,
-                    Routing = routing
-                };
-            }
-
-            var receiptDto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
-            if (receiptDto == null)
-            {
-                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
-                    new { ErrorCode = "NOT_FOUND" }, AuditLogStatus.Failed, "No persisted receipt for payment").ConfigureAwait(false);
-                return new ReceiptReprintOperationResult
-                {
-                    Success = false,
-                    NotFound = true,
-                    ErrorCode = "NOT_FOUND",
-                    ErrorMessage = "No persisted receipt for this payment.",
-                    AuditLogId = id,
-                    Routing = routing
-                };
-            }
-
-            var successPayload = new
-            {
-                ReprintReasonCode = request.ReprintReasonCode.Trim(),
-                ReasonDetail = TrimCap(request.ReasonDetail, maxNote),
-                DeviceId = routing.DeviceId,
-                PrinterProfileId = routing.PrinterProfileId,
-                Note = TrimCap(request.Note, maxNote),
-                IdempotencyKey = TrimCap(request?.IdempotencyKey, 128),
-                ReceiptNumber = receiptDto.ReceiptNumber,
-                ReceiptId = receiptDto.ReceiptId,
-                RoutingSimulated = true,
-                ReportableEventType = "ReceiptReprintConfirmed"
-            };
-
-            var auditId = await LogReceiptReprintAuditAsync("ReceiptReprintConfirmed", paymentId, userId, requestSnapshot,
-                successPayload, AuditLogStatus.Success, null, receiptDto.GrandTotal).ConfigureAwait(false);
-
-            return new ReceiptReprintOperationResult
-            {
-                Success = true,
-                Receipt = receiptDto,
-                AuditLogId = auditId,
-                Routing = routing
-            };
-        }
+        public Task<ReceiptReprintOperationResult> ConfirmReceiptReprintAsync(Guid paymentId, ReceiptReprintRequest? request, string userId, CancellationToken cancellationToken = default) =>
+            _receiptRead.ConfirmReceiptReprintAsync(paymentId, request, userId, cancellationToken);
 
         #region Private Methods
 
@@ -4546,332 +4055,59 @@ namespace KasseAPI_Final.Services
             }
         }
 
-        /// <summary>Nachdruck-Audit (append-only); Fehler beim Schreiben werden geschluckt wie bei anderen Payment-Audits.</summary>
-        private async Task<Guid?> LogReceiptReprintAuditAsync(
-            string action,
-            Guid paymentId,
-            string userId,
-            object requestSnapshot,
-            object? responseSnapshot,
-            AuditLogStatus status,
-            string? errorDetails,
-            decimal? amount = null)
-        {
-            try
-            {
-                var userRole = await GetUserRoleAsync(userId).ConfigureAwait(false);
-                var audit = await _auditLogService.LogPaymentOperationAsync(
-                    action,
-                    "Payment",
-                    paymentId,
-                    userId,
-                    userRole,
-                    amount: amount,
-                    requestData: requestSnapshot,
-                    responseData: responseSnapshot,
-                    status: status,
-                    errorDetails: errorDetails,
-                    description: $"Receipt reprint {action} for payment {paymentId}").ConfigureAwait(false);
-                return audit.Id;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Audit log write failed for receipt reprint {Action} PaymentId={PaymentId}", action, paymentId);
-                return null;
-            }
-        }
-
         /// <summary>
         /// Returns the standard PaymentResult for daily allowance conflict (concurrency or unique-index race).
         /// Keeps contract stable for mobile POS.
         /// </summary>
-        private static PaymentResult ToDailyAllowanceConflictResult()
-        {
-            return new PaymentResult
-            {
-                Success = false,
-                Message = "Daily allowance was used at another terminal. Please try again.",
-                DiagnosticCode = "BENEFIT_DAILY_ALLOWANCE_CONFLICT",
-                Errors = { "Benefit daily allowance concurrency conflict" }
-            };
-        }
+        private static PaymentResult ToDailyAllowanceConflictResult() =>
+            PaymentCommitFailureMapper.ToDailyAllowanceConflictResult();
 
         /// <summary>
         /// True when the exception is a PostgreSQL unique constraint violation (23505) on the idempotency_key column.
         /// Used to return existing payment on concurrent duplicate key insert.
         /// </summary>
-        private static bool IsIdempotencyKeyViolation(DbUpdateException ex)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg && pg.SqlState == "23505" &&
-                    (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
-                    return true;
-            }
-            return false;
-        }
+        private static bool IsIdempotencyKeyViolation(DbUpdateException ex) =>
+            PaymentCommitFailureMapper.IsIdempotencyKeyViolation(ex);
 
         /// <summary>
         /// Unique violation on <c>voucher_ledger_entries.idempotency_key</c> (e.g. index IX_voucher_ledger_entries_idempotency_key).
         /// </summary>
-        private static bool IsVoucherLedgerIdempotencyConstraintViolation(DbUpdateException ex)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg && pg.SqlState == "23505" &&
-                    (pg.ConstraintName?.Contains("voucher_ledger_entries_idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
-                    return true;
-            }
-            return false;
-        }
+        private static bool IsVoucherLedgerIdempotencyConstraintViolation(DbUpdateException ex) =>
+            PaymentCommitFailureMapper.IsVoucherLedgerIdempotencyConstraintViolation(ex);
 
         /// <summary>Sprint 6: True when the exception is a unique constraint violation on cancel_idempotency_key.</summary>
-        private static bool IsCancelIdempotencyKeyViolation(DbUpdateException ex)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg && pg.SqlState == "23505")
-                {
-                    var name = pg.ConstraintName ?? "";
-                    if (name.Contains("cancel", StringComparison.OrdinalIgnoreCase) && name.Contains("idempotency", StringComparison.OrdinalIgnoreCase))
-                        return true;
-                }
-            }
-            return false;
-        }
+        private static bool IsCancelIdempotencyKeyViolation(DbUpdateException ex) =>
+            PaymentCommitFailureMapper.IsCancelIdempotencyKeyViolation(ex);
 
-        private static bool IsStornoUniqueViolation(DbUpdateException ex)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg && pg.SqlState == "23505")
-                {
-                    var name = pg.ConstraintName ?? "";
-                    if (name.Contains("one_storno", StringComparison.OrdinalIgnoreCase))
-                        return true;
-                }
-            }
-            return false;
-        }
+        private static bool IsStornoUniqueViolation(DbUpdateException ex) =>
+            PaymentCommitFailureMapper.IsStornoUniqueViolation(ex);
 
         /// <summary>
         /// True when the exception is a PostgreSQL unique constraint violation (23505) on BenefitDailyUsage
         /// (CustomerId, BenefitDefinitionId, UsageDate) create-if-missing race. Excludes idempotency_key violations.
         /// </summary>
-        private static bool IsBenefitDailyUsageConflict(DbUpdateException ex)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg && pg.SqlState == "23505" &&
-                    (pg.ConstraintName?.Contains("benefit", StringComparison.OrdinalIgnoreCase) ?? false))
-                    return true;
-            }
-            return false;
-        }
+        private static bool IsBenefitDailyUsageConflict(DbUpdateException ex) =>
+            PaymentCommitFailureMapper.IsBenefitDailyUsageConflict(ex);
 
         /// <summary>Walks inner exceptions for <see cref="PostgresException"/> (Npgsql may nest it).</summary>
-        private static bool TryGetPostgresException(Exception ex, out PostgresException pgEx)
-        {
-            for (Exception? e = ex; e != null; e = e.InnerException)
-            {
-                if (e is PostgresException pg)
-                {
-                    pgEx = pg;
-                    return true;
-                }
-            }
-
-            pgEx = null!;
-            return false;
-        }
+        private static bool TryGetPostgresException(Exception ex, out PostgresException pgEx) =>
+            PaymentCommitFailureMapper.TryGetPostgresException(ex, out pgEx);
 
         /// <summary>
         /// Maps PostgreSQL errors from payment fiscal transaction SaveChanges to a deterministic <see cref="PaymentResult"/>.
         /// </summary>
-        private static bool TryMapPaymentCommitPostgresException(PostgresException pgEx, out PaymentResult result)
-        {
-            result = null!;
-            var constraint = pgEx.ConstraintName ?? "";
-
-            if (pgEx.SqlState == "23505")
-            {
-                if (constraint.Contains("voucher_ledger_entries_idempotency", StringComparison.OrdinalIgnoreCase))
-                {
-                    const string msg = "Voucher already used in this transaction. Please retry with a new idempotency key.";
-                    result = new PaymentResult
-                    {
-                        Success = false,
-                        Message = msg,
-                        Errors = { msg },
-                        IsDeterministicFailure = true,
-                        DiagnosticCode = "VOUCHER_LEDGER_IDEMPOTENCY_CONFLICT"
-                    };
-                    return true;
-                }
-
-                if (constraint.Contains("payment_details_idempotency", StringComparison.OrdinalIgnoreCase)
-                    || (constraint.Contains("payment_details", StringComparison.OrdinalIgnoreCase)
-                        && constraint.Contains("idempotency", StringComparison.OrdinalIgnoreCase)))
-                {
-                    const string msg = "Duplicate transaction detected. Please retry.";
-                    result = new PaymentResult
-                    {
-                        Success = false,
-                        Message = msg,
-                        Errors = { msg },
-                        IsDeterministicFailure = true,
-                        DiagnosticCode = "DUPLICATE_IDEMPOTENCY_KEY"
-                    };
-                    return true;
-                }
-
-                if (constraint.Contains("receipt_number", StringComparison.OrdinalIgnoreCase))
-                {
-                    const string msg = "Receipt number conflict. Please contact support.";
-                    result = new PaymentResult
-                    {
-                        Success = false,
-                        Message = msg,
-                        Errors = { msg },
-                        IsDeterministicFailure = true,
-                        DiagnosticCode = "RECEIPT_NUMBER_CONFLICT"
-                    };
-                    return true;
-                }
-
-                var uniqueMsg = $"Database constraint violation: {pgEx.ConstraintName}";
-                result = new PaymentResult
-                {
-                    Success = false,
-                    Message = uniqueMsg,
-                    Errors = { uniqueMsg },
-                    IsDeterministicFailure = true,
-                    DiagnosticCode = "UNIQUE_VIOLATION"
-                };
-                return true;
-            }
-
-            if (pgEx.SqlState == "23503")
-            {
-                const string msg = "Referenced record not found. Please check voucher or customer data.";
-                result = new PaymentResult
-                {
-                    Success = false,
-                    Message = msg,
-                    Errors = { msg },
-                    IsDeterministicFailure = true,
-                    DiagnosticCode = "FOREIGN_KEY_VIOLATION"
-                };
-                return true;
-            }
-
-            if (pgEx.SqlState == "23514")
-            {
-                const string msg = "Data validation failed. Please check voucher amount.";
-                result = new PaymentResult
-                {
-                    Success = false,
-                    Message = msg,
-                    Errors = { msg },
-                    IsDeterministicFailure = true,
-                    DiagnosticCode = "CHECK_VIOLATION"
-                };
-                return true;
-            }
-
-            return false;
-        }
+        private static bool TryMapPaymentCommitPostgresException(PostgresException pgEx, out PaymentResult result) =>
+            PaymentCommitFailureMapper.TryMapPaymentCommitPostgresException(pgEx, out result);
 
         /// <summary>Persist FinanzOnline reconciliation state on PaymentDetails after submit (post-commit). Best-effort; does not throw. Logs FO attempt to audit for incident investigation (correlation id + retry history).</summary>
-        private async Task UpdatePaymentFinanzOnlineStateAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry,
+        private Task UpdatePaymentFinanzOnlineStateAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry,
             string? userIdForAudit = null,
-            string? correlationIdForAudit = null)
-        {
-            try
-            {
-                var payment = await _context.PaymentDetails.FindAsync(paymentId).ConfigureAwait(false);
-                if (payment == null)
-                    return;
+            string? correlationIdForAudit = null) =>
+            _finanzOnlineSubmission.UpdatePaymentFinanzOnlineStateAsync(
+                paymentId, result, isRetry, userIdForAudit, correlationIdForAudit);
 
-                payment.FinanzOnlineLastAttemptAtUtc = result.SubmittedAt;
-                payment.FinanzOnlineError = result.Success ? null : TruncateForDb(result.ErrorMessage, 500);
-                payment.FinanzOnlineReferenceId = result.ReferenceId;
-                if (isRetry)
-                    payment.FinanzOnlineRetryCount++;
-
-                payment.FinanzOnlineStatus = result.Success
-                    ? "Submitted"
-                    : result.FailureKind == FinanzOnlineFailureKind.Transient
-                        ? "Pending"
-                        : "Failed";
-
-                await _context.SaveChangesAsync().ConfigureAwait(false);
-
-                var correlationId = correlationIdForAudit ?? payment.OfflineReplayBatchCorrelationId?.ToString("N") ?? paymentId.ToString("N");
-                var userId = userIdForAudit ?? "system";
-                await LogFinanzOnlineAttemptAsync(
-                    paymentId,
-                    result,
-                    isRetry,
-                    payment.FinanzOnlineRetryCount,
-                    correlationId,
-                    userId).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to update PaymentDetails FinanzOnline state for PaymentId={PaymentId}; reconciliation view may be stale.", paymentId);
-            }
-        }
-
-        /// <summary>Audit one FinanzOnline submit/retry attempt for incident investigation (support can query by CorrelationId).</summary>
-        private async Task LogFinanzOnlineAttemptAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry, int attemptNumber, string correlationId, string userId)
-        {
-            try
-            {
-                var action = isRetry ? "FinanzOnlineRetry" : "FinanzOnlineSubmit";
-                var userRole = string.Equals(userId, "system", StringComparison.OrdinalIgnoreCase) ? "System" : await GetUserRoleAsync(userId).ConfigureAwait(false);
-                await _auditLogService.LogPaymentOperationAsync(
-                    action,
-                    "Payment",
-                    paymentId,
-                    userId,
-                    userRole,
-                    description: $"{action} attempt {attemptNumber}: {(result.Success ? "Submitted" : "Failed")}",
-                    responseData: new
-                    {
-                        Attempt = attemptNumber,
-                        Success = result.Success,
-                        ReferenceId = result.ReferenceId,
-                        FailureKind = result.FailureKind.ToString(),
-                        ErrorMessage = result.Success ? null : result.ErrorMessage,
-                        CorrelationId = correlationId
-                    },
-                    correlationId: correlationId,
-                    status: result.Success ? AuditLogStatus.Success : AuditLogStatus.Failed,
-                    errorDetails: result.Success ? null : result.ErrorMessage).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "FinanzOnline attempt audit log failed for PaymentId={PaymentId}.", paymentId);
-            }
-        }
-
-        private static string? TruncateForDb(string? value, int maxLen)
-        {
-            if (string.IsNullOrEmpty(value))
-                return null;
-            return value.Length <= maxLen ? value : value.Substring(0, maxLen - 3) + "...";
-        }
-
-        private static FinanzOnlineFailureKind ClassifyFinanzOnlineFailure(Exception ex)
-        {
-            if (ex is HttpRequestException || ex is TaskCanceledException || ex is OperationCanceledException)
-                return FinanzOnlineFailureKind.Transient;
-            var msg = (ex.Message ?? "").ToLowerInvariant();
-            if (msg.Contains("duplicate") || msg.Contains("already submitted") || msg.Contains("validation") || msg.Contains("forbidden"))
-                return FinanzOnlineFailureKind.Permanent;
-            return FinanzOnlineFailureKind.Unknown;
-        }
+        private static FinanzOnlineFailureKind ClassifyFinanzOnlineFailure(Exception ex) =>
+            PaymentFinanzOnlineSubmissionService.ClassifyFinanzOnlineFailure(ex);
 
         /// <summary>
         /// Marks the matching active cart <see cref="CartStatus.Completed"/> inside the open payment transaction.
