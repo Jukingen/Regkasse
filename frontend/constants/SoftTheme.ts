@@ -58,13 +58,13 @@ export const SoftColors = {
   // Text (WCAG AA–friendly contrast on bgCard/bgPrimary)
   textPrimary: '#3D3229', // Dark brown
   textSecondary: '#5C534A', // Medium brown – improved contrast
-  textMuted: '#8A8178', // Light brown – readable on cards
+  textMuted: '#6B625A', // Brown – AA on bgSecondary and cards
   textInverse: '#FFFFFF', // White
 
   // Accents
   accent: '#C8A87C', // Warm gold/caramel
   accentLight: '#E8D5B5', // Light caramel
-  accentDark: '#8B7355', // Dark mocha
+  accentDark: '#7A6244', // Dark mocha – white text meets AA
 
   // Semantic
   success: '#7DB87D', // Soft green

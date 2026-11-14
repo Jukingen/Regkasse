@@ -310,7 +310,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   // View mode toggle (soft pills)
   const renderViewModeToggle = () => (
     <View style={styles.viewToggleContainer}>
-      <View style={styles.viewToggle} accessibilityRole="tablist">
+      <View style={styles.viewToggle}>
         <Pressable
           style={({ pressed }) => [
             styles.toggleBtn,
@@ -320,9 +320,11 @@ export const ProductList: React.FC<ProductListProps> = ({
           onPress={() => {
             setViewMode('list');
           }}
-          accessibilityRole="tab"
+          accessibilityRole="button"
           accessibilityState={{ selected: viewMode === 'list' }}
-          accessibilityLabel={viewMode === 'list' ? 'Listenansicht, ausgewählt' : 'Listenansicht'}
+          accessibilityLabel={
+            viewMode === 'list' ? 'Liste, Listenansicht, ausgewählt' : 'Liste, Listenansicht'
+          }
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
             Liste
@@ -337,9 +339,11 @@ export const ProductList: React.FC<ProductListProps> = ({
           onPress={() => {
             setViewMode('grid');
           }}
-          accessibilityRole="tab"
+          accessibilityRole="button"
           accessibilityState={{ selected: viewMode === 'grid' }}
-          accessibilityLabel={viewMode === 'grid' ? 'Rasteransicht, ausgewählt' : 'Rasteransicht'}
+          accessibilityLabel={
+            viewMode === 'grid' ? 'Raster, Rasteransicht, ausgewählt' : 'Raster, Rasteransicht'
+          }
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
             Raster
@@ -638,7 +642,7 @@ const styles = StyleSheet.create({
     color: SoftColors.textSecondary,
   },
   toggleBtnTextActive: {
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
     fontWeight: '600',
   },
 

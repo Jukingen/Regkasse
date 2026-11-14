@@ -58,6 +58,12 @@ Human-facing guides for operators and developers.
 | [`IMPERSONATION.md`](IMPERSONATION.md) / [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md) | Super Admin → mandant session |
 | [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) | Register open/close/decommission |
 | [`WORKING_HOURS.md`](WORKING_HOURS.md) | Website/app hours only (never POS/FA) |
+| [`adr/0001-multi-tenant-architecture.md`](adr/0001-multi-tenant-architecture.md) | Why shared-database multi-tenant, and how isolation works |
+| [`adr/0002-fiscal-compliance-rksv.md`](adr/0002-fiscal-compliance-rksv.md) | Why AT receipts are signed, chain and DEP at a glance |
+| [`adr/0003-marketplace-integration.md`](adr/0003-marketplace-integration.md) | Wolt, Foodora, Lieferando intake |
+| [`adr/0004-fiskaly-byok.md`](adr/0004-fiskaly-byok.md) | One Fiskaly organization per mandant |
+| [`adr/0005-pwa-vs-tauri.md`](adr/0005-pwa-vs-tauri.md) | Web-first; PWA and Tauri are not in scope |
+| [`EXPORT_GUIDE.md`](EXPORT_GUIDE.md) | Streamed CSV/Excel tenant exports |
 
 ---
 

@@ -24,8 +24,8 @@ public interface ITenantDataExportService
 }
 
 /// <summary>
-/// Operational CSV/xlsx export for products, customers, receipts, payments, and users.
-/// Fiscal signature material and credentials are omitted.
+/// Operational CSV/xlsx export for catalog, sales, orders, audit, inventory, and TSE metadata.
+/// JWS payloads, signature bytes, and credentials are omitted. Rows are streamed, not buffered.
 /// </summary>
 public sealed class TenantDataExportService : ITenantDataExportService
 {
@@ -55,6 +55,26 @@ public sealed class TenantDataExportService : ITenantDataExportService
     private static readonly string[] UserHeaders =
     [
         "UserId", "TenantId", "Email", "UserName", "FirstName", "LastName", "Role", "IsActive",
+    ];
+
+    private static readonly string[] OrderHeaders =
+    [
+        "Id", "Status", "Total", "CustomerName", "CreatedAt", "TenantId",
+    ];
+
+    private static readonly string[] AuditLogHeaders =
+    [
+        "Action", "Entity", "User", "Timestamp", "TenantId",
+    ];
+
+    private static readonly string[] InventoryHeaders =
+    [
+        "Product", "Stock", "ReorderLevel", "TenantId",
+    ];
+
+    private static readonly string[] TseSignatureHeaders =
+    [
+        "ReceiptNumber", "SignatureDate", "TseId", "TenantId",
     ];
 
     private readonly AppDbContext _db;
@@ -97,7 +117,8 @@ public sealed class TenantDataExportService : ITenantDataExportService
     public static bool TryNormalizeType(string? type, out string normalized)
     {
         normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
-        return normalized is "products" or "customers" or "receipts" or "payments" or "users";
+        return normalized is "products" or "customers" or "receipts" or "payments" or "users"
+            or "orders" or "audit_logs" or "inventory" or "tse_signatures";
     }
 
     public static bool TryNormalizeFormat(string? format, out string normalized)
@@ -115,7 +136,7 @@ public sealed class TenantDataExportService : ITenantDataExportService
     private static string NormalizeType(string type)
     {
         if (!TryNormalizeType(type, out var normalized))
-            throw new ArgumentOutOfRangeException(nameof(type), "Export type must be products, customers, receipts, payments, or users.");
+            throw new ArgumentOutOfRangeException(nameof(type), "Export type must be products, customers, receipts, payments, users, orders, audit_logs, inventory, or tse_signatures.");
         return normalized;
     }
 
@@ -133,6 +154,10 @@ public sealed class TenantDataExportService : ITenantDataExportService
         "receipts" => ReceiptHeaders,
         "payments" => PaymentHeaders,
         "users" => UserHeaders,
+        "orders" => OrderHeaders,
+        "audit_logs" => AuditLogHeaders,
+        "inventory" => InventoryHeaders,
+        "tse_signatures" => TseSignatureHeaders,
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -144,6 +169,10 @@ public sealed class TenantDataExportService : ITenantDataExportService
             "receipts" => StreamReceipts(includeAllTenants, cancellationToken),
             "payments" => StreamPayments(includeAllTenants, cancellationToken),
             "users" => StreamUsers(includeAllTenants, cancellationToken),
+            "orders" => StreamOrders(includeAllTenants, cancellationToken),
+            "audit_logs" => StreamAuditLogs(includeAllTenants, cancellationToken),
+            "inventory" => StreamInventory(includeAllTenants, cancellationToken),
+            "tse_signatures" => StreamTseSignatures(includeAllTenants, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(type)),
         };
 
@@ -355,6 +384,140 @@ public sealed class TenantDataExportService : ITenantDataExportService
         }
     }
 
+    private async IAsyncEnumerable<string[]> StreamOrders(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var query = _db.OnlineOrders.AsNoTracking();
+        if (includeAllTenants)
+            query = query.IgnoreQueryFilters();
+
+        var rows = query
+            .OrderBy(o => o.TenantId)
+            .ThenBy(o => o.CreatedAt)
+            .Select(o => new
+            {
+                o.Id,
+                o.OrderStatus,
+                o.Total,
+                o.CustomerName,
+                o.CreatedAt,
+                o.TenantId,
+            })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                Id(row.Id),
+                row.OrderStatus,
+                Dec(row.Total),
+                row.CustomerName,
+                When(row.CreatedAt),
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamAuditLogs(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var query = _db.AuditLogs.AsNoTracking();
+        if (includeAllTenants)
+            query = query.IgnoreQueryFilters();
+
+        var rows = query
+            .OrderBy(a => a.TenantId)
+            .ThenBy(a => a.Timestamp)
+            .Select(a => new
+            {
+                a.Action,
+                a.EntityType,
+                a.UserId,
+                a.Timestamp,
+                a.TenantId,
+            })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                row.Action,
+                row.EntityType,
+                row.UserId,
+                When(row.Timestamp),
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamInventory(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var query = _db.Products.AsNoTracking();
+        if (includeAllTenants)
+            query = query.IgnoreQueryFilters();
+
+        var rows = query
+            .OrderBy(p => p.TenantId)
+            .ThenBy(p => p.Name)
+            .Select(p => new
+            {
+                p.Name,
+                p.StockQuantity,
+                p.MinStockLevel,
+                p.TenantId,
+            })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                row.Name,
+                row.StockQuantity.ToString(CultureInfo.InvariantCulture),
+                row.MinStockLevel.ToString(CultureInfo.InvariantCulture),
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamTseSignatures(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var query = _db.TseSignatures.AsNoTracking();
+        if (includeAllTenants)
+            query = query.IgnoreQueryFilters();
+
+        var rows = query
+            .OrderBy(s => s.TenantId)
+            .ThenBy(s => s.CreatedAt)
+            .Select(s => new
+            {
+                s.InvoiceNumber,
+                s.CreatedAt,
+                s.TseDeviceId,
+                s.TenantId,
+            })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                row.InvoiceNumber,
+                When(row.CreatedAt),
+                row.TseDeviceId.HasValue ? Id(row.TseDeviceId.Value) : string.Empty,
+                Id(row.TenantId),
+            ];
+        }
+    }
+
     private static async Task WriteCsvAsync(
         Stream output,
         IReadOnlyList<string> headers,
@@ -386,6 +549,8 @@ public sealed class TenantDataExportService : ITenantDataExportService
     }
 
     private static string Id(Guid value) => value.ToString("D");
+
+    private static string When(DateTime value) => value.ToString("o", CultureInfo.InvariantCulture);
 
     private static string Dec(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 
