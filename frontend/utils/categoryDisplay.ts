@@ -34,6 +34,23 @@ export function categoryColorTint(color: string, alpha = 0.18): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/** Picks white or dark text so the label stays readable on a category color. */
+export function textOnHex(background: string): '#FFFFFF' | '#3D3229' {
+  const hex = expandHex(background.trim());
+  if (!hex) return '#3D3229';
+  const channel = (start: number) => parseInt(hex.slice(start, start + 2), 16);
+  const linear = (value: number) => {
+    const s = value / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance =
+    0.2126 * linear(channel(1)) + 0.7152 * linear(channel(3)) + 0.0722 * linear(channel(5));
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const darkLuminance = 0.051;
+  const darkContrast = (luminance + 0.05) / (darkLuminance + 0.05);
+  return whiteContrast >= 4.5 && whiteContrast >= darkContrast ? '#FFFFFF' : '#3D3229';
+}
+
 function expandHex(color: string): string | null {
   if (!HEX_COLOR.test(color)) return null;
   if (color.length === 4) {

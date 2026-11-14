@@ -37,4 +37,6 @@ export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
   '/admin/billing',
   /** Alias of `/rksv/monatsbelege`. */
   '/admin/rksv/monatsbelege',
+  /** TSE signature metadata export. Not a sidebar leaf; linked from the export menu on this route. */
+  '/admin/tse',
 ] as const;

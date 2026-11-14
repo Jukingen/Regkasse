@@ -53,6 +53,84 @@ public sealed class TenantDataExportServiceTests
     }
 
     [Fact]
+    public async Task Csv_NewTypes_KeepTheAmbientTenantAndOmitSecrets()
+    {
+        await using var db = await SeedAsync();
+        var csv = await ExportCsvAsync(db, includeAllTenants: false, TenantDataExportHeaders.ExtendedTypes);
+
+        AssertHeadersAndCount(csv["orders"], TenantDataExportHeaders.Orders, 1);
+        Assert.Equal("pending", csv["orders"].Rows[0][1]);
+        Assert.Equal("Ada Guest", csv["orders"].Rows[0][3]);
+        Assert.DoesNotContain(csv["orders"].Rows, row => row[3] == "Bea Guest");
+
+        AssertHeadersAndCount(csv["audit_logs"], TenantDataExportHeaders.AuditLogs, 1);
+        Assert.Equal("UPDATE", csv["audit_logs"].Rows[0][0]);
+        Assert.Equal("Customer", csv["audit_logs"].Rows[0][1]);
+        Assert.Equal("user-a", csv["audit_logs"].Rows[0][2]);
+        Assert.DoesNotContain(csv["audit_logs"].Rows.SelectMany(row => row), cell => cell.Contains("do-not-export", StringComparison.Ordinal));
+
+        AssertHeadersAndCount(csv["inventory"], TenantDataExportHeaders.Inventory, 2);
+        Assert.Equal("Alpha", csv["inventory"].Rows[0][0]);
+        Assert.Equal("4", csv["inventory"].Rows[0][1]);
+        Assert.Equal("2", csv["inventory"].Rows[0][2]);
+        Assert.DoesNotContain(csv["inventory"].Rows, row => row[0] == "Other");
+
+        AssertHeadersAndCount(csv["tse_signatures"], TenantDataExportHeaders.TseSignatures, 1);
+        Assert.Equal("R-A", csv["tse_signatures"].Rows[0][0]);
+        Assert.Equal("11111111-1111-1111-1111-111111111111", csv["tse_signatures"].Rows[0][2]);
+        Assert.DoesNotContain(csv["tse_signatures"].Rows.SelectMany(row => row), cell => cell.Contains("jws-secret", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Csv_NewTypes_IncludeAllTenants_ReturnsEveryMandant()
+    {
+        await using var db = await SeedAsync();
+        var csv = await ExportCsvAsync(db, includeAllTenants: true, TenantDataExportHeaders.ExtendedTypes);
+
+        Assert.Equal(2, csv["orders"].Rows.Count);
+        Assert.Equal(2, csv["audit_logs"].Rows.Count);
+        Assert.Equal(3, csv["inventory"].Rows.Count);
+        Assert.Equal(2, csv["tse_signatures"].Rows.Count);
+        Assert.Contains(csv["orders"].Rows, row => row[3] == "Bea Guest");
+    }
+
+    [Fact]
+    public async Task Csv_NewTypes_StartWithUtf8Bom()
+    {
+        await using var db = await SeedAsync();
+        var service = new TenantDataExportService(db, NullLogger<TenantDataExportService>.Instance);
+        foreach (var type in TenantDataExportHeaders.ExtendedTypes)
+        {
+            using var ms = new MemoryStream();
+            await service.WriteAsync(ms, type, "csv", includeAllTenants: false);
+            var bytes = ms.ToArray();
+            Assert.True(bytes.Length >= 3, type);
+            Assert.Equal(0xEF, bytes[0]);
+            Assert.Equal(0xBB, bytes[1]);
+            Assert.Equal(0xBF, bytes[2]);
+        }
+    }
+
+    [Fact]
+    public async Task Xlsx_StreamsOrderRowsWithoutBufferingASecondTenant()
+    {
+        await using var db = await SeedAsync();
+        var service = new TenantDataExportService(db, NullLogger<TenantDataExportService>.Instance);
+        using var ms = new MemoryStream();
+        await service.WriteAsync(ms, "orders", "xlsx", includeAllTenants: false);
+
+        ms.Position = 0;
+        using var zip = new ZipArchive(ms, ZipArchiveMode.Read);
+        var sheet = zip.GetEntry("xl/worksheets/sheet1.xml");
+        Assert.NotNull(sheet);
+        using var reader = new StreamReader(sheet.Open());
+        var xml = await reader.ReadToEndAsync();
+        Assert.Contains(">CustomerName<", xml);
+        Assert.Contains(">Ada Guest<", xml);
+        Assert.DoesNotContain(">Bea Guest<", xml);
+    }
+
+    [Fact]
     public async Task Csv_IncludeAllTenants_ReturnsEveryMandant()
     {
         await using var db = await SeedAsync();
@@ -86,11 +164,14 @@ public sealed class TenantDataExportServiceTests
         Assert.DoesNotContain(">Other<", xml);
     }
 
-    private static async Task<Dictionary<string, CsvTable>> ExportCsvAsync(AppDbContext db, bool includeAllTenants)
+    private static async Task<Dictionary<string, CsvTable>> ExportCsvAsync(
+        AppDbContext db,
+        bool includeAllTenants,
+        IReadOnlyList<string>? types = null)
     {
         var service = new TenantDataExportService(db, NullLogger<TenantDataExportService>.Instance);
         var result = new Dictionary<string, CsvTable>(StringComparer.Ordinal);
-        foreach (var type in new[] { "products", "customers", "receipts", "payments", "users" })
+        foreach (var type in types ?? TenantDataExportHeaders.OriginalTypes)
         {
             using var ms = new MemoryStream();
             await service.WriteAsync(ms, type, "csv", includeAllTenants);
@@ -165,6 +246,19 @@ public sealed class TenantDataExportServiceTests
             Membership("user-a", TenantA),
             Membership("user-b", TenantB));
 
+        var created = new DateTime(2026, 11, 14, 9, 0, 0, DateTimeKind.Utc);
+        db.OnlineOrders.AddRange(
+            OnlineOrderRow(TenantA, "Ada Guest", created),
+            OnlineOrderRow(TenantB, "Bea Guest", created.AddHours(1)));
+
+        db.AuditLogs.AddRange(
+            AuditRow(TenantA, "user-a", "UPDATE", "Customer", created),
+            AuditRow(TenantB, "user-b", "CREATE", "Product", created.AddHours(1)));
+
+        db.TseSignatures.AddRange(
+            TseRow(TenantA, "R-A", created),
+            TseRow(TenantB, "R-B", created.AddHours(1)));
+
         await db.SaveChangesAsync();
         return db;
     }
@@ -179,6 +273,7 @@ public sealed class TenantDataExportServiceTests
         TaxGroupId = taxGroupId,
         Category = "Food",
         StockQuantity = 4,
+        MinStockLevel = 2,
         Barcode = "bc-" + name,
         Unit = "Stk",
         TaxType = TaxTypes.Reduced,
@@ -255,6 +350,53 @@ public sealed class TenantDataExportServiceTests
         CreatedAt = DateTime.UtcNow,
     };
 
+    private static OnlineOrder OnlineOrderRow(Guid tenantId, string customerName, DateTime created) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        OrderNumber = "ORD-" + customerName,
+        CustomerName = customerName,
+        CustomerPhone = "1",
+        OrderStatus = OnlineOrderStatuses.Pending,
+        Total = 12.5m,
+        Subtotal = 12.5m,
+        PaymentMethod = OnlineOrderPaymentMethods.Cash,
+        PaymentStatus = OnlineOrderPaymentStatuses.Pending,
+        OrderType = OnlineOrderTypes.Takeaway,
+        Source = OnlineOrderSources.Web,
+        CreatedAt = created,
+    };
+
+    private static AuditLog AuditRow(Guid tenantId, string userId, string action, string entity, DateTime timestamp) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        SessionId = "session",
+        UserId = userId,
+        UserRole = Roles.Manager,
+        Action = action,
+        EntityType = entity,
+        Status = AuditLogStatus.Success,
+        Timestamp = timestamp,
+        OldValues = "password-secret-do-not-export",
+        TseSignature = "audit-jws-secret-do-not-export",
+        IsActive = true,
+        CreatedAt = timestamp,
+    };
+
+    private static TseSignature TseRow(Guid tenantId, string receiptNumber, DateTime signedAt) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        Signature = "jws-secret-do-not-export",
+        CashRegisterId = Guid.NewGuid(),
+        InvoiceNumber = receiptNumber,
+        Amount = 12m,
+        SignatureType = "Invoice",
+        TseDeviceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        CreatedAt = signedAt,
+    };
+
     private static UserTenantMembership Membership(string userId, Guid tenantId) => new()
     {
         Id = Guid.NewGuid(),
@@ -294,6 +436,30 @@ file static class TenantDataExportHeaders
     [
         "UserId", "TenantId", "Email", "UserName", "FirstName", "LastName", "Role", "IsActive",
     ];
+
+    public static readonly string[] Orders =
+    [
+        "Id", "Status", "Total", "CustomerName", "CreatedAt", "TenantId",
+    ];
+
+    public static readonly string[] AuditLogs =
+    [
+        "Action", "Entity", "User", "Timestamp", "TenantId",
+    ];
+
+    public static readonly string[] Inventory =
+    [
+        "Product", "Stock", "ReorderLevel", "TenantId",
+    ];
+
+    public static readonly string[] TseSignatures =
+    [
+        "ReceiptNumber", "SignatureDate", "TseId", "TenantId",
+    ];
+
+    public static readonly string[] OriginalTypes = ["products", "customers", "receipts", "payments", "users"];
+
+    public static readonly string[] ExtendedTypes = ["orders", "audit_logs", "inventory", "tse_signatures"];
 }
 
 public sealed class AdminTenantDataExportControllerTests
@@ -301,7 +467,7 @@ public sealed class AdminTenantDataExportControllerTests
     [Fact]
     public async Task Export_RejectsUnknownType()
     {
-        var controller = CreateController(authorized: true, isSuperAdmin: false, out _);
+        var controller = CreateController(authorized: true, isSuperAdmin: false, out _, out _);
         var result = await controller.Export("invoices", "csv");
         var bad = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Contains("TENANT_EXPORT_TYPE", bad.Value?.ToString(), StringComparison.Ordinal);
@@ -310,7 +476,7 @@ public sealed class AdminTenantDataExportControllerTests
     [Fact]
     public async Task Export_RejectsUnknownFormat()
     {
-        var controller = CreateController(authorized: true, isSuperAdmin: true, out _);
+        var controller = CreateController(authorized: true, isSuperAdmin: true, out _, out _);
         var result = await controller.Export("products", "json");
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -318,7 +484,7 @@ public sealed class AdminTenantDataExportControllerTests
     [Fact]
     public async Task Export_ForbiddenWithoutViewPermission()
     {
-        var controller = CreateController(authorized: false, isSuperAdmin: true, out _);
+        var controller = CreateController(authorized: false, isSuperAdmin: true, out _, out _);
         var result = await controller.Export("products", "csv");
         var status = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, status.StatusCode);
@@ -329,7 +495,7 @@ public sealed class AdminTenantDataExportControllerTests
     [InlineData(false)]
     public async Task Export_StreamsWithRoleScope(bool isSuperAdmin)
     {
-        var controller = CreateController(authorized: true, isSuperAdmin, out var export);
+        var controller = CreateController(authorized: true, isSuperAdmin, out var export, out _);
         var http = controller.ControllerContext.HttpContext;
         var result = await controller.Export("receipts", "xlsx");
         await result.ExecuteResultAsync(new ActionContext(
@@ -347,10 +513,43 @@ public sealed class AdminTenantDataExportControllerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData("orders", AppPermissions.OrderView)]
+    [InlineData("audit_logs", AppPermissions.AuditView)]
+    [InlineData("inventory", AppPermissions.InventoryView)]
+    [InlineData("tse_signatures", AppPermissions.SystemCritical)]
+    public async Task Export_ChecksThePermissionForEachNewType(string type, string permission)
+    {
+        var controller = CreateController(authorized: true, isSuperAdmin: true, out _, out var auth);
+        var result = await controller.Export(type, "csv");
+
+        Assert.DoesNotContain("BadRequest", result.GetType().Name, StringComparison.Ordinal);
+        auth.Verify(x => x.AuthorizeAsync(
+            It.IsAny<ClaimsPrincipal>(),
+            null,
+            PermissionCatalog.PolicyPrefix + permission), Times.Once);
+    }
+
+    [Fact]
+    public async Task Export_TseSignatures_ForbiddenUnlessSuperAdmin()
+    {
+        var controller = CreateController(authorized: true, isSuperAdmin: false, out var export, out _);
+        var result = await controller.Export("tse_signatures", "csv");
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, status.StatusCode);
+        export.Verify(x => x.WriteAsync(
+            It.IsAny<Stream>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<bool>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static AdminTenantDataExportController CreateController(
         bool authorized,
         bool isSuperAdmin,
-        out Mock<ITenantDataExportService> export)
+        out Mock<ITenantDataExportService> export,
+        out Mock<IAuthorizationService> auth)
     {
         export = new Mock<ITenantDataExportService>();
         export
@@ -362,7 +561,7 @@ public sealed class AdminTenantDataExportControllerTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var auth = new Mock<IAuthorizationService>();
+        auth = new Mock<IAuthorizationService>();
         auth
             .Setup(x => x.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), null, It.IsAny<string>()))
             .ReturnsAsync(authorized ? AuthorizationResult.Success() : AuthorizationResult.Failed());

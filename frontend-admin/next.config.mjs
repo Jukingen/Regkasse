@@ -199,6 +199,9 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [{ source: '/favicon.ico', destination: '/favicon.svg' }];
+  },
   async redirects() {
     return [
       { source: '/sales', destination: '/receipts', permanent: false },

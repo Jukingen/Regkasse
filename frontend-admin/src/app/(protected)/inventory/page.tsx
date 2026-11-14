@@ -46,6 +46,7 @@ import {
 import type { InventoryHistoryRowDto } from '@/api/generated/model';
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TenantDataExportButton } from '@/features/data-export/TenantDataExportButton';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -520,6 +521,7 @@ export default function InventoryOperationsPage() {
           adminOverviewCrumb(t),
           { title: t('adminShell.inventory.pageTitle'), href: '/inventory' },
         ]}
+        actions={<TenantDataExportButton type="inventory" />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('adminShell.inventory.pageIntro')}

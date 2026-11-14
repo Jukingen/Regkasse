@@ -290,6 +290,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/fiskaly/history': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/fiskaly/statistics': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/fiskaly/errors': PERMISSIONS.FISKALY_HISTORY_VIEW,
+  '/admin/tse': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/compliance': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/signaturkarte-program': [PERMISSIONS.SETTINGS_VIEW],
   '/admin/tse/ausfall': [PERMISSIONS.FINANZONLINE_VIEW],

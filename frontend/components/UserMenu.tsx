@@ -174,7 +174,7 @@ export function UserMenu() {
           setShowMenu(true);
         }}
         accessibilityRole="button"
-        accessibilityLabel={`${displayName}, ${roleLabel}`}
+        accessibilityLabel={`${initials}, ${displayName}, ${roleLabel}`}
         accessibilityHint={t('auth:logout')}
         hitSlop={6}>
         <View style={styles.avatar}>
@@ -188,7 +188,9 @@ export function UserMenu() {
             {roleLabel}
           </Text>
         </View>
-        <Ionicons name="chevron-down" size={14} color={SoftColors.textSecondary} />
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Ionicons name="chevron-down" size={14} color={SoftColors.textSecondary} />
+        </View>
       </Pressable>
 
       <Modal transparent visible={showMenu} animationType="fade" onRequestClose={closeMenu}>

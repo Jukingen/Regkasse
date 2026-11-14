@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...SoftTypography.h3,
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
     flex: 1,
   },
   tableBadge: {
@@ -142,13 +142,13 @@ const styles = StyleSheet.create({
   tableBadgeText: {
     ...SoftTypography.label,
     fontSize: 12,
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
   },
   tableBadgeOnCard: {
     backgroundColor: SoftColors.accent,
   },
   tableBadgeTextOnCard: {
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
   },
   recoveryBadge: {
     backgroundColor: SoftColors.bgCard,
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   recoveryText: {
     ...SoftTypography.caption,
     fontSize: 12,
-    color: SoftColors.accent,
+    color: SoftColors.accentDark,
   },
   provisioningBadge: {
     backgroundColor: 'rgba(255,193,7,0.22)',
@@ -193,6 +193,6 @@ const styles = StyleSheet.create({
     ...SoftTypography.label,
     fontSize: 12,
     fontWeight: '700',
-    color: SoftColors.textInverse,
+    color: SoftColors.textPrimary,
   },
 });

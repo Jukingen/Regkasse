@@ -287,7 +287,7 @@ function PosTabsInner({
         {posFeatures.kitchenDisplay ? <KitchenHubBridge enabled /> : null}
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: SoftColors.accent,
+            tabBarActiveTintColor: SoftColors.accentDark,
             tabBarInactiveTintColor: SoftColors.textMuted,
             tabBarStyle: {
               height: TAB_BAR_HEIGHT + insets.bottom,
@@ -390,9 +390,9 @@ function PosTabsInner({
                             total: formatPrice(totals.grandTotalGross),
                           })
                     }
-                    accessibilityRole="button">
+                    accessibilityRole="tab">
                     <View style={styles.cartIconContainer}>
-                      <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
+                      <Ionicons name="cart" size={28} color={SoftColors.textPrimary} />
                       {cartCount > 0 && (
                         <View style={styles.badge}>
                           <Text style={styles.badgeText}>{cartCount}</Text>

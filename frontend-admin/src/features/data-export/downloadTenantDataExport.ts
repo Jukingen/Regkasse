@@ -1,6 +1,15 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
-export type TenantExportType = 'products' | 'customers' | 'receipts' | 'payments' | 'users';
+export type TenantExportType =
+  | 'products'
+  | 'customers'
+  | 'receipts'
+  | 'payments'
+  | 'users'
+  | 'orders'
+  | 'audit_logs'
+  | 'inventory'
+  | 'tse_signatures';
 export type TenantExportFormat = 'csv' | 'xlsx';
 
 function fileNameFromDisposition(header: string | undefined, fallback: string): string {

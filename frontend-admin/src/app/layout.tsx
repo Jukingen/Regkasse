@@ -12,6 +12,20 @@ import './globals.css';
 export const metadata = {
   title: 'Regkasse Admin',
   description: 'Admin Panel for Regkasse POS',
+  applicationName: 'Regkasse Admin',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
+};
+
+const adminStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Regkasse Admin',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description: 'Admin Panel for Regkasse POS',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,6 +33,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="de" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(adminStructuredData) }}
+        />
       </head>
       <body style={{ margin: 0, padding: 0 }} suppressHydrationWarning>
         <AppProviders>
