@@ -9172,7 +9172,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("OriginalPaymentId")
                         .IsUnique()
                         .HasDatabaseName("ix_payment_details_one_storno_per_original")
-                        .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
+                        .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL AND \"is_active\" = true");
 
                     b.HasIndex("OriginalReceiptId");
 

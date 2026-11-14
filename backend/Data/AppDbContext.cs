@@ -2109,7 +2109,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.OriginalPaymentId)
                     .IsUnique()
                     .HasDatabaseName("ix_payment_details_one_storno_per_original")
-                    .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
+                    .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL AND \"is_active\" = true");
 
                 // Strengthen data integrity for POS/receipt numbering.
                 // Unique over real receipt numbers only (ignore empty/draft values).

@@ -15,7 +15,7 @@ namespace KasseAPI_Final.Migrations
                 table: "payment_details",
                 column: "OriginalPaymentId",
                 unique: true,
-                filter: "\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
+                filter: "\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL AND \"is_active\" = true");
         }
 
         /// <inheritdoc />
