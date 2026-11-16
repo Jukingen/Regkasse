@@ -21,11 +21,34 @@ const FLAGS = [
   },
 ];
 
+type FlagRow = {
+  name: string;
+  enabled: boolean;
+  configDefault: boolean;
+  source: string;
+  tenantOverrides: Array<{ tenantId: string; enabled: boolean }>;
+};
+
 test('super admin sees every flag, toggles globally, and sets a tenant override', async ({ page }) => {
   test.setTimeout(90_000);
   await preparePage(page);
 
+  const flags: FlagRow[] = JSON.parse(JSON.stringify(FLAGS)) as FlagRow[];
   const puts: Array<{ name?: string; enabled?: boolean; tenantId?: string | null }> = [];
+  const globalReads: boolean[] = [];
+
+  const applyPut = (body: { name?: string; enabled?: boolean; tenantId?: string | null }) => {
+    const flag = flags.find((row) => row.name === body.name);
+    if (!flag || typeof body.enabled !== 'boolean') return;
+    if (!body.tenantId) {
+      flag.enabled = body.enabled;
+      return;
+    }
+    const override = flag.tenantOverrides.find((row) => row.tenantId === body.tenantId);
+    if (override) override.enabled = body.enabled;
+    else flag.tenantOverrides.push({ tenantId: body.tenantId, enabled: body.enabled });
+  };
+
   await page.route('**/api/admin/tenants**', async (route) => {
     const url = new URL(route.request().url());
     if (route.request().method() === 'GET' && url.pathname === '/api/admin/tenants') {
@@ -65,18 +88,27 @@ test('super admin sees every flag, toggles globally, and sets a tenant override'
       return;
     }
     if (route.request().method() === 'PUT') {
-      puts.push(route.request().postDataJSON());
+      const body = route.request().postDataJSON() as {
+        name?: string;
+        enabled?: boolean;
+        tenantId?: string | null;
+      };
+      puts.push(body);
+      applyPut(body);
+      const saved = flags.find((row) => row.name === body.name) ?? flags[0];
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(FLAGS[0]),
+        body: JSON.stringify(saved),
       });
       return;
     }
+    const dep = flags.find((row) => row.name === 'EnableDepExportV2');
+    if (dep) globalReads.push(dep.enabled);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(FLAGS),
+      body: JSON.stringify(flags),
     });
   });
 
@@ -93,6 +125,9 @@ test('super admin sees every flag, toggles globally, and sets a tenant override'
   await expect.poll(() => puts.length).toBeGreaterThan(0);
   expect(puts.at(-1)?.tenantId ?? null).toBeNull();
   expect(puts.at(-1)).toMatchObject({ name: 'EnableDepExportV2', enabled: true, tenantId: null });
+  // The follow-up GET is the persisted read (the mock stands in for the DB row).
+  await expect.poll(() => globalReads.at(-1)).toBe(true);
+  await expect(page.getByRole('switch', { name: 'EnableDepExportV2 global' })).toBeChecked();
 
   await page.getByTestId('feature-flags-tenant-select').click();
   await page.keyboard.type('Wien Cafe');

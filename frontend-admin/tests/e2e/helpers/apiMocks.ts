@@ -114,6 +114,9 @@ const TENANT_ADMIN_ME = {
     'finanzonline.manage',
     'rksv.monatsbeleg.view',
     'rksv.monatsbeleg.create',
+    'rksv.jahresbeleg.view',
+    'product.view',
+    'audit.view',
   ],
 };
 

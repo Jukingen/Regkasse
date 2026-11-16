@@ -112,6 +112,7 @@ test.describe('Critical POS cashier flows', () => {
     await expect(page.getByText(/Tisch 1 · [1-9]/)).toBeVisible();
 
     await selectTable(page, 2);
+    await emptyCart(page);
     await expect(page.getByText(/Tisch 2 · 0 Artikel/)).toBeVisible();
     await expect(page.getByTestId('pos-order-panel').getByText('Tagesmenü', { exact: true })).toHaveCount(
       0
