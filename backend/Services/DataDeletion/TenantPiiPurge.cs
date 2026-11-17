@@ -93,6 +93,10 @@ internal static class TenantPiiPurge
         counts["audit_logs_redacted"] = await RedactAuditLogsAsync(db, tenantId, ct).ConfigureAwait(false);
         counts["elmah_redacted"] = await RedactElmahAsync(db, emails, ct).ConfigureAwait(false);
 
+        counts["product_recipe_lines"] = await DeleteWhereAsync(
+            db, db.ProductRecipeLines.IgnoreQueryFilters().Where(x => x.TenantId == tenantId), ct).ConfigureAwait(false);
+        counts["suppliers"] = await DeleteWhereAsync(
+            db, db.Suppliers.IgnoreQueryFilters().Where(x => x.TenantId == tenantId), ct).ConfigureAwait(false);
         counts["products"] = await DeleteWhereAsync(
             db, db.Products.IgnoreQueryFilters().Where(x => x.TenantId == tenantId), ct).ConfigureAwait(false);
         counts["categories"] = await DeleteWhereAsync(
@@ -143,6 +147,14 @@ internal static class TenantPiiPurge
             .ToListAsync(ct)
             .ConfigureAwait(false);
         foreach (var email in orderEmails)
+            emails.Add(email);
+
+        var supplierEmails = await db.Suppliers.AsNoTracking().IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId && s.Email != null && s.Email != "")
+            .Select(s => s.Email!)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var email in supplierEmails)
             emails.Add(email);
 
         var userIds = await db.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters()

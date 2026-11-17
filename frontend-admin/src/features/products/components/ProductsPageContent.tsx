@@ -772,6 +772,7 @@ export default function ProductsPage() {
         actions={
           <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
             <TenantDataExportButton type="products" />
+            <TenantDataExportButton type="recipes" labelKey="common.dataExport.recipes" />
             <Button
               icon={<DownloadOutlined />}
               loading={exporting === 'csv'}

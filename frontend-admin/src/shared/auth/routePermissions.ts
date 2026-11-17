@@ -30,6 +30,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Self-service password change — any authenticated user (header menu). */
   '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/products': PERMISSIONS.PRODUCT_VIEW,
+  '/suppliers': PERMISSIONS.SUPPLIER_VIEW,
   '/admin/tickets/redemptions': PERMISSIONS.PRODUCT_VIEW,
   '/admin/tickets/events': PERMISSIONS.PRODUCT_VIEW,
   '/admin/rooms': PERMISSIONS.PRODUCT_VIEW,

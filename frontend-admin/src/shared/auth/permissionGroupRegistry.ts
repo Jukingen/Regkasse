@@ -151,7 +151,7 @@ export const PERMISSION_GROUPS = {
     icon: 'AppstoreOutlined',
     menuKeys: ['products', 'categories'],
     sidebarGroupIds: ['catalog'],
-    resourcePrefixes: ['product', 'category', 'modifier'],
+    resourcePrefixes: ['product', 'category', 'modifier', 'supplier'],
     permissions: [
       PERMISSIONS.PRODUCT_VIEW,
       PERMISSIONS.CATEGORY_VIEW,

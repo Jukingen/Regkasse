@@ -26,7 +26,11 @@
     "button": "Dışa aktar",
     "csv": "CSV",
     "xlsx": "Excel",
-    "failed": "Dışa aktarma başarısız."
+    "failed": "Dışa aktarma başarısız.",
+    "recipes": "Tarifler",
+    "stockMovements": "Stok hareketleri",
+    "suppliersIntro": "Tedarikçi listesi CSV veya Excel olarak.",
+    "suppliersDenied": "Tedarikçileri görüntüleme izniniz yok."
   },
   "status": {
     "active": "Aktif",

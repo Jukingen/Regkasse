@@ -26,7 +26,11 @@
     "button": "Export",
     "csv": "CSV",
     "xlsx": "Excel",
-    "failed": "Export failed."
+    "failed": "Export failed.",
+    "recipes": "Recipes",
+    "stockMovements": "Stock movements",
+    "suppliersIntro": "Supplier list as CSV or Excel.",
+    "suppliersDenied": "You do not have permission to view suppliers."
   },
   "status": {
     "active": "Active",

@@ -133,6 +133,7 @@ public static class RolePermissionMatrix
                 AppPermissions.CashdrawerOpen, AppPermissions.CashdrawerClose,
                 AppPermissions.TseSign,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
+                AppPermissions.SupplierView,
                 AppPermissions.InventoryAdjust,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,

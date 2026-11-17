@@ -79,6 +79,8 @@ namespace KasseAPI_Final.Data
 
         // DbSet properties
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductRecipeLine> ProductRecipeLines { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<ProductImei> ProductImeis { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<TicketRedemption> TicketRedemptions { get; set; }
@@ -2393,6 +2395,33 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InventoryId);
                 entity.HasIndex(e => e.TransactionType);
                 entity.HasIndex(e => e.TransactionDate);
+            });
+
+            builder.Entity<ProductRecipeLine>(entity =>
+            {
+                entity.Property(e => e.IngredientName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Quantity).HasColumnType("decimal(18,3)");
+                entity.HasIndex(e => e.ProductId);
+                entity.HasOne<Product>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<Supplier>(entity =>
+            {
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Email).HasMaxLength(200);
+                entity.Property(e => e.Phone).HasMaxLength(50);
+                entity.Property(e => e.Address).HasMaxLength(500);
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Tenant (Wave 0–1 SaaS root; single seeded row for legacy deployments)

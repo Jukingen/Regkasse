@@ -48,6 +48,7 @@ public static class PermissionCatalogMetadata
         ["modifier"] = "Sortiment & Preise",
         // Lager
         ["inventory"] = "Lager",
+        ["supplier"] = "Sortiment & Preise",
         // Kunden & Vorteile
         ["customer"] = "Kunden & Vorteile",
         ["benefit"] = "Kunden & Vorteile",
