@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Vouchers;
@@ -7,24 +8,65 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
-public partial class PaymentService
+/// <summary>
+/// Voucher redemption and storno refund ledger writes.
+/// Mutates the caller's <see cref="AppDbContext"/> inside the open fiscal transaction.
+/// Does not begin a transaction or call SaveChanges.
+/// </summary>
+public interface IPaymentVoucherLedgerService
+{
+    bool IsVoucherLegacyPayment(string legacyRaw);
+
+    Task<(PaymentResult? Error, List<VoucherRedeemLine>? Lines)> BuildVoucherRedemptionPlanAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        decimal expectedVoucherTotal,
+        PaymentMethodRequest payment,
+        CancellationToken cancellationToken);
+
+    Task<PaymentResult?> ApplyVoucherRedemptionsInCurrentTransactionAsync(
+        Guid tenantId,
+        string userId,
+        PaymentDetails payment,
+        Guid receiptId,
+        IReadOnlyList<VoucherRedeemLine> lines,
+        string? paymentIdempotencyKey,
+        CancellationToken cancellationToken);
+
+    Task ApplyVoucherRefundsForStornoAsync(
+        Guid originalPaymentId,
+        Guid stornoPaymentId,
+        Guid stornoReceiptId,
+        Guid tenantId,
+        string userId,
+        string? cancelIdempotencyKey,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>Per-voucher redemption line after validation (tracked entities).</summary>
+public sealed class VoucherRedeemLine
+{
+    public Voucher Voucher { get; init; } = null!;
+    public decimal Amount { get; init; }
+}
+
+public sealed class PaymentVoucherLedgerService : IPaymentVoucherLedgerService
 {
     private static decimal VoucherMoneyTolerance => VoucherValidationRules.MoneyTolerance;
 
-    private static bool IsVoucherLegacyPayment(string legacyRaw) =>
-        string.Equals(legacyRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal);
+    private readonly AppDbContext _context;
+    private readonly ILogger _logger;
 
-    private static bool IsCardLegacyPayment(string legacyRaw) =>
-        string.Equals(legacyRaw, ((int)PaymentMethod.Card).ToString(), StringComparison.Ordinal);
-
-    /// <summary>Per-voucher redemption line after validation (tracked entities).</summary>
-    private sealed class VoucherRedeemLine
+    public PaymentVoucherLedgerService(AppDbContext context, ILogger logger)
     {
-        public Voucher Voucher { get; init; } = null!;
-        public decimal Amount { get; init; }
+        _context = context;
+        _logger = logger;
     }
 
-    private async Task<(PaymentResult? Error, List<VoucherRedeemLine>? Lines)> BuildVoucherRedemptionPlanAsync(
+    public bool IsVoucherLegacyPayment(string legacyRaw) =>
+        string.Equals(legacyRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal);
+
+    public async Task<(PaymentResult? Error, List<VoucherRedeemLine>? Lines)> BuildVoucherRedemptionPlanAsync(
         Guid tenantId,
         Guid cashRegisterId,
         decimal expectedVoucherTotal,
@@ -94,30 +136,7 @@ public partial class PaymentService
         return (null, lines);
     }
 
-    private static PaymentResult InvalidVoucherPayment(string message) =>
-        new()
-        {
-            Success = false,
-            Message = message,
-            Errors = { message },
-            IsDeterministicFailure = true,
-            DiagnosticCode = "VOUCHER_INVALID"
-        };
-
-    private async Task LockVoucherRowsForUpdateAsync(IReadOnlyList<Guid> voucherIdsSorted, CancellationToken cancellationToken)
-    {
-        if (!_context.Database.IsRelational())
-            return;
-
-        foreach (var id in voucherIdsSorted)
-        {
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM vouchers WHERE id = {id} FOR UPDATE",
-                cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private async Task<PaymentResult?> ApplyVoucherRedemptionsInCurrentTransactionAsync(
+    public async Task<PaymentResult?> ApplyVoucherRedemptionsInCurrentTransactionAsync(
         Guid tenantId,
         string userId,
         PaymentDetails payment,
@@ -171,24 +190,7 @@ public partial class PaymentService
         return null;
     }
 
-    /// <summary>
-    /// Stable key for <see cref="VoucherLedgerEntry.IdempotencyKey"/> (max 128). Full canonical input is hashed with SHA256 to avoid unique-index collisions from truncation.
-    /// </summary>
-    private static string BuildVoucherLedgerIdempotencyKey(string? paymentIdempotencyKey, Guid paymentId, Guid voucherId, string suffix)
-    {
-        var core = string.IsNullOrEmpty(paymentIdempotencyKey)
-            ? $"{paymentId:N}"
-            : $"{paymentIdempotencyKey.Trim()}:p";
-        var canonical = $"{core}:vr:{voucherId:N}:{suffix}";
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
-        var hex = Convert.ToHexString(hashBytes).ToLowerInvariant();
-        return $"vrk:{hex}";
-    }
-
-    /// <summary>
-    /// Reverses voucher balance for fiscal storno of the original sale. Idempotent per redeem ledger row.
-    /// </summary>
-    private async Task ApplyVoucherRefundsForStornoAsync(
+    public async Task ApplyVoucherRefundsForStornoAsync(
         Guid originalPaymentId,
         Guid stornoPaymentId,
         Guid stornoReceiptId,
@@ -259,6 +261,43 @@ public partial class PaymentService
                 IdempotencyKey = refundKey
             });
         }
+    }
+
+    private static PaymentResult InvalidVoucherPayment(string message) =>
+        new()
+        {
+            Success = false,
+            Message = message,
+            Errors = { message },
+            IsDeterministicFailure = true,
+            DiagnosticCode = "VOUCHER_INVALID"
+        };
+
+    private async Task LockVoucherRowsForUpdateAsync(IReadOnlyList<Guid> voucherIdsSorted, CancellationToken cancellationToken)
+    {
+        if (!_context.Database.IsRelational())
+            return;
+
+        foreach (var id in voucherIdsSorted)
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM vouchers WHERE id = {id} FOR UPDATE",
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Stable key for <see cref="VoucherLedgerEntry.IdempotencyKey"/> (max 128). Full canonical input is hashed with SHA256 to avoid unique-index collisions from truncation.
+    /// </summary>
+    private static string BuildVoucherLedgerIdempotencyKey(string? paymentIdempotencyKey, Guid paymentId, Guid voucherId, string suffix)
+    {
+        var core = string.IsNullOrEmpty(paymentIdempotencyKey)
+            ? $"{paymentId:N}"
+            : $"{paymentIdempotencyKey.Trim()}:p";
+        var canonical = $"{core}:vr:{voucherId:N}:{suffix}";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
+        var hex = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return $"vrk:{hex}";
     }
 
     private static string BuildStornoVoucherRefundIdempotencyKey(string? cancelIdempotencyKey, Guid stornoPaymentId, Guid redeemLedgerId)

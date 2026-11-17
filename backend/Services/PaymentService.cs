@@ -41,7 +41,7 @@ namespace KasseAPI_Final.Services
     /// <summary>
     /// Ödeme işlemleri için service implementation
     /// </summary>
-    public partial class PaymentService : IPaymentService
+    public class PaymentService : IPaymentService
     {
         private static readonly TenantLicenseValidator TenantLicenseValidator = new();
 
@@ -99,6 +99,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentReceiptReadService _receiptRead;
         private readonly IPaymentOfflineIntentService _offlineIntents;
         private readonly IPaymentBenefitService _benefits;
+        private readonly IPaymentVoucherLedgerService _voucherLedger;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -159,7 +160,8 @@ namespace KasseAPI_Final.Services
             IPaymentFinanzOnlineSubmissionService? finanzOnlineSubmission = null,
             IPaymentReceiptReadService? receiptRead = null,
             IPaymentOfflineIntentService? offlineIntents = null,
-            IPaymentBenefitService? benefits = null)
+            IPaymentBenefitService? benefits = null,
+            IPaymentVoucherLedgerService? voucherLedger = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -255,6 +257,7 @@ namespace KasseAPI_Final.Services
                 _pricingRuleResolver,
                 _taxTypes,
                 _chMwstRates);
+            _voucherLedger = voucherLedger ?? new PaymentVoucherLedgerService(_context, _logger);
         }
 
         private Task RunPaymentHookAsync(
@@ -1670,7 +1673,7 @@ namespace KasseAPI_Final.Services
                     // POS sends method code "voucher". If tenant catalog maps code voucher to a non-voucher legacy value, reject before committing (no silent skip of Gutschein redemption).
                     if (voucherLikelyFromClientMethod
                         && methodResolution.MatchedPaymentMethodDefinition
-                        && !IsVoucherLegacyPayment(methodResolution.LegacyRaw))
+                        && !_voucherLedger.IsVoucherLegacyPayment(methodResolution.LegacyRaw))
                     {
                         var expectedLegacy = ((int)PaymentMethod.Voucher).ToString(CultureInfo.InvariantCulture);
                         _logger.LogError(
@@ -1693,7 +1696,7 @@ namespace KasseAPI_Final.Services
                         };
                     }
 
-                    var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
+                    var isVoucherMethodResolved = _voucherLedger.IsVoucherLegacyPayment(methodResolution.LegacyRaw);
                     var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
                     // Gateway intents capture the remainder after voucher, never the cart gross.
                     var expectedGatewayAmount = expectedVoucherTotal;
@@ -1803,7 +1806,7 @@ namespace KasseAPI_Final.Services
                     if (isVoucherMethodResolved || hasVoucherPayload)
                     {
                         effectiveTseRequired = _tseOptions.RequiresFiscalSignature;
-                        var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
+                        var (voucherPlanError, voucherLines) = await _voucherLedger.BuildVoucherRedemptionPlanAsync(
                             effectiveTenantId,
                             cashRegisterId,
                             expectedVoucherTotal,
@@ -2215,7 +2218,7 @@ namespace KasseAPI_Final.Services
                             };
                         }
 
-                        var voucherApplyError = await ApplyVoucherRedemptionsInCurrentTransactionAsync(
+                        var voucherApplyError = await _voucherLedger.ApplyVoucherRedemptionsInCurrentTransactionAsync(
                             effectiveTenantId,
                             userId,
                             payment,
@@ -3148,7 +3151,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                await ApplyVoucherRefundsForStornoAsync(
+                await _voucherLedger.ApplyVoucherRefundsForStornoAsync(
                     paymentId,
                     stornoId,
                     stornoReceiptEntity.ReceiptId,
@@ -4295,6 +4298,9 @@ namespace KasseAPI_Final.Services
                 },
                 _ => null,
             };
+
+        private static bool IsCardLegacyPayment(string legacyRaw) =>
+            string.Equals(legacyRaw, ((int)PaymentMethod.Card).ToString(), StringComparison.Ordinal);
 
         #endregion
     }
