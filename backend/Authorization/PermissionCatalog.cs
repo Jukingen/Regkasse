@@ -76,6 +76,7 @@ public static class PermissionCatalog
         AppPermissions.ShiftManage,
         // Inventory, Customer
         AppPermissions.InventoryView,
+        AppPermissions.SupplierView,
         AppPermissions.InventoryManage,
         AppPermissions.InventoryAdjust,
         AppPermissions.InventoryDelete,

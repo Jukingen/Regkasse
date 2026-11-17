@@ -90,6 +90,7 @@ public static class AppPermissions
 
     // --- Inventory, Customer ---
     public const string InventoryView = "inventory.view";
+    public const string SupplierView = "supplier.view";
     public const string InventoryManage = "inventory.manage";
     public const string InventoryAdjust = "inventory.adjust";
     public const string InventoryDelete = "inventory.delete";

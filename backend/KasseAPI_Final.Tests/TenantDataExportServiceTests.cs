@@ -131,6 +131,82 @@ public sealed class TenantDataExportServiceTests
     }
 
     [Fact]
+    public async Task Csv_RecipesSuppliersAndStockMovements_KeepTheAmbientTenant()
+    {
+        await using var db = await SeedAsync();
+        var csv = await ExportCsvAsync(db, includeAllTenants: false, TenantDataExportHeaders.CatalogOpsTypes);
+
+        AssertHeadersAndCount(csv["recipes"], TenantDataExportHeaders.Recipes, 1);
+        Assert.Equal("Alpha", csv["recipes"].Rows[0][0]);
+        Assert.Equal("Milk", csv["recipes"].Rows[0][1]);
+        Assert.Equal("0.2", csv["recipes"].Rows[0][2]);
+        Assert.DoesNotContain(csv["recipes"].Rows, row => row[1] == "Sugar");
+
+        AssertHeadersAndCount(csv["suppliers"], TenantDataExportHeaders.Suppliers, 1);
+        Assert.Equal("Mill", csv["suppliers"].Rows[0][0]);
+        Assert.Equal("mill@a.test", csv["suppliers"].Rows[0][1]);
+        Assert.Equal("111", csv["suppliers"].Rows[0][2]);
+        Assert.Equal("Wien", csv["suppliers"].Rows[0][3]);
+        Assert.DoesNotContain(csv["suppliers"].Rows, row => row[0] == "Other Mill");
+
+        AssertHeadersAndCount(csv["stock_movements"], TenantDataExportHeaders.StockMovements, 1);
+        Assert.Equal("Alpha", csv["stock_movements"].Rows[0][0]);
+        Assert.Equal("3", csv["stock_movements"].Rows[0][1]);
+        Assert.Equal("delivery", csv["stock_movements"].Rows[0][2]);
+        Assert.DoesNotContain(csv["stock_movements"].Rows, row => row[2] == "other-delivery");
+    }
+
+    [Fact]
+    public async Task Csv_RecipesSuppliersAndStockMovements_IncludeAllTenants()
+    {
+        await using var db = await SeedAsync();
+        var csv = await ExportCsvAsync(db, includeAllTenants: true, TenantDataExportHeaders.CatalogOpsTypes);
+
+        Assert.Equal(2, csv["recipes"].Rows.Count);
+        Assert.Equal(2, csv["suppliers"].Rows.Count);
+        Assert.Equal(2, csv["stock_movements"].Rows.Count);
+        Assert.Contains(csv["recipes"].Rows, row => row[1] == "Sugar");
+        Assert.Contains(csv["suppliers"].Rows, row => row[0] == "Other Mill");
+        Assert.Contains(csv["stock_movements"].Rows, row => row[2] == "other-delivery");
+    }
+
+    [Fact]
+    public async Task Csv_RecipesSuppliersAndStockMovements_StartWithUtf8Bom()
+    {
+        await using var db = await SeedAsync();
+        var service = new TenantDataExportService(db, NullLogger<TenantDataExportService>.Instance);
+        foreach (var type in TenantDataExportHeaders.CatalogOpsTypes)
+        {
+            using var ms = new MemoryStream();
+            await service.WriteAsync(ms, type, "csv", includeAllTenants: false);
+            var bytes = ms.ToArray();
+            Assert.True(bytes.Length >= 3, type);
+            Assert.Equal(0xEF, bytes[0]);
+            Assert.Equal(0xBB, bytes[1]);
+            Assert.Equal(0xBF, bytes[2]);
+        }
+    }
+
+    [Fact]
+    public async Task Xlsx_StreamsRecipeRowsWithoutTheOtherTenant()
+    {
+        await using var db = await SeedAsync();
+        var service = new TenantDataExportService(db, NullLogger<TenantDataExportService>.Instance);
+        using var ms = new MemoryStream();
+        await service.WriteAsync(ms, "recipes", "xlsx", includeAllTenants: false);
+
+        ms.Position = 0;
+        using var zip = new ZipArchive(ms, ZipArchiveMode.Read);
+        var sheet = zip.GetEntry("xl/worksheets/sheet1.xml");
+        Assert.NotNull(sheet);
+        using var reader = new StreamReader(sheet.Open());
+        var xml = await reader.ReadToEndAsync();
+        Assert.Contains(">Ingredient<", xml);
+        Assert.Contains(">Milk<", xml);
+        Assert.DoesNotContain(">Sugar<", xml);
+    }
+
+    [Fact]
     public async Task Csv_IncludeAllTenants_ReturnsEveryMandant()
     {
         await using var db = await SeedAsync();
@@ -214,10 +290,10 @@ public sealed class TenantDataExportServiceTests
         var taxA = TenantTestDoubles.EnsureTaxGroup(db, TenantA);
         var taxB = TenantTestDoubles.EnsureTaxGroup(db, TenantB);
 
-        db.Products.AddRange(
-            Product(TenantA, "Alpha", taxA),
-            Product(TenantA, "Beta", taxA),
-            Product(TenantB, "Other", taxB));
+        var alpha = Product(TenantA, "Alpha", taxA);
+        var beta = Product(TenantA, "Beta", taxA);
+        var other = Product(TenantB, "Other", taxB);
+        db.Products.AddRange(alpha, beta, other);
 
         db.Customers.AddRange(
             Customer(TenantA, "Ada", isSystem: false),
@@ -258,6 +334,20 @@ public sealed class TenantDataExportServiceTests
         db.TseSignatures.AddRange(
             TseRow(TenantA, "R-A", created),
             TseRow(TenantB, "R-B", created.AddHours(1)));
+
+        db.ProductRecipeLines.AddRange(
+            RecipeLine(TenantA, alpha.Id, "Milk", 0.2m),
+            RecipeLine(TenantB, other.Id, "Sugar", 1m));
+        db.Suppliers.AddRange(
+            SupplierRow(TenantA, "Mill", "mill@a.test", "111", "Wien"),
+            SupplierRow(TenantB, "Other Mill", "mill@b.test", "222", "Graz"));
+
+        var stockA = InventoryRow(alpha.Id);
+        var stockB = InventoryRow(other.Id);
+        db.Inventory.AddRange(stockA, stockB);
+        db.InventoryTransactions.AddRange(
+            Movement(stockA.Id, 3, "delivery", created),
+            Movement(stockB.Id, 9, "other-delivery", created.AddHours(1)));
 
         await db.SaveChangesAsync();
         return db;
@@ -384,6 +474,54 @@ public sealed class TenantDataExportServiceTests
         CreatedAt = timestamp,
     };
 
+    private static ProductRecipeLine RecipeLine(Guid tenantId, Guid productId, string ingredient, decimal quantity) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        ProductId = productId,
+        IngredientName = ingredient,
+        Quantity = quantity,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow,
+    };
+
+    private static Supplier SupplierRow(Guid tenantId, string name, string email, string phone, string address) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        Name = name,
+        Email = email,
+        Phone = phone,
+        Address = address,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow,
+    };
+
+    private static InventoryItem InventoryRow(Guid productId) => new()
+    {
+        Id = Guid.NewGuid(),
+        ProductId = productId,
+        CurrentStock = 4,
+        MinStockLevel = 2,
+        UnitCost = 1m,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow,
+    };
+
+    private static InventoryTransaction Movement(Guid inventoryId, int quantity, string reason, DateTime when) => new()
+    {
+        Id = Guid.NewGuid(),
+        InventoryId = inventoryId,
+        TransactionType = TransactionType.Restock,
+        Quantity = quantity,
+        UnitCost = 1m,
+        TotalCost = quantity,
+        Notes = reason,
+        TransactionDate = when,
+        IsActive = true,
+        CreatedAt = when,
+    };
+
     private static TseSignature TseRow(Guid tenantId, string receiptNumber, DateTime signedAt) => new()
     {
         Id = Guid.NewGuid(),
@@ -460,6 +598,23 @@ file static class TenantDataExportHeaders
     public static readonly string[] OriginalTypes = ["products", "customers", "receipts", "payments", "users"];
 
     public static readonly string[] ExtendedTypes = ["orders", "audit_logs", "inventory", "tse_signatures"];
+
+    public static readonly string[] Recipes =
+    [
+        "Product", "Ingredient", "Quantity", "TenantId",
+    ];
+
+    public static readonly string[] Suppliers =
+    [
+        "Name", "Email", "Phone", "Address", "TenantId",
+    ];
+
+    public static readonly string[] StockMovements =
+    [
+        "Product", "Quantity", "Reason", "Date", "TenantId",
+    ];
+
+    public static readonly string[] CatalogOpsTypes = ["recipes", "suppliers", "stock_movements"];
 }
 
 public sealed class AdminTenantDataExportControllerTests
@@ -518,6 +673,9 @@ public sealed class AdminTenantDataExportControllerTests
     [InlineData("audit_logs", AppPermissions.AuditView)]
     [InlineData("inventory", AppPermissions.InventoryView)]
     [InlineData("tse_signatures", AppPermissions.SystemCritical)]
+    [InlineData("recipes", AppPermissions.ProductView)]
+    [InlineData("suppliers", AppPermissions.SupplierView)]
+    [InlineData("stock_movements", AppPermissions.InventoryView)]
     public async Task Export_ChecksThePermissionForEachNewType(string type, string permission)
     {
         var controller = CreateController(authorized: true, isSuperAdmin: true, out _, out var auth);

@@ -253,6 +253,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/modifier-groups',
     '/categories',
     '/inventory',
+    '/suppliers',
     '/pricing-rules',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.customers]: [

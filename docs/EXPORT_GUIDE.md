@@ -2,7 +2,7 @@
 
 Operational CSV and Excel downloads for a mandant's catalog, sales, online orders, audit rows, and stock. This is not a fiscal DEP export. JWS payloads, signature bytes, and passwords are omitted. The `tse_signatures` type lists receipt number, signature time, and TSE device id only.
 
-**Last updated:** 2026-11-14
+**Last updated:** 2026-11-17
 
 ## Endpoint
 
@@ -21,6 +21,9 @@ GET /api/admin/export/{type}?format=csv|xlsx
 | `audit_logs` | `audit.view` | Action, entity type, user id, timestamp, tenant. Old/new values and any stored signature text are omitted |
 | `inventory` | `inventory.view` | Product name, stock quantity, reorder level (`MinStockLevel`), tenant |
 | `tse_signatures` | `system.critical` and the `SuperAdmin` role | Receipt number (`InvoiceNumber`), signature time, TSE device id, tenant. No signature, JWS, or certificate material |
+| `recipes` | `product.view` | One row per ingredient: product name, ingredient, quantity, tenant |
+| `suppliers` | `supplier.view` | Name, email, phone, address, tenant |
+| `stock_movements` | `inventory.view` | Product name, quantity, reason (note, or the movement type when the note is empty), date, tenant. Scoped through the product's tenant |
 
 `format` is `csv` (UTF-8 with BOM) or `xlsx`. Any other type or format returns HTTP 400. A caller without the matching permission receives HTTP 403. `tse_signatures` also returns HTTP 403 when the caller is not a Super Admin.
 
@@ -46,7 +49,7 @@ The older catalog downloads stay in place:
 
 ## Admin UI
 
-`/products`, `/customers`, and `/receipts` each have an **Export** menu (CSV and Excel) that calls this endpoint. The same menu is on `/orders/online` (`orders`), `/audit-logs/activity` (`audit_logs`), `/inventory` (`inventory`), and `/admin/tse` (`tse_signatures`, Super Admin). The older CSV/JSON buttons on products and customers still call the buffered catalog exports.
+`/products`, `/customers`, and `/receipts` each have an **Export** menu (CSV and Excel) that calls this endpoint. The same menu is on `/orders/online` (`orders`), `/audit-logs/activity` (`audit_logs`), `/inventory` (`inventory` and `stock_movements`), `/suppliers` (`suppliers`), and `/admin/tse` (`tse_signatures`, Super Admin). `/products` also has a **Recipes** menu (`recipes`). The older CSV/JSON buttons on products and customers still call the buffered catalog exports.
 
 ## Tests
 

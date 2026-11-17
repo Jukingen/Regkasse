@@ -9,7 +9,10 @@ export type TenantExportType =
   | 'orders'
   | 'audit_logs'
   | 'inventory'
-  | 'tse_signatures';
+  | 'tse_signatures'
+  | 'recipes'
+  | 'suppliers'
+  | 'stock_movements';
 export type TenantExportFormat = 'csv' | 'xlsx';
 
 function fileNameFromDisposition(header: string | undefined, fallback: string): string {

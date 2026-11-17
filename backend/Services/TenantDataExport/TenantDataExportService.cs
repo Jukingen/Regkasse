@@ -77,6 +77,24 @@ public sealed class TenantDataExportService : ITenantDataExportService
         "ReceiptNumber", "SignatureDate", "TseId", "TenantId",
     ];
 
+    private static readonly string[] RecipeHeaders =
+    [
+        "Product", "Ingredient", "Quantity", "TenantId",
+    ];
+
+    private static readonly string[] SupplierHeaders =
+    [
+        "Name", "Email", "Phone", "Address", "TenantId",
+    ];
+
+    private static readonly string[] StockMovementHeaders =
+    [
+        "Product", "Quantity", "Reason", "Date", "TenantId",
+    ];
+
+    public const string SupportedTypes =
+        "products, customers, receipts, payments, users, orders, audit_logs, inventory, tse_signatures, recipes, suppliers, or stock_movements";
+
     private readonly AppDbContext _db;
     private readonly ILogger<TenantDataExportService> _logger;
 
@@ -118,7 +136,8 @@ public sealed class TenantDataExportService : ITenantDataExportService
     {
         normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
         return normalized is "products" or "customers" or "receipts" or "payments" or "users"
-            or "orders" or "audit_logs" or "inventory" or "tse_signatures";
+            or "orders" or "audit_logs" or "inventory" or "tse_signatures"
+            or "recipes" or "suppliers" or "stock_movements";
     }
 
     public static bool TryNormalizeFormat(string? format, out string normalized)
@@ -136,7 +155,7 @@ public sealed class TenantDataExportService : ITenantDataExportService
     private static string NormalizeType(string type)
     {
         if (!TryNormalizeType(type, out var normalized))
-            throw new ArgumentOutOfRangeException(nameof(type), "Export type must be products, customers, receipts, payments, users, orders, audit_logs, inventory, or tse_signatures.");
+            throw new ArgumentOutOfRangeException(nameof(type), "Export type must be " + SupportedTypes + ".");
         return normalized;
     }
 
@@ -158,6 +177,9 @@ public sealed class TenantDataExportService : ITenantDataExportService
         "audit_logs" => AuditLogHeaders,
         "inventory" => InventoryHeaders,
         "tse_signatures" => TseSignatureHeaders,
+        "recipes" => RecipeHeaders,
+        "suppliers" => SupplierHeaders,
+        "stock_movements" => StockMovementHeaders,
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -173,6 +195,9 @@ public sealed class TenantDataExportService : ITenantDataExportService
             "audit_logs" => StreamAuditLogs(includeAllTenants, cancellationToken),
             "inventory" => StreamInventory(includeAllTenants, cancellationToken),
             "tse_signatures" => StreamTseSignatures(includeAllTenants, cancellationToken),
+            "recipes" => StreamRecipes(includeAllTenants, cancellationToken),
+            "suppliers" => StreamSuppliers(includeAllTenants, cancellationToken),
+            "stock_movements" => StreamStockMovements(includeAllTenants, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(type)),
         };
 
@@ -513,6 +538,113 @@ public sealed class TenantDataExportService : ITenantDataExportService
                 row.InvoiceNumber,
                 When(row.CreatedAt),
                 row.TseDeviceId.HasValue ? Id(row.TseDeviceId.Value) : string.Empty,
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamRecipes(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var lines = _db.ProductRecipeLines.AsNoTracking();
+        var products = _db.Products.AsNoTracking();
+        if (includeAllTenants)
+        {
+            lines = lines.IgnoreQueryFilters();
+            products = products.IgnoreQueryFilters();
+        }
+
+        var rows =
+            from line in lines
+            join product in products on line.ProductId equals product.Id
+            orderby product.TenantId, product.Name, line.IngredientName
+            select new
+            {
+                Product = product.Name,
+                line.IngredientName,
+                line.Quantity,
+                product.TenantId,
+            };
+
+        await foreach (var row in rows.AsAsyncEnumerable().WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                row.Product,
+                row.IngredientName,
+                Dec(row.Quantity),
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamSuppliers(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var query = _db.Suppliers.AsNoTracking();
+        if (includeAllTenants)
+            query = query.IgnoreQueryFilters();
+
+        var rows = query
+            .OrderBy(s => s.TenantId)
+            .ThenBy(s => s.Name)
+            .Select(s => new
+            {
+                s.Name,
+                s.Email,
+                s.Phone,
+                s.Address,
+                s.TenantId,
+            })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return
+            [
+                row.Name,
+                row.Email ?? string.Empty,
+                row.Phone ?? string.Empty,
+                row.Address ?? string.Empty,
+                Id(row.TenantId),
+            ];
+        }
+    }
+
+    private async IAsyncEnumerable<string[]> StreamStockMovements(
+        bool includeAllTenants,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var products = _db.Products.AsNoTracking();
+        if (includeAllTenants)
+            products = products.IgnoreQueryFilters();
+
+        var rows =
+            from movement in _db.InventoryTransactions.AsNoTracking()
+            join item in _db.Inventory.AsNoTracking() on movement.InventoryId equals item.Id
+            join product in products on item.ProductId equals product.Id
+            orderby product.TenantId, movement.TransactionDate, product.Name
+            select new
+            {
+                Product = product.Name,
+                movement.Quantity,
+                movement.Notes,
+                movement.TransactionType,
+                movement.TransactionDate,
+                product.TenantId,
+            };
+
+        await foreach (var row in rows.AsAsyncEnumerable().WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            var reason = string.IsNullOrWhiteSpace(row.Notes) ? row.TransactionType.ToString() : row.Notes;
+            yield return
+            [
+                row.Product,
+                row.Quantity.ToString(CultureInfo.InvariantCulture),
+                reason,
+                When(row.TransactionDate),
                 Id(row.TenantId),
             ];
         }

@@ -13,7 +13,13 @@ import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
 /** CSV / Excel menu for GET /api/admin/export/{type}. */
-export function TenantDataExportButton({ type }: { type: TenantExportType }) {
+export function TenantDataExportButton({
+  type,
+  labelKey = 'common.dataExport.button',
+}: {
+  type: TenantExportType;
+  labelKey?: string;
+}) {
   const { t } = useI18n();
   const notify = useNotify();
   const [busy, setBusy] = useState(false);
@@ -40,7 +46,7 @@ export function TenantDataExportButton({ type }: { type: TenantExportType }) {
       }}
     >
       <Button icon={<DownloadOutlined />} loading={busy} data-testid={`tenant-export-${type}`}>
-        {t('common.dataExport.button')}
+        {t(labelKey)}
       </Button>
     </Dropdown>
   );

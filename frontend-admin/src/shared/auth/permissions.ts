@@ -133,6 +133,7 @@ export const PERMISSIONS = {
   FINANZONLINE_MANAGE: 'finanzonline.manage',
   FINANZONLINE_SUBMIT: 'finanzonline.submit',
   INVENTORY_VIEW: 'inventory.view',
+  SUPPLIER_VIEW: 'supplier.view',
   INVENTORY_MANAGE: 'inventory.manage',
   INVENTORY_ADJUST: 'inventory.adjust',
   INVENTORY_DELETE: 'inventory.delete',

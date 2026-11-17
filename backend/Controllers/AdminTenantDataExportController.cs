@@ -38,7 +38,7 @@ public sealed class AdminTenantDataExportController : ControllerBase
         {
             return BadRequest(new
             {
-                message = "Export type must be products, customers, receipts, payments, users, orders, audit_logs, inventory, or tse_signatures.",
+                message = "Export type must be " + TenantDataExportService.SupportedTypes + ".",
                 code = "TENANT_EXPORT_TYPE",
             });
         }
@@ -93,6 +93,9 @@ public sealed class AdminTenantDataExportController : ControllerBase
         "audit_logs" => AppPermissions.AuditView,
         "inventory" => AppPermissions.InventoryView,
         "tse_signatures" => AppPermissions.SystemCritical,
+        "recipes" => AppPermissions.ProductView,
+        "suppliers" => AppPermissions.SupplierView,
+        "stock_movements" => AppPermissions.InventoryView,
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 

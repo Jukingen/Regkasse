@@ -521,7 +521,12 @@ export default function InventoryOperationsPage() {
           adminOverviewCrumb(t),
           { title: t('adminShell.inventory.pageTitle'), href: '/inventory' },
         ]}
-        actions={<TenantDataExportButton type="inventory" />}
+        actions={
+          <Space>
+            <TenantDataExportButton type="inventory" />
+            <TenantDataExportButton type="stock_movements" labelKey="common.dataExport.stockMovements" />
+          </Space>
+        }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('adminShell.inventory.pageIntro')}

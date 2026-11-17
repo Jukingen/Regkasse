@@ -26,7 +26,11 @@
     "button": "Export",
     "csv": "CSV",
     "xlsx": "Excel",
-    "failed": "Export fehlgeschlagen."
+    "failed": "Export fehlgeschlagen.",
+    "recipes": "Rezepte",
+    "stockMovements": "Lagerbewegungen",
+    "suppliersIntro": "Lieferantenliste als CSV oder Excel.",
+    "suppliersDenied": "Keine Berechtigung für Lieferanten."
   },
   "status": {
     "active": "Aktiv",

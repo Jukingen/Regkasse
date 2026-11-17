@@ -410,6 +410,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'InboxOutlined',
     permission: PERMISSIONS.INVENTORY_VIEW,
   },
+  suppliers: {
+    id: 'suppliers',
+    menuKey: '/suppliers',
+    href: '/suppliers',
+    labelKey: 'nav.suppliers',
+    icon: 'ShopOutlined',
+    permission: PERMISSIONS.SUPPLIER_VIEW,
+  },
   customers: {
     id: 'customers',
     menuKey: '/customers',
@@ -1839,6 +1847,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'modifierGroups',
           'pricingRules',
           'inventory',
+          'suppliers',
         ],
       },
     ],
