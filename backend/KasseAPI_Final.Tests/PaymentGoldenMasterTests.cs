@@ -54,7 +54,7 @@ public sealed class PaymentGoldenMasterTests
     {
         var snapshot = await CaptureAsync(scenario);
         var actual = Canonicalize(snapshot);
-        var sourcePath = Path.Combine(SourceDirectory(), scenario + ".json");
+        var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "PaymentGoldenMaster", $"{scenario}.json");
         var record = string.Equals(
             Environment.GetEnvironmentVariable("PAYMENT_GOLDEN_RECORD"),
             "1",
@@ -62,15 +62,18 @@ public sealed class PaymentGoldenMasterTests
 
         if (record)
         {
+            var sourcePath = Path.Combine(SourceDirectory(), $"{scenario}.json");
             Directory.CreateDirectory(Path.GetDirectoryName(sourcePath)!);
             await File.WriteAllTextAsync(sourcePath, actual);
+            Directory.CreateDirectory(Path.GetDirectoryName(fixturePath)!);
+            await File.WriteAllTextAsync(fixturePath, actual);
         }
 
         Assert.True(
-            File.Exists(sourcePath),
-            $"Missing golden fixture {sourcePath}. Run with PAYMENT_GOLDEN_RECORD=1 to capture current PaymentService behavior.");
+            File.Exists(fixturePath),
+            $"Missing golden fixture {fixturePath}. Run with PAYMENT_GOLDEN_RECORD=1 to capture current PaymentService behavior.");
 
-        var expected = (await File.ReadAllTextAsync(sourcePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
+        var expected = (await File.ReadAllTextAsync(fixturePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
             var actualPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "PaymentGoldenMaster", scenario + ".actual.json");
