@@ -55,6 +55,9 @@
     <Content Include="Fixtures\CountryBaseline\*.json" Exclude="Fixtures\CountryBaseline\*.actual.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Update="Fixtures/PaymentGoldenMaster/*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

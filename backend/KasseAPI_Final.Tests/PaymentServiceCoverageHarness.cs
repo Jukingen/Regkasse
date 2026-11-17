@@ -65,6 +65,7 @@ internal static class PaymentServiceCoverageHarness
         public IVerticalProfileService? VerticalProfiles { get; init; }
         public KasseAPI_Final.Services.Tickets.ITicketRedemptionService? Tickets { get; init; }
         public KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry? ExtensionRegistry { get; init; }
+        public ITseHealthMonitor? TseHealth { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -232,6 +233,7 @@ internal static class PaymentServiceCoverageHarness
             finanzOnlineMetrics: options.FinanzMetrics,
             ntpSettings: Microsoft.Extensions.Options.Options.Create(ntpSettings),
             ntpTimeSyncStatus: options.Ntp,
+            tseHealthMonitor: options.TseHealth,
             hostEnvironment: options.Host,
             licenseService: options.License,
             licenseOptions: options.LicenseOptions == null
@@ -270,35 +272,39 @@ internal static class PaymentServiceCoverageHarness
     public static async Task<(Guid CustomerId, Guid ProductId, Guid CashRegisterId, Guid CategoryId)> SeedCatalogAsync(
         AppDbContext context,
         decimal unitPrice = 10m,
-        decimal customerDiscountPercentage = 0m)
+        decimal customerDiscountPercentage = 0m,
+        Guid? categoryId = null,
+        Guid? productId = null,
+        Guid? customerId = null,
+        Guid? cashRegisterId = null)
     {
         TenantTestDoubles.EnsurePlatformTenant(context);
-        var categoryId = Guid.NewGuid();
-        var productId = Guid.NewGuid();
-        var customerId = Guid.NewGuid();
-        var cashRegisterId = Guid.NewGuid();
+        var resolvedCategoryId = categoryId ?? Guid.NewGuid();
+        var resolvedProductId = productId ?? Guid.NewGuid();
+        var resolvedCustomerId = customerId ?? Guid.NewGuid();
+        var resolvedCashRegisterId = cashRegisterId ?? Guid.NewGuid();
 
         context.Categories.Add(new Category
         {
             TenantId = SystemTenantIds.Platform,
-            Id = categoryId,
+            Id = resolvedCategoryId,
             Name = "Speisen",
             VatRate = 10m
         });
         context.Products.Add(new Product
         {
-            Id = productId,
+            Id = resolvedProductId,
             TenantId = SystemTenantIds.Platform,
             Name = "Schnitzel",
             Price = unitPrice,
-            CategoryId = categoryId,
+            CategoryId = resolvedCategoryId,
             Category = "Speisen",
             StockQuantity = 100,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
             TaxRate = TaxTypes.GetTaxRate(2),
-            Barcode = $"t-{productId:N}",
+            Barcode = $"t-{resolvedProductId:N}",
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -306,7 +312,7 @@ internal static class PaymentServiceCoverageHarness
         });
         context.Customers.Add(new Customer
         {
-            Id = customerId,
+            Id = resolvedCustomerId,
             Name = "Gast",
             Email = "g@t.com",
             Phone = "1",
@@ -316,7 +322,7 @@ internal static class PaymentServiceCoverageHarness
         context.CashRegisters.Add(new CashRegister
         {
             TenantId = SystemTenantIds.Platform,
-            Id = cashRegisterId,
+            Id = resolvedCashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "Wien",
             StartingBalance = 0,
@@ -327,7 +333,7 @@ internal static class PaymentServiceCoverageHarness
             IsActive = true
         });
         await context.SaveChangesAsync();
-        return (customerId, productId, cashRegisterId, categoryId);
+        return (resolvedCustomerId, resolvedProductId, resolvedCashRegisterId, resolvedCategoryId);
     }
 
     public static async Task<Guid> AddProductAsync(
@@ -368,12 +374,16 @@ internal static class PaymentServiceCoverageHarness
         await context.SaveChangesAsync();
     }
 
-    public static async Task<Guid> AddVoucherAsync(AppDbContext context, string code, decimal remaining)
+    public static async Task<Guid> AddVoucherAsync(
+        AppDbContext context,
+        string code,
+        decimal remaining,
+        Guid? voucherId = null)
     {
-        var voucherId = Guid.NewGuid();
+        var resolvedVoucherId = voucherId ?? Guid.NewGuid();
         context.Vouchers.Add(new Voucher
         {
-            Id = voucherId,
+            Id = resolvedVoucherId,
             TenantId = SystemTenantIds.Platform,
             CodeHash = VoucherCodeHasher.HashNormalized(VoucherCodeHasher.NormalizeCode(code)),
             MaskedCode = "****" + code[^3..],
@@ -387,7 +397,7 @@ internal static class PaymentServiceCoverageHarness
             CreatedAtUtc = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
-        return voucherId;
+        return resolvedVoucherId;
     }
 
     public static CreatePaymentRequest SaleRequest(
