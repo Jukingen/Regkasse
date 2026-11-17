@@ -1487,6 +1487,9 @@ internal static class ApplicationHost
             sp.GetRequiredService<IPricingRuleResolver>(),
             sp.GetRequiredService<ICountryTaxTypeRegistry>(),
             sp.GetService<IChMwstEffectiveRates>()));
+        builder.Services.AddScoped<IPaymentVoucherLedgerService>(sp => new PaymentVoucherLedgerService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<ILogger<PaymentService>>()));
         builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
         builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();
