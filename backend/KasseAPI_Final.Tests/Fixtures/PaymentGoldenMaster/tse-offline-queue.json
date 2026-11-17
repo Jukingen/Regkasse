@@ -1,0 +1,97 @@
+{
+  "benefitDailyUsage": [],
+  "catalog": {
+    "cashRegisterId": "id-1",
+    "categoryId": "id-2",
+    "customerId": "id-3",
+    "productId": "id-4"
+  },
+  "invoices": [],
+  "normalization": "Timestamps, generated ids, and the date segment of AT-KASSE-01 receipt numbers are tokens.",
+  "offlineTransactions": [
+    {
+      "CashRegisterId": "id-1",
+      "ClientSequenceNumber": null,
+      "ClockDriftWarning": false,
+      "CreatedAt": "\u003Ctimestamp\u003E",
+      "CreatedBy": "cashier1",
+      "DeviceId": null,
+      "FiscalizedAtUtc": null,
+      "Id": "id-5",
+      "IsActive": true,
+      "LastErrorCode": null,
+      "LastErrorMessageSafe": null,
+      "LastReplayAttemptAt": null,
+      "OfflineCreatedAtUtc": "\u003Ctimestamp\u003E",
+      "PayloadHash": "a99d3caf2e8012e2b9d9feb230fc633eb1dfef47877cc24b9f572977f5c889cf",
+      "PayloadJson": {
+        "cashRegisterId": "id-1",
+        "customerId": "id-3",
+        "idempotencyKey": "golden-tse-offline",
+        "isPreorder": false,
+        "isRefund": false,
+        "isStorno": false,
+        "items": [
+          {
+            "modifierIds": [],
+            "productId": "id-4",
+            "quantity": 1,
+            "taxType": "reduced"
+          }
+        ],
+        "payment": {
+          "method": "cash",
+          "tseRequired": true
+        },
+        "preorderRemainingAmount": 0,
+        "steuernummer": "ATU12345678",
+        "tableNumber": 1,
+        "totalAmount": 10
+      },
+      "PayloadSecretsProtected": null,
+      "RetryCount": 0,
+      "SequenceDuplicateDetected": false,
+      "SequenceGapDetected": false,
+      "ServerReceivedAtUtc": "\u003Ctimestamp\u003E",
+      "Status": "NonFiscalPending",
+      "SyncedPaymentId": null,
+      "TenantId": "9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c",
+      "UpdatedAt": "\u003Ctimestamp\u003E",
+      "UpdatedBy": null
+    }
+  ],
+  "operations": [
+    {
+      "diagnosticCode": "NON_FISCAL_QUEUED",
+      "errors": [],
+      "idempotentReplay": false,
+      "invoicePersisted": false,
+      "isDemoFiscal": false,
+      "isDeterministicFailure": false,
+      "message": "Payment queued for fiscal signing when TSE is available.",
+      "nonFiscalOfflineQueued": true,
+      "offlineTransactionId": "id-5",
+      "operation": "CreatePayment",
+      "paymentId": null,
+      "paymentMethodRaw": null,
+      "qrPayload": null,
+      "receiptNumber": null,
+      "requiresApproval": false,
+      "success": true,
+      "taxAmount": null,
+      "totalAmount": null,
+      "tseProvider": null,
+      "tseSignature": null
+    }
+  ],
+  "payments": [],
+  "receipts": [],
+  "scenario": "tse-offline-queue",
+  "schemaVersion": "payment-golden-master.v1",
+  "stock": {
+    "after": 100,
+    "before": 100
+  },
+  "voucherLedger": [],
+  "vouchers": []
+}
