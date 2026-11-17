@@ -29,6 +29,8 @@ using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.CriticalActions;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Services.GracePeriods;
@@ -78,6 +80,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.EventLog;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -1464,6 +1467,26 @@ internal static class ApplicationHost
             sp.GetRequiredService<IPaymentMethodCatalogService>(),
             sp.GetRequiredService<ISettingsTenantResolver>(),
             sp.GetRequiredService<ILogger<PaymentService>>()));
+        builder.Services.AddScoped<IPaymentOfflineIntentService>(sp => new PaymentOfflineIntentService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<ILogger<PaymentService>>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<IDataProtectionProvider>(),
+            sp.GetRequiredService<IOptions<OfflineVoucherEncryptionOptions>>(),
+            sp.GetRequiredService<IOptions<TseOptions>>().Value,
+            sp.GetService<IHostEnvironment>(),
+            sp.GetService<IDevelopmentModeService>(),
+            sp.GetService<IOptions<LicenseOptions>>()?.Value,
+            sp.GetService<ITenantLimitGuard>()));
+        builder.Services.AddScoped<IPaymentBenefitService>(sp => new PaymentBenefitService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<IGenericRepository<Customer>>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<ICountryStrategyContext>(),
+            sp.GetRequiredService<ITaxStrategyResolver>(),
+            sp.GetRequiredService<IPricingRuleResolver>(),
+            sp.GetRequiredService<ICountryTaxTypeRegistry>(),
+            sp.GetService<IChMwstEffectiveRates>()));
         builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
         builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();
