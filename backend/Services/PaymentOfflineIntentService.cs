@@ -1,26 +1,72 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
-public partial class PaymentService
+/// <summary>
+/// Queues a non-fiscal offline intent before the fiscal sale transaction starts.
+/// Owns its own SaveChanges. Voucher payloads are rejected.
+/// </summary>
+public interface IPaymentOfflineIntentService
 {
-    private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
-        DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
+    Task<PaymentResult> TryQueueServerNonFiscalOfflineAsync(
+        CreatePaymentRequest request,
+        string userId,
+        Guid resolvedCashRegisterId);
+}
 
+public sealed class PaymentOfflineIntentService : IPaymentOfflineIntentService
+{
     private static readonly JsonSerializerOptions OfflineIntentJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    private async Task<PaymentResult> TryQueueServerNonFiscalOfflineAsync(
+    private readonly AppDbContext _context;
+    private readonly ILogger _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly IDataProtectionProvider _dataProtectionProvider;
+    private readonly IOptions<OfflineVoucherEncryptionOptions> _offlineVoucherEncryption;
+    private readonly TseOptions _tseOptions;
+    private readonly IHostEnvironment? _hostEnvironment;
+    private readonly IDevelopmentModeService? _developmentModeService;
+    private readonly LicenseOptions? _licenseOptions;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
+
+    public PaymentOfflineIntentService(
+        AppDbContext context,
+        ILogger logger,
+        ISettingsTenantResolver settingsTenantResolver,
+        IDataProtectionProvider dataProtectionProvider,
+        IOptions<OfflineVoucherEncryptionOptions> offlineVoucherEncryption,
+        TseOptions tseOptions,
+        IHostEnvironment? hostEnvironment,
+        IDevelopmentModeService? developmentModeService,
+        LicenseOptions? licenseOptions,
+        ITenantLimitGuard? tenantLimitGuard)
+    {
+        _context = context;
+        _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
+        _dataProtectionProvider = dataProtectionProvider;
+        _offlineVoucherEncryption = offlineVoucherEncryption;
+        _tseOptions = tseOptions;
+        _hostEnvironment = hostEnvironment;
+        _developmentModeService = developmentModeService;
+        _licenseOptions = licenseOptions;
+        _tenantLimitGuard = tenantLimitGuard;
+    }
+
+    public async Task<PaymentResult> TryQueueServerNonFiscalOfflineAsync(
         CreatePaymentRequest request,
         string userId,
         Guid resolvedCashRegisterId)
