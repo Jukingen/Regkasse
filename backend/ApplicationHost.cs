@@ -1516,6 +1516,28 @@ internal static class ApplicationHost
                     payments.Value.LogPaymentAuditAsync(action, entityType, entityId, userId, amount, method, signature, description, response, correlation),
                 (storno, userId, provider, reason) => payments.Value.LogFiskalyCancellationAuditAsync(storno, userId, provider, reason));
         });
+        builder.Services.AddScoped<IPaymentRefundService>(sp =>
+        {
+            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            return new PaymentRefundService(
+                sp.GetRequiredService<AppDbContext>(),
+                sp.GetRequiredService<IGenericRepository<PaymentDetails>>(),
+                sp.GetRequiredService<IUserService>(),
+                sp.GetRequiredService<IReceiptService>(),
+                sp.GetRequiredService<ICompanyProfileProvider>(),
+                sp.GetRequiredService<ISettingsTenantResolver>(),
+                sp.GetRequiredService<ICountryStrategyContext>(),
+                sp.GetRequiredService<IOptions<InventoryOptions>>().Value,
+                sp.GetRequiredService<ITseService>(),
+                sp.GetRequiredService<IPaymentReversalApprovalService>(),
+                sp.GetRequiredService<ILogger<PaymentService>>(),
+                sp.GetService<ICardPaymentService>(),
+                (payment, ct) => payments.Value.PaymentBelongsToEffectiveTenantAsync(payment, ct),
+                (binding, tx, registerId, registerNumber) => payments.Value.AllocateCountryBelegNrAsync(binding, tx, registerId, registerNumber),
+                (tenantId, hook, paymentId, total, receipt) => payments.Value.RunPaymentHookAsync(tenantId, hook, paymentId, total, receipt),
+                (action, entityType, entityId, userId, amount, method, signature, description, response, correlation) =>
+                    payments.Value.LogPaymentAuditAsync(action, entityType, entityId, userId, amount, method, signature, description, response, correlation));
+        });
         builder.Services.AddScoped<IPaymentService>(sp => sp.GetRequiredService<PaymentService>());
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
         builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();
