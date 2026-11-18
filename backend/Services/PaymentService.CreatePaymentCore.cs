@@ -378,7 +378,7 @@ namespace KasseAPI_Final.Services
 
             var registerIdResolved = registerValidationSr.ResolvedRegisterId!.Value;
             var belegNr = request.OriginalReceiptNumber!.Trim();
-            var originalSale = await FindOriginalSalePaymentByReceiptNumberAsync(registerIdResolved, belegNr);
+            var originalSale = await _storno.FindOriginalSalePaymentByReceiptNumberAsync(registerIdResolved, belegNr);
             if (originalSale == null)
             {
                 return new PaymentResult
@@ -440,8 +440,8 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                var auditReason = FormatStornoReasonForAudit(request.StornoReason!.Value);
-                return await CreateStornoReversalAsync(
+                var auditReason = _storno.FormatStornoReasonForAudit(request.StornoReason!.Value);
+                return await _storno.CreateStornoReversalAsync(
                     originalSale,
                     auditReason,
                     userId,
