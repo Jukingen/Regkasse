@@ -66,6 +66,7 @@ internal static class PaymentServiceCoverageHarness
         public KasseAPI_Final.Services.Tickets.ITicketRedemptionService? Tickets { get; init; }
         public KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry? ExtensionRegistry { get; init; }
         public ITseHealthMonitor? TseHealth { get; init; }
+        public KasseAPI_Final.Services.Preorder.IPreorderService? Preorder { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -242,6 +243,7 @@ internal static class PaymentServiceCoverageHarness
             cardPaymentService: options.Card,
             featureFlags: options.FeatureFlags,
             tenantLimitGuard: options.TenantLimitGuard,
+            preorderService: options.Preorder,
             fiscalSignatureRouter: options.FiscalRouter,
             deSequenceService: options.DeSequence,
             chSequenceService: options.ChSequence,
