@@ -13,10 +13,12 @@ const users = JSON.parse(
 
 export const TABLES_TENANT = 'dev-gastronomy-tables';
 
-type PaymentSnapshot = {
+export type PaymentSnapshot = {
   receiptNumber: string;
   total: number;
   tax: number;
+  paymentId: string;
+  bodyText: string;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -46,7 +48,12 @@ export function readPaymentSnapshot(body: unknown): PaymentSnapshot | null {
   if (!receiptNumber) return null;
   const total = readNumber(payment?.totalAmount ?? payment?.TotalAmount ?? root.totalAmount);
   const tax = readNumber(payment?.taxAmount ?? payment?.TaxAmount ?? root.taxAmount);
-  return { receiptNumber, total, tax };
+  const paymentId =
+    readString(root.paymentId) ||
+    readString(root.PaymentId) ||
+    readString(payment?.id) ||
+    readString(payment?.Id);
+  return { receiptNumber, total, tax, paymentId, bodyText: JSON.stringify(body) };
 }
 
 export async function signInCashier(page: Page, slug = TABLES_TENANT): Promise<void> {

@@ -90,7 +90,7 @@ export default function CustomerSelectionSheet({
   const filteredList = listFilter.trim()
     ? listCustomers.filter(
         (e) =>
-          e.name.toLowerCase().includes(listFilter.toLowerCase()) ||
+          (e.name ?? '').toLowerCase().includes(listFilter.toLowerCase()) ||
           (e.customerNumber && e.customerNumber.includes(listFilter))
       )
     : listCustomers;

@@ -107,10 +107,15 @@ function optionalString(value: unknown): string | null {
 class CustomerService {
   private readonly baseUrl = '/Customer';
 
-  // Get all customers
+  // Get all customers. The list endpoint returns `{ items, pagination }`, not a bare array.
   async getAll(): Promise<Customer[]> {
-    const response = await apiClient.get<Customer[]>(`${this.baseUrl}`);
-    return response;
+    const response = await apiClient.get<unknown>(`${this.baseUrl}`);
+    const page = (response as { data?: unknown })?.data ?? response;
+    if (Array.isArray(page)) return page as Customer[];
+    if (page && typeof page === 'object' && Array.isArray((page as { items?: unknown }).items)) {
+      return (page as { items: Customer[] }).items;
+    }
+    return [];
   }
 
   // Get customer by ID

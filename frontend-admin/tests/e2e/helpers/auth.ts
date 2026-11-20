@@ -83,7 +83,18 @@ export async function loginAsAdmin(
     { timeout: 15_000 }
   );
 
-  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  // Login already navigates to the shell. A second goto races that navigation and
+  // Chromium aborts it with ERR_ABORTED once the first response commits.
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' }).catch(async (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('ERR_ABORTED')) throw error;
+  });
+  if (new URL(page.url()).pathname.startsWith('/login')) {
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'), {
+      timeout: 15_000,
+      waitUntil: 'domcontentloaded',
+    });
+  }
 }
 
 export async function expectAuthenticatedShell(page: Page) {
