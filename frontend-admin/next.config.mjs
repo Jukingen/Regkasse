@@ -169,6 +169,17 @@ const nextConfig = {
     webpackBuildWorker: true,
   },
   webpack: (config, { dev }) => {
+    // @sentry/react is hoisted to the repo root, next to React 19.2.3 (POS).
+    // This app's React is 19.3.1 under frontend-admin/node_modules. Prefer
+    // that copy so Sentry and the app share one React. Do not alias `react`:
+    // an alias skips the `react-server` export and breaks static prerender
+    // (dispatcher is null → useState throws).
+    const appNodeModules = path.resolve(__dirname, 'node_modules');
+    const modules = config.resolve.modules ?? ['node_modules'];
+    if (!modules.includes(appNodeModules)) {
+      config.resolve.modules = [appNodeModules, ...modules];
+    }
+
     if (dev) {
       config.parallelism = 2;
       // Persist webpack's module graph across restarts. A 2 GB heap OOM or a
