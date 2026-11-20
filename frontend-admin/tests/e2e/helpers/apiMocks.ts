@@ -117,6 +117,9 @@ const TENANT_ADMIN_ME = {
     'rksv.jahresbeleg.view',
     'product.view',
     'audit.view',
+    'payment.view',
+    'voucher.read',
+    'voucher.audit.view',
   ],
 };
 
