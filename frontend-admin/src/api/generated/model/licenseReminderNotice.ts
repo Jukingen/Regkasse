@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * In-app license reminder surfaced via `/api/health/license` and admin license status (populated by store, not KasseAPI_Final.Services.LicenseService).
+ */
 export interface LicenseReminderNotice {
   /** @nullable */
   code?: string | null;

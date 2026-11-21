@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Billing mandant key body for Manager activate/extend on `/api/license/*`.
+ */
 export interface MandantLicenseKeyRequest {
   /** @minLength 1 */
   licenseKey: string;

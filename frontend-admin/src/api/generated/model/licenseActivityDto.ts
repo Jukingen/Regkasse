@@ -6,12 +6,24 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Recent license lifecycle or activation event for dashboard activity feed.
+ */
 export interface LicenseActivityDto {
-  /** @nullable */
+  /**
+   * E.g. ACTIVATED, GENERATED, REVOKED.
+   * @nullable
+   */
   action?: string | null;
-  /** @nullable */
+  /**
+   * Masked REGK display key.
+   * @nullable
+   */
   licenseKey?: string | null;
-  /** @nullable */
+  /**
+   * Short machine fingerprint/hash when available.
+   * @nullable
+   */
   machineHash?: string | null;
   timestamp?: string;
   /** @nullable */

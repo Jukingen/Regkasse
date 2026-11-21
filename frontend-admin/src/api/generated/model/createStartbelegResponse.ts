@@ -9,7 +9,10 @@
 export interface CreateStartbelegResponse {
   invoiceId?: string;
   paymentId?: string;
-  /** @nullable */
+  /**
+   * RKSV QR payload line when signature present (same shape as receipt DTO).
+   * @nullable
+   */
   qrData?: string | null;
   receiptId?: string;
   /** @nullable */

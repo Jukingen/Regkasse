@@ -20,6 +20,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Look up employee by EmployeeNumber and return the linked Customer record used for benefit application.
+Mapping: ApplicationUser (by EmployeeNumber) -> Customer where ApplicationUserId == user.Id (explicit FK).
+ */
 export const getApiEmployeeByNumberEmployeeNumber = (
     employeeNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -59,6 +63,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiEmployeeByNumberEmployeeNumberQueryResult = NonNullable<Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>>
 export type GetApiEmployeeByNumberEmployeeNumberQueryError = unknown
 
+/**
+ * @summary Look up employee by EmployeeNumber and return the linked Customer record used for benefit application.
+Mapping: ApplicationUser (by EmployeeNumber) -> Customer where ApplicationUserId == user.Id (explicit FK).
+ */
 export const useGetApiEmployeeByNumberEmployeeNumber = <TData = Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>, TError = unknown>(
  employeeNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -75,6 +83,9 @@ export const useGetApiEmployeeByNumberEmployeeNumber = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary List active employees that have a linked Customer (benefit identity). For POS "Aus Liste wählen".
+ */
 export const getApiEmployeeList = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -114,6 +125,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiEmployeeListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiEmployeeList>>>
 export type GetApiEmployeeListQueryError = unknown
 
+/**
+ * @summary List active employees that have a linked Customer (benefit identity). For POS "Aus Liste wählen".
+ */
 export const useGetApiEmployeeList = <TData = Awaited<ReturnType<typeof getApiEmployeeList>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

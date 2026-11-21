@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Payment-method amounts for RKSV daily closing reports.
+ */
 export interface PaymentBreakdown {
   card?: number;
   cash?: number;

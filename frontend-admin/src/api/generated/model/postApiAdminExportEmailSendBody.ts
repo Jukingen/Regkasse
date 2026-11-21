@@ -10,7 +10,9 @@ export type PostApiAdminExportEmailSendBody = {
   file?: Blob;
   /** @maxLength 4000 */
   Message?: string;
+  /** Force link delivery even when under attachment size cap. */
   PreferLink?: boolean;
+  /** When set in the future (UTC), queue for scheduled delivery instead of sending now. */
   ScheduledForUtc?: string;
   SourceId?: string;
   /** @maxLength 64 */

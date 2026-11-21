@@ -6,9 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Lightweight current compliance posture (rolling lookback).
+ */
 export interface TseComplianceStatusDto {
   chainBreakCount?: number;
   checkedAt?: string;
+  /** 0–100 audit-readiness score derived from issues and coverage. */
   complianceScore?: number;
   isFullyCompliant?: boolean;
   lookbackEnd?: string;

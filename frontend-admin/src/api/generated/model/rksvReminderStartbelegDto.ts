@@ -8,6 +8,9 @@
 
 export interface RksvReminderStartbelegDto {
   isRequired: boolean;
-  /** @nullable */
+  /**
+   * missing = cash register StartbelegCreatedAt unset; present = timestamp recorded after Startbeleg issuance.
+   * @nullable
+   */
   status: string | null;
 }

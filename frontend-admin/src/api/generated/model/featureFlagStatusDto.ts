@@ -5,6 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { FeatureFlagTenantOverrideDto } from './featureFlagTenantOverrideDto';
 
 export interface FeatureFlagStatusDto {
   configDefault?: boolean;
@@ -13,8 +14,17 @@ export interface FeatureFlagStatusDto {
   name?: string | null;
   /** @nullable */
   overrideValue?: boolean | null;
-  /** @nullable */
+  /**
+   * One of KasseAPI_Final.Services.FeatureFlags.FeatureFlagSources:
+`config`, `global_override`, `tenant_override`, `country_profile`, `locked`.
+   * @nullable
+   */
   source?: string | null;
   /** @nullable */
   tenantId?: string | null;
+  /**
+   * Every mandant row for this flag. Global listing includes these even when KasseAPI_Final.Services.FeatureFlags.FeatureFlagStatusDto.TenantId is omitted.
+   * @nullable
+   */
+  tenantOverrides?: FeatureFlagTenantOverrideDto[] | null;
 }

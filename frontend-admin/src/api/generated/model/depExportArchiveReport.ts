@@ -7,10 +7,16 @@
  */
 import type { DepExportArchiveSummaryItem } from './depExportArchiveSummaryItem';
 
+/**
+ * Tenant aggregate of DEP export archive state.
+ */
 export interface DepExportArchiveReport {
   archivedCount?: number;
   generatedAtUtc?: string;
-  /** @nullable */
+  /**
+   * Oldest `ExportedAt` among active archived exports.
+   * @nullable
+   */
   oldestArchivedExportAt?: string | null;
   pendingArchiveCount?: number;
   purgedCount?: number;
@@ -18,6 +24,7 @@ export interface DepExportArchiveReport {
   recent?: DepExportArchiveSummaryItem[] | null;
   retentionYears?: number;
   tenantId?: string;
+  /** Sum of KasseAPI_Final.DTOs.DepExportArchiveSummaryItem.FileSizeBytes for active (non-purged) archives. */
   totalArchivedSizeBytes?: number;
   totalCompletedExports?: number;
 }

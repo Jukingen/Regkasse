@@ -7,6 +7,10 @@
  */
 import type { DataRequestType } from './dataRequestType';
 
+/**
+ * In-memory / API projection of a GDPR data-access request
+(persisted as KasseAPI_Final.Models.TenantDataRightsRequest).
+ */
 export interface DataAccessRequest {
   /** @nullable */
   approvedAt?: string | null;

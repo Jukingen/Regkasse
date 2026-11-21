@@ -7,6 +7,9 @@
  */
 import type { CartItem } from './cartItem';
 
+/**
+ * Phase 2 deprecated: persisted modifier per cart line. Read-only for existing carts; new add-ons are separate CartItem lines. Keep until historical carts are gone.
+ */
 export interface CartItemModifier {
   cartItem?: CartItem;
   cartItemId: string;

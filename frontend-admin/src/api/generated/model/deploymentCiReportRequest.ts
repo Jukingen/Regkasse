@@ -23,7 +23,10 @@ export interface DeploymentCiReportRequest {
   smokePassed?: boolean | null;
   /** @nullable */
   smokeSummary?: string | null;
-  /** @nullable */
+  /**
+   * Optional canary soak hours when recording per-tenant history (default from config).
+   * @nullable
+   */
   soakHours?: number | null;
   /**
    * @minLength 1

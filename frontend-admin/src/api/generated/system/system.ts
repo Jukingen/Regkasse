@@ -29,6 +29,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Public read model for persisted development-mode toggles (POS + FA badge). No authentication required.
+ */
 export const getApiSystemDevelopmentMode = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -68,6 +71,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSystemDevelopmentModeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>>
 export type GetApiSystemDevelopmentModeQueryError = unknown
 
+/**
+ * @summary Public read model for persisted development-mode toggles (POS + FA badge). No authentication required.
+ */
 export const useGetApiSystemDevelopmentMode = <TData = Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -84,6 +90,9 @@ export const useGetApiSystemDevelopmentMode = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Current system vs NTP drift snapshot for DEP readiness checks.
+ */
 export const getApiSystemTimeStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -123,6 +132,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSystemTimeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSystemTimeStatus>>>
 export type GetApiSystemTimeStatusQueryError = unknown
 
+/**
+ * @summary Current system vs NTP drift snapshot for DEP readiness checks.
+ */
 export const useGetApiSystemTimeStatus = <TData = Awaited<ReturnType<typeof getApiSystemTimeStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemTimeStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -139,6 +151,9 @@ export const useGetApiSystemTimeStatus = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Forces one NTP sampling cycle even when auto-sync is disabled.
+ */
 export const postApiSystemTimeSync = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -175,7 +190,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiSystemTimeSyncMutationError = unknown
 
-    export const usePostApiSystemTimeSync = <TError = unknown,
+    /**
+ * @summary Forces one NTP sampling cycle even when auto-sync is disabled.
+ */
+export const usePostApiSystemTimeSync = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSystemTimeSync>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiSystemTimeSync>>,

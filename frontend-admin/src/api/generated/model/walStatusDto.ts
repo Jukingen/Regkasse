@@ -7,6 +7,9 @@
  */
 import type { WalArchiveHealthLevel } from './walArchiveHealthLevel';
 
+/**
+ * Read-only WAL archival health. Segment names are file names only — never paths, bytes, or secrets.
+ */
 export interface WalStatusDto {
   archivedCountLast24h?: number;
   failedCountLast24h?: number;

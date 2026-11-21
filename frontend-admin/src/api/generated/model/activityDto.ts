@@ -8,6 +8,9 @@
 import type { ActivityDtoMetadata } from './activityDtoMetadata';
 import type { ActivityEventType } from './activityEventType';
 
+/**
+ * Activity feed item returned by `GET /api/admin/activities`.
+ */
 export interface ActivityDto {
   /** @nullable */
   actorName?: string | null;

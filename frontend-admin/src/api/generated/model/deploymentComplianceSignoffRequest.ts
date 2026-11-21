@@ -29,6 +29,9 @@ export interface DeploymentComplianceSignoffRequest {
    * @nullable
    */
   stage?: string | null;
-  /** @nullable */
+  /**
+   * Hours until sign-off expires (default 72).
+   * @nullable
+   */
   validHours?: number | null;
 }

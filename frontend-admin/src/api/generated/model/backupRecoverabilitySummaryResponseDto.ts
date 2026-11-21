@@ -8,34 +8,72 @@
 import type { RestoreVerificationStatus } from './restoreVerificationStatus';
 import type { BackupRunStatus } from './backupRunStatus';
 
+/**
+ * DR / recoverability proof özeti: en son yedek <em>istemi</em> ile son <em>başarılı kanıt</em> yüzeyleri ayrı.
+REST: `GET /api/admin/backup/recoverability-summary` (camelCase JSON).
+ */
 export interface BackupRecoverabilitySummaryResponseDto {
-  /** @nullable */
+  /**
+   * Same values as latest status KasseAPI_Final.DTOs.BackupConfigurationHealthResponseDto.BackupExecutionReality for DR dashboard context.
+   * @nullable
+   */
   backupExecutionReality?: string | null;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.BackupRecoverabilitySummaryResponseDto.LastSuccessfulBackupAt yaşı; UTC şimdi − kanıt.
+   * @nullable
+   */
   backupProofAgeSeconds?: number | null;
-  /** @nullable */
+  /**
+   * Healthy / Degraded / Unhealthy — mirrors backup engine readiness.
+   * @nullable
+   */
   backupReadinessLevel?: string | null;
-  /** @nullable */
+  /**
+   * English operator narrative (complements admin issues list).
+   * @nullable
+   */
   backupReadinessNarrative?: string | null;
-  /** @nullable */
+  /**
+   * Son geçen artifact (checksum/staging) doğrulaması zamanı.
+   * @nullable
+   */
   lastSuccessfulArtifactVerificationAt?: string | null;
-  /** @nullable */
+  /**
+   * Terminal başarılı yedek: `CompletedAt` (veya eksikse `RequestedAt`) sıralaması.
+   * @nullable
+   */
   lastSuccessfulBackupAt?: string | null;
   /** @nullable */
   lastSuccessfulBackupRunId?: string | null;
-  /** @nullable */
+  /**
+   * Son başarılı yedek çalıştırması Fake/ProductionStub ise true; başarılı yedek yoksa null. Üretim pg_dump DR kanıtı sayılmaz.
+   * @nullable
+   */
   lastSuccessfulBackupRunIsSimulatedExecution?: boolean | null;
-  /** @nullable */
+  /**
+   * Zamanlanmış restore drill terminal başarısı `CompletedAt` (manuel tetiklenen başarılar dahil değil).
+   * @nullable
+   */
   lastSuccessfulRestoreProofAt?: string | null;
   /** @nullable */
   lastSuccessfulRestoreProofRunId?: string | null;
-  /** @nullable */
+  /**
+   * En son restore verification isteği.
+   * @nullable
+   */
   latestRestoreRunAt?: string | null;
   latestRestoreRunStatus?: RestoreVerificationStatus;
-  /** @nullable */
+  /**
+   * En son kuyruğa alınan yedek isteği (`RequestedAt`).
+   * @nullable
+   */
   latestRunAt?: string | null;
   latestRunStatus?: BackupRunStatus;
+  /** True when worker is configured for real `pg_dump -Fc` logical backups. */
   realPostgreSqlLogicalDumpConfigured?: boolean;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.BackupRecoverabilitySummaryResponseDto.LastSuccessfulRestoreProofAt yaşı (yalnızca zamanlanmış başarılı kanıt).
+   * @nullable
+   */
   restoreProofAgeSeconds?: number | null;
 }

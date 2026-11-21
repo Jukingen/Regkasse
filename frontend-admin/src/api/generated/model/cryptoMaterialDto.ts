@@ -8,6 +8,9 @@
 import type { CertificateInfoDto } from './certificateInfoDto';
 import type { CryptoMaterialDtoTurnoverCounters } from './cryptoMaterialDtoTurnoverCounters';
 
+/**
+ * Cryptographic material for DEP export Prüftool testing (internal admin API shape).
+ */
 export interface CryptoMaterialDto {
   /** @nullable */
   aesKeyBase64?: string | null;

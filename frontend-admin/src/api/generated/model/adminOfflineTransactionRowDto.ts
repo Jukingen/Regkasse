@@ -7,20 +7,30 @@
  */
 
 export interface AdminOfflineTransactionRowDto {
+  /** Gross total from stored payload (hint). */
   amount?: number;
   cashRegisterId?: string;
-  /** @nullable */
+  /**
+   * Human-readable register label (number + location).
+   * @nullable
+   */
   cashRegisterLabel?: string | null;
   id?: string;
   /** @nullable */
   lastErrorCode?: string | null;
   /** @nullable */
   lastErrorMessageSafe?: string | null;
-  /** @nullable */
+  /**
+   * Normalized payment method from payload: cash, card, voucher, or unknown.
+   * @nullable
+   */
   paymentMethod?: string | null;
   retryCount?: number;
   serverReceivedAtUtc?: string;
-  /** @nullable */
+  /**
+   * Raw KasseAPI_Final.Models.OfflineTransactionStatus name.
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   syncedPaymentId?: string | null;

@@ -6,6 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Standardized audit event types. Every event includes: actor, target, timestamp, actionType.
+USER_UPDATED must include structured changes; USER_ROLE_CHANGED must include role diff in changes.
+Backing values preserved for existing logs (safe migration).
+ */
 export type AuditEventType = typeof AuditEventType[keyof typeof AuditEventType];
 
 
@@ -163,4 +168,5 @@ export const AuditEventType = {
   RestoreDrillPdfDownloaded: 151,
   TenantDemoSeeded: 152,
   TenantDemoSeedPartial: 153,
+  MonatsbelegReissued: 154,
 } as const;

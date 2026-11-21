@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for POST /api/admin/fiscal-export/generate (same semantics as GET query parameters).
+ */
 export interface FiscalExportGenerateRequestDto {
   cashRegisterId?: string;
   /** @nullable */

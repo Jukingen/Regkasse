@@ -7,5 +7,8 @@
  */
 
 export type PostApiRksvSpecialReceiptsMonatsbelegParams = {
+/**
+ * Admin override: allow creation for a past Vienna calendar month.
+ */
 force?: boolean;
 };

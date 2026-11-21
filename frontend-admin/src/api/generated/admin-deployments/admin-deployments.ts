@@ -31,6 +31,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary CI compliance gate check. Auth via deploy token (same as ci-report).
+ */
 export const getApiWebhooksDeploymentsComplianceGate = (
     params?: GetApiWebhooksDeploymentsComplianceGateParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -71,6 +74,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiWebhooksDeploymentsComplianceGateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>>
 export type GetApiWebhooksDeploymentsComplianceGateQueryError = ProblemDetails
 
+/**
+ * @summary CI compliance gate check. Auth via deploy token (same as ci-report).
+ */
 export const useGetApiWebhooksDeploymentsComplianceGate = <TData = Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>, TError = ProblemDetails>(
  params?: GetApiWebhooksDeploymentsComplianceGateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -87,6 +93,10 @@ export const useGetApiWebhooksDeploymentsComplianceGate = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary CI status webhook. Auth via `Deployment:StatusReportToken`.
+Also records per-tenant history and immutable audit events.
+ */
 export const postApiWebhooksDeploymentsCiReport = (
     deploymentCiReportRequest: DeploymentCiReportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -125,7 +135,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiWebhooksDeploymentsCiReportMutationBody = DeploymentCiReportRequest
     export type PostApiWebhooksDeploymentsCiReportMutationError = ProblemDetails
 
-    export const usePostApiWebhooksDeploymentsCiReport = <TError = ProblemDetails,
+    /**
+ * @summary CI status webhook. Auth via `Deployment:StatusReportToken`.
+Also records per-tenant history and immutable audit events.
+ */
+export const usePostApiWebhooksDeploymentsCiReport = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiWebhooksDeploymentsCiReport>>, TError,{data: DeploymentCiReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiWebhooksDeploymentsCiReport>>,

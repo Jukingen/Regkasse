@@ -6,9 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV Jahresbeleg (annual zero signed receipt; Vienna calendar year).
+ */
 export interface CreateJahresbelegRequest {
   cashRegisterId: string;
   /**
+   * Optional note when issuing before year-end (stored in payment notes; not legal advice).
    * @maxLength 450
    * @nullable
    */
@@ -19,6 +23,7 @@ export interface CreateJahresbelegRequest {
    */
   reason?: string | null;
   /**
+   * Vienna calendar year (server allows current year or the immediately preceding year).
    * @minimum 2000
    * @maximum 2100
    */

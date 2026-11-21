@@ -31,7 +31,10 @@ export interface TenantCustomizationDto {
   tenantId?: string;
   /** @nullable */
   textColor?: string | null;
-  /** @nullable */
+  /**
+   * `website` or `app` (sketch field name: Type).
+   * @nullable
+   */
   type?: string | null;
   updatedAt?: string;
 }

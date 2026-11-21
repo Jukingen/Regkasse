@@ -7,6 +7,9 @@
  */
 import type { LicenseSale } from './licenseSale';
 
+/**
+ * SaaS tenant root. Wave 0–1: single seeded legacy row; no membership model yet.
+ */
 export interface Tenant {
   /** @nullable */
   address?: string | null;
@@ -17,9 +20,16 @@ export interface Tenant {
    */
   createdBy?: string | null;
   currentLicenseSale?: LicenseSale;
-  /** @nullable */
+  /**
+   * Active Mandanten billing sale row when provisioned via Super Admin license sales.
+   * @nullable
+   */
   currentLicenseSaleId?: string | null;
-  /** @nullable */
+  /**
+   * When set, non-RKSV customer/business data was purged after a deletion request.
+Fiscal/RKSV rows (receipts, payments, DEP-related) remain for legal retention.
+   * @nullable
+   */
   customerDataPurgedAtUtc?: string | null;
   /** @nullable */
   deletedAtUtc?: string | null;
@@ -34,9 +44,13 @@ export interface Tenant {
    */
   email?: string | null;
   id?: string;
-  /** @nullable */
+  /**
+   * JSON customizations for industry template slots (optional).
+   * @nullable
+   */
   industryTemplateCustomizations?: string | null;
   /**
+   * Industry onboarding template id (restaurant|retail|hotel) or null.
    * @maxLength 32
    * @nullable
    */
@@ -45,8 +59,12 @@ export interface Tenant {
   /** @nullable */
   lastLicenseActivationUtc?: string | null;
   licenseActivationCount?: number;
-  /** @nullable */
+  /**
+   * UTC instant when the post-expiry grace window started (set on first day after expiry).
+   * @nullable
+   */
   licenseGracePeriodStartedAt?: string | null;
+  /** Consumed grace days for renewal deduction and reporting. */
   licenseGracePeriodUsedDays?: number;
   /**
    * @maxLength 100
@@ -67,6 +85,8 @@ export interface Tenant {
    */
   name: string;
   /**
+   * Operational mode (KasseAPI_Final.Models.TenantOperationModes): active / readonly / maintenance.
+Orthogonal to lifecycle KasseAPI_Final.Models.Tenant.Status.
    * @minLength 1
    * @maxLength 20
    */
@@ -77,41 +97,61 @@ export interface Tenant {
    */
   phone?: string | null;
   /**
+   * Stable external key (e.g. `default` for legacy single-tenant deployments).
    * @minLength 1
    * @maxLength 64
    */
   slug: string;
   /**
+   * Lifecycle status (KasseAPI_Final.Models.TenantStatuses / KasseAPI_Final.Models.Enums.TenantStatus).
+Default for seeded operational tenants is Active; new onboarding creates InOnboarding.
    * @minLength 1
    * @maxLength 20
    */
   status: string;
   /** @nullable */
   trialConvertedAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * UTC when expired trial was soft-archived by cleanup (not a fiscal hard-delete).
+   * @nullable
+   */
   trialDeletedAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * UTC when SaaS trial ends (synced to KasseAPI_Final.Models.Tenant.LicenseValidUntilUtc while trial is open).
+   * @nullable
+   */
   trialEndsAtUtc?: string | null;
   /** @nullable */
   trialGracePeriodEndsAtUtc?: string | null;
   trialReminder1dSent?: boolean;
   trialReminder3dSent?: boolean;
   trialReminder7dSent?: boolean;
-  /** @nullable */
+  /**
+   * UTC when SaaS trial started (null when never trialled).
+   * @nullable
+   */
   trialStartedAtUtc?: string | null;
   /**
+   * Trial lifecycle (KasseAPI_Final.Models.TrialStatuses): active / expired / converted / deleted.
+Null when the tenant was never placed on a managed trial.
    * @maxLength 20
    * @nullable
    */
   trialStatus?: string | null;
-  /** @nullable */
+  /**
+   * UTC when Fiskaly SCU or Soft-TSE fallback was last stamped on this tenant.
+   * @nullable
+   */
   tseProvisionedAtUtc?: string | null;
   /**
+   * Fiskaly SIGN AT Signature Creation Unit id (German TSS analog). UUIDv4, not a REGK-slug id.
+Null when Soft / Fake / pending TSE is used.
    * @maxLength 64
    * @nullable
    */
   tseScuId?: string | null;
   /**
+   * TSE provisioning outcome (KasseAPI_Final.Models.TenantTseStatuses).
    * @maxLength 32
    * @nullable
    */

@@ -7,6 +7,9 @@
  */
 
 export interface UpdatePaymentGatewaySettingsRequestDto {
-  /** @nullable */
+  /**
+   * Allowed: card, paypal, bank, cash, online.
+   * @nullable
+   */
   onlinePaymentMethods?: string[] | null;
 }

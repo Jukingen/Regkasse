@@ -138,7 +138,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiUserSettingsBootstrap = (
+    /**
+ * @summary Ensures a KasseAPI_Final.Models.UserSettings row exists and applies sole-operational-register auto-assignment when eligible.
+Prefer after login or before relying on persisted `CashRegisterId`; M:KasseAPI_Final.Controllers.UserSettingsController.GetUserSettings does not run this.
+ */
+export const postApiUserSettingsBootstrap = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -174,7 +178,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiUserSettingsBootstrapMutationError = unknown
 
-    export const usePostApiUserSettingsBootstrap = <TError = unknown,
+    /**
+ * @summary Ensures a KasseAPI_Final.Models.UserSettings row exists and applies sole-operational-register auto-assignment when eligible.
+Prefer after login or before relying on persisted `CashRegisterId`; M:KasseAPI_Final.Controllers.UserSettingsController.GetUserSettings does not run this.
+ */
+export const usePostApiUserSettingsBootstrap = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>,

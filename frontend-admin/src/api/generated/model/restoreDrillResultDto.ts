@@ -7,9 +7,14 @@
  */
 import type { RestoreVerificationRunResponseDto } from './restoreVerificationRunResponseDto';
 
+/**
+ * Alias response for restore-verification trigger.
+Drill work is async (hosted orchestrator); KasseAPI_Final.DTOs.RestoreDrillResultDto.Success / KasseAPI_Final.DTOs.RestoreDrillResultDto.Status reflect enqueue outcome unless the run already completed.
+ */
 export interface RestoreDrillResultDto {
   /** @nullable */
   aliasOf?: string | null;
+  /** Run completedAt when terminal; otherwise requestedAt (enqueue time). */
   completedAt?: string;
   /** @nullable */
   errors?: string[] | null;
@@ -21,7 +26,11 @@ export interface RestoreDrillResultDto {
   runId?: string;
   /** @nullable */
   sourceBackupRunId?: string | null;
-  /** @nullable */
+  /**
+   * Restore verification run status (Queued/Running/Succeeded/Failed/…).
+   * @nullable
+   */
   status?: string | null;
+  /** True when enqueue accepted (new or existing active/idempotent run returned without HTTP error). */
   success?: boolean;
 }

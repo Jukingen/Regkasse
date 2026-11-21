@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Per-tenant acknowledgement stored at `tenant_settings` key `Backup:KnownGapsAccepted`.
+This is not a compliance pass.
+ */
 export interface BackupKnownGapAcceptanceDto {
   /** @nullable */
   acceptedAtUtc?: string | null;

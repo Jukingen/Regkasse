@@ -7,5 +7,6 @@
  */
 
 export interface ExtendTrialRequest {
+  /** Days to add from now or from current trial end (whichever is later). */
   additionalDays?: number;
 }

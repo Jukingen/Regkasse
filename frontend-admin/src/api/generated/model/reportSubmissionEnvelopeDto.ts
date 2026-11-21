@@ -39,7 +39,10 @@ export interface ReportSubmissionEnvelopeDto {
   state?: ReportSubmissionStateDto;
   /** @nullable */
   submissionState?: string | null;
-  /** @nullable */
+  /**
+   * Operator-facing DE: report lifecycle vs FinanzOnline submission (orthogonal).
+   * @nullable
+   */
   submissionVersusReportNoteDe?: string | null;
   /** @nullable */
   supersededByReportReference?: string | null;

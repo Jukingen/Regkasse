@@ -15,6 +15,7 @@ export interface SignaturkarteProgramStatusDto {
   /** @nullable */
   displayName?: string | null;
   enabled?: boolean;
+  /** True when countdown refers to certificate ExpiresAt — always false here (program deadline). */
   isCertificateExpiry?: boolean;
   /** @nullable */
   milestonesNext?: number | null;

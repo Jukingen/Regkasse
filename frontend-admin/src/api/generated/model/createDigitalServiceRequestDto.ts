@@ -9,6 +9,9 @@
 export interface CreateDigitalServiceRequestDto {
   /** @nullable */
   note?: string | null;
-  /** @nullable */
+  /**
+   * `website` or `app`.
+   * @nullable
+   */
   serviceType?: string | null;
 }

@@ -9,7 +9,10 @@
 export interface UpdateCashRegisterConfigRequest {
   /** @nullable */
   autoPrintReceipts?: boolean | null;
-  /** @nullable */
+  /**
+   * Cash register row id (GUID string) assigned to the user for POS / payment scope.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   /** @nullable */
   defaultTaxRate?: number | null;

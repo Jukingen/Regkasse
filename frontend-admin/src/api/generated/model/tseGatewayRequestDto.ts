@@ -9,7 +9,10 @@
 export interface TseGatewayRequestDto {
   /** @nullable */
   correlationId?: string | null;
-  /** @nullable */
+  /**
+   * Only `HealthProbe` is supported (no fiscal Sign).
+   * @nullable
+   */
   operation?: string | null;
   /** @nullable */
   preferredProvider?: string | null;

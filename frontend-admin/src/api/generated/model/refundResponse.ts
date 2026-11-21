@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin refund response for POST /api/admin/payments/{id}/refund.
+ */
 export interface RefundResponse {
   /**
    * @deprecated

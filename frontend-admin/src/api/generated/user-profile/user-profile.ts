@@ -135,7 +135,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const patchApiUserProfileUsername = (
+    /**
+ * @summary Self-service login username change. Audited; invalidates active sessions.
+ */
+export const patchApiUserProfileUsername = (
     updateUsernameRequest: UpdateUsernameRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -173,7 +176,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiUserProfileUsernameMutationBody = UpdateUsernameRequest
     export type PatchApiUserProfileUsernameMutationError = unknown
 
-    export const usePatchApiUserProfileUsername = <TError = unknown,
+    /**
+ * @summary Self-service login username change. Audited; invalidates active sessions.
+ */
+export const usePatchApiUserProfileUsername = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiUserProfileUsername>>, TError,{data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiUserProfileUsername>>,

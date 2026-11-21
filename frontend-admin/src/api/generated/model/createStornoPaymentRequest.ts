@@ -8,6 +8,10 @@
 import type { PaymentMethodRequest } from './paymentMethodRequest';
 import type { StornoReason } from './stornoReason';
 
+/**
+ * Dedicated POS full-receipt storno body for `POST /api/pos/payment/storno`.
+Items are not required; server derives reversal lines from the original sale.
+ */
 export interface CreateStornoPaymentRequest {
   cashRegisterId: string;
   customerId: string;

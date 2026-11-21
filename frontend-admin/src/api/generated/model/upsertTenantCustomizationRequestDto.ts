@@ -31,6 +31,9 @@ export interface UpsertTenantCustomizationRequestDto {
   tenantId?: string | null;
   /** @nullable */
   textColor?: string | null;
-  /** @nullable */
+  /**
+   * `website` or `app`.
+   * @nullable
+   */
   type?: string | null;
 }

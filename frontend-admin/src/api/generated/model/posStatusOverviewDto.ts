@@ -11,6 +11,9 @@ import type { LicensePublicStatusDto } from './licensePublicStatusDto';
 import type { RksvEnvironmentStatusDto } from './rksvEnvironmentStatusDto';
 import type { PosStatusSettingsSnapshotDto } from './posStatusSettingsSnapshotDto';
 
+/**
+ * Combined POS bootstrap snapshot from `GET /api/pos/status/overview`.
+ */
 export interface PosStatusOverviewDto {
   cashRegister?: PosCashRegisterContextDto;
   healthLicense?: PosStatusLicenseHealthDto;

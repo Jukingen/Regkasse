@@ -8,6 +8,7 @@
 
 export interface CreateRoleRequest {
   /**
+   * Optional source role; permissions are copied to the new custom role.
    * @maxLength 64
    * @nullable
    */

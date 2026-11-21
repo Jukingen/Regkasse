@@ -6,19 +6,27 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One-off override for a calendar date (holidays, early close). Stored inside
+KasseAPI_Final.Models.WorkingHoursSettings.SpecialDays JSON on company settings.
+ */
 export interface WorkingHoursSpecialDay {
   /**
+   * Optional close time (`HH:mm`) when not fully closed.
    * @maxLength 5
    * @nullable
    */
   closeTime?: string | null;
   /**
+   * Local calendar date as `yyyy-MM-dd`.
    * @minLength 1
    * @maxLength 10
    */
   date: string;
+  /** When true, the restaurant is closed for the whole day. */
   isClosed?: boolean;
   /**
+   * Optional open time (`HH:mm`) when not fully closed.
    * @maxLength 5
    * @nullable
    */

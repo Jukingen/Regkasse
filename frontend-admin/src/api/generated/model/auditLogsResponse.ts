@@ -7,6 +7,9 @@
  */
 import type { AuditLogEntryDto } from './auditLogEntryDto';
 
+/**
+ * Audit log list API envelope (keyset or offset pagination).
+ */
 export interface AuditLogsResponse {
   /** @nullable */
   auditLogs?: AuditLogEntryDto[] | null;

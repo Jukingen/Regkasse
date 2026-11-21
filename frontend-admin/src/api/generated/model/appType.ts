@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One-click mobile app packaging mode.
+ */
 export type AppType = typeof AppType[keyof typeof AppType];
 
 

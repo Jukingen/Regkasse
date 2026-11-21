@@ -13,8 +13,10 @@ import type { StornoReason } from './stornoReason';
 import type { VatRegime } from './vatRegime';
 
 export interface PaymentDetails {
+  /** Immutable snapshot of customer benefits applied at payment time (e.g. percentage discount, free allowance). Null when no benefits applied. */
   appliedBenefitsSnapshot?: unknown;
   /**
+   * Sprint 6: Client-provided idempotency key for cancel operation. When set, retries with same key return this cancelled payment.
    * @maxLength 64
    * @nullable
    */
@@ -24,23 +26,37 @@ export interface PaymentDetails {
   /** @nullable */
   cancelledAt?: string | null;
   /**
+   * Cash tendered by the customer. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.
+   * @nullable
+   */
+  cashGiven?: number | null;
+  /**
    * @minLength 1
    * @maxLength 100
    */
   cashierId: string;
   cashRegister?: CashRegister;
+  /** FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber. */
   cashRegisterId: string;
   /**
+   * SHA-1 thumbprint of the TSE signing certificate used for KasseAPI_Final.Models.PaymentDetails.TseSignature (DEP grouping).
    * @maxLength 64
    * @nullable
    */
   certificateThumbprint?: string | null;
   /**
+   * Change returned on a cash sale. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.
+   * @nullable
+   */
+  changeDue?: number | null;
+  /**
+   * RKSV §8 snapshot: Sitz der gewerblichen Betriebsstätte at payment time (from KasseAPI_Final.Models.CompanySettings).
    * @maxLength 200
    * @nullable
    */
   companyAddress?: string | null;
   /**
+   * RKSV §8 snapshot: Unternehmensbezeichnung at payment time (from KasseAPI_Final.Models.CompanySettings).
    * @maxLength 100
    * @nullable
    */
@@ -51,6 +67,7 @@ export interface PaymentDetails {
    */
   correlationId?: string | null;
   /**
+   * ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.
    * @maxLength 2
    * @nullable
    */
@@ -79,22 +96,37 @@ export interface PaymentDetails {
   finanzOnlineReferenceId?: string | null;
   finanzOnlineRetryCount?: number;
   /**
+   * Derived FinanzOnline submit snapshot (post-payment enqueue/retry). NotSent / Pending / Submitted / Failed / NeedsReconciliation.
+Authoritative BMF submission lifecycle for invoices is `finanz_online_outbox_messages` (admin: GET /api/admin/finanzonline-outbox).
    * @maxLength 30
    * @nullable
    */
   finanzOnlineStatus?: string | null;
   id?: string;
   /**
+   * Client-provided idempotency key for this payment attempt. Unique per key; used to avoid duplicate payments on retry.
    * @maxLength 64
    * @nullable
    */
   idempotencyKey?: string | null;
-  /** @nullable */
+  /**
+   * The month/year (period end) this Sonderbeleg covers — Vienna calendar anchor, not the signing time.
+Monatsbeleg: last day of KasseAPI_Final.Models.PaymentDetails.RksvSpecialReceiptYear/KasseAPI_Final.Models.PaymentDetails.RksvSpecialReceiptMonth.
+Jahresbeleg: December 31 of KasseAPI_Final.Models.PaymentDetails.RksvSpecialReceiptYear.
+Does not affect KasseAPI_Final.Models.BaseEntity.CreatedAt or TSE signing time.
+   * @nullable
+   */
   intendedPeriodDate?: string | null;
   isActive?: boolean;
+  /** True when a Monatsbeleg was created after the legal deadline for its target period had passed
+(nachträglich / verspätet). This does NOT backdate the receipt: KasseAPI_Final.Models.BaseEntity.CreatedAt
+and KasseAPI_Final.Models.PaymentDetails.TseTimestamp remain the real signing time. The covered period is carried by
+KasseAPI_Final.Models.PaymentDetails.RksvSpecialReceiptYear / KasseAPI_Final.Models.PaymentDetails.RksvSpecialReceiptMonth. Used for transparent
+compliance reporting during a Betriebsprüfung. */
   isLateCreated?: boolean;
   isPrinted?: boolean;
   isRefund?: boolean;
+  /** True when this row is a storno (cancellation reversal). Original payment is never modified; this reversal references it via OriginalPaymentId. */
   isStorno?: boolean;
   /** @nullable */
   jwsHeader?: string | null;
@@ -103,20 +135,31 @@ export interface PaymentDetails {
   /** @nullable */
   jwsSignature?: string | null;
   /**
+   * Operator-provided reason documenting why a late (nachträglich) Monatsbeleg was created; null for on-time receipts.
    * @maxLength 500
    * @nullable
    */
   lateCreationReason?: string | null;
   /** @nullable */
   notes?: string | null;
-  /** @nullable */
+  /**
+   * Server-generated id for one POST /replay batch; links payment/receipt audits to the same offline replay operation.
+   * @nullable
+   */
   offlineReplayBatchCorrelationId?: string | null;
   offlineTransaction?: OfflineTransaction;
-  /** @nullable */
+  /**
+   * When the payment was created from a controlled offline intent,
+this links the canonical fiscal PaymentDetails to the original OfflineTransaction.
+   * @nullable
+   */
   offlineTransactionId?: string | null;
   /** @nullable */
   originalPaymentId?: string | null;
-  /** @nullable */
+  /**
+   * For storno/refund rows: canonical receipt id of the original sale (forensic link).
+   * @nullable
+   */
   originalReceiptId?: string | null;
   paymentItems?: unknown;
   paymentMethod?: PaymentMethod;
@@ -126,6 +169,7 @@ export interface PaymentDetails {
    */
   paymentMethodRaw: string;
   /**
+   * Optional non-fiscal prescription reference (vet vertical). Not part of the RKSV/TSE payload.
    * @maxLength 255
    * @nullable
    */
@@ -148,24 +192,37 @@ export interface PaymentDetails {
    * @nullable
    */
   refundReason?: string | null;
+  /** December Nullbeleg may later be treated as Jahresbeleg; no extra business logic in phase 1. */
   rksvNullbelegActsAsJahresbeleg?: boolean;
   /**
+   * RKSV Sonderbeleg; NULL = normal fiscal payment row.
    * @maxLength 20
    * @nullable
    */
   rksvSpecialReceiptKind?: string | null;
-  /** @nullable */
+  /**
+   * Vienna calendar month 1–12 for Monatsbeleg / Nullbeleg; null for Jahresbeleg (year-only).
+   * @nullable
+   */
   rksvSpecialReceiptMonth?: number | null;
-  /** @nullable */
+  /**
+   * Vienna calendar year for Monats-Nullbeleg (duplicate guard).
+   * @nullable
+   */
   rksvSpecialReceiptYear?: number | null;
   /**
+   * Optional taxi trip origin. Not part of the RKSV/TSE payload.
    * @maxLength 255
    * @nullable
    */
   routeFrom?: string | null;
-  /** @nullable */
+  /**
+   * Optional taxi distance in kilometres. Not part of the RKSV/TSE payload.
+   * @nullable
+   */
   routeKm?: number | null;
   /**
+   * Optional taxi trip destination. Not part of the RKSV/TSE payload.
    * @maxLength 255
    * @nullable
    */
@@ -183,6 +240,7 @@ export interface PaymentDetails {
   steuernummer: string;
   stornoReason?: StornoReason;
   /**
+   * SIX QR-bill SPC payload frozen at issue time for CH MWST. Null for other countries.
    * @maxLength 1000
    * @nullable
    */
@@ -190,6 +248,7 @@ export interface PaymentDetails {
   tableNumber: number;
   taxAmount: number;
   taxDetails?: unknown;
+  /** Set when this fiscal payment was accepted from an offline replay while NTP/system clock was outside RKSV tolerance. */
   timeSyncWarning?: boolean;
   totalAmount: number;
   /**
@@ -197,7 +256,10 @@ export interface PaymentDetails {
    * @nullable
    */
   transactionId?: string | null;
-  /** @nullable */
+  /**
+   * Optional taxi trip start (UTC). Not part of the RKSV/TSE payload.
+   * @nullable
+   */
   tripStartedAtUtc?: string | null;
   /** @minLength 1 */
   tseSignature: string;

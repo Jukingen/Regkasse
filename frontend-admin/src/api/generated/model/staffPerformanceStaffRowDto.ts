@@ -12,13 +12,19 @@ export interface StaffPerformanceStaffRowDto {
   /** @nullable */
   email?: string | null;
   grossSalesAmount?: number;
+  /** |Refund-Betragssumme| / Bruttoumsatz (0 wenn Umsatz 0). */
   refundAmountToGrossRatio?: number;
   refundAmountTotal?: number;
   refundRowCount?: number;
+  /** Refund-Zeilen / Verkaufs-Transaktionen (kann > 1 sein). */
   refundRowsPerSale?: number;
   saleTransactionCount?: number;
   stornoRowCount?: number;
+  /** Storno-Zeilen / Verkaufs-Transaktionen. */
   stornoRowsPerSale?: number;
-  /** @nullable */
+  /**
+   * Auflösung über AspNetUsers; sonst null.
+   * @nullable
+   */
   userName?: string | null;
 }

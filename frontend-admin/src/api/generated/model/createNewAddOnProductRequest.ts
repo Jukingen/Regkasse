@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Yeni Zusatzprodukt oluşturma (gruba eklenir). Name zorunlu; diğerleri varsayılanlı.
+ */
 export interface CreateNewAddOnProductRequest {
   /** @nullable */
   categoryId?: string | null;

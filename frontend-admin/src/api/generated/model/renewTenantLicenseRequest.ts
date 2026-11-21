@@ -12,5 +12,6 @@ export interface RenewTenantLicenseRequest {
    * @maximum 120
    */
   additionalMonths?: number;
+  /** Manager self-service renewal requires explicit payment acknowledgement. */
   paymentConfirmed?: boolean;
 }

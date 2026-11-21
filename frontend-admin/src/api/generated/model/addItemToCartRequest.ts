@@ -7,20 +7,30 @@
  */
 import type { SelectedModifierInputDto } from './selectedModifierInputDto';
 
+/**
+ * Primary: ProductId, Quantity. Legacy: SelectedModifiers (prefer adding add-ons as separate add-item calls).
+ */
 export interface AddItemToCartRequest {
-  /** @nullable */
+  /**
+   * İsteğe bağlı: kasa kapsamlı fiyat kuralları için POS kasa kimliği.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   /** @nullable */
   notes?: string | null;
   productId?: string;
   quantity?: number;
   /**
+   * Phase 2 legacy: Prefer flat cart (add-on = separate add-item). Still accepted for backward compat.
    * @deprecated
    * @nullable
    */
   selectedModifiers?: SelectedModifierInputDto[] | null;
   /** @nullable */
   tableNumber?: number | null;
-  /** @nullable */
+  /**
+   * Display-only label; does not change which user owns the cart.
+   * @nullable
+   */
   waiterName?: string | null;
 }

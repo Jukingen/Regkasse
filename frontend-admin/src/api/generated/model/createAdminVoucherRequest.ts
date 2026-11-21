@@ -15,6 +15,7 @@ export interface CreateAdminVoucherRequest {
   /** @nullable */
   expiresAtUtc?: string | null;
   /**
+   * DefaultOneYear | Custom
    * @minLength 1
    * @maxLength 32
    */

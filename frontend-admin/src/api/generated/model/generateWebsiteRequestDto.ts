@@ -12,6 +12,9 @@ export interface GenerateWebsiteRequestDto {
    * @maxLength 32
    */
   templateId: string;
-  /** @nullable */
+  /**
+   * Required for Super Admin without ambient tenant; ignored for Mandanten-Admin (JWT tenant used).
+   * @nullable
+   */
   tenantId?: string | null;
 }

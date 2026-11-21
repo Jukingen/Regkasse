@@ -36,6 +36,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Lists current stock rows for the ambient tenant.
+ */
 export const getApiInventory = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -75,6 +78,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiInventoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventory>>>
 export type GetApiInventoryQueryError = unknown
 
+/**
+ * @summary Lists current stock rows for the ambient tenant.
+ */
 export const useGetApiInventory = <TData = Awaited<ReturnType<typeof getApiInventory>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -142,7 +148,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiInventoryHistory = (
+    /**
+ * @summary Global movement history (paginated). Optional filters.
+ */
+export const getApiInventoryHistory = (
     params?: GetApiInventoryHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -182,6 +191,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiInventoryHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryHistory>>>
 export type GetApiInventoryHistoryQueryError = unknown
 
+/**
+ * @summary Global movement history (paginated). Optional filters.
+ */
 export const useGetApiInventoryHistory = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(
  params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -198,6 +210,9 @@ export const useGetApiInventoryHistory = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Reorder foundation: items at or below reorder point / min stock.
+ */
 export const getApiInventoryReorderSuggestions = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -237,6 +252,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiInventoryReorderSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>>
 export type GetApiInventoryReorderSuggestionsQueryError = unknown
 
+/**
+ * @summary Reorder foundation: items at or below reorder point / min stock.
+ */
 export const useGetApiInventoryReorderSuggestions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -253,6 +271,9 @@ export const useGetApiInventoryReorderSuggestions = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Lists products whose stock is at or below the reorder point.
+ */
 export const getApiInventoryLowStock = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -292,6 +313,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiInventoryLowStockQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryLowStock>>>
 export type GetApiInventoryLowStockQueryError = unknown
 
+/**
+ * @summary Lists products whose stock is at or below the reorder point.
+ */
 export const useGetApiInventoryLowStock = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -571,7 +595,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiInventoryIdAdjust = (
+    /**
+ * @summary Manuelle Korrektur / Inventur-Varianz (negative Anpassung als Loss).
+ */
+export const postApiInventoryIdAdjust = (
     id: string,
     adjustInventoryRequest: AdjustInventoryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -610,7 +637,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiInventoryIdAdjustMutationBody = AdjustInventoryRequest
     export type PostApiInventoryIdAdjustMutationError = unknown
 
-    export const usePostApiInventoryIdAdjust = <TError = unknown,
+    /**
+ * @summary Manuelle Korrektur / Inventur-Varianz (negative Anpassung als Loss).
+ */
+export const usePostApiInventoryIdAdjust = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiInventoryIdAdjust>>, TError,{id: string;data: AdjustInventoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiInventoryIdAdjust>>,
@@ -623,7 +653,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiInventoryIdTransfer = (
+    /**
+ * @summary Transfer zwischen zwei Lagerzeilen (gleiche oder verschiedene Produkte).
+ */
+export const postApiInventoryIdTransfer = (
     id: string,
     transferInventoryRequest: TransferInventoryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -662,7 +695,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiInventoryIdTransferMutationBody = TransferInventoryRequest
     export type PostApiInventoryIdTransferMutationError = unknown
 
-    export const usePostApiInventoryIdTransfer = <TError = unknown,
+    /**
+ * @summary Transfer zwischen zwei Lagerzeilen (gleiche oder verschiedene Produkte).
+ */
+export const usePostApiInventoryIdTransfer = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiInventoryIdTransfer>>, TError,{id: string;data: TransferInventoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiInventoryIdTransfer>>,

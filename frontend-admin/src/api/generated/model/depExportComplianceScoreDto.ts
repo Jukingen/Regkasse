@@ -15,8 +15,12 @@ export interface DepExportComplianceScoreDto {
   disclaimer?: string | null;
   /** @nullable */
   factors?: DepExportScoreFactorDto[] | null;
-  /** @nullable */
+  /**
+   * A, B, C, D, or F.
+   * @nullable
+   */
   grade?: string | null;
+  /** 0–100 weighted operational DEP export readiness score. */
   score?: number;
   tenantId?: string;
   /** @nullable */

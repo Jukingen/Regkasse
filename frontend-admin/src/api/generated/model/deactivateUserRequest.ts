@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV/DSGVO: Deaktivasyon nedeni zorunlu (audit trail).
+ */
 export interface DeactivateUserRequest {
   /**
    * @minLength 1

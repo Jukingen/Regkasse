@@ -7,6 +7,10 @@
  */
 import type { CashierShiftDto } from './cashierShiftDto';
 
+/**
+ * Structured auto-open result. HTTP 200 when KasseAPI_Final.DTOs.ShiftAutoOpenResult.Success is true
+(including KasseAPI_Final.DTOs.ShiftAutoOpenCodes.ShiftAlreadyOpen); HTTP 400 otherwise.
+ */
 export interface ShiftAutoOpenResult {
   /** @nullable */
   code?: string | null;

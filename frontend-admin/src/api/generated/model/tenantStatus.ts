@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Mandant lifecycle status. Stored as lowercase string on `tenants.status`
+(see KasseAPI_Final.Models.TenantStatuses). Legacy `deleted` maps to KasseAPI_Final.Models.Enums.TenantStatus.Archived.
+ */
 export type TenantStatus = typeof TenantStatus[keyof typeof TenantStatus];
 
 

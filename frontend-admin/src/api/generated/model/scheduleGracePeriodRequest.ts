@@ -22,7 +22,10 @@ export interface ScheduleGracePeriodRequest {
    * @maxLength 64
    */
   entityType: string;
-  /** @nullable */
+  /**
+   * Optional JSON payload (e.g. decommission reason).
+   * @nullable
+   */
   payload?: string | null;
   /**
    * @maxLength 500

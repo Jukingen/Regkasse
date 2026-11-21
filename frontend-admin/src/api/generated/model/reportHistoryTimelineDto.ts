@@ -7,6 +7,10 @@
  */
 import type { ReportHistoryItemDto } from './reportHistoryItemDto';
 
+/**
+ * Timeline payload for a formal report chain (daily, monthly, yearly).
+Report and submission states are intentionally separated.
+ */
 export interface ReportHistoryTimelineDto {
   chainRootReportId?: string;
   /** @nullable */

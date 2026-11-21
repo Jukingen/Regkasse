@@ -6,12 +6,21 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Aggregated backup health projection for widgets (from dashboard/stats; not a parallel computation path).
+ */
 export interface BackupDashboardHealthResponseDto {
-  /** @nullable */
+  /**
+   * passed | failed | partial | unavailable | unknown
+   * @nullable
+   */
   contentValidationStatus?: string | null;
   /** @nullable */
   contentValidationSummary?: string | null;
-  /** @nullable */
+  /**
+   * healthy | warning | critical
+   * @nullable
+   */
   healthLevel?: string | null;
   healthScore?: number;
   /** @nullable */
@@ -20,8 +29,14 @@ export interface BackupDashboardHealthResponseDto {
   lastVerificationRunId?: string | null;
   /** @nullable */
   rpoHours?: number | null;
-  /** @nullable */
+  /**
+   * Healthy | AtRisk | Critical | Unknown
+   * @nullable
+   */
   rpoStatus?: string | null;
-  /** @nullable */
+  /**
+   * Passed | Failed | None
+   * @nullable
+   */
   verificationStatus?: string | null;
 }

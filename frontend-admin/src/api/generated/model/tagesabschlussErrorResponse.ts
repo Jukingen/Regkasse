@@ -7,7 +7,10 @@
  */
 
 export interface TagesabschlussErrorResponse {
-  /** @nullable */
+  /**
+   * Machine-oriented error code for FA i18n (also mirrored in KasseAPI_Final.Controllers.TagesabschlussErrorResponse.details for older clients).
+   * @nullable
+   */
   code?: string | null;
   /** @nullable */
   details?: string | null;

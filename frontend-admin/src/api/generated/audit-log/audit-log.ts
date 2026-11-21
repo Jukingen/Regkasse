@@ -37,6 +37,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary GET: api/auditlog - Get all audit logs with filtering and pagination
+ */
 export const getApiAuditLog = (
     params?: GetApiAuditLogParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -77,6 +80,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLog>>>
 export type GetApiAuditLogQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog - Get all audit logs with filtering and pagination
+ */
 export const useGetApiAuditLog = <TData = Awaited<ReturnType<typeof getApiAuditLog>>, TError = unknown>(
  params?: GetApiAuditLogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -93,6 +99,9 @@ export const useGetApiAuditLog = <TData = Awaited<ReturnType<typeof getApiAuditL
 
 
 
+/**
+ * @summary GET: api/auditlog/{id} - Get specific audit log by ID
+ */
 export const getApiAuditLogId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -132,6 +141,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogId>>>
 export type GetApiAuditLogIdQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/{id} - Get specific audit log by ID
+ */
 export const useGetApiAuditLogId = <TData = Awaited<ReturnType<typeof getApiAuditLogId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -148,6 +160,9 @@ export const useGetApiAuditLogId = <TData = Awaited<ReturnType<typeof getApiAudi
 
 
 
+/**
+ * @summary GET: api/auditlog/payment/{paymentId} - Get audit logs for specific payment
+ */
 export const getApiAuditLogPaymentPaymentId = (
     paymentId: string,
     params?: GetApiAuditLogPaymentPaymentIdParams,
@@ -191,6 +206,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogPaymentPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>>
 export type GetApiAuditLogPaymentPaymentIdQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/payment/{paymentId} - Get audit logs for specific payment
+ */
 export const useGetApiAuditLogPaymentPaymentId = <TData = Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>, TError = unknown>(
  paymentId: string,
     params?: GetApiAuditLogPaymentPaymentIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -208,6 +226,9 @@ export const useGetApiAuditLogPaymentPaymentId = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary GET: api/auditlog/user/{userId} - Get audit logs for specific user
+ */
 export const getApiAuditLogUserUserId = (
     userId: string,
     params?: GetApiAuditLogUserUserIdParams,
@@ -251,6 +272,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogUserUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogUserUserId>>>
 export type GetApiAuditLogUserUserIdQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/user/{userId} - Get audit logs for specific user
+ */
 export const useGetApiAuditLogUserUserId = <TData = Awaited<ReturnType<typeof getApiAuditLogUserUserId>>, TError = unknown>(
  userId: string,
     params?: GetApiAuditLogUserUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -268,6 +292,9 @@ export const useGetApiAuditLogUserUserId = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary GET: api/auditlog/correlation/{correlationId} - Get audit logs by correlation ID
+ */
 export const getApiAuditLogCorrelationCorrelationId = (
     correlationId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -307,6 +334,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogCorrelationCorrelationIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>>
 export type GetApiAuditLogCorrelationCorrelationIdQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/correlation/{correlationId} - Get audit logs by correlation ID
+ */
 export const useGetApiAuditLogCorrelationCorrelationId = <TData = Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>, TError = unknown>(
  correlationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -323,6 +353,9 @@ export const useGetApiAuditLogCorrelationCorrelationId = <TData = Awaited<Return
 
 
 
+/**
+ * @summary GET: api/auditlog/suspicious-admin-actions - Incident playbook: high-risk user-lifecycle actions (deactivate, reactivate, password reset, role change, create).
+ */
 export const getApiAuditLogSuspiciousAdminActions = (
     params?: GetApiAuditLogSuspiciousAdminActionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -363,6 +396,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogSuspiciousAdminActionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>>
 export type GetApiAuditLogSuspiciousAdminActionsQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/suspicious-admin-actions - Incident playbook: high-risk user-lifecycle actions (deactivate, reactivate, password reset, role change, create).
+ */
 export const useGetApiAuditLogSuspiciousAdminActions = <TData = Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError = unknown>(
  params?: GetApiAuditLogSuspiciousAdminActionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -379,6 +415,9 @@ export const useGetApiAuditLogSuspiciousAdminActions = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary GET: api/auditlog/transaction/{transactionId} - Get audit logs by transaction ID
+ */
 export const getApiAuditLogTransactionTransactionId = (
     transactionId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -418,6 +457,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogTransactionTransactionIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>>
 export type GetApiAuditLogTransactionTransactionIdQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/transaction/{transactionId} - Get audit logs by transaction ID
+ */
 export const useGetApiAuditLogTransactionTransactionId = <TData = Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>, TError = unknown>(
  transactionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -434,6 +476,9 @@ export const useGetApiAuditLogTransactionTransactionId = <TData = Awaited<Return
 
 
 
+/**
+ * @summary GET: api/auditlog/statistics - Get audit log statistics
+ */
 export const getApiAuditLogStatistics = (
     params?: GetApiAuditLogStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -474,6 +519,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogStatisticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogStatistics>>>
 export type GetApiAuditLogStatisticsQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/statistics - Get audit log statistics
+ */
 export const useGetApiAuditLogStatistics = <TData = Awaited<ReturnType<typeof getApiAuditLogStatistics>>, TError = unknown>(
  params?: GetApiAuditLogStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -490,6 +538,9 @@ export const useGetApiAuditLogStatistics = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary DELETE: api/auditlog/cleanup - Delete audit logs older than specified date. Sprint 5: respects 7-year retention and legal hold.
+ */
 export const deleteApiAuditLogCleanup = (
     auditLogCleanupRequest: AuditLogCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -528,7 +579,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type DeleteApiAuditLogCleanupMutationBody = AuditLogCleanupRequest
     export type DeleteApiAuditLogCleanupMutationError = unknown
 
-    export const useDeleteApiAuditLogCleanup = <TError = unknown,
+    /**
+ * @summary DELETE: api/auditlog/cleanup - Delete audit logs older than specified date. Sprint 5: respects 7-year retention and legal hold.
+ */
+export const useDeleteApiAuditLogCleanup = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAuditLogCleanup>>, TError,{data: AuditLogCleanupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAuditLogCleanup>>,
@@ -541,7 +595,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAuditLogExport = (
+    /**
+ * @summary GET: api/auditlog/export - Export audit logs to CSV/JSON
+ */
+export const getApiAuditLogExport = (
     params?: GetApiAuditLogExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -581,6 +638,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuditLogExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogExport>>>
 export type GetApiAuditLogExportQueryError = unknown
 
+/**
+ * @summary GET: api/auditlog/export - Export audit logs to CSV/JSON
+ */
 export const useGetApiAuditLogExport = <TData = Awaited<ReturnType<typeof getApiAuditLogExport>>, TError = unknown>(
  params?: GetApiAuditLogExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

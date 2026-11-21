@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Safe user projection for GET /api/admin/users.
+ */
 export interface AdminUserDto {
   createdAt?: string;
   /** @nullable */
@@ -14,7 +17,10 @@ export interface AdminUserDto {
   email?: string | null;
   /** @nullable */
   employeeNumber?: string | null;
-  /** @nullable */
+  /**
+   * Concurrency stamp for If-Match (optimistic concurrency).
+   * @nullable
+   */
   etag?: string | null;
   /** @nullable */
   firstName?: string | null;
@@ -41,6 +47,9 @@ export interface AdminUserDto {
   updatedAt?: string | null;
   /** @nullable */
   userName?: string | null;
-  /** @nullable */
+  /**
+   * `Platform` or `Tenant`.
+   * @nullable
+   */
   userType?: string | null;
 }

@@ -25,6 +25,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Device/Fiskaly readiness used by POS payment gate (`checkTseStatus`).
+ */
 export const getApiTseStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -64,6 +67,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTseStatus>>>
 export type GetApiTseStatusQueryError = unknown
 
+/**
+ * @summary Device/Fiskaly readiness used by POS payment gate (`checkTseStatus`).
+ */
 export const useGetApiTseStatus = <TData = Awaited<ReturnType<typeof getApiTseStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -80,6 +86,9 @@ export const useGetApiTseStatus = <TData = Awaited<ReturnType<typeof getApiTseSt
 
 
 
+/**
+ * @summary Returns cached TSE health from background probing.
+ */
 export const getApiTseHealth = (
     params?: GetApiTseHealthParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -120,6 +129,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTseHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTseHealth>>>
 export type GetApiTseHealthQueryError = unknown
 
+/**
+ * @summary Returns cached TSE health from background probing.
+ */
 export const useGetApiTseHealth = <TData = Awaited<ReturnType<typeof getApiTseHealth>>, TError = unknown>(
  params?: GetApiTseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTseHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

@@ -20,6 +20,9 @@ export interface StornoRequest {
    * @maxLength 500
    */
   reason: string;
-  /** @minLength 1 */
+  /**
+   * Stable code from payment history (e.g. CUSTOMER_REQUEST) or KasseAPI_Final.Models.DTOs.CancellationReasonCode name.
+   * @minLength 1
+   */
   reasonCode: string;
 }

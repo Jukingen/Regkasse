@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Lightweight tenant-scoped audit row for Super Admin review.
+ */
 export interface TenantAuditLogItemDto {
   /** @nullable */
   action?: string | null;

@@ -11,9 +11,14 @@ export interface UpdateFinanzOnlineOutboxWorkerRequest {
   backoffCapSeconds?: number | null;
   /** @nullable */
   baseDelaySeconds?: number | null;
+  /** When true, delete the overlay and follow `FinanzOnlineOutbox` from configuration. */
   clearOverride?: boolean;
+  /** Required when turning the worker off in Production. */
   confirmProductionDisable?: boolean;
-  /** @nullable */
+  /**
+   * When set, updates the Enabled overlay. Omitted on numeric-only saves.
+   * @nullable
+   */
   enabled?: boolean | null;
   /** @nullable */
   jitterMaxSeconds?: number | null;

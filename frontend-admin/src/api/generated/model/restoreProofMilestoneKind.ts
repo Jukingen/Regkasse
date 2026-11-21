@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Kanıt kilometre taşı türü; UI anahtarı (backend üretir).
+ */
 export type RestoreProofMilestoneKind = typeof RestoreProofMilestoneKind[keyof typeof RestoreProofMilestoneKind];
 
 

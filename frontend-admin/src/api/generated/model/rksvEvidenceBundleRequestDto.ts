@@ -6,11 +6,21 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/rksv/evidence-bundle`. UTC range required to bound bundle size.
+ */
 export interface RksvEvidenceBundleRequestDto {
-  /** @nullable */
+  /**
+   * Optional cash register filter; null/empty = include all registers (auditor-wide bundle).
+   * @nullable
+   */
   cashRegisterId?: string | null;
+  /** Inclusive lower bound on receipt issue time (UTC). Required. */
   fromUtc: string;
+  /** When true (default) the per-receipt items and tax lines are embedded in receipts.json. */
   includeReceiptItems?: boolean;
+  /** When true (default) the TSE signature log file is included in the bundle. */
   includeTseSignatureLog?: boolean;
+  /** Exclusive upper bound on receipt issue time (UTC). Required and must be strictly greater than KasseAPI_Final.DTOs.RksvEvidenceBundleRequestDto.FromUtc. */
   toUtc: string;
 }

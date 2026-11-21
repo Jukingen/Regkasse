@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/license/revoke`.
+ */
 export interface RevokeLicenseRequestBody {
   /** @minLength 1 */
   licenseKey: string;

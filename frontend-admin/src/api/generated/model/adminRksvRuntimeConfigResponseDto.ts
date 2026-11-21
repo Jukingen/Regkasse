@@ -9,7 +9,9 @@ import type { AdminRksvRuntimeConfigValuesDto } from './adminRksvRuntimeConfigVa
 
 export interface AdminRksvRuntimeConfigResponseDto {
   appsettingsFallback?: AdminRksvRuntimeConfigValuesDto;
+  /** Persisted overlay flag. Ignored when TseMode is Real or host is not Development. */
   bypassTseInDevelopment?: boolean;
+  /** True when this host allows Demo/Simulation overlays (Development, or Production with escape hatch). */
   canSetDemoOnThisHost?: boolean;
   /** @nullable */
   finanzOnlineMode?: string | null;
@@ -22,11 +24,17 @@ export interface AdminRksvRuntimeConfigResponseDto {
   productionLockOk?: boolean;
   /** @nullable */
   productionLockReasons?: string[] | null;
+  /** Always false: overlay is applied in-process without restart. */
   restartRequired?: boolean;
   showDemoLabel?: boolean;
-  /** @nullable */
+  /**
+   * `database` after first persist; otherwise `appsettings`.
+   * @nullable
+   */
   source?: string | null;
+  /** True when overlay TseMode=Real disabled a Development bypass that would otherwise apply. */
   tseHealthBypassBlockedByRealTseMode?: boolean;
+  /** Effective TSE health bypass after overlay TseMode=Real and host-environment gates. */
   tseHealthBypassEffective?: boolean;
   /** @nullable */
   tseMode?: string | null;

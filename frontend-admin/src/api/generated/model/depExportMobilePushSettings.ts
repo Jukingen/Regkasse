@@ -6,11 +6,17 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Tenant-scoped mobile push toggles for DEP export reminder milestones.
+Stored inside KasseAPI_Final.Models.NotificationConfig JSON (no separate migration).
+ */
 export interface DepExportMobilePushSettings {
   oneDayReminder?: boolean;
   overdueAlert?: boolean;
+  /** Master switch for DEP mobile push delivery. */
   pushEnabled?: boolean;
   sevenDayReminder?: boolean;
+  /** Notify tenant admins when a DEP export completes successfully. */
   successNotification?: boolean;
   thirtyDayReminder?: boolean;
 }

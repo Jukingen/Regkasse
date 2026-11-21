@@ -6,10 +6,20 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin cache-clear request for troubleshooting.
+ */
 export interface ClearCacheRequest {
+  /** When true, clears the entire application cache tracked by KasseAPI_Final.Services.Caching.ICacheService. */
   clearAll?: boolean;
-  /** @nullable */
+  /**
+   * When set, removes all keys starting with this prefix.
+   * @nullable
+   */
   prefix?: string | null;
-  /** @nullable */
+  /**
+   * When set, clears keys under `license_status_{tenantId}` and `product_list_{tenantId}`.
+   * @nullable
+   */
   tenantId?: string | null;
 }

@@ -6,15 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/Auth/login — username or email plus password.
+ */
 export interface LoginModel {
-  /** @nullable */
+  /**
+   * Target client application: "pos" or "admin".
+   * @nullable
+   */
   clientApp?: string | null;
   /**
+   * Legacy field; used when KasseAPI_Final.Models.DTOs.LoginModel.LoginIdentifier is empty.
    * @deprecated
    * @nullable
    */
   email?: string | null;
-  /** @nullable */
+  /**
+   * Login with username or email (preferred).
+   * @nullable
+   */
   loginIdentifier?: string | null;
   /** @nullable */
   password?: string | null;

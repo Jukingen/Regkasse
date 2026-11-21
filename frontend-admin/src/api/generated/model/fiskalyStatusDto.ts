@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Dashboard / health snapshot for the fiskaly SIGN AT integration (no secrets).
+ */
 export interface FiskalyStatusDto {
   cashRegisterInitialized?: boolean;
   /** @nullable */
@@ -22,6 +25,9 @@ export interface FiskalyStatusDto {
   scuInitialized?: boolean;
   /** @nullable */
   scuState?: string | null;
-  /** @nullable */
+  /**
+   * `config`, `tenant_override`, or `global_override`.
+   * @nullable
+   */
   source?: string | null;
 }

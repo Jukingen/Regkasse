@@ -7,10 +7,16 @@
  */
 
 export interface GenerateTenantWebsitePackageRequestDto {
-  /** @nullable */
+  /**
+   * Custom domain (e.g. cafe-muster.at). Falls back to primary verified domain when omitted.
+   * @nullable
+   */
   domain?: string | null;
   /** @nullable */
   templateId?: string | null;
-  /** @nullable */
+  /**
+   * Super Admin only — target tenant when ambient context is missing.
+   * @nullable
+   */
   tenantId?: string | null;
 }

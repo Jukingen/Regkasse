@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Per tax-group catalog + period sales snapshot for FA stats cards.
+ */
 export interface TaxGroupStat {
   /** @nullable */
   color?: string | null;
@@ -15,8 +18,11 @@ export interface TaxGroupStat {
   isActive?: boolean;
   /** @nullable */
   name?: string | null;
+  /** Share of active catalog products (0–100). */
   percentage?: number;
+  /** Active products currently assigned to this tax group. */
   productCount?: number;
   rate?: number;
+  /** Gross Umsatz (receipt tax lines) for this group's rate in the stats period. */
   revenue?: number;
 }

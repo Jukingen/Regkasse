@@ -10,8 +10,10 @@ import type { BackupRunStatus } from './backupRunStatus';
 export interface BackupDashboardHistoryPointDto {
   completedAtUtc?: string;
   durationSeconds?: number;
+  /** 1 when terminal failure (Failed or VerificationFailed); otherwise 0. */
   failed?: number;
   runId?: string;
   status?: BackupRunStatus;
+  /** 1 when KasseAPI_Final.DTOs.BackupDashboardHistoryPointDto.Status is Succeeded; otherwise 0. */
   success?: number;
 }

@@ -11,6 +11,9 @@ import type { TagesberichtSubmissionStateDto } from './tagesberichtSubmissionSta
 import type { ReportSubmissionEnvelopeDto } from './reportSubmissionEnvelopeDto';
 import type { TagesberichtSummaryDto } from './tagesberichtSummaryDto';
 
+/**
+ * Liste ve detay için ana DTO.
+ */
 export interface TagesberichtDto {
   cashRegisterId?: string;
   correction?: TagesberichtCorrectionInfoDto;

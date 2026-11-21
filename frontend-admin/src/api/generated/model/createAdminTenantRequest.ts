@@ -11,21 +11,26 @@ export interface CreateAdminTenantRequest {
   /** @nullable */
   address?: string | null;
   /**
+   * Optional login email for the provisioned tenant admin (default: admin@{slug}.regkasse.at).
    * @maxLength 200
    * @nullable
    */
   adminEmail?: string | null;
   /**
+   * Optional initial password; auto-generated when omitted (returned once in response).
    * @maxLength 100
    * @nullable
    */
   adminPassword?: string | null;
   /**
+   * Optional cash register number for provisioning (default: KASSE-001).
    * @maxLength 20
    * @nullable
    */
   cashRegisterNumber?: string | null;
   /**
+   * ISO 3166-1 alpha-2 from `GET /api/admin/countries`.
+`EU_DEFAULT` is rejected as not tenant-selectable (not a 2-letter code).
    * @minLength 1
    * @pattern ^[A-Za-z]{2}$
    */
@@ -35,9 +40,12 @@ export interface CreateAdminTenantRequest {
    * @nullable
    */
   email?: string | null;
+  /** When true and no license end date is set, grants a managed trial on the tenant row. */
   grantTrialLicense?: boolean;
+  /** When true, imports the full demo menu (Salate, Pizzas, Pasta, …) instead of three generic demo products. */
   importDemoMenu?: boolean;
   /**
+   * Industry template id (restaurant|retail|hotel) or null/none.
    * @maxLength 32
    * @nullable
    */
@@ -59,14 +67,20 @@ export interface CreateAdminTenantRequest {
    * @nullable
    */
   phone?: string | null;
+  /** When true, Super Admin create also applies the vertical demo catalog (products, customers, open KASSE-001).
+Regular create leaves this false. A non-SuperAdmin caller that sets it is rejected with HTTP 403. */
   seedDemo?: boolean;
+  /** When true and an industry template is set, seed deactivated starter users for template slots. */
   seedIndustryStarterUsers?: boolean;
   /**
    * @minLength 1
    * @maxLength 64
    */
   slug: string;
-  /** @nullable */
+  /**
+   * Optional trial length override (14 / 30 / 60 / 90). When null, uses `Trial:DefaultDurationDays`.
+   * @nullable
+   */
   trialDurationDays?: number | null;
   vatRegime: VatRegime;
 }

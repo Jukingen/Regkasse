@@ -10,6 +10,9 @@ import type { LimitStatusDto } from './limitStatusDto';
 import type { LimitActivityDto } from './limitActivityDto';
 import type { DashboardSummaryDto } from './dashboardSummaryDto';
 
+/**
+ * Aggregated limit usage, critical users, and recent activity for FA.
+ */
 export interface LimitDashboardDto {
   allTenants?: boolean;
   approachingLimits?: number;

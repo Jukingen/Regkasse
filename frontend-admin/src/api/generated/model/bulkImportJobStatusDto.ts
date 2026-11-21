@@ -10,7 +10,10 @@ import type { BulkImportResultDto } from './bulkImportResultDto';
 import type { BulkImportJobStatus } from './bulkImportJobStatus';
 
 export interface BulkImportJobStatusDto {
-  /** @nullable */
+  /**
+   * Recent row errors (capped for polling payloads).
+   * @nullable
+   */
   errors?: BulkImportErrorDto[] | null;
   failedCount?: number;
   /** @nullable */

@@ -22,7 +22,10 @@ export interface AdminUsersControllerAdminPatchUserRequest {
    * @nullable
    */
   firstName?: string | null;
-  /** @nullable */
+  /**
+   * Optional. When set, updates ApplicationUser.IsDemo (demo is not a role; flag must be cleared to allow real payments).
+   * @nullable
+   */
   isDemo?: boolean | null;
   /**
    * @maxLength 50

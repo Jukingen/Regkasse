@@ -7,14 +7,20 @@
  */
 
 export interface RestoreRequestStatus {
-  /** @nullable */
+  /**
+   * Never returned by API; token is delivered out-of-band (email).
+   * @nullable
+   */
   approvalToken?: string | null;
   /** @nullable */
   approvedAt?: string | null;
   /** @nullable */
   approvedByUserId?: string | null;
   backupRunId?: string;
-  /** @nullable */
+  /**
+   * Requester's reason from create step (not the reject reason).
+   * @nullable
+   */
   reason?: string | null;
   /** @nullable */
   rejectionReason?: string | null;

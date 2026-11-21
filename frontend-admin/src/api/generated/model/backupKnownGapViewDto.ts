@@ -8,12 +8,18 @@
 import type { BackupKnownGapAcceptanceDto } from './backupKnownGapAcceptanceDto';
 import type { BackupKnownGapCardDto } from './backupKnownGapCardDto';
 
+/**
+ * Catalog, stored acceptance, and the evaluated card for one mandant.
+ */
 export interface BackupKnownGapViewDto {
   acceptance?: BackupKnownGapAcceptanceDto;
   allowsGateOverride?: boolean;
   catalogVersion?: number;
   /** @nullable */
   gaps?: BackupKnownGapCardDto[] | null;
-  /** @nullable */
+  /**
+   * `pass` or `fail`. Acceptance does not flip fail to pass unless KasseAPI_Final.DTOs.BackupKnownGapViewDto.AllowsGateOverride is true.
+   * @nullable
+   */
   verdict?: string | null;
 }

@@ -7,6 +7,9 @@
  */
 import type { Tenant } from './tenant';
 
+/**
+ * Per-tenant POS cash-register feature flags (ensure-ready, auto-open policy).
+ */
 export interface CashRegisterSettings {
   autoOpenAssignedClosedRegister?: boolean;
   autoOpenSoleClosedRegister?: boolean;

@@ -8,9 +8,14 @@
 import type { BackupRunResponseDto } from './backupRunResponseDto';
 
 export interface BackupTriggerResponseDto {
+  /** True only when another manual run was already active (no new row). */
   duplicateExecutionPrevented?: boolean;
+  /** True only when a new backup run row was inserted in Queued state. */
   newQueuedRunCreated?: boolean;
-  /** @nullable */
+  /**
+   * Machine-readable orchestration state (not backup completion): e.g. NEW_RUN_QUEUED_AWAITING_WORKER.
+   * @nullable
+   */
   orchestrationState?: string | null;
   run?: BackupRunResponseDto;
 }

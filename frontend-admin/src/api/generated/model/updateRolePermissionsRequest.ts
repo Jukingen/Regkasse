@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Request body for PUT /api/UserManagement/roles/{roleName}/permissions. Empty list allowed.
+ */
 export interface UpdateRolePermissionsRequest {
   /** @nullable */
   permissions?: string[] | null;

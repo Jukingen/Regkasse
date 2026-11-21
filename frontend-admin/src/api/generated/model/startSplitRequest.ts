@@ -7,5 +7,6 @@
  */
 
 export interface StartSplitRequest {
+  /** Cart row id (!:Models.Cart.Id uuid). */
   cartId: string;
 }

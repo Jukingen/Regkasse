@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin compares a customer-provided code to a voucher row (hash-only storage; plaintext is never persisted).
+ */
 export interface VerifyAdminVoucherCodeRequest {
   /**
    * @minLength 1

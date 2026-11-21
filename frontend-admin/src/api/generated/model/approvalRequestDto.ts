@@ -42,6 +42,9 @@ export interface ApprovalRequestDto {
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
-  /** @nullable */
+  /**
+   * Minutes from request to decision (approved/rejected); null when still open.
+   * @nullable
+   */
   timeToDecisionMinutes?: number | null;
 }

@@ -6,14 +6,30 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Public website/app working-hours status (customer-facing only).
+Never use this payload to restrict POS or FA.
+ */
 export interface WebsiteStatusDto {
+  /** New online orders may be accepted (open + not in stop-before-close). */
   canOrder?: boolean;
-  /** @nullable */
+  /**
+   * Today's local close time (`HH:mm`), when scheduled.
+   * @nullable
+   */
   closeTime?: string | null;
+  /** Restaurant is within today's local open window. */
   isOpen?: boolean;
+  /** True when today is a configured special/holiday override. */
   isSpecial?: boolean;
-  /** @nullable */
+  /**
+   * Customer-facing German status message.
+   * @nullable
+   */
   message?: string | null;
-  /** @nullable */
+  /**
+   * Today's local open time (`HH:mm`), when scheduled.
+   * @nullable
+   */
   openTime?: string | null;
 }

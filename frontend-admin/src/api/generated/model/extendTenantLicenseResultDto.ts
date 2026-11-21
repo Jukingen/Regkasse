@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Result of `POST …/license/extend` and `POST /api/admin/license/mandant/extend`.
+ */
 export interface ExtendTenantLicenseResultDto {
   /** @nullable */
   licenseKey?: string | null;

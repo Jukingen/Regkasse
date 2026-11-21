@@ -29,6 +29,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary RKSV deployment environment (Demo/Production) for POS and Admin badges.
+ */
 export const getApiRksvEnvironment = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -68,6 +71,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvEnvironmentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvEnvironment>>>
 export type GetApiRksvEnvironmentQueryError = unknown
 
+/**
+ * @summary RKSV deployment environment (Demo/Production) for POS and Admin badges.
+ */
 export const useGetApiRksvEnvironment = <TData = Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -84,6 +90,9 @@ export const useGetApiRksvEnvironment = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary RKSV environment status (simulation flag, labels, TSE display) for POS and Admin UI.
+ */
 export const getApiRksvStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -123,6 +132,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvStatus>>>
 export type GetApiRksvStatusQueryError = unknown
 
+/**
+ * @summary RKSV environment status (simulation flag, labels, TSE display) for POS and Admin UI.
+ */
 export const useGetApiRksvStatus = <TData = Awaited<ReturnType<typeof getApiRksvStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -139,6 +151,9 @@ export const useGetApiRksvStatus = <TData = Awaited<ReturnType<typeof getApiRksv
 
 
 
+/**
+ * @summary Monatsbeleg reminder status for the given cash register (Vienna calendar month).
+ */
 export const getApiRksvMonatsbelegStatusCashRegisterId = (
     cashRegisterId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -178,6 +193,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvMonatsbelegStatusCashRegisterIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>>
 export type GetApiRksvMonatsbelegStatusCashRegisterIdQueryError = ProblemDetails
 
+/**
+ * @summary Monatsbeleg reminder status for the given cash register (Vienna calendar month).
+ */
 export const useGetApiRksvMonatsbelegStatusCashRegisterId = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>, TError = ProblemDetails>(
  cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -194,6 +212,9 @@ export const useGetApiRksvMonatsbelegStatusCashRegisterId = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary Monatsbeleg status for all tenant cash registers (admin dashboard overview).
+ */
 export const getApiRksvMonatsbelegStatusOverview = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -233,6 +254,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvMonatsbelegStatusOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>>
 export type GetApiRksvMonatsbelegStatusOverviewQueryError = unknown
 
+/**
+ * @summary Monatsbeleg status for all tenant cash registers (admin dashboard overview).
+ */
 export const useGetApiRksvMonatsbelegStatusOverview = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -249,6 +273,9 @@ export const useGetApiRksvMonatsbelegStatusOverview = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Unified RKSV reminder status for all tenant cash registers (admin dashboard overview).
+ */
 export const getApiRksvReminderStatusOverview = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -288,6 +315,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvReminderStatusOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>>
 export type GetApiRksvReminderStatusOverviewQueryError = unknown
 
+/**
+ * @summary Unified RKSV reminder status for all tenant cash registers (admin dashboard overview).
+ */
 export const useGetApiRksvReminderStatusOverview = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -304,6 +334,9 @@ export const useGetApiRksvReminderStatusOverview = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Unified RKSV reminder status (Startbeleg / Monatsbeleg / Jahresbeleg) for the cash register.
+ */
 export const getApiRksvReminderStatusCashRegisterId = (
     cashRegisterId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -343,6 +376,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiRksvReminderStatusCashRegisterIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>>
 export type GetApiRksvReminderStatusCashRegisterIdQueryError = ProblemDetails
 
+/**
+ * @summary Unified RKSV reminder status (Startbeleg / Monatsbeleg / Jahresbeleg) for the cash register.
+ */
 export const useGetApiRksvReminderStatusCashRegisterId = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>, TError = ProblemDetails>(
  cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

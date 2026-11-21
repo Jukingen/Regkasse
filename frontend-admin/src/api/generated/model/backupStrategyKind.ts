@@ -6,6 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Backup product strategy: Mandanten-Admin (tenant-bound) vs Super Admin (system-wide).
+Data plane today remains one PostgreSQL logical dump; strategy drives ACL metadata,
+retention defaults, and table-exclude policy (Identity in/out).
+ */
 export type BackupStrategyKind = typeof BackupStrategyKind[keyof typeof BackupStrategyKind];
 
 

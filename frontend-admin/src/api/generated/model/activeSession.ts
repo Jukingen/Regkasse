@@ -6,6 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Active login session exposed by the API. Persisted as KasseAPI_Final.Models.AuthSession in `auth_sessions`.
+Device labels (KasseAPI_Final.Models.ActiveSession.Browser / KasseAPI_Final.Models.ActiveSession.OS) are derived from KasseAPI_Final.Models.ActiveSession.UserAgent at read time.
+See also KasseAPI_Final.Models.UserSession for the product-facing naming of this concept.
+ */
 export interface ActiveSession {
   /** @nullable */
   browser?: string | null;

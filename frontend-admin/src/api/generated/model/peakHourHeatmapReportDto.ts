@@ -13,7 +13,10 @@ import type { StaffingRecommendationDto } from './staffingRecommendationDto';
 export interface PeakHourHeatmapReportDto {
   averageTransactionsPerHour?: number;
   busiestHour?: PeakHourSlotDto;
-  /** @nullable */
+  /**
+   * 7 rows (Mon–Sun) × 24 columns (hour 0–23), Vienna local time. Values = payment count.
+   * @nullable
+   */
   cells?: number[][] | null;
   /** @nullable */
   dayTotals?: PeakHourDayTotalDto[] | null;

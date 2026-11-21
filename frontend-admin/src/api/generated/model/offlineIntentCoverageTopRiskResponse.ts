@@ -7,6 +7,9 @@
  */
 import type { OfflineIntentCoverageByRegisterDto } from './offlineIntentCoverageByRegisterDto';
 
+/**
+ * Response for GET api/admin/offline-intent-coverage/top-risk.
+ */
 export interface OfflineIntentCoverageTopRiskResponse {
   fromUtc?: string;
   limit?: number;

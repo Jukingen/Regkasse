@@ -7,6 +7,9 @@
  */
 import type { TransactionType } from './transactionType';
 
+/**
+ * Tekil stok hareketi satırı — global geçmiş listesi için (audit trail ile birlikte kullanım).
+ */
 export interface InventoryHistoryRowDto {
   inventoryId?: string;
   /** @nullable */

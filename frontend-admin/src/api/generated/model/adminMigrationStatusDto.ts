@@ -15,7 +15,10 @@ export interface AdminMigrationStatusDto {
   /** @nullable */
   pending?: string[] | null;
   pendingCount?: number;
-  /** @nullable */
+  /**
+   * Newest first (capped).
+   * @nullable
+   */
   recentApplied?: MigrationEntryDto[] | null;
   /** @nullable */
   status?: string | null;

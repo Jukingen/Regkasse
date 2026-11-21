@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS device metadata last observed for a register (nullable until POS reports it).
+ */
 export interface CashRegisterDeviceInfoDto {
   /** @nullable */
   appVersion?: string | null;

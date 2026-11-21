@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Single row that can be repaired without conflict.
+ */
 export interface PayloadHashRepairableItem {
   /** @nullable */
   canonicalHash?: string | null;

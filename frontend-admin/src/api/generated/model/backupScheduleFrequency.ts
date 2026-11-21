@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Structured backup automation frequency (stored as UTC cron on KasseAPI_Final.Models.Backup.BackupScheduleConfiguration).
+ */
 export type BackupScheduleFrequency = typeof BackupScheduleFrequency[keyof typeof BackupScheduleFrequency];
 
 

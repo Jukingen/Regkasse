@@ -85,6 +85,9 @@ export const useGetApiReceiptsList = <TData = Awaited<ReturnType<typeof getApiRe
 
 
 
+/**
+ * @summary Persisted fiscal receipt for a payment (canonical; no lazy generation).
+ */
 export const getApiReceiptsByPaymentPaymentId = (
     paymentId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -124,6 +127,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiReceiptsByPaymentPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>>
 export type GetApiReceiptsByPaymentPaymentIdQueryError = unknown
 
+/**
+ * @summary Persisted fiscal receipt for a payment (canonical; no lazy generation).
+ */
 export const useGetApiReceiptsByPaymentPaymentId = <TData = Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError = unknown>(
  paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -244,7 +250,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiReceiptsReceiptIdSignatureDebug = (
+    /**
+ * @summary GET: api/receipts/{receiptId}/signature-debug (read-only; requires SaleView)
+Integration test: payment create → receipt fetch → signature-debug → Verify PASS
+ */
+export const getApiReceiptsReceiptIdSignatureDebug = (
     receiptId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -283,6 +293,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiReceiptsReceiptIdSignatureDebugQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>>
 export type GetApiReceiptsReceiptIdSignatureDebugQueryError = unknown
 
+/**
+ * @summary GET: api/receipts/{receiptId}/signature-debug (read-only; requires SaleView)
+Integration test: payment create → receipt fetch → signature-debug → Verify PASS
+ */
 export const useGetApiReceiptsReceiptIdSignatureDebug = <TData = Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError = unknown>(
  receiptId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

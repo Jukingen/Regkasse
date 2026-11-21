@@ -23,6 +23,9 @@ export interface BackupContentFiscalValidationDto {
   receiptsInManifest?: number | null;
   /** @nullable */
   sequenceGapCount?: number | null;
-  /** @nullable */
+  /**
+   * passed | warning | failed | skipped
+   * @nullable
+   */
   status?: string | null;
 }

@@ -7,7 +7,9 @@
  */
 
 export interface LicenseTestTenantRequest {
+  /** When true, sets expiry to 30 days from now (ignores KasseAPI_Final.Services.LicenseTest.LicenseTestSetExpiryRequest.ValidUntilUtc). */
   setActive?: boolean;
+  /** When true, sets expiry to one day ago (ignores KasseAPI_Final.Services.LicenseTest.LicenseTestSetExpiryRequest.ValidUntilUtc). */
   setExpired?: boolean;
   tenantId: string;
   /** @nullable */

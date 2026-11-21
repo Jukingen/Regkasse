@@ -6,10 +6,19 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/license/upgrade`.
+ */
 export interface UpgradeLicenseRequestBody {
-  /** @nullable */
+  /**
+   * Row id from `GET /api/admin/license/list` (mutually exclusive with KasseAPI_Final.Controllers.UpgradeLicenseRequestBody.LicenseKey).
+   * @nullable
+   */
   issuedLicenseId?: string | null;
-  /** @nullable */
+  /**
+   * Full REGK key (mutually exclusive with KasseAPI_Final.Controllers.UpgradeLicenseRequestBody.IssuedLicenseId).
+   * @nullable
+   */
   licenseKey?: string | null;
   /** @minLength 1 */
   newExpiryDate: string;

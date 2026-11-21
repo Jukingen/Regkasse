@@ -10,6 +10,11 @@ import type { BackupStrategyKind } from './backupStrategyKind';
 export type GetApiAdminBackupRunsParams = {
 page?: number;
 pageSize?: number;
+/**
+ * Backup product strategy: Mandanten-Admin (tenant-bound) vs Super Admin (system-wide).
+Data plane today remains one PostgreSQL logical dump; strategy drives ACL metadata,
+retention defaults, and table-exclude policy (Identity in/out).
+ */
 strategy?: BackupStrategyKind;
 createdBy?: string;
 fromUtc?: string;

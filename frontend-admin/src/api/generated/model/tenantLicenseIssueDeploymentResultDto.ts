@@ -7,6 +7,9 @@
  */
 import type { TenantLicenseOverviewDto } from './tenantLicenseOverviewDto';
 
+/**
+ * Creates a floating deployment JWT row linked to the tenant mandant license.
+ */
 export interface TenantLicenseIssueDeploymentResultDto {
   /** @nullable */
   issuedLicenseId?: string | null;

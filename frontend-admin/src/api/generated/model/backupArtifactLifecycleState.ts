@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Staging → staging verified → optional external copy verified (see backup pipeline runbook).
+ */
 export type BackupArtifactLifecycleState = typeof BackupArtifactLifecycleState[keyof typeof BackupArtifactLifecycleState];
 
 

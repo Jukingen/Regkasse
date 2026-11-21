@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Permission group for Role Capability Matrix: groupKey (slug) and permission keys in that group.
+ */
 export interface PermissionGroupDto {
   /** @nullable */
   groupKey?: string | null;

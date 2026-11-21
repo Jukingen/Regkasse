@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Stok güncelleme request modeli
+ */
 export interface UpdateStockRequest {
   quantity?: number;
 }

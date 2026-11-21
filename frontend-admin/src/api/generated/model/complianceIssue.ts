@@ -10,12 +10,18 @@ export interface ComplianceIssue {
   /** @nullable */
   action?: string | null;
   affectedCount?: number;
-  /** @nullable */
+  /**
+   * Stable machine code for FA i18n (e.g. MISSING_TAX_GROUP).
+   * @nullable
+   */
   code?: string | null;
   /** @nullable */
   message?: string | null;
   /** @nullable */
   sampleProductIds?: string[] | null;
-  /** @nullable */
+  /**
+   * Critical | Warning | Info
+   * @nullable
+   */
   severity?: string | null;
 }

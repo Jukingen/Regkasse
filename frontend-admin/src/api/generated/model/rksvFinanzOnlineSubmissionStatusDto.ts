@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin-facing snapshot of `rksv_special_receipt_finanz_online_submissions` for Startbeleg/Jahresbeleg (no secrets).
+ */
 export interface RksvFinanzOnlineSubmissionStatusDto {
   attemptCount?: number;
   /** @nullable */

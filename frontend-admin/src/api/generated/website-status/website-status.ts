@@ -25,6 +25,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary GET open / can-order / isSpecial status for a tenant website (slug-scoped, no JWT).
+ */
 export const getApiSitesTenantSlugStatus = (
     tenantSlug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -64,6 +67,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSitesTenantSlugStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>>
 export type GetApiSitesTenantSlugStatusQueryError = ProblemDetails
 
+/**
+ * @summary GET open / can-order / isSpecial status for a tenant website (slug-scoped, no JWT).
+ */
 export const useGetApiSitesTenantSlugStatus = <TData = Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>, TError = ProblemDetails>(
  tenantSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -80,6 +86,9 @@ export const useGetApiSitesTenantSlugStatus = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary GET today's special-day override (holiday / custom hours) from WorkingHours JSON.
+ */
 export const getApiSitesTenantSlugStatusSpecial = (
     tenantSlug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -119,6 +128,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSitesTenantSlugStatusSpecialQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>>
 export type GetApiSitesTenantSlugStatusSpecialQueryError = ProblemDetails
 
+/**
+ * @summary GET today's special-day override (holiday / custom hours) from WorkingHours JSON.
+ */
 export const useGetApiSitesTenantSlugStatusSpecial = <TData = Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>, TError = ProblemDetails>(
  tenantSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

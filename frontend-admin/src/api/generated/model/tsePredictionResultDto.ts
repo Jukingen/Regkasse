@@ -7,6 +7,9 @@
  */
 import type { TseRiskFactorDto } from './tseRiskFactorDto';
 
+/**
+ * Heuristic TSE failure-risk prediction (not a certified ML model).
+ */
 export interface TsePredictionResultDto {
   alertPublished?: boolean;
   currentHealthScore?: number;
@@ -15,6 +18,7 @@ export interface TsePredictionResultDto {
   deviceId?: string;
   /** @nullable */
   deviceLabel?: string | null;
+  /** 0–100 estimated probability of operational failure in the near term. */
   failureProbability?: number;
   generatedAt?: string;
   healthTrendPerDay?: number;
@@ -25,7 +29,10 @@ export interface TsePredictionResultDto {
   requiresImmediateAction?: boolean;
   /** @nullable */
   riskFactors?: TseRiskFactorDto[] | null;
-  /** @nullable */
+  /**
+   * Low | Medium | High | Critical
+   * @nullable
+   */
   riskLevel?: string | null;
   sampleCount?: number;
   /** @nullable */

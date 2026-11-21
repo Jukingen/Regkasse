@@ -20,6 +20,7 @@ export interface UpsertTicketEventRequest {
    */
   name: string;
   /**
+   * `top` or `bottom`. Null keeps the stored value on update and defaults to `top` on create.
    * @maxLength 16
    * @nullable
    */

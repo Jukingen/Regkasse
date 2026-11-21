@@ -38,6 +38,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Returns system settings for the ambient tenant.
+ */
 export const getApiSettings = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -77,6 +80,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettings>>>
 export type GetApiSettingsQueryError = unknown
 
+/**
+ * @summary Returns system settings for the ambient tenant.
+ */
 export const useGetApiSettings = <TData = Awaited<ReturnType<typeof getApiSettings>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -144,7 +150,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiSettingsSession = (
+    /**
+ * @summary Returns session timeout settings for the ambient tenant.
+ */
+export const getApiSettingsSession = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -183,6 +192,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSettingsSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettingsSession>>>
 export type GetApiSettingsSessionQueryError = unknown
 
+/**
+ * @summary Returns session timeout settings for the ambient tenant.
+ */
 export const useGetApiSettingsSession = <TData = Awaited<ReturnType<typeof getApiSettingsSession>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -356,7 +368,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiSettingsBackup = (
+    /**
+ * @summary Legacy UI fields. `LastBackup` is not tied to verified backup completion in Phase 1 (see backup-phase1-runbook).
+ */
+export const getApiSettingsBackup = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -395,6 +410,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSettingsBackupQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettingsBackup>>>
 export type GetApiSettingsBackupQueryError = unknown
 
+/**
+ * @summary Legacy UI fields. `LastBackup` is not tied to verified backup completion in Phase 1 (see backup-phase1-runbook).
+ */
 export const useGetApiSettingsBackup = <TData = Awaited<ReturnType<typeof getApiSettingsBackup>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsBackup>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -727,7 +745,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiSettingsWorkingHours = (
+    /**
+ * @summary Restaurant working hours (Mon–Sun), special days, online-order cutoff,
+and Tagesabschluss reminder lead time from company settings.
+Cutoff applies to customer website/app intake only — never gates POS or FA.
+ */
+export const getApiSettingsWorkingHours = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -766,6 +789,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiSettingsWorkingHoursQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettingsWorkingHours>>>
 export type GetApiSettingsWorkingHoursQueryError = ProblemDetails
 
+/**
+ * @summary Restaurant working hours (Mon–Sun), special days, online-order cutoff,
+and Tagesabschluss reminder lead time from company settings.
+Cutoff applies to customer website/app intake only — never gates POS or FA.
+ */
 export const useGetApiSettingsWorkingHours = <TData = Awaited<ReturnType<typeof getApiSettingsWorkingHours>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsWorkingHours>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -782,6 +810,11 @@ export const useGetApiSettingsWorkingHours = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Update restaurant working hours (weekly + special days + online-order cutoff).
+POS uses hours for Tagesabschluss reminders / display only (never blocks sales).
+Online-order stop applies to website/app public status only.
+ */
 export const putApiSettingsWorkingHours = (
     workingHoursDto: WorkingHoursDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -820,7 +853,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiSettingsWorkingHoursMutationBody = WorkingHoursDto
     export type PutApiSettingsWorkingHoursMutationError = ProblemDetails
 
-    export const usePutApiSettingsWorkingHours = <TError = ProblemDetails,
+    /**
+ * @summary Update restaurant working hours (weekly + special days + online-order cutoff).
+POS uses hours for Tagesabschluss reminders / display only (never blocks sales).
+Online-order stop applies to website/app public status only.
+ */
+export const usePutApiSettingsWorkingHours = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsWorkingHours>>, TError,{data: WorkingHoursDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiSettingsWorkingHours>>,

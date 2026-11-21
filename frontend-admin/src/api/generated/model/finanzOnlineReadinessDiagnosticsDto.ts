@@ -6,23 +6,37 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Stable boolean surface for admin UI and automation (no secret values).
+ */
 export interface FinanzOnlineReadinessDiagnosticsDto {
   allLayersReal?: boolean;
   anyLayerSimulated?: boolean;
-  /** @nullable */
+  /**
+   * Null when probe not evaluated; otherwise whether required FinanzOnline company fields are present.
+   * @nullable
+   */
   companySettingsFinanzOnlineComplete?: boolean | null;
-  /** @nullable */
+  /**
+   * Null when not evaluated (public health probe); true/false after admin tenant DB read.
+   * @nullable
+   */
   companySettingsProbeEvaluated?: boolean | null;
   configRkdbBaseUrlConfigured?: boolean;
   configSessionBaseUrlConfigured?: boolean;
+  /** When connectivity uses config, default or scoped session credentials include TelematikId and HerstellerId. */
   configSessionHasParticipantIds?: boolean;
+  /** When connectivity uses config (not company settings), default or scoped session credentials include username and password. */
   configSessionHasUsernamePassword?: boolean;
   connectivityUsesCompanySettings?: boolean;
   mixedTransportLayers?: boolean;
+  /** True when `FinanzOnlineOutbox:Enabled` is true (background worker runs). */
   outboxPipelineEnabled?: boolean;
   registrierkassenEnableRealTestSubmission?: boolean;
   registrierkassenLayerSimulated?: boolean;
+  /** Effective rkdb endpoint available for real transport (config BaseUrl or probed company API URL). */
   rkdbEndpointResolvable?: boolean;
+  /** Effective session endpoint available for real transport (config BaseUrl or probed company API URL). */
   sessionEndpointResolvable?: boolean;
   sessionLayerSimulated?: boolean;
   transmissionQueryEnableRealTestQuery?: boolean;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * BMF Prüftool verification result for a DEP export + crypto material pair.
+ */
 export interface RksvDepPrueftoolResult {
   /** @nullable */
   environment?: string | null;

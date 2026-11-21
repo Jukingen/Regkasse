@@ -8,10 +8,16 @@
 import type { Tenant } from './tenant';
 import type { ApplicationUser } from './applicationUser';
 
+/**
+ * Minimal user↔tenant link. At most one KasseAPI_Final.Models.UserTenantMembership.IsActive row per user (partial unique index).
+Phase: single effective tenant; no switch UI; no organization hierarchy.
+ */
 export interface UserTenantMembership {
   createdAtUtc?: string;
   id?: string;
+  /** When false, row is historical; not counted for login tenant resolution. */
   isActive?: boolean;
+  /** Primary tenant administrator (at most one active owner per tenant). */
   isOwner?: boolean;
   tenant?: Tenant;
   tenantId?: string;

@@ -13,7 +13,10 @@ export interface PeakHoursReportDto {
   busiestHour?: PeakHourSlotDto;
   /** @nullable */
   cashRegisterId?: string | null;
-  /** @nullable */
+  /**
+   * 7 rows (Mon=0 … Sun=6) × 24 hours. Vienna local time.
+   * @nullable
+   */
   heatmap?: number[][] | null;
   maxCellCount?: number;
   periodEndLocal?: string;

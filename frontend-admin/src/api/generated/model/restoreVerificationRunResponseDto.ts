@@ -12,31 +12,59 @@ import type { RestoreDrillStage } from './restoreDrillStage';
 import type { RestoreVerificationStatus } from './restoreVerificationStatus';
 import type { RestoreVerificationTriggerSource } from './restoreVerificationTriggerSource';
 
+/**
+ * Restore drill result (dump inspection + optional isolated restore + optional fiscal SQL + optional live integrity). Not artifact checksum verification.
+ */
 export interface RestoreVerificationRunResponseDto {
+  /** L5: HTTP duman testi çalıştırıldı mı. */
   applicationSmokeProbeExecuted?: boolean;
-  /** @nullable */
+  /**
+   * L5: duman testi geçti mi.
+   * @nullable
+   */
   applicationSmokeProbePassed?: boolean | null;
   /** @nullable */
   checks?: RestoreVerificationCheckDto[] | null;
   /** @nullable */
   completedAt?: string | null;
-  /** @nullable */
+  /**
+   * Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).
+   * @nullable
+   */
   configSnapshotJson?: string | null;
   /** @nullable */
   correlationId?: string | null;
-  /** @nullable */
+  /**
+   * Structured notes (outbox, TSE deferred, integrity interpretation).
+   * @nullable
+   */
   detailsJson?: string | null;
-  /** @nullable */
+  /**
+   * `pg_restore --list` / TOC okunabilirliği (checksum değil).
+   * @nullable
+   */
   dumpInspectionPassed?: boolean | null;
   /** @nullable */
   durationMs?: number | null;
-  /** @nullable */
+  /**
+   * Makine kanıtı (JSON); ayrıca `detailsJson` operasyonel notlar.
+   * @nullable
+   */
   evidenceJson?: string | null;
-  /** @nullable */
+  /**
+   * L6 konsolide durum (KasseAPI_Final.Models.RestoreVerification.ExternalDependencyProofState adı).
+   * @nullable
+   */
   externalDependencyL6OverallState?: string | null;
-  /** @nullable */
+  /**
+   * L6 alan rollup özeti (kısa).
+   * @nullable
+   */
   externalDependencyL6Summary?: string | null;
-  /** @nullable */
+  /**
+   * L6: harici bağımlılık kanıt özeti (Partial = tam canlı kanıt değil).
+   * @nullable
+   */
   externalDependencyProofOutcome?: string | null;
   /** @nullable */
   failedCheckIds?: string[] | null;
@@ -45,7 +73,10 @@ export interface RestoreVerificationRunResponseDto {
   failureCode?: string | null;
   /** @nullable */
   failureDetail?: string | null;
-  /** @nullable */
+  /**
+   * L4 bileşik kanıt (fiscal + klon sürekliliği kapsamı).
+   * @nullable
+   */
   fiscalContinuityLayerPassed?: boolean | null;
   /** @nullable */
   fiscalSqlFailCount?: number | null;
@@ -57,16 +88,23 @@ export interface RestoreVerificationRunResponseDto {
   /** @nullable */
   fiscalSqlWarnCount?: number | null;
   id?: string;
-  /** @nullable */
+  /**
+   * Manuel tetiklerde isteğe bağlı idempotency anahtarı.
+   * @nullable
+   */
   idempotencyKey?: string | null;
   /** @nullable */
   integrityChecksPassed?: boolean | null;
-  /** @nullable */
+  /**
+   * Canlı operasyonel DB üzerinde KasseAPI_Final.Services.IIntegrityCheckService (read-only); post-restore değil (clone bağlantısı hariç).
+   * @nullable
+   */
   integrityScope?: string | null;
   /** @nullable */
   pgRestoreListExitCode?: number | null;
   /** @nullable */
   pgRestoreListLineCount?: number | null;
+  /** Geri yüklenen kopyada çalıştırılan süreklilik SQL kontrolleri. */
   postRestoreContinuityChecksExecuted?: boolean;
   /** @nullable */
   postRestoreContinuityChecksPassed?: boolean | null;
@@ -74,6 +112,7 @@ export interface RestoreVerificationRunResponseDto {
   requestedAt?: string;
   /** @nullable */
   requestedByUserId?: string | null;
+  /** İzole geçici DB’ye gerçek `pg_restore`. */
   restoreAttemptExecuted?: boolean;
   /** @nullable */
   restoreAttemptExitCode?: number | null;
@@ -81,19 +120,35 @@ export interface RestoreVerificationRunResponseDto {
   restoreAttemptPassed?: boolean | null;
   /** @nullable */
   restoreAttemptSkipReason?: string | null;
+  /** L5a: geri yüklenen izole DB üzerinde in-process uygulama dumanı çalıştırıldı mı. */
   restoredDatabaseApplicationSmokeExecuted?: boolean;
-  /** @nullable */
+  /**
+   * L5a: kesin geçiş için true/false; Inconclusive vb. için null.
+   * @nullable
+   */
   restoredDatabaseApplicationSmokePassed?: boolean | null;
-  /** @nullable */
+  /**
+   * L5a: sonuç türü adı (KasseAPI_Final.Models.RestoreVerification.RestoreDrillApplicationSmokeResultKind); yoksa null.
+   * @nullable
+   */
   restoredDatabaseApplicationSmokeResultKind?: string | null;
   restoreDrillReachedStage?: RestoreDrillStage;
-  /** @nullable */
+  /**
+   * Örn. `rv_v_…`; host/path yok.
+   * @nullable
+   */
   restoreTargetDbRedacted?: string | null;
-  /** @nullable */
+  /**
+   * Seçilen mantıksal dump satırı (`backup_artifacts.id`).
+   * @nullable
+   */
   sourceBackupArtifactId?: string | null;
   /** @nullable */
   sourceBackupRunId?: string | null;
-  /** @nullable */
+  /**
+   * Source `backup_runs.strategy` when the navigation is loaded.
+   * @nullable
+   */
   sourceBackupStrategy?: string | null;
   /** @nullable */
   sourceBackupTenantId?: string | null;
@@ -101,6 +156,9 @@ export interface RestoreVerificationRunResponseDto {
   startedAt?: string | null;
   status?: RestoreVerificationStatus;
   triggerSource?: RestoreVerificationTriggerSource;
-  /** @nullable */
+  /**
+   * `pending` | `passed` | `failed` — composed from executed checks; skipped is not a fail.
+   * @nullable
+   */
   verdict?: string | null;
 }

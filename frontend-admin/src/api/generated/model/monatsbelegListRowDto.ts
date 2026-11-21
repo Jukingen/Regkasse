@@ -34,7 +34,10 @@ export interface MonatsbelegListRowDto {
   registerLocation?: string | null;
   /** @nullable */
   registerNumber?: string | null;
-  /** @nullable */
+  /**
+   * `created` | `failed`.
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   tseSignature?: string | null;

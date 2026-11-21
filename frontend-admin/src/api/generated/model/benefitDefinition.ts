@@ -9,13 +9,24 @@ import type { Category } from './category';
 import type { BenefitAssignment } from './benefitAssignment';
 import type { AppliedBenefitKind } from './appliedBenefitKind';
 
+/**
+ * Defines a customer benefit type (e.g. percentage discount, free daily allowance, buy X get Y).
+Minimal persistence for future wiring; not yet used by PaymentService.
+ */
 export interface BenefitDefinition {
   allowanceCategory?: Category;
-  /** @nullable */
+  /**
+   * For FreeAllowance: only items in this category are eligible. Null = do not apply.
+   * @nullable
+   */
   allowanceCategoryId?: string | null;
-  /** @nullable */
+  /**
+   * For FreeAllowance: quantity per scope (e.g. 2 per day).
+   * @nullable
+   */
   allowanceQuantity?: number | null;
   /**
+   * For FreeAllowance: scope (e.g. "per_day").
    * @maxLength 50
    * @nullable
    */
@@ -23,7 +34,10 @@ export interface BenefitDefinition {
   /** @nullable */
   assignments?: BenefitAssignment[] | null;
   benefitKind: AppliedBenefitKind;
-  /** @nullable */
+  /**
+   * For BuyXGetY: required quantity (e.g. 7).
+   * @nullable
+   */
   buyXQuantity?: number | null;
   /**
    * @minLength 1
@@ -36,7 +50,10 @@ export interface BenefitDefinition {
    * @nullable
    */
   createdBy?: string | null;
-  /** @nullable */
+  /**
+   * For BuyXGetY: free quantity (e.g. 1).
+   * @nullable
+   */
   getYQuantity?: number | null;
   id?: string;
   isActive?: boolean;
@@ -45,7 +62,10 @@ export interface BenefitDefinition {
    * @maxLength 100
    */
   name: string;
-  /** @nullable */
+  /**
+   * For PercentageDiscount: discount percentage (e.g. 10).
+   * @nullable
+   */
   percentageValue?: number | null;
   /** @nullable */
   updatedAt?: string | null;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Result of a manual trigger request (HTTP layer). Distinct from KasseAPI_Final.Models.Backup.BackupRunStatus.
+ */
 export type BackupManualTriggerResultKind = typeof BackupManualTriggerResultKind[keyof typeof BackupManualTriggerResultKind];
 
 

@@ -8,16 +8,25 @@
 import type { CashRegisterDeviceInfoDto } from './cashRegisterDeviceInfoDto';
 import type { RegisterStatus } from './registerStatus';
 
+/**
+ * Admin / back-office cash register row with operational telemetry.
+ */
 export interface EnhancedCashRegisterDto {
   createdAt?: string;
   /** @nullable */
   createdBy?: string | null;
   currentBalance?: number;
-  /** @nullable */
+  /**
+   * Email of the open-shift cashier; omitted when the till is unattended.
+   * @nullable
+   */
   currentCashierEmail?: string | null;
   /** @nullable */
   currentCashierName?: string | null;
-  /** @nullable */
+  /**
+   * Login of the open-shift cashier; used to disambiguate similar display names.
+   * @nullable
+   */
   currentCashierUserName?: string | null;
   /** @nullable */
   currentUserId?: string | null;
@@ -42,7 +51,10 @@ export interface EnhancedCashRegisterDto {
   offlineQueueCount?: number;
   /** @nullable */
   registerNumber?: string | null;
-  /** @nullable */
+  /**
+   * UTC timestamp when the RKSV Startbeleg was recorded; null when not yet created.
+   * @nullable
+   */
   startbelegCreatedAtUtc?: string | null;
   startingBalance?: number;
   status?: RegisterStatus;
@@ -51,7 +63,10 @@ export interface EnhancedCashRegisterDto {
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
-  /** @nullable */
+  /**
+   * healthy | degraded | offline | notConfigured
+   * @nullable
+   */
   tseHealthStatus?: string | null;
   /** @nullable */
   updatedAt?: string | null;

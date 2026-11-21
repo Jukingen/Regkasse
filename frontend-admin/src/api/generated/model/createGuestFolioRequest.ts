@@ -13,7 +13,11 @@ export interface CreateGuestFolioRequest {
   /** @nullable */
   checkOut?: string | null;
   customerId: string;
-  /** @nullable */
+  /**
+   * Free text stored on the folio. `breakfast` (any case) opts the stay into
+`breakfast_included` when that extension is enabled.
+   * @nullable
+   */
   notes?: string | null;
   roomId: string;
 }

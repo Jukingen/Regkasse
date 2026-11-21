@@ -7,6 +7,7 @@
  */
 
 export interface DailyClosingLastClosingDto {
+  /** Real UTC creation instant (KasseAPI_Final.Models.DailyClosing.CreatedAt), never backdated. */
   closedAt?: string;
   /** @nullable */
   closingId?: string | null;

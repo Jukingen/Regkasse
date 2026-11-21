@@ -52,6 +52,7 @@ export interface Cart {
    */
   userId: string;
   /**
+   * Optional display label only; cart ownership is KasseAPI_Final.Models.Cart.UserId (authenticated actor).
    * @maxLength 100
    * @nullable
    */

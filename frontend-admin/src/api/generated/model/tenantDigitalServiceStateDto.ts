@@ -26,6 +26,7 @@ export interface TenantDigitalServiceStateDto {
   isAvailable?: boolean;
   isEnabled?: boolean;
   listPrice?: number;
+  /** Effective monthly price (custom override or catalog default). */
   price?: number;
   /** @nullable */
   publishedAt?: string | null;
@@ -33,7 +34,10 @@ export interface TenantDigitalServiceStateDto {
   requestedAt?: string | null;
   /** @nullable */
   serviceType?: string | null;
-  /** @nullable */
+  /**
+   * Provision lifecycle: none / pending / created / published / rejected.
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   templateId?: string | null;

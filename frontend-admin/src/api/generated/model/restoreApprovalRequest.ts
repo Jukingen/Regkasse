@@ -7,7 +7,10 @@
  */
 
 export interface RestoreApprovalRequest {
-  /** @minLength 1 */
+  /**
+   * `approve` or `reject`.
+   * @minLength 1
+   */
   action: string;
   /** @minLength 1 */
   approvalToken: string;

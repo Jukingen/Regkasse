@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * GET /api/system/time/status — RKSV clock health for operators.
+ */
 export interface SystemTimeStatusDto {
   isSynchronized?: boolean;
   /** @nullable */
@@ -15,6 +18,9 @@ export interface SystemTimeStatusDto {
   /** @nullable */
   offsetSeconds?: number | null;
   systemTimeUtc?: string;
-  /** @nullable */
+  /**
+   * ok | warning | critical
+   * @nullable
+   */
   warningLevel?: string | null;
 }

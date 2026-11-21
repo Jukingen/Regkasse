@@ -17,7 +17,10 @@ export interface TenantDomainDto {
   /** @nullable */
   subdomain?: string | null;
   tenantId?: string;
-  /** @nullable */
+  /**
+   * Only returned until verified (DNS TXT value).
+   * @nullable
+   */
   verificationToken?: string | null;
   /** @nullable */
   verifiedAt?: string | null;

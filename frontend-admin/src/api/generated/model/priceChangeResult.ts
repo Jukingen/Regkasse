@@ -7,9 +7,15 @@
  */
 
 export interface PriceChangeResult {
-  /** @nullable */
+  /**
+   * Archived predecessor product id when a new catalog version was created.
+   * @nullable
+   */
   archivedProductId?: string | null;
-  /** @nullable */
+  /**
+   * Catalog product version number (products.version).
+   * @nullable
+   */
   catalogVersion?: number | null;
   createdNewProductVersion?: boolean;
   /** @nullable */

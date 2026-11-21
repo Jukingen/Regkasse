@@ -7,6 +7,9 @@
  */
 import type { GracePeriodTenantRowDto } from './gracePeriodTenantRowDto';
 
+/**
+ * Super Admin grace-period cohort: bucket counts + tenant rows ordered by urgency.
+ */
 export interface GracePeriodDashboardDto {
   critical?: number;
   good?: number;

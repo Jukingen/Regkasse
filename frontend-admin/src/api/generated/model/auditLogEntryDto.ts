@@ -9,15 +9,24 @@ import type { AuditEventType } from './auditEventType';
 import type { AuditLogStatus } from './auditLogStatus';
 import type { UserInfoDto } from './userInfoDto';
 
+/**
+ * Audit log entry for API response. Mirrors AuditLog entity plus resolved actor display info.
+ */
 export interface AuditLogEntryDto {
   /** @nullable */
   action?: string | null;
   actionType?: AuditEventType;
-  /** @nullable */
+  /**
+   * Resolved display name (e.g. FirstName LastName) when available; null if not resolved.
+   * @nullable
+   */
   actorDisplayName?: string | null;
   /** @nullable */
   amount?: number | null;
-  /** @nullable */
+  /**
+   * Structured diff JSON: [{ "field", "oldValue", "newValue" }].
+   * @nullable
+   */
   changes?: string | null;
   /** @nullable */
   correlationId?: string | null;
@@ -41,14 +50,23 @@ export interface AuditLogEntryDto {
   /** @nullable */
   httpStatusCode?: number | null;
   id?: string;
-  /** @nullable */
+  /**
+   * Super Admin user id when the row was written under impersonation.
+   * @nullable
+   */
   impersonatedBy?: string | null;
-  /** @nullable */
+  /**
+   * Target tenant id when the row was written under impersonation.
+   * @nullable
+   */
   impersonatedTenantId?: string | null;
   /** @nullable */
   ipAddress?: string | null;
   isActive?: boolean;
-  /** @nullable */
+  /**
+   * Additional metadata JSON (e.g. reason, targetUserId).
+   * @nullable
+   */
   metadata?: string | null;
   /** @nullable */
   newValues?: string | null;
@@ -79,13 +97,22 @@ export interface AuditLogEntryDto {
   user?: UserInfoDto;
   /** @nullable */
   userAgent?: string | null;
-  /** @nullable */
+  /**
+   * Flat actor display name; mirrors KasseAPI_Final.Models.DTOs.AuditLogEntryDto.ActorDisplayName when resolved from User.
+   * @nullable
+   */
   userDisplayName?: string | null;
-  /** @nullable */
+  /**
+   * Flat actor email (backward-compatible convenience field).
+   * @nullable
+   */
   userEmail?: string | null;
   /** @nullable */
   userId?: string | null;
-  /** @nullable */
+  /**
+   * Flat actor user name (backward-compatible convenience field).
+   * @nullable
+   */
   userName?: string | null;
   /** @nullable */
   userRole?: string | null;

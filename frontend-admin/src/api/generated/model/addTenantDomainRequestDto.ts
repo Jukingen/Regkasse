@@ -9,6 +9,9 @@
 export interface AddTenantDomainRequestDto {
   /** @nullable */
   domain?: string | null;
-  /** @nullable */
+  /**
+   * Super Admin only — target tenant when ambient context is missing.
+   * @nullable
+   */
   tenantId?: string | null;
 }

@@ -13,7 +13,9 @@ export interface CurrentTenantSettingsDto {
   /** @nullable */
   currency?: string | null;
   fiscalSettings?: FiscalSettingsValueDto;
+  /** True when TSE-signed payments exist for this tenant (RKSV fiscal footprint). */
   hasFiscalData?: boolean;
+  /** True when any invoice rows exist for this tenant. */
   hasInvoices?: boolean;
   tenantId?: string;
   /** @nullable */

@@ -15,6 +15,9 @@ export interface CreateTseResourcePoolRequestDto {
   /** @nullable */
   rules?: CreateTsePoolRuleRequestDto[] | null;
   totalCapacity?: number;
-  /** @nullable */
+  /**
+   * Shared | Dedicated | Hybrid
+   * @nullable
+   */
   type?: string | null;
 }

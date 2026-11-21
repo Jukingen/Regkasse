@@ -6,9 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Placeholder for future device → printer resolution; currently reflection/stub.
+ */
 export interface PrintRoutingContext {
   /** @nullable */
   deviceId?: string | null;
+  /** True solange keine Hardware-Registry angebunden ist. */
   isSimulated?: boolean;
   /** @nullable */
   printerProfileId?: string | null;

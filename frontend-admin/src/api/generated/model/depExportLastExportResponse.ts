@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Most recent completed DEP export for the ambient tenant (compliance UX).
+ */
 export interface DepExportLastExportResponse {
   /** @nullable */
   cashRegisterId?: string | null;
@@ -16,7 +19,10 @@ export interface DepExportLastExportResponse {
   fileName?: string | null;
   /** @nullable */
   fileSizeBytes?: number | null;
-  /** @nullable */
+  /**
+   * Austria-local display string (dd.MM.yyyy HH:mm), UTC source stamped as UTC.
+   * @nullable
+   */
   formatted?: string | null;
   hasExport?: boolean;
   isSimulated?: boolean;

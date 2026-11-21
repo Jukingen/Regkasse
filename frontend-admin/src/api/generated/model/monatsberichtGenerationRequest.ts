@@ -7,10 +7,14 @@
  */
 
 export interface MonatsberichtGenerationRequest {
-  /** @nullable */
+  /**
+   * Register kapsamı için zorunlu; Company için null.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   forceNewProvisional?: boolean;
   /** @nullable */
   scopeKind?: string | null;
+  /** Yıl-ay (Vienna), ayın 1. günü veya herhangi bir gün aynı ay içinde. */
   viennaMonthAnyDay?: string;
 }

@@ -14,6 +14,7 @@ export interface FinanzOnlineOutboxWorkerSettingsDto {
   baseDelaySeconds?: FinanzOnlineOutboxWorkerNumericDto;
   canManage?: boolean;
   configEnabled?: boolean;
+  /** Effective worker flag (config unless a Super Admin overlay exists). */
   enabled?: boolean;
   isProduction?: boolean;
   jitterMaxSeconds?: FinanzOnlineOutboxWorkerNumericDto;
@@ -22,6 +23,9 @@ export interface FinanzOnlineOutboxWorkerSettingsDto {
   overrideEnabled?: boolean | null;
   pollIntervalSeconds?: FinanzOnlineOutboxWorkerNumericDto;
   processingTimeoutSeconds?: FinanzOnlineOutboxWorkerNumericDto;
-  /** @nullable */
+  /**
+   * `config` or `global_override`.
+   * @nullable
+   */
   source?: string | null;
 }

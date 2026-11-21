@@ -9,7 +9,10 @@
 export interface AdminShiftRowDto {
   /** @nullable */
   cashCount?: number | null;
-  /** @nullable */
+  /**
+   * Identity user id of the cashier (stable across username changes).
+   * @nullable
+   */
   cashierId?: string | null;
   /** @nullable */
   cashierName?: string | null;
@@ -21,10 +24,14 @@ export interface AdminShiftRowDto {
   /** @nullable */
   endedAt?: string | null;
   id?: string;
+  /** True when the register is open without a matching active KasseAPI_Final.Models.CashierShift row. */
   isOrphanedRegisterSession?: boolean;
   /** @nullable */
   notes?: string | null;
-  /** @nullable */
+  /**
+   * Hours since the register was opened (for stale-shift warnings).
+   * @nullable
+   */
   openDurationHours?: number | null;
   /** @nullable */
   registerNumber?: string | null;
@@ -35,6 +42,9 @@ export interface AdminShiftRowDto {
   totalCard?: number;
   totalCash?: number;
   totalSales?: number;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.DTOs.AdminShiftRowDto.CashierId for FA shift-history display (user tracking).
+   * @nullable
+   */
   readonly userId?: string | null;
 }

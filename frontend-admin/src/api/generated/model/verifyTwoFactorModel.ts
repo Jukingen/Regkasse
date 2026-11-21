@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/Auth/verify-2fa — complete SuperAdmin login after TOTP.
+ */
 export interface VerifyTwoFactorModel {
-  /** @nullable */
+  /**
+   * 6-digit authenticator code (or spaces ignored).
+   * @nullable
+   */
   code?: string | null;
   /** @nullable */
   twoFactorToken?: string | null;

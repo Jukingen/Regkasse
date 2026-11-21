@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Single line for eligibility preview (minimal; no payment or TSE fields).
+ */
 export interface BenefitEligibilityPreviewItemRequest {
   productId: string;
   /**

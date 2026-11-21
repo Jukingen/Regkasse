@@ -9,6 +9,7 @@ import type { OperationalReportMetaDto } from './operationalReportMetaDto';
 import type { TseContinuityRegisterReportDto } from './tseContinuityRegisterReportDto';
 
 export interface TseChainContinuityReportDto {
+  /** Legacy aggregate: sum of chain breaks across registers. */
   breakCount?: number;
   meta?: OperationalReportMetaDto;
   /** @nullable */

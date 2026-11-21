@@ -7,6 +7,9 @@
  */
 
 export interface BackupTriggerRequestDto {
-  /** @nullable */
+  /**
+   * Optional idempotency key (reuse returns same run).
+   * @nullable
+   */
   idempotencyKey?: string | null;
 }

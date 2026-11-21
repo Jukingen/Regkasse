@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/license/validate` (key only; no activation).
+ */
 export interface LicenseKeyLookupRequest {
   /** @minLength 1 */
   licenseKey: string;

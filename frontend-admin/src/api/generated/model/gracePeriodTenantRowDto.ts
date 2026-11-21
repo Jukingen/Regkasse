@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One mandant currently inside the license grace window (Super Admin overview).
+ */
 export interface GracePeriodTenantRowDto {
   daysRemaining?: number;
   expiredAtUtc?: string;

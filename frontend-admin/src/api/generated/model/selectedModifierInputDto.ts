@@ -6,7 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Phase 2 deprecated: add-item/update-item legacy modifier input. New add-ons should be added as separate add-item(productId) lines. Still accepted for backward compat; prefer flat cart.
+ */
 export interface SelectedModifierInputDto {
   id?: string;
+  /** Miktar; yoksa veya < 1 ise 1 kullanılır. */
   quantity?: number;
 }

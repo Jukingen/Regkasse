@@ -10,6 +10,7 @@ import type { FinanzOnlineErrorResponse } from './finanzOnlineErrorResponse';
 export interface FinanzOnlineErrorsListResponse {
   /** @nullable */
   diagnosticWarning?: string | null;
+  /** True: rows are persisted FinanzOnlineErrors facts (still not a live BMF stream). */
   isAuthoritative?: boolean;
   isSimulated?: boolean;
   /** @nullable */

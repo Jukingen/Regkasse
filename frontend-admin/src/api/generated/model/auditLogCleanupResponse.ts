@@ -8,11 +8,16 @@
 
 export interface AuditLogCleanupResponse {
   cutoffDate?: string;
+  /** Sprint 5: number of logs deleted. */
   deletedCount?: number;
   /** @nullable */
   message?: string | null;
-  /** @nullable */
+  /**
+   * Sprint 5: earliest allowed cutoff date (today minus retention years).
+   * @nullable
+   */
   minCutoffDate?: string | null;
+  /** Sprint 5: number of logs skipped because they fall within an active legal hold. */
   skippedDueToLegalHoldCount?: number;
   success?: boolean;
 }

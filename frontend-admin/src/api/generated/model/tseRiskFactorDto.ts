@@ -13,6 +13,7 @@ export interface TseRiskFactorDto {
   description?: string | null;
   /** @nullable */
   deviceId?: string | null;
+  /** 0–100 contribution toward failure risk. */
   impact?: number;
   isActionable?: boolean;
   /** @nullable */

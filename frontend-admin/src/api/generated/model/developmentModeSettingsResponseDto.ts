@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin FA: persisted development-mode singleton (read model).
+ */
 export interface DevelopmentModeSettingsResponseDto {
   bypassLicense?: boolean;
   bypassNtpCheck?: boolean;
@@ -16,7 +19,10 @@ export interface DevelopmentModeSettingsResponseDto {
   forceOnline?: boolean;
   simulateOffline?: boolean;
   updatedAtUtc?: string;
-  /** @nullable */
+  /**
+   * Updater email when `AspNetUsers.Id` matches `updated_by_user_id` (UUID string).
+   * @nullable
+   */
   updatedBy?: string | null;
   validDays?: number;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Operator-uploaded backup registration (no automatic database restore).
+ */
 export interface BackupArtifactImportResponseDto {
   artifactId?: string;
   backupRunId?: string;

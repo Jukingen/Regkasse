@@ -8,6 +8,10 @@
 import type { ProductModifierGroup } from './productModifierGroup';
 import type { Product } from './product';
 
+/**
+ * Faz 1: Suggested Add-On Group içinde product referansı. Fiyat/vergi Product tablosunda; bu tablo sadece grup ↔ product bağlantısı + sıra.
+Mevcut product_modifier_groups (ModifierGroupId) ile ilişkilidir; ayrı addon_groups tablosu yok.
+ */
 export interface AddOnGroupProduct {
   modifierGroup?: ProductModifierGroup;
   modifierGroupId: string;

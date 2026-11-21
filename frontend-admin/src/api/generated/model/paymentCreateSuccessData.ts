@@ -8,15 +8,26 @@
 import type { IssuedTicketDto } from './issuedTicketDto';
 import type { PaymentCreateTseData } from './paymentCreateTseData';
 
+/**
+ * Payload for POST payment create success (v2).
+ */
 export interface PaymentCreateSuccessData {
   invoicePersisted?: boolean;
-  /** @nullable */
+  /**
+   * Plaintext ticket codes for print only. Not part of the RKSV QR payload.
+   * @nullable
+   */
   issuedTickets?: IssuedTicketDto[] | null;
+  /** True when payment was stored as server-side non-fiscal intent (TSE offline queue). */
   nonFiscalOfflineQueued?: boolean;
-  /** @nullable */
+  /**
+   * Offline intent row id when NonFiscalOfflineQueued is true.
+   * @nullable
+   */
   offlineTransactionId?: string | null;
   payment?: unknown;
   paymentId?: string;
+  /** Set when server-side NTP guard flagged clock drift (offline replay tolerance). */
   timeSyncWarning?: boolean;
   tse?: PaymentCreateTseData;
 }

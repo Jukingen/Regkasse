@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Result of a Super Admin cache clear operation.
+ */
 export interface ClearCacheResult {
   /** @nullable */
   detail?: string | null;

@@ -6,7 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Time-series point for tax-amount trends by rate.
+ */
 export interface TaxTrendPoint {
+  /** Sum of VAT / MwSt for the bucket on that date. */
   amount?: number;
   date?: string;
   rate?: number;

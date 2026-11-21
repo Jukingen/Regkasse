@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Response for issuing / rotating a short-lived DEP download token.
+ */
 export interface DepExportDownloadTokenResponse {
-  /** @nullable */
+  /**
+   * Relative API path: `/api/admin/rksv/dep-export/download/token/{token}`.
+   * @nullable
+   */
   downloadPath?: string | null;
   expiresAtUtc?: string;
   exportId?: string;

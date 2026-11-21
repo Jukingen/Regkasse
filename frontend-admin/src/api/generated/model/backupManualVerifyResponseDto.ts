@@ -8,6 +8,10 @@
 import type { BackupChecksumArtifactResultDto } from './backupChecksumArtifactResultDto';
 import type { BackupVerificationReportDto } from './backupVerificationReportDto';
 
+/**
+ * Manual on-demand verify: SHA-256 artifact re-hash (same as automatic / scheduled)
+plus optional TOC/table row counts from the verification report.
+ */
 export interface BackupManualVerifyResponseDto {
   /** @nullable */
   artifacts?: BackupChecksumArtifactResultDto[] | null;

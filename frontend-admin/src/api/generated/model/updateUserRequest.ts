@@ -22,7 +22,10 @@ export interface UpdateUserRequest {
    * @maxLength 50
    */
   firstName: string;
-  /** @nullable */
+  /**
+   * Optional. When set, updates ApplicationUser.IsDemo. Omit to leave unchanged (avoids unintended preserve on role-only edits).
+   * @nullable
+   */
   isDemo?: boolean | null;
   /**
    * @minLength 1

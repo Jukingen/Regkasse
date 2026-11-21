@@ -9,7 +9,10 @@
 export interface CreateTicketSeatRequest {
   /** @nullable */
   categoryId?: string | null;
-  /** @nullable */
+  /**
+   * Accessible seat this companion seat accompanies. Null leaves the seat unpaired.
+   * @nullable
+   */
   companionOfSeatId?: string | null;
   /** @nullable */
   gridColumn?: number | null;

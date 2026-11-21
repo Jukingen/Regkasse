@@ -7,6 +7,9 @@
  */
 import type { TseOfflineQueueRegisterSummaryDto } from './tseOfflineQueueRegisterSummaryDto';
 
+/**
+ * Tenant-scoped TSE NonFiscalPending offline intent queue status.
+ */
 export interface TseOfflineQueueStatusDto {
   /** @nullable */
   byRegister?: TseOfflineQueueRegisterSummaryDto[] | null;

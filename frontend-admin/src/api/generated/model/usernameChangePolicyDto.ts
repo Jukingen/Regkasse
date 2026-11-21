@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * GET /api/UserManagement/me/username-change-policy — self-service username cooldown.
+ */
 export interface UsernameChangePolicyDto {
   canChange?: boolean;
   cooldownDays?: number;
@@ -13,5 +16,6 @@ export interface UsernameChangePolicyDto {
   lastChangedAtUtc?: string | null;
   /** @nullable */
   nextChangeAllowedAtUtc?: string | null;
+  /** False when the current actor (e.g. SuperAdmin) is exempt from cooldown and new-account rules. */
   restrictionsApply?: boolean;
 }

@@ -7,6 +7,9 @@
  */
 import type { DailyClosingDayDto } from './dailyClosingDayDto';
 
+/**
+ * Month grid for the admin daily-closing calendar (Vienna business days).
+ */
 export interface DailyClosingCalendarDto {
   /** @nullable */
   cashRegisterId?: string | null;

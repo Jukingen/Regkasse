@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Today's special-day override from `WorkingHoursSettings.SpecialDays` JSON.
+ */
 export interface WebsiteSpecialDayDto {
   /** @nullable */
   closeTime?: string | null;

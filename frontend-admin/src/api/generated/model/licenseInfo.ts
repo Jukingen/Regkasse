@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Resolved license row for a unified or mapped REGK key.
+ */
 export interface LicenseInfo {
   /** @nullable */
   canonicalLicenseKey?: string | null;

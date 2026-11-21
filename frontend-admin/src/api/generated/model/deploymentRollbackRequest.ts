@@ -8,11 +8,15 @@
 
 export interface DeploymentRollbackRequest {
   /**
+   * Must be exactly `rollback`.
    * @minLength 1
    * @maxLength 32
    */
   confirm: string;
-  /** @nullable */
+  /**
+   * Optional override; otherwise uses latest run previousImageTag.
+   * @nullable
+   */
   previousImageTag?: string | null;
   /**
    * @minLength 1

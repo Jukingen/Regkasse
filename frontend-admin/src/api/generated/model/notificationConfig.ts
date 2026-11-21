@@ -9,15 +9,24 @@ import type { DepExportMobilePushSettings } from './depExportMobilePushSettings'
 import type { NotificationConfigEnabledEvents } from './notificationConfigEnabledEvents';
 import type { NotificationConfigSeverityThreshold } from './notificationConfigSeverityThreshold';
 
+/**
+ * Tenant-scoped notification channels and per-event-type rules (FA admin).
+ */
 export interface NotificationConfig {
   depExportMobilePush?: DepExportMobilePushSettings;
   emailEnabled?: boolean;
   /** @nullable */
   emailRecipients?: string[] | null;
-  /** @nullable */
+  /**
+   * When empty, all event types are enabled.
+   * @nullable
+   */
   enabledEvents?: NotificationConfigEnabledEvents;
   inAppEnabled?: boolean;
-  /** @nullable */
+  /**
+   * Minimum severity per event type (Info, Warning, Error, Critical). Omitted types use event default only.
+   * @nullable
+   */
   severityThreshold?: NotificationConfigSeverityThreshold;
   webhookEnabled?: boolean;
   /** @nullable */

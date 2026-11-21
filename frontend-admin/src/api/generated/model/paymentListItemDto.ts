@@ -7,6 +7,9 @@
  */
 import type { StornoReason } from './stornoReason';
 
+/**
+ * Admin payment list row.
+ */
 export interface PaymentListItemDto {
   /** @nullable */
   cashierDisplayName?: string | null;
@@ -25,7 +28,10 @@ export interface PaymentListItemDto {
   finanzOnlineRetryCount?: number;
   /** @nullable */
   finanzOnlineStatus?: string | null;
-  /** @deprecated */
+  /**
+   * Derived from KasseAPI_Final.Models.DTOs.PaymentListItemDto.VoucherRedeemedAmount > 0; clients should use the amount field.
+   * @deprecated
+   */
   hasVoucherRedemption?: boolean;
   id?: string;
   /** @nullable */

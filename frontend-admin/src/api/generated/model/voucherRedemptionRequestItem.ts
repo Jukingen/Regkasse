@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Single line in a multi-voucher payment (same transaction).
+ */
 export interface VoucherRedemptionRequestItem {
   /**
    * @minimum 0.01

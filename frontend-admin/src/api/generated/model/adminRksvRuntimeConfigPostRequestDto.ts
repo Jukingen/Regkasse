@@ -7,12 +7,16 @@
  */
 
 export interface AdminRksvRuntimeConfigPostRequestDto {
+  /** Development-only TSE health bypass overlay. Ignored when TseMode is Real. */
   bypassTseInDevelopment?: boolean;
   /** @nullable */
   finanzOnlineMode?: string | null;
   /** @nullable */
   mode?: string | null;
-  /** @nullable */
+  /**
+   * Optional operator reason stored in audit metadata.
+   * @nullable
+   */
   reason?: string | null;
   showDemoLabel?: boolean;
   /** @nullable */

@@ -13,7 +13,10 @@ export interface DailyClosingSummaryLineDto {
   isStorno?: boolean;
   /** @nullable */
   originalReceiptId?: string | null;
-  /** @nullable */
+  /**
+   * Resolved enum name (Cash, Card, Voucher, …).
+   * @nullable
+   */
   paymentMethod?: string | null;
   /** @nullable */
   receiptNumber?: string | null;

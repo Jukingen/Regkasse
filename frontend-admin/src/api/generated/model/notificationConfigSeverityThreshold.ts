@@ -7,6 +7,7 @@
  */
 
 /**
+ * Minimum severity per event type (Info, Warning, Error, Critical). Omitted types use event default only.
  * @nullable
  */
 export type NotificationConfigSeverityThreshold = {
@@ -42,7 +43,9 @@ export type NotificationConfigSeverityThreshold = {
   EinvoiceSubmissionRetry?: string;
   EinvoiceSubmitted?: string;
   EinvoiceValidated?: string;
+  FinanzOnlineOutboxFailureSpike?: string;
   FinanzOnlineSubmissionFailed?: string;
+  JahresbelegDeadlineReminder?: string;
   JahresbelegFonReminder?: string;
   KsDeTxFinished?: string;
   LicenseExpired?: string;
@@ -58,6 +61,7 @@ export type NotificationConfigSeverityThreshold = {
   MonatsbelegCreated?: string;
   MonatsbelegManagerContacted?: string;
   MonatsbelegMissingReminder?: string;
+  MonatsbelegReissued?: string;
   OfflineOrdersBacklogGrowing?: string;
   OfflineOrdersExpiringSoon?: string;
   OfflineQueueApproachingLimit?: string;

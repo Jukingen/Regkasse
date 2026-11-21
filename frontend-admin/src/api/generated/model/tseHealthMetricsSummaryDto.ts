@@ -8,6 +8,9 @@
 import type { TseHealthMetricsSummaryDtoDevicesByProvider } from './tseHealthMetricsSummaryDtoDevicesByProvider';
 import type { TseHealthMetricsSummaryDtoDevicesByStatus } from './tseHealthMetricsSummaryDtoDevicesByStatus';
 
+/**
+ * JSON summary gauges for TSE fleet monitoring.
+ */
 export interface TseHealthMetricsSummaryDto {
   activeDevices?: number;
   activeFailoverCount?: number;

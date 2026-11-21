@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin renewal conversion funnel (distinct tenants per step in a UTC window).
+Cohort KasseAPI_Final.DTOs.LicenseRenewalFunnelDto.Total = tenants that received ≥1 license reminder in the period.
+ */
 export interface LicenseRenewalFunnelDto {
   activated?: number;
   conversionRate?: number;

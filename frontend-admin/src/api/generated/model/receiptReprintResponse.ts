@@ -8,17 +8,29 @@
 import type { ReceiptDTO } from './receiptDTO';
 import type { PrintRoutingContext } from './printRoutingContext';
 
+/**
+ * Antwort: Erfolg/Fehler getrennt, Audit-Referenz, Beleg + Routing (kein neuer Beleg).
+ */
 export interface ReceiptReprintResponse {
-  /** @nullable */
+  /**
+   * Persistierte Audit-Zeile (Payment-Operation), für Incident/Audit-UI.
+   * @nullable
+   */
   auditLogId?: string | null;
   /** @nullable */
   errorCode?: string | null;
   /** @nullable */
   errorMessage?: string | null;
-  /** @nullable */
+  /**
+   * Success oder Failed.
+   * @nullable
+   */
   outcome?: string | null;
   receipt?: ReceiptDTO;
-  /** @nullable */
+  /**
+   * Festes Ereignis für Reporting-Filter (z. B. ReceiptReprintConfirmed).
+   * @nullable
+   */
   reportableEventType?: string | null;
   routing?: PrintRoutingContext;
 }

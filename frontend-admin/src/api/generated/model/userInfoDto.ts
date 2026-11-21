@@ -6,12 +6,21 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Compact actor/user snapshot for API responses (audit logs, etc.).
+ */
 export interface UserInfoDto {
-  /** @nullable */
+  /**
+   * Preferred display label (FirstName LastName, else UserName).
+   * @nullable
+   */
   displayName?: string | null;
   /** @nullable */
   email?: string | null;
-  /** @nullable */
+  /**
+   * Identity user id (string GUID).
+   * @nullable
+   */
   id?: string | null;
   /** @nullable */
   role?: string | null;

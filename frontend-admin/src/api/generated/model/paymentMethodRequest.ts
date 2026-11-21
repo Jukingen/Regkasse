@@ -7,23 +7,41 @@
  */
 import type { VoucherRedemptionRequestItem } from './voucherRedemptionRequestItem';
 
+/**
+ * Ödeme yöntemi request'i
+ */
 export interface PaymentMethodRequest {
   /** @nullable */
   amount?: number | null;
-  /** @nullable */
+  /**
+   * Confirmed card payment intent id when method is card (Stripe-ready two-step flow).
+   * @nullable
+   */
   cardPaymentIntentId?: string | null;
-  /** @nullable */
+  /**
+   * Provider-agnostic alias for the gateway intent id.
+   * @nullable
+   */
   gatewayIntentId?: string | null;
   /** @minLength 1 */
   method: string;
-  /** @nullable */
+  /**
+   * POS `gateway_payment_intents` row id to link after fiscal commit.
+   * @nullable
+   */
   onlinePaymentId?: string | null;
+  /** Client hint only. Signing is decided by `TseOptions.RequiresFiscalSignature`
+(`Tse:TseMode` not Off). A POS client cannot skip TSE by sending false. */
   tseRequired: boolean;
   /**
+   * Plaintext voucher code for single-voucher payment (never stored on KasseAPI_Final.Models.PaymentDetails).
    * @maxLength 128
    * @nullable
    */
   voucherCode?: string | null;
-  /** @nullable */
+  /**
+   * Optional multi-voucher split; amounts must sum to the fiscal sale total when method is voucher.
+   * @nullable
+   */
   voucherRedemptions?: VoucherRedemptionRequestItem[] | null;
 }

@@ -6,20 +6,30 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Path içermez; yalnızca operatör özeti (restore verification değildir).
+ */
 export interface BackupArtifactPipelinePolicyResponseDto {
   applicationEnforcesExternalArchiveImmutability?: boolean;
   artifactStagingRootConfigured?: boolean;
   /** @nullable */
   effectiveAdapterKind?: string | null;
-  /** @nullable */
+  /**
+   * NotEnforcedByApplication veya ApplicationEnforced (gelecek arka uç).
+   * @nullable
+   */
   externalArchiveImmutabilityEnforcement?: string | null;
   /** @nullable */
   externalArchiveRequirement?: string | null;
   externalArchiveRootConfigured?: boolean;
+  /** İlk sınıf nesne depolama + immutability arka ucu bu sürümde yok (Filesystem dışı yol). */
   objectStorageImmutabilityBackendImplemented?: boolean;
   /** @nullable */
   operatorNotes?: string[] | null;
-  /** @nullable */
+  /**
+   * Örn. Filesystem — DI’daki `IBackupArtifactExternalArchive` ile uyumlu.
+   * @nullable
+   */
   registeredExternalArchiveBackendKind?: string | null;
   stagingOnDiskHashReverificationExpected?: boolean;
   willRunExternalArchiveAfterStagingVerificationWhenEligible?: boolean;

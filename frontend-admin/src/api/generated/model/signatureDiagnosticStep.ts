@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV Checklist 1–5 diagnostik adım sonucu.
+ */
 export interface SignatureDiagnosticStep {
   /** @nullable */
   evidence?: string | null;

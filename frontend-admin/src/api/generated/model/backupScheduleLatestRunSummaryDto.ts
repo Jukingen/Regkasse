@@ -7,6 +7,9 @@
  */
 import type { BackupRunStatus } from './backupRunStatus';
 
+/**
+ * Latest scheduled backup row summary for scheduler UI.
+ */
 export interface BackupScheduleLatestRunSummaryDto {
   /** @nullable */
   completedAt?: string | null;

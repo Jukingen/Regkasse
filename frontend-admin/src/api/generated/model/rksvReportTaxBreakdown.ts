@@ -7,6 +7,7 @@
  */
 
 /**
+ * Tax rate (%) → sum of VAT amounts for that historical rate.
  * @nullable
  */
 export type RksvReportTaxBreakdown = {[key: string]: number} | null;

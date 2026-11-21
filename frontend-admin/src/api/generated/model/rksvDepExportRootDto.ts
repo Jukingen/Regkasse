@@ -7,6 +7,9 @@
  */
 import type { RksvDepBelegeGruppeDto } from './rksvDepBelegeGruppeDto';
 
+/**
+ * BMF RKSV DEP export root (Anlage Z3). Property names must match BMF JSON exactly.
+ */
 export interface RksvDepExportRootDto {
   /** @nullable */
   'Belege-Gruppe'?: RksvDepBelegeGruppeDto[] | null;

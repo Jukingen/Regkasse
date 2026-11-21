@@ -7,6 +7,9 @@
  */
 import type { InventoryHistoryRowDto } from './inventoryHistoryRowDto';
 
+/**
+ * Sayfalı hareket geçmişi yanıtı.
+ */
 export interface InventoryHistoryPageDto {
   /** @nullable */
   items?: InventoryHistoryRowDto[] | null;

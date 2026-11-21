@@ -7,6 +7,9 @@
  */
 import type { RksvProductCategory } from './rksvProductCategory';
 
+/**
+ * Admin category list/detail response. Key is immutable; Name is user-editable.
+ */
 export interface CategoryDto {
   /** @nullable */
   color?: string | null;

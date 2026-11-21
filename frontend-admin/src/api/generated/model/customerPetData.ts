@@ -12,9 +12,13 @@ export interface CustomerPetData {
    * @nullable
    */
   allergies?: string | null;
-  /** @nullable */
+  /**
+   * Shared birth date. Mirrors KasseAPI_Final.Models.CustomerPetData.PetBirthDate for existing vet rows.
+   * @nullable
+   */
   birthDate?: string | null;
   /**
+   * Vet breed. Mirrors KasseAPI_Final.Models.CustomerPetData.PetBreed.
    * @maxLength 100
    * @nullable
    */
@@ -47,6 +51,7 @@ export interface CustomerPetData {
    */
   petSpecies?: string | null;
   /**
+   * Vet species. Mirrors KasseAPI_Final.Models.CustomerPetData.PetSpecies so older rows stay readable.
    * @maxLength 100
    * @nullable
    */

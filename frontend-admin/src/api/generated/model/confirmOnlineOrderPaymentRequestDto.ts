@@ -9,6 +9,9 @@
 export interface ConfirmOnlineOrderPaymentRequestDto {
   /** @nullable */
   paymentIntentId?: string | null;
-  /** @nullable */
+  /**
+   * Optional Stripe payment method id or mock test card digits.
+   * @nullable
+   */
   paymentMethodId?: string | null;
 }

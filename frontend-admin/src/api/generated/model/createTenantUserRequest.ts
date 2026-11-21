@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/admin/tenants/{tenantId}/users — manual tenant user create.
+ */
 export interface CreateTenantUserRequest {
   /**
    * @minLength 1
@@ -29,6 +32,7 @@ export interface CreateTenantUserRequest {
    */
   role: string;
   /**
+   * Optional login name; generated from role when omitted (e.g. manager1).
    * @maxLength 256
    * @nullable
    */

@@ -7,6 +7,9 @@
  */
 import type { BulkImportErrorDto } from './bulkImportErrorDto';
 
+/**
+ * Final import outcome (also embedded in job status when complete).
+ */
 export interface BulkImportResultDto {
   /** @nullable */
   downloadUrl?: string | null;

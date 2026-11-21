@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Machine-readable RKSV finding (warning, error, or requirement).
+ */
 export interface RksvComplianceFinding {
   /** @nullable */
   code?: string | null;

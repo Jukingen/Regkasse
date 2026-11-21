@@ -11,9 +11,11 @@ export interface PriceChangeValidationResult {
   compliance?: RksvPriceChangeComplianceResult;
   /** @nullable */
   errorMessage?: string | null;
+  /** True when the product already appears on order lines (fiscal sales trail). */
   hasFiscalHistory?: boolean;
   hasWarning?: boolean;
   isValid?: boolean;
+  /** True when ChangePriceAsync will create a new catalog product row. */
   requiresNewProductVersion?: boolean;
   /** @nullable */
   warningMessage?: string | null;

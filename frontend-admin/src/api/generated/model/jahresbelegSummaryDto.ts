@@ -10,6 +10,9 @@ import type { PaymentBreakdown } from './paymentBreakdown';
 import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto';
 import type { TransactionBreakdown } from './transactionBreakdown';
 
+/**
+ * Read-only yearly aggregation preview from Monatsbeleg rows.
+ */
 export interface JahresbelegSummaryDto {
   cashRegisterId?: string;
   isDecemberMonatsbeleg?: boolean;

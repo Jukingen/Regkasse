@@ -7,6 +7,9 @@
  */
 import type { PrintRoutingDeviceOption } from './printRoutingDeviceOption';
 
+/**
+ * Available print-routing options list (MVP: static stub).
+ */
 export interface PrintRoutingOptionsResponse {
   /** @nullable */
   devices?: PrintRoutingDeviceOption[] | null;

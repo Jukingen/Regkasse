@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * UTC-day signature counts for the Super Admin TSE usage chart (diagnostic only).
+ */
 export interface TseDailyUsageDto {
   date?: string;
   signatures?: number;

@@ -6,11 +6,19 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS TSE status for the header indicator. SIGN AT SCU is exposed as KasseAPI_Final.DTOs.PosTseStatusDto.ScuId
+(German TSS analog). Does not replace RKSV compact JWS signing.
+ */
 export interface PosTseStatusDto {
+  /** True when the live probe failed and the last successful ping is being used. */
   cached?: boolean;
   /** @nullable */
   certificateValidUntil?: string | null;
-  /** @nullable */
+  /**
+   * Fiskaly SIGN AT environment: TEST or LIVE.
+   * @nullable
+   */
   environment?: string | null;
   /** @nullable */
   estimatedRecoveryTimeUtc?: string | null;
@@ -24,13 +32,27 @@ export interface PosTseStatusDto {
   message?: string | null;
   /** @nullable */
   nonFiscalPendingQueueCount?: number | null;
-  /** @nullable */
+  /**
+   * Online | Degraded | Offline — process health used by POS offline routing.
+   * @nullable
+   */
   operationalHealth?: string | null;
+  /** True when POS payments must request TSE signing (`Tse:TseMode` is not Off).
+Independent of cashier health (Active/Inactive) and of RKSV demo labels. */
   requiresFiscalSignature?: boolean;
-  /** @nullable */
+  /**
+   * Fiskaly SIGN AT Signature Creation Unit id (UUIDv4).
+   * @nullable
+   */
   scuId?: string | null;
-  /** @nullable */
+  /**
+   * Active | Degraded | Inactive
+   * @nullable
+   */
   status?: string | null;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.DTOs.PosTseStatusDto.ScuId for clients that still say TSS.
+   * @nullable
+   */
   tssId?: string | null;
 }

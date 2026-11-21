@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/Auth/forgot-username — recover login names for an email (admin app).
+ */
 export interface ForgotUsernameRequest {
-  /** @nullable */
+  /**
+   * Must be `admin` for this flow.
+   * @nullable
+   */
   clientApp?: string | null;
   /** @minLength 1 */
   email: string;

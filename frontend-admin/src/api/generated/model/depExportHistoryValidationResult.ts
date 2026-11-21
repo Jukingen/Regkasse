@@ -7,6 +7,10 @@
  */
 import type { DepExportValidationCheck } from './depExportValidationCheck';
 
+/**
+ * Result of validating a stored DEP export history row (BMF JSON structure + signatures + certs + tax payloads).
+Distinct from structural-only `RksvDepExportValidationResult`.
+ */
 export interface DepExportHistoryValidationResult {
   /** @nullable */
   checks?: DepExportValidationCheck[] | null;

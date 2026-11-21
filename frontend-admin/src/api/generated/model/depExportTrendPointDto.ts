@@ -10,6 +10,7 @@ export interface DepExportTrendPointDto {
   failedExports?: number;
   /** @nullable */
   label?: string | null;
+  /** Month start UTC (yyyy-MM-01). */
   periodStartUtc?: string;
   successfulExports?: number;
   totalExports?: number;

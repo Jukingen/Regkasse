@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Cost-oriented storage class for a backup artifact (not fiscal lifecycle).
+Hot = staging / fast access; Warm = aged staging; Cold = prefer external archive.
+ */
 export type BackupStorageTier = typeof BackupStorageTier[keyof typeof BackupStorageTier];
 
 

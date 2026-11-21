@@ -7,6 +7,9 @@
  */
 import type { TenantLicenseHistoryItemDto } from './tenantLicenseHistoryItemDto';
 
+/**
+ * Payload for `GET /api/admin/license/history?tenantId=`.
+ */
 export interface MandantLicenseHistoryResponse {
   /** @nullable */
   items?: TenantLicenseHistoryItemDto[] | null;

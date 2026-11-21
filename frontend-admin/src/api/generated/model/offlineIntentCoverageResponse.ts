@@ -7,16 +7,27 @@
  */
 import type { OfflineIntentCoverageByRegisterDto } from './offlineIntentCoverageByRegisterDto';
 
+/**
+ * Response for GET api/admin/offline-intent-coverage.
+ */
 export interface OfflineIntentCoverageResponse {
-  /** @nullable */
+  /**
+   * Reason for LowCoverageAlert when set.
+   * @nullable
+   */
   alertReason?: string | null;
   /** @nullable */
   byRegister?: OfflineIntentCoverageByRegisterDto[] | null;
+  /** DeviceId coverage as percent (0..100). */
   deviceIdCoveragePercent?: number;
+  /** Fraction of intents missing DeviceId (0..1). */
   deviceIdMissingRate?: number;
   fromUtc?: string;
+  /** True when coverage is below configured threshold (actionable alert). */
   lowCoverageAlert?: boolean;
+  /** Sequence coverage as percent (0..100). */
   sequenceCoveragePercent?: number;
+  /** Fraction of intents missing ClientSequenceNumber (0..1). */
   sequenceMissingRate?: number;
   total?: number;
   toUtc?: string;

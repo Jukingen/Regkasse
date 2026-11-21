@@ -6,19 +6,42 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Response body for `GET /api/app/version`. Pure metadata — no PII, no auth-protected fields.
+Mirrors KasseAPI_Final.Configuration.AppUpdateOptions.
+ */
 export interface AppVersionResponseDto {
-  /** @nullable */
+  /**
+   * HTTPS URL to the signed APK file. Null when no published artifact is configured.
+   * @nullable
+   */
   downloadUrl?: string | null;
+  /** Latest published POS APK version code (monotonic integer). */
   latestVersionCode?: number;
-  /** @nullable */
+  /**
+   * Display version (e.g. "1.0.1"); for UI only, never used for comparison.
+   * @nullable
+   */
   latestVersionName?: string | null;
+  /** Whether clients should treat this update as required. */
   mandatory?: boolean;
+  /** Hard-block floor: clients below this versionCode must refuse to operate. */
   minimumSupportedVersionCode?: number;
-  /** @nullable */
+  /**
+   * Optional release-notes URL.
+   * @nullable
+   */
   releaseNotesUrl?: string | null;
+  /** UTC instant the server emitted this snapshot (helps detect cache problems). */
   serverTimeUtc?: string;
-  /** @nullable */
+  /**
+   * SHA-256 of the APK (lowercase hex). Optional integrity check for clients.
+   * @nullable
+   */
   sha256?: string | null;
-  /** @nullable */
+  /**
+   * APK size in bytes for progress UX. Optional.
+   * @nullable
+   */
   sizeBytes?: number | null;
 }

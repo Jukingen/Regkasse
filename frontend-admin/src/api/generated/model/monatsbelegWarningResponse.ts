@@ -6,11 +6,17 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Returned when a past Vienna calendar month is requested without `force=true`.
+ */
 export interface MonatsbelegWarningResponse {
   canForce?: boolean;
   monthDiff?: number;
   requiresForce?: boolean;
-  /** @nullable */
+  /**
+   * Client hint: `info`, `warning`, or `error` based on how far back the target month is.
+   * @nullable
+   */
   severity?: string | null;
   /** @nullable */
   warningMessage?: string | null;

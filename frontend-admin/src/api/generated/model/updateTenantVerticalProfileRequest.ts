@@ -14,6 +14,7 @@ export interface UpdateTenantVerticalProfileRequest {
    */
   profileId: string;
   /**
+   * Optional taxi fare per kilometre stored on company settings, not in override JSON.
    * @minimum 0
    * @maximum 9999.99
    * @nullable

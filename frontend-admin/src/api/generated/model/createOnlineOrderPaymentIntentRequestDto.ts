@@ -7,6 +7,9 @@
  */
 
 export interface CreateOnlineOrderPaymentIntentRequestDto {
-  /** @nullable */
+  /**
+   * Tenant slug required for anonymous/public checkout.
+   * @nullable
+   */
   tenant?: string | null;
 }

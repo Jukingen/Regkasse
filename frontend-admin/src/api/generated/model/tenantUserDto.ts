@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Tenant-scoped user row for GET /api/admin/tenants/{tenantId}/users.
+ */
 export interface TenantUserDto {
   /** @nullable */
   email?: string | null;

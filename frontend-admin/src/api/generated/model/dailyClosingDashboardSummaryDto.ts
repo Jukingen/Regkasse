@@ -9,10 +9,14 @@ import type { DailyClosingLastClosingDto } from './dailyClosingLastClosingDto';
 import type { DailyClosingDaySummaryDto } from './dailyClosingDaySummaryDto';
 import type { DailyClosingWeekSummaryDto } from './dailyClosingWeekSummaryDto';
 
+/**
+ * Dashboard widget snapshot for daily-closing status (Vienna business days).
+ */
 export interface DailyClosingDashboardSummaryDto {
   /** @nullable */
   cashRegisterId?: string | null;
   lastClosing?: DailyClosingLastClosingDto;
+  /** True when today is still open and has paid fiscal transactions. */
   requiresAttention?: boolean;
   today?: DailyClosingDaySummaryDto;
   week?: DailyClosingWeekSummaryDto;

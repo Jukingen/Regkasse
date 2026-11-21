@@ -8,6 +8,7 @@
 
 export interface TenantDeploymentRollbackRequest {
   /**
+   * Must be exactly `rollback`.
    * @minLength 1
    * @maxLength 32
    */

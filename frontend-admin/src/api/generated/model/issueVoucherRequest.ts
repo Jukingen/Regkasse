@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS Mehrzweckgutschein issuance — RKSV non-fiscal sale; no TSE.
+ */
 export interface IssueVoucherRequest {
   /**
    * @minimum 0.01

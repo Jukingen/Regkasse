@@ -8,9 +8,17 @@
 
 export interface DailyClosingRequest {
   cashRegisterId: string;
-  /** @nullable */
-  closingDate?: string | null;
   /**
+   * Optional Vienna business day (date components). Null = today.
+Past dates create a late (nachträglich) closing; creation timestamps are never backdated.
+   * @nullable
+   */
+  closingDate?: string | null;
+  /** Set after the operator confirms open tables. Unpaid carts stay out of the Z total. */
+  confirmCloseOpenTables?: boolean;
+  /**
+   * Required when KasseAPI_Final.Controllers.DailyClosingRequest.ClosingDate is a past Vienna day: documents why the closing is late.
+Stored on the closing and in the audit log for Betriebsprüfung transparency.
    * @maxLength 500
    * @nullable
    */

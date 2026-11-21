@@ -10,7 +10,10 @@ export interface UpsertHairSalonCampaignRequest {
   /** @nullable */
   appliesToProductIds?: string[] | null;
   discountPercent?: number;
-  /** @nullable */
+  /**
+   * When set on update, replaces `is_active`. Create always stores active.
+   * @nullable
+   */
   isActive?: boolean | null;
   /** @nullable */
   name?: string | null;

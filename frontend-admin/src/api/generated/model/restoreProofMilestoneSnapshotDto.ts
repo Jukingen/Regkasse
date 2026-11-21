@@ -8,11 +8,20 @@
 import type { RestoreVerificationStatus } from './restoreVerificationStatus';
 import type { RestoreProofMilestoneKind } from './restoreProofMilestoneKind';
 
+/**
+ * Tek bir kanıt kilometre taşı; frontend yorum çıkarmadan render edebilir.
+ */
 export interface RestoreProofMilestoneSnapshotDto {
-  /** @nullable */
+  /**
+   * Tercihen `CompletedAt`; yoksa başlangıç/oluşturma.
+   * @nullable
+   */
   asOfUtc?: string | null;
   drillStatus?: RestoreVerificationStatus;
-  /** @nullable */
+  /**
+   * `backup_run` | `backup_artifact` | `restore_verification_run`
+   * @nullable
+   */
   entityType?: string | null;
   /** @nullable */
   id?: string | null;

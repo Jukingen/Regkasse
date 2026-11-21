@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin license inventory row for `GET /api/admin/tenants/license-overview`.
+ */
 export interface TenantLicenseOverviewListItemDto {
   createdAt?: string;
   hasOwnerAdmin?: boolean;

@@ -7,21 +7,27 @@
  */
 
 export interface CreateNullbelegRequest {
-  /** @nullable */
+  /**
+   * When null, true if resolved month is 12 (December = Jahres-Nullbeleg tag for future use).
+   * @nullable
+   */
   actsAsJahresbeleg?: boolean | null;
   cashRegisterId: string;
   /**
+   * Vienna calendar month 1–12. When omitted, server uses the current Vienna month.
    * @minimum 1
    * @maximum 12
    * @nullable
    */
   month?: number | null;
   /**
+   * Optional operator note (stored on payment `Notes` when short enough).
    * @maxLength 450
    * @nullable
    */
   reason?: string | null;
   /**
+   * Vienna calendar year. When omitted, server uses the current Vienna year.
    * @minimum 2000
    * @maximum 2100
    * @nullable

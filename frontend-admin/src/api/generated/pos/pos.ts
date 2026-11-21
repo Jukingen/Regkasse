@@ -163,6 +163,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Returns the active POS cart for the given table.
+ */
 export const getApiPosCartCurrent = (
     params?: GetApiPosCartCurrentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -203,6 +206,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCartCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCartCurrent>>>
 export type GetApiPosCartCurrentQueryError = unknown
 
+/**
+ * @summary Returns the active POS cart for the given table.
+ */
 export const useGetApiPosCartCurrent = <TData = Awaited<ReturnType<typeof getApiPosCartCurrent>>, TError = unknown>(
  params?: GetApiPosCartCurrentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -323,7 +329,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosCart = (
+    /**
+ * @summary Creates a new POS cart for the current cashier and table.
+ */
+export const postApiPosCart = (
     createCartRequest: CreateCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -361,7 +370,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCartMutationBody = CreateCartRequest
     export type PostApiPosCartMutationError = unknown
 
-    export const usePostApiPosCart = <TError = unknown,
+    /**
+ * @summary Creates a new POS cart for the current cashier and table.
+ */
+export const usePostApiPosCart = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCart>>, TError,{data: CreateCartRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCart>>,
@@ -374,7 +386,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosCartAddItem = (
+    /**
+ * @summary Adds a product line to the current cart, creating the cart when needed.
+ */
+export const postApiPosCartAddItem = (
     addItemToCartRequest: AddItemToCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -412,7 +427,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCartAddItemMutationBody = AddItemToCartRequest
     export type PostApiPosCartAddItemMutationError = unknown
 
-    export const usePostApiPosCartAddItem = <TError = unknown,
+    /**
+ * @summary Adds a product line to the current cart, creating the cart when needed.
+ */
+export const usePostApiPosCartAddItem = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartAddItem>>, TError,{data: AddItemToCartRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCartAddItem>>,
@@ -730,7 +748,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosCartSplitItems = (
+    /**
+ * @summary Move selected cart lines from one table to another (bill split by items).
+ */
+export const postApiPosCartSplitItems = (
     splitCartItemsRequest: SplitCartItemsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -768,7 +789,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCartSplitItemsMutationBody = SplitCartItemsRequest
     export type PostApiPosCartSplitItemsMutationError = unknown
 
-    export const usePostApiPosCartSplitItems = <TError = unknown,
+    /**
+ * @summary Move selected cart lines from one table to another (bill split by items).
+ */
+export const usePostApiPosCartSplitItems = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartSplitItems>>, TError,{data: SplitCartItemsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCartSplitItems>>,
@@ -781,7 +805,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosCartMergeTables = (
+    /**
+ * @summary Merge all items from source table cart into target table cart.
+ */
+export const postApiPosCartMergeTables = (
     mergeTableCartsRequest: MergeTableCartsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -819,7 +846,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCartMergeTablesMutationBody = MergeTableCartsRequest
     export type PostApiPosCartMergeTablesMutationError = unknown
 
-    export const usePostApiPosCartMergeTables = <TError = unknown,
+    /**
+ * @summary Merge all items from source table cart into target table cart.
+ */
+export const usePostApiPosCartMergeTables = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartMergeTables>>, TError,{data: MergeTableCartsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCartMergeTables>>,
@@ -1294,7 +1324,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosMaintenanceStatus = (
+    /**
+ * @summary Alias under POS prefix for POS clients.
+ */
+export const getApiPosMaintenanceStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -1333,6 +1366,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosMaintenanceStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>>
 export type GetApiPosMaintenanceStatusQueryError = unknown
 
+/**
+ * @summary Alias under POS prefix for POS clients.
+ */
 export const useGetApiPosMaintenanceStatus = <TData = Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1404,6 +1440,10 @@ export const useGetApiPosOfflineHealth = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Display snapshot for POS TSE-offline capacity. Does not change HTTP 409 enforcement.
+Count is pending `offline_transactions` plus pending `offline_orders`.
+ */
 export const getApiPosOfflineLimit = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1443,6 +1483,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosOfflineLimitQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOfflineLimit>>>
 export type GetApiPosOfflineLimitQueryError = unknown
 
+/**
+ * @summary Display snapshot for POS TSE-offline capacity. Does not change HTTP 409 enforcement.
+Count is pending `offline_transactions` plus pending `offline_orders`.
+ */
 export const useGetApiPosOfflineLimit = <TData = Awaited<ReturnType<typeof getApiPosOfflineLimit>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineLimit>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1459,6 +1503,9 @@ export const useGetApiPosOfflineLimit = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary Mevcut ödeme yöntemlerini getir
+ */
 export const getApiPosPaymentMethods = (
     params?: GetApiPosPaymentMethodsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1499,6 +1546,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentMethodsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentMethods>>>
 export type GetApiPosPaymentMethodsQueryError = unknown
 
+/**
+ * @summary Mevcut ödeme yöntemlerini getir
+ */
 export const useGetApiPosPaymentMethods = <TData = Awaited<ReturnType<typeof getApiPosPaymentMethods>>, TError = unknown>(
  params?: GetApiPosPaymentMethodsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethods>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1515,6 +1565,9 @@ export const useGetApiPosPaymentMethods = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Last 24 hours of payments for the POS cash register with backend-controlled storno/refund actions.
+ */
 export const getApiPosPaymentHistory = (
     params?: GetApiPosPaymentHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1555,6 +1608,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentHistory>>>
 export type GetApiPosPaymentHistoryQueryError = ProblemDetails
 
+/**
+ * @summary Last 24 hours of payments for the POS cash register with backend-controlled storno/refund actions.
+ */
 export const useGetApiPosPaymentHistory = <TData = Awaited<ReturnType<typeof getApiPosPaymentHistory>>, TError = ProblemDetails>(
  params?: GetApiPosPaymentHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1571,6 +1627,11 @@ export const useGetApiPosPaymentHistory = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Yeni ödeme oluştur.
+Standard response envelope (success + errors + idempotency): send header `X-Regkasse-Payment-Contract: v2`.
+Without the header, legacy JSON shape is returned for backward compatibility.
+ */
 export const postApiPosPayment = (
     createPaymentRequest: CreatePaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -1609,7 +1670,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentMutationBody = CreatePaymentRequest
     export type PostApiPosPaymentMutationError = PaymentApiErrorBody
 
-    export const usePostApiPosPayment = <TError = PaymentApiErrorBody,
+    /**
+ * @summary Yeni ödeme oluştur.
+Standard response envelope (success + errors + idempotency): send header `X-Regkasse-Payment-Contract: v2`.
+Without the header, legacy JSON shape is returned for backward compatibility.
+ */
+export const usePostApiPosPayment = <TError = PaymentApiErrorBody,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPayment>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPayment>>,
@@ -1622,7 +1688,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosPaymentStorno = (
+    /**
+ * @summary Full receipt storno via dedicated route (sets KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno). Same body contract as POST /; requires `payment.cancel` in addition to `payment.take`.
+ */
+export const postApiPosPaymentStorno = (
     createStornoPaymentRequest: CreateStornoPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -1660,7 +1729,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentStornoMutationBody = CreateStornoPaymentRequest
     export type PostApiPosPaymentStornoMutationError = unknown
 
-    export const usePostApiPosPaymentStorno = <TError = unknown,
+    /**
+ * @summary Full receipt storno via dedicated route (sets KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno). Same body contract as POST /; requires `payment.cancel` in addition to `payment.take`.
+ */
+export const usePostApiPosPaymentStorno = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreateStornoPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentStorno>>,
@@ -1673,7 +1745,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosPaymentId = (
+    /**
+ * @summary Ödeme detaylarını getir
+ */
+export const getApiPosPaymentId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -1712,6 +1787,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentId>>>
 export type GetApiPosPaymentIdQueryError = unknown
 
+/**
+ * @summary Ödeme detaylarını getir
+ */
 export const useGetApiPosPaymentId = <TData = Awaited<ReturnType<typeof getApiPosPaymentId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1728,6 +1806,9 @@ export const useGetApiPosPaymentId = <TData = Awaited<ReturnType<typeof getApiPo
 
 
 
+/**
+ * @summary Müşteri ödemelerini getir
+ */
 export const getApiPosPaymentCustomerCustomerId = (
     customerId: string,
     params?: GetApiPosPaymentCustomerCustomerIdParams,
@@ -1771,6 +1852,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentCustomerCustomerIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>>
 export type GetApiPosPaymentCustomerCustomerIdQueryError = unknown
 
+/**
+ * @summary Müşteri ödemelerini getir
+ */
 export const useGetApiPosPaymentCustomerCustomerId = <TData = Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>, TError = unknown>(
  customerId: string,
     params?: GetApiPosPaymentCustomerCustomerIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -1788,6 +1872,9 @@ export const useGetApiPosPaymentCustomerCustomerId = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Ödeme yöntemine göre ödemeleri getir
+ */
 export const getApiPosPaymentMethodPaymentMethod = (
     paymentMethod: string,
     params?: GetApiPosPaymentMethodPaymentMethodParams,
@@ -1831,6 +1918,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentMethodPaymentMethodQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>>
 export type GetApiPosPaymentMethodPaymentMethodQueryError = unknown
 
+/**
+ * @summary Ödeme yöntemine göre ödemeleri getir
+ */
 export const useGetApiPosPaymentMethodPaymentMethod = <TData = Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>, TError = unknown>(
  paymentMethod: string,
     params?: GetApiPosPaymentMethodPaymentMethodParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -1848,6 +1938,9 @@ export const useGetApiPosPaymentMethodPaymentMethod = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Tarih aralığına göre ödemeleri getir
+ */
 export const getApiPosPaymentDateRange = (
     params?: GetApiPosPaymentDateRangeParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1888,6 +1981,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentDateRangeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentDateRange>>>
 export type GetApiPosPaymentDateRangeQueryError = unknown
 
+/**
+ * @summary Tarih aralığına göre ödemeleri getir
+ */
 export const useGetApiPosPaymentDateRange = <TData = Awaited<ReturnType<typeof getApiPosPaymentDateRange>>, TError = unknown>(
  params?: GetApiPosPaymentDateRangeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentDateRange>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1904,6 +2000,9 @@ export const useGetApiPosPaymentDateRange = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Ödeme iptal et
+ */
 export const postApiPosPaymentIdCancel = (
     id: string,
     cancelPaymentRequest: CancelPaymentRequest,
@@ -1943,7 +2042,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentIdCancelMutationBody = CancelPaymentRequest
     export type PostApiPosPaymentIdCancelMutationError = unknown
 
-    export const usePostApiPosPaymentIdCancel = <TError = unknown,
+    /**
+ * @summary Ödeme iptal et
+ */
+export const usePostApiPosPaymentIdCancel = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdCancel>>, TError,{id: string;data: CancelPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentIdCancel>>,
@@ -1956,7 +2058,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosPaymentIdRefund = (
+    /**
+ * @summary Ödeme iade et
+ */
+export const postApiPosPaymentIdRefund = (
     id: string,
     refundPaymentRequest: RefundPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -1995,7 +2100,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentIdRefundMutationBody = RefundPaymentRequest
     export type PostApiPosPaymentIdRefundMutationError = unknown
 
-    export const usePostApiPosPaymentIdRefund = <TError = unknown,
+    /**
+ * @summary Ödeme iade et
+ */
+export const usePostApiPosPaymentIdRefund = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdRefund>>, TError,{id: string;data: RefundPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentIdRefund>>,
@@ -2008,7 +2116,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosPaymentStatistics = (
+    /**
+ * @summary Ödeme istatistiklerini getir
+ */
+export const getApiPosPaymentStatistics = (
     params?: GetApiPosPaymentStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2048,6 +2159,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentStatisticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentStatistics>>>
 export type GetApiPosPaymentStatisticsQueryError = unknown
 
+/**
+ * @summary Ödeme istatistiklerini getir
+ */
 export const useGetApiPosPaymentStatistics = <TData = Awaited<ReturnType<typeof getApiPosPaymentStatistics>>, TError = unknown>(
  params?: GetApiPosPaymentStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2064,6 +2178,9 @@ export const useGetApiPosPaymentStatistics = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary TSE QR kod görseli (PNG). Print/receipt için. Auth gerekli.
+ */
 export const getApiPosPaymentIdQrPng = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -2104,6 +2221,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentIdQrPngQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>>
 export type GetApiPosPaymentIdQrPngQueryError = ProblemDetails
 
+/**
+ * @summary TSE QR kod görseli (PNG). Print/receipt için. Auth gerekli.
+ */
 export const useGetApiPosPaymentIdQrPng = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2120,6 +2240,9 @@ export const useGetApiPosPaymentIdQrPng = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary TSE QR kod görseli (SVG). Vektörel, baskı için uygun. Auth gerekli.
+ */
 export const getApiPosPaymentIdQrSvg = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -2160,6 +2283,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentIdQrSvgQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>>
 export type GetApiPosPaymentIdQrSvgQueryError = ProblemDetails
 
+/**
+ * @summary TSE QR kod görseli (SVG). Vektörel, baskı için uygun. Auth gerekli.
+ */
 export const useGetApiPosPaymentIdQrSvg = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2176,6 +2302,9 @@ export const useGetApiPosPaymentIdQrSvg = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Get receipt data for payment
+ */
 export const getApiPosPaymentIdReceipt = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -2215,6 +2344,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentIdReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>>
 export type GetApiPosPaymentIdReceiptQueryError = unknown
 
+/**
+ * @summary Get receipt data for payment
+ */
 export const useGetApiPosPaymentIdReceipt = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2231,6 +2363,9 @@ export const useGetApiPosPaymentIdReceipt = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary TSE imzası oluştur
+ */
 export const postApiPosPaymentIdTseSignature = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2267,7 +2402,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiPosPaymentIdTseSignatureMutationError = unknown
 
-    export const usePostApiPosPaymentIdTseSignature = <TError = unknown,
+    /**
+ * @summary TSE imzası oluştur
+ */
+export const usePostApiPosPaymentIdTseSignature = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdTseSignature>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentIdTseSignature>>,
@@ -2280,7 +2418,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosPaymentIdSignatureDebug = (
+    /**
+ * @summary RKSV Checklist 1–5 diagnostik: Ödeme imzasının adım adım doğrulaması.
+Manager oversight via KasseAPI_Final.Authorization.AppPermissions.PaymentView.
+ */
+export const getApiPosPaymentIdSignatureDebug = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2319,6 +2461,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentIdSignatureDebugQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>>
 export type GetApiPosPaymentIdSignatureDebugQueryError = ProblemDetails
 
+/**
+ * @summary RKSV Checklist 1–5 diagnostik: Ödeme imzasının adım adım doğrulaması.
+Manager oversight via KasseAPI_Final.Authorization.AppPermissions.PaymentView.
+ */
 export const useGetApiPosPaymentIdSignatureDebug = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2335,6 +2481,10 @@ export const useGetApiPosPaymentIdSignatureDebug = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Manuel JWS doğrulama. RKSV Checklist 1–5 sonuçları.
+Manager oversight via KasseAPI_Final.Authorization.AppPermissions.PaymentView.
+ */
 export const postApiPosPaymentVerifySignature = (
     verifySignatureRequest: VerifySignatureRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2373,7 +2523,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentVerifySignatureMutationBody = VerifySignatureRequest
     export type PostApiPosPaymentVerifySignatureMutationError = ProblemDetails
 
-    export const usePostApiPosPaymentVerifySignature = <TError = ProblemDetails,
+    /**
+ * @summary Manuel JWS doğrulama. RKSV Checklist 1–5 sonuçları.
+Manager oversight via KasseAPI_Final.Authorization.AppPermissions.PaymentView.
+ */
+export const usePostApiPosPaymentVerifySignature = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentVerifySignature>>, TError,{data: VerifySignatureRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentVerifySignature>>,
@@ -2696,7 +2850,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosCardPaymentIntentIdConfirm = (
+    /**
+ * @summary Legacy route: confirm by internal intent id.
+ */
+export const postApiPosCardPaymentIntentIdConfirm = (
     intentId: string,
     confirmCardPaymentIntentRequest: ConfirmCardPaymentIntentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2735,7 +2892,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCardPaymentIntentIdConfirmMutationBody = ConfirmCardPaymentIntentRequest
     export type PostApiPosCardPaymentIntentIdConfirmMutationError = unknown
 
-    export const usePostApiPosCardPaymentIntentIdConfirm = <TError = unknown,
+    /**
+ * @summary Legacy route: confirm by internal intent id.
+ */
+export const usePostApiPosCardPaymentIntentIdConfirm = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdConfirm>>, TError,{intentId: string;data: ConfirmCardPaymentIntentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdConfirm>>,
@@ -2797,7 +2957,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCashRegisterCurrent = (
+    /**
+ * @summary Read-only current POS register context (no auto-open / no settings mutation).
+Prefer this for diagnostics; session bootstrap still uses M:KasseAPI_Final.Controllers.PosCashRegisterController.EnsureReady(System.Threading.CancellationToken).
+ */
+export const getApiPosCashRegisterCurrent = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2836,6 +3000,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCashRegisterCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>>
 export type GetApiPosCashRegisterCurrentQueryError = ProblemDetails
 
+/**
+ * @summary Read-only current POS register context (no auto-open / no settings mutation).
+Prefer this for diagnostics; session bootstrap still uses M:KasseAPI_Final.Controllers.PosCashRegisterController.EnsureReady(System.Threading.CancellationToken).
+ */
 export const useGetApiPosCashRegisterCurrent = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2852,6 +3020,9 @@ export const useGetApiPosCashRegisterCurrent = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Returns session DTO for the POS client; may auto-open when feature flags allow. Does not gate `POST /api/pos/payment` by itself.
+ */
 export const postApiPosCashRegisterEnsureReady = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2888,7 +3059,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiPosCashRegisterEnsureReadyMutationError = ProblemDetails
 
-    export const usePostApiPosCashRegisterEnsureReady = <TError = ProblemDetails,
+    /**
+ * @summary Returns session DTO for the POS client; may auto-open when feature flags allow. Does not gate `POST /api/pos/payment` by itself.
+ */
+export const usePostApiPosCashRegisterEnsureReady = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>,
@@ -2901,7 +3075,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCashRegisterSelectable = (
+    /**
+ * Response shape (camelCase): `{ "registers": [ { "id", "registerNumber", "location", "status", "isSelectable", "statusText" } ], "emptyReason": ... }`,
+where `status` is the KasseAPI_Final.Models.RegisterStatus name (`"Open"` / `"Closed"`) — closed rows are selectable and
+get opened by `POST /api/pos/shift/auto-open` on pick when the caller has `shift.open`.
+A row assigned to the caller but open on another shift has `isSelectable: false` and
+`statusText``In Benutzung von {Name}`. `emptyReason``none_selectable_for_user` is used only when the list itself is empty.
+Without that permission the cashier requests Mandanten-Admin via `POST /api/pos/cash-register/open-requests`.
+Do not substitute `GET /api/CashRegister` on POS — that returns full inventory including decommissioned registers.
+ * @summary Canonical POS selectable-register list: M:KasseAPI_Final.Services.ICashRegisterResolutionService.ListSelectableForPosPickerAsync(System.String,System.Security.Claims.ClaimsPrincipal,System.Threading.CancellationToken) (wraps
+M:KasseAPI_Final.Services.ICashRegisterResolutionService.ListSelectableRegistersAsync(System.String,System.Security.Claims.ClaimsPrincipal,System.Threading.CancellationToken) and adds `emptyReason` when the list is empty).
+ */
+export const getApiPosCashRegisterSelectable = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2940,6 +3125,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCashRegisterSelectableQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>>
 export type GetApiPosCashRegisterSelectableQueryError = ProblemDetails
 
+/**
+ * @summary Canonical POS selectable-register list: M:KasseAPI_Final.Services.ICashRegisterResolutionService.ListSelectableForPosPickerAsync(System.String,System.Security.Claims.ClaimsPrincipal,System.Threading.CancellationToken) (wraps
+M:KasseAPI_Final.Services.ICashRegisterResolutionService.ListSelectableRegistersAsync(System.String,System.Security.Claims.ClaimsPrincipal,System.Threading.CancellationToken) and adds `emptyReason` when the list is empty).
+ */
 export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2956,6 +3145,10 @@ export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Persists the caller's default POS cash register on `UserSettings.CashRegisterId`
+(same preference used by shift auto-open when the request omits a register id).
+ */
 export const postApiPosCashRegisterDefault = (
     setDefaultCashRegisterRequest: SetDefaultCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2994,7 +3187,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCashRegisterDefaultMutationBody = SetDefaultCashRegisterRequest
     export type PostApiPosCashRegisterDefaultMutationError = ShiftAutoOpenResult
 
-    export const usePostApiPosCashRegisterDefault = <TError = ShiftAutoOpenResult,
+    /**
+ * @summary Persists the caller's default POS cash register on `UserSettings.CashRegisterId`
+(same preference used by shift auto-open when the request omits a register id).
+ */
+export const usePostApiPosCashRegisterDefault = <TError = ShiftAutoOpenResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, TError,{data: SetDefaultCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>,
@@ -3007,7 +3204,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCashRegisterDefault = (
+    /**
+ * @summary Returns the caller's persisted default POS cash register id (`UserSettings.CashRegisterId`).
+ */
+export const getApiPosCashRegisterDefault = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3046,6 +3246,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCashRegisterDefaultQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>>
 export type GetApiPosCashRegisterDefaultQueryError = ProblemDetails
 
+/**
+ * @summary Returns the caller's persisted default POS cash register id (`UserSettings.CashRegisterId`).
+ */
 export const useGetApiPosCashRegisterDefault = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3062,6 +3265,9 @@ export const useGetApiPosCashRegisterDefault = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Cashier requests Mandanten-Admin to open a closed cash register (in-app notification + FA queue).
+ */
 export const postApiPosCashRegisterOpenRequests = (
     createCashRegisterOpenRequestBody: CreateCashRegisterOpenRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3100,7 +3306,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCashRegisterOpenRequestsMutationBody = CreateCashRegisterOpenRequestBody
     export type PostApiPosCashRegisterOpenRequestsMutationError = CashRegisterOpenRequestMutationResult
 
-    export const usePostApiPosCashRegisterOpenRequests = <TError = CashRegisterOpenRequestMutationResult,
+    /**
+ * @summary Cashier requests Mandanten-Admin to open a closed cash register (in-app notification + FA queue).
+ */
+export const usePostApiPosCashRegisterOpenRequests = <TError = CashRegisterOpenRequestMutationResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, TError,{data: CreateCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>,
@@ -3113,7 +3322,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCashRegisterOpenRequestsMine = (
+    /**
+ * @summary Caller's cash register open requests (pending + recent resolved).
+ */
+export const getApiPosCashRegisterOpenRequestsMine = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3152,6 +3364,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCashRegisterOpenRequestsMineQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>>
 export type GetApiPosCashRegisterOpenRequestsMineQueryError = unknown
 
+/**
+ * @summary Caller's cash register open requests (pending + recent resolved).
+ */
 export const useGetApiPosCashRegisterOpenRequestsMine = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3168,6 +3383,9 @@ export const useGetApiPosCashRegisterOpenRequestsMine = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Cashier notifies Mandanten-Admin that the previous-month Monatsbeleg is missing.
+ */
 export const postApiPosCashRegisterMonatsbelegNotifyManager = (
     notifyMonatsbelegManagerRequest: NotifyMonatsbelegManagerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3206,7 +3424,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCashRegisterMonatsbelegNotifyManagerMutationBody = NotifyMonatsbelegManagerRequest
     export type PostApiPosCashRegisterMonatsbelegNotifyManagerMutationError = NotifyMonatsbelegManagerResult
 
-    export const usePostApiPosCashRegisterMonatsbelegNotifyManager = <TError = NotifyMonatsbelegManagerResult,
+    /**
+ * @summary Cashier notifies Mandanten-Admin that the previous-month Monatsbeleg is missing.
+ */
+export const usePostApiPosCashRegisterMonatsbelegNotifyManager = <TError = NotifyMonatsbelegManagerResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, TError,{data: NotifyMonatsbelegManagerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>,
@@ -3219,7 +3440,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCompany = (
+    /**
+ * @summary Returns RKSV header fields for receipt printing. Empty DTO when tenant has no saved settings row.
+ */
+export const getApiPosCompany = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3258,6 +3482,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCompanyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCompany>>>
 export type GetApiPosCompanyQueryError = ProblemDetails
 
+/**
+ * @summary Returns RKSV header fields for receipt printing. Empty DTO when tenant has no saved settings row.
+ */
 export const useGetApiPosCompany = <TData = Awaited<ReturnType<typeof getApiPosCompany>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCompany>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3274,6 +3501,9 @@ export const useGetApiPosCompany = <TData = Awaited<ReturnType<typeof getApiPosC
 
 
 
+/**
+ * @summary Create a tenant-scoped POS customer, including optional veterinary pet data.
+ */
 export const postApiPosCustomers = (
     createPosCustomerRequest: CreatePosCustomerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3312,7 +3542,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCustomersMutationBody = CreatePosCustomerRequest
     export type PostApiPosCustomersMutationError = ProblemDetails
 
-    export const usePostApiPosCustomers = <TError = ProblemDetails,
+    /**
+ * @summary Create a tenant-scoped POS customer, including optional veterinary pet data.
+ */
+export const usePostApiPosCustomers = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomers>>, TError,{data: CreatePosCustomerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCustomers>>,
@@ -3325,7 +3558,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const patchApiPosCustomersId = (
+    /**
+ * @summary Update structured service address for an existing POS customer.
+ */
+export const patchApiPosCustomersId = (
     id: string,
     updatePosCustomerAddressRequest: UpdatePosCustomerAddressRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3364,7 +3600,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiPosCustomersIdMutationBody = UpdatePosCustomerAddressRequest
     export type PatchApiPosCustomersIdMutationError = ProblemDetails
 
-    export const usePatchApiPosCustomersId = <TError = ProblemDetails,
+    /**
+ * @summary Update structured service address for an existing POS customer.
+ */
+export const usePatchApiPosCustomersId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiPosCustomersId>>, TError,{id: string;data: UpdatePosCustomerAddressRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiPosCustomersId>>,
@@ -3377,7 +3616,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCustomersByQr = (
+    /**
+ * @summary Resolve customer from scanned QR payload (customer:, RK:C:, RK:CU:, regkasse://, number, email).
+ */
+export const getApiPosCustomersByQr = (
     params?: GetApiPosCustomersByQrParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3417,6 +3659,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCustomersByQrQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCustomersByQr>>>
 export type GetApiPosCustomersByQrQueryError = ProblemDetails
 
+/**
+ * @summary Resolve customer from scanned QR payload (customer:, RK:C:, RK:CU:, regkasse://, number, email).
+ */
 export const useGetApiPosCustomersByQr = <TData = Awaited<ReturnType<typeof getApiPosCustomersByQr>>, TError = ProblemDetails>(
  params?: GetApiPosCustomersByQrParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCustomersByQr>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3433,6 +3678,9 @@ export const useGetApiPosCustomersByQr = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Legacy POST alias for QR lookup (same resolution as GET by-qr).
+ */
 export const postApiPosCustomersQrLookup = (
     customerQrLookupRequest: CustomerQrLookupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3471,7 +3719,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosCustomersQrLookupMutationBody = CustomerQrLookupRequest
     export type PostApiPosCustomersQrLookupMutationError = ProblemDetails
 
-    export const usePostApiPosCustomersQrLookup = <TError = ProblemDetails,
+    /**
+ * @summary Legacy POST alias for QR lookup (same resolution as GET by-qr).
+ */
+export const usePostApiPosCustomersQrLookup = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomersQrLookup>>, TError,{data: CustomerQrLookupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosCustomersQrLookup>>,
@@ -4270,6 +4521,9 @@ export const useGetApiPosOfflineOrdersOfflineOrderIdStatus = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Starts an online payment and returns a payment intent and/or hosted redirect URL.
+ */
 export const postApiPosPaymentInitiate = (
     initiateOnlinePaymentRequest: InitiateOnlinePaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -4308,7 +4562,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosPaymentInitiateMutationBody = InitiateOnlinePaymentRequest
     export type PostApiPosPaymentInitiateMutationError = ProblemDetails
 
-    export const usePostApiPosPaymentInitiate = <TError = ProblemDetails,
+    /**
+ * @summary Starts an online payment and returns a payment intent and/or hosted redirect URL.
+ */
+export const usePostApiPosPaymentInitiate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, TError,{data: InitiateOnlinePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentInitiate>>,
@@ -4321,7 +4578,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosPaymentInitiateId = (
+    /**
+ * @summary Poll current online-payment flow state (tenant-scoped; cross-tenant → 404).
+ */
+export const getApiPosPaymentInitiateId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -4360,6 +4620,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentInitiateIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>>
 export type GetApiPosPaymentInitiateIdQueryError = ProblemDetails
 
+/**
+ * @summary Poll current online-payment flow state (tenant-scoped; cross-tenant → 404).
+ */
 export const useGetApiPosPaymentInitiateId = <TData = Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4376,6 +4639,9 @@ export const useGetApiPosPaymentInitiateId = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Poll current online-payment flow state (tenant-scoped; cross-tenant → 404).
+ */
 export const getApiPosPaymentOnlineId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4415,6 +4681,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosPaymentOnlineIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>>
 export type GetApiPosPaymentOnlineIdQueryError = ProblemDetails
 
+/**
+ * @summary Poll current online-payment flow state (tenant-scoped; cross-tenant → 404).
+ */
 export const useGetApiPosPaymentOnlineId = <TData = Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4761,6 +5030,10 @@ export const useGetApiPosProductsProductIdVariants = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Last receipts for the current cash register (max 20). Tenant isolation via receipt query filters.
+Canonical: `GET /api/pos/receipts/recent?limit=20`. Collection GET remains as an alias.
+ */
 export const getApiPosReceiptsRecent = (
     params?: GetApiPosReceiptsRecentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4801,6 +5074,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosReceiptsRecentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>>
 export type GetApiPosReceiptsRecentQueryError = ProblemDetails
 
+/**
+ * @summary Last receipts for the current cash register (max 20). Tenant isolation via receipt query filters.
+Canonical: `GET /api/pos/receipts/recent?limit=20`. Collection GET remains as an alias.
+ */
 export const useGetApiPosReceiptsRecent = <TData = Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError = ProblemDetails>(
  params?: GetApiPosReceiptsRecentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4817,6 +5094,10 @@ export const useGetApiPosReceiptsRecent = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Last receipts for the current cash register (max 20). Tenant isolation via receipt query filters.
+Canonical: `GET /api/pos/receipts/recent?limit=20`. Collection GET remains as an alias.
+ */
 export const getApiPosReceipts = (
     params?: GetApiPosReceiptsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4857,6 +5138,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosReceiptsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceipts>>>
 export type GetApiPosReceiptsQueryError = ProblemDetails
 
+/**
+ * @summary Last receipts for the current cash register (max 20). Tenant isolation via receipt query filters.
+Canonical: `GET /api/pos/receipts/recent?limit=20`. Collection GET remains as an alias.
+ */
 export const useGetApiPosReceipts = <TData = Awaited<ReturnType<typeof getApiPosReceipts>>, TError = ProblemDetails>(
  params?: GetApiPosReceiptsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4873,6 +5158,9 @@ export const useGetApiPosReceipts = <TData = Awaited<ReturnType<typeof getApiPos
 
 
 
+/**
+ * @summary Persisted receipt detail for the current register. Wrong register or tenant → HTTP 404.
+ */
 export const getApiPosReceiptsReceiptId = (
     receiptId: string,
     params?: GetApiPosReceiptsReceiptIdParams,
@@ -4916,6 +5204,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosReceiptsReceiptIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>>
 export type GetApiPosReceiptsReceiptIdQueryError = ProblemDetails
 
+/**
+ * @summary Persisted receipt detail for the current register. Wrong register or tenant → HTTP 404.
+ */
 export const useGetApiPosReceiptsReceiptId = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError = ProblemDetails>(
  receiptId: string,
     params?: GetApiPosReceiptsReceiptIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -4933,6 +5224,10 @@ export const useGetApiPosReceiptsReceiptId = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Nachdruck payload for the POS printer. Audits `ReceiptReprintConfirmed`; does not create a new Beleg.
+receiptId may be the receipt id or the payment id (same as GET /api/Receipts/{id}).
+ */
 export const getApiPosReceiptsReceiptIdReprint = (
     receiptId: string,
     params?: GetApiPosReceiptsReceiptIdReprintParams,
@@ -4976,6 +5271,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosReceiptsReceiptIdReprintQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>>
 export type GetApiPosReceiptsReceiptIdReprintQueryError = ReceiptReprintResponse | ProblemDetails
 
+/**
+ * @summary Nachdruck payload for the POS printer. Audits `ReceiptReprintConfirmed`; does not create a new Beleg.
+receiptId may be the receipt id or the payment id (same as GET /api/Receipts/{id}).
+ */
 export const useGetApiPosReceiptsReceiptIdReprint = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError = ReceiptReprintResponse | ProblemDetails>(
  receiptId: string,
     params?: GetApiPosReceiptsReceiptIdReprintParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -4993,6 +5292,11 @@ export const useGetApiPosReceiptsReceiptIdReprint = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary POS Belegliste storno. Same Fiskaly CANCELLATION path as FA
+(M:KasseAPI_Final.Services.IFiskalyReceiptService.CancelReceiptAsync(System.Guid,System.Guid,System.String,System.String,System.Boolean,System.Threading.CancellationToken)). Cashier: own receipt, Vienna today.
+Cross-tenant / wrong register → HTTP 404.
+ */
 export const postApiPosReceiptsReceiptIdCancel = (
     receiptId: string,
     posReceiptCancelRequest: PosReceiptCancelRequest,
@@ -5034,7 +5338,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosReceiptsReceiptIdCancelMutationBody = PosReceiptCancelRequest
     export type PostApiPosReceiptsReceiptIdCancelMutationError = StornoResponse | ProblemDetails
 
-    export const usePostApiPosReceiptsReceiptIdCancel = <TError = StornoResponse | ProblemDetails,
+    /**
+ * @summary POS Belegliste storno. Same Fiskaly CANCELLATION path as FA
+(M:KasseAPI_Final.Services.IFiskalyReceiptService.CancelReceiptAsync(System.Guid,System.Guid,System.String,System.String,System.Boolean,System.Threading.CancellationToken)). Cashier: own receipt, Vienna today.
+Cross-tenant / wrong register → HTTP 404.
+ */
+export const usePostApiPosReceiptsReceiptIdCancel = <TError = StornoResponse | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, TError,{receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>,
@@ -5627,6 +5936,9 @@ export const useGetApiPosFoliosIdItems = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Returns the caller's active shift, if any.
+ */
 export const getApiPosShiftCurrent = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5666,6 +5978,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosShiftCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosShiftCurrent>>>
 export type GetApiPosShiftCurrentQueryError = ProblemDetails
 
+/**
+ * @summary Returns the caller's active shift, if any.
+ */
 export const useGetApiPosShiftCurrent = <TData = Awaited<ReturnType<typeof getApiPosShiftCurrent>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5682,6 +5997,9 @@ export const useGetApiPosShiftCurrent = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary Starts a cashier shift and opens the target register (idempotent when already open by same user).
+ */
 export const postApiPosShiftStart = (
     startShiftRequest: StartShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5720,7 +6038,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosShiftStartMutationBody = StartShiftRequest
     export type PostApiPosShiftStartMutationError = ProblemDetails
 
-    export const usePostApiPosShiftStart = <TError = ProblemDetails,
+    /**
+ * @summary Starts a cashier shift and opens the target register (idempotent when already open by same user).
+ */
+export const usePostApiPosShiftStart = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftStart>>, TError,{data: StartShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftStart>>,
@@ -5733,7 +6054,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosShiftAutoOpen = (
+    /**
+ * @summary Auto-opens a cashier shift for the caller's register (body id, else persisted default).
+Idempotent if already active. Missing/unavailable registers return structured 400 codes
+rather than a raw model-binding failure.
+ */
+export const postApiPosShiftAutoOpen = (
     autoOpenShiftRequest: AutoOpenShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -5771,7 +6097,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosShiftAutoOpenMutationBody = AutoOpenShiftRequest
     export type PostApiPosShiftAutoOpenMutationError = ShiftAutoOpenResult
 
-    export const usePostApiPosShiftAutoOpen = <TError = ShiftAutoOpenResult,
+    /**
+ * @summary Auto-opens a cashier shift for the caller's register (body id, else persisted default).
+Idempotent if already active. Missing/unavailable registers return structured 400 codes
+rather than a raw model-binding failure.
+ */
+export const usePostApiPosShiftAutoOpen = <TError = ShiftAutoOpenResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, TError,{data: AutoOpenShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>,
@@ -5784,7 +6115,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosShiftAutoClose = (
+    /**
+ * @summary Soft-closes the caller's active CashierShift without closing the cash register (idempotent).
+ */
+export const postApiPosShiftAutoClose = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -5820,7 +6154,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiPosShiftAutoCloseMutationError = unknown
 
-    export const usePostApiPosShiftAutoClose = <TError = unknown,
+    /**
+ * @summary Soft-closes the caller's active CashierShift without closing the cash register (idempotent).
+ */
+export const usePostApiPosShiftAutoClose = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoClose>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftAutoClose>>,
@@ -5833,7 +6170,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosShiftEnd = (
+    /**
+ * @summary Ends the active shift, closes the register, and returns a non-fiscal closing summary.
+ */
+export const postApiPosShiftEnd = (
     endShiftRequest: EndShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -5871,7 +6211,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosShiftEndMutationBody = EndShiftRequest
     export type PostApiPosShiftEndMutationError = ProblemDetails
 
-    export const usePostApiPosShiftEnd = <TError = ProblemDetails,
+    /**
+ * @summary Ends the active shift, closes the register, and returns a non-fiscal closing summary.
+ */
+export const usePostApiPosShiftEnd = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftEnd>>, TError,{data: EndShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftEnd>>,
@@ -5884,7 +6227,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosShiftDailyClosingStatus = (
+    /**
+ * @summary Readiness for fiscal Tagesabschluss on the active shift register.
+ */
+export const getApiPosShiftDailyClosingStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5923,6 +6269,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosShiftDailyClosingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>>
 export type GetApiPosShiftDailyClosingStatusQueryError = unknown
 
+/**
+ * @summary Readiness for fiscal Tagesabschluss on the active shift register.
+ */
 export const useGetApiPosShiftDailyClosingStatus = <TData = Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5939,6 +6288,9 @@ export const useGetApiPosShiftDailyClosingStatus = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Fiscal daily closing (Tagesabschluss) for the active shift register; records cash count on the shift row.
+ */
 export const postApiPosShiftDailyClosing = (
     posDailyClosingRequest: PosDailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5977,7 +6329,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosShiftDailyClosingMutationBody = PosDailyClosingRequest
     export type PostApiPosShiftDailyClosingMutationError = ProblemDetails
 
-    export const usePostApiPosShiftDailyClosing = <TError = ProblemDetails,
+    /**
+ * @summary Fiscal daily closing (Tagesabschluss) for the active shift register; records cash count on the shift row.
+ */
+export const usePostApiPosShiftDailyClosing = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftDailyClosing>>, TError,{data: PosDailyClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftDailyClosing>>,
@@ -5990,7 +6345,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosShiftDailyClosingDailyClosingIdReportPdf = (
+    /**
+ * @summary Localized PDF report for a completed daily closing linked to the caller's shift.
+ */
+export const getApiPosShiftDailyClosingDailyClosingIdReportPdf = (
     dailyClosingId: string,
     params?: GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -6034,6 +6392,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosShiftDailyClosingDailyClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>>
 export type GetApiPosShiftDailyClosingDailyClosingIdReportPdfQueryError = ProblemDetails
 
+/**
+ * @summary Localized PDF report for a completed daily closing linked to the caller's shift.
+ */
 export const useGetApiPosShiftDailyClosingDailyClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>, TError = ProblemDetails>(
  dailyClosingId: string,
     params?: GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -6258,6 +6619,9 @@ export const useGetApiPosStaff = <TData = Awaited<ReturnType<typeof getApiPosSta
 
 
 
+/**
+ * @summary Returns deployment + mandant license, health/license subset, read-only cash-register readiness, and settings revision.
+ */
 export const getApiPosStatusOverview = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -6297,6 +6661,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosStatusOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosStatusOverview>>>
 export type GetApiPosStatusOverviewQueryError = ProblemDetails
 
+/**
+ * @summary Returns deployment + mandant license, health/license subset, read-only cash-register readiness, and settings revision.
+ */
 export const useGetApiPosStatusOverview = <TData = Awaited<ReturnType<typeof getApiPosStatusOverview>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6676,7 +7043,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosTseStatus = (
+    /**
+ * @summary Active / Degraded / Inactive snapshot for the POS header chip.
+ */
+export const getApiPosTseStatus = (
     params?: GetApiPosTseStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6716,6 +7086,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosTseStatus>>>
 export type GetApiPosTseStatusQueryError = ProblemDetails
 
+/**
+ * @summary Active / Degraded / Inactive snapshot for the POS header chip.
+ */
 export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = ProblemDetails>(
  params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6787,6 +7160,10 @@ export const useGetApiPosVerticalProfile = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Validate a voucher code for the current tenant.
+Accepts `voucherCode` or `code` in the body. Success returns masked code only (never plaintext).
+ */
 export const postApiPosVouchersValidate = (
     validateVoucherRequest: ValidateVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6825,7 +7202,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosVouchersValidateMutationBody = ValidateVoucherRequest
     export type PostApiPosVouchersValidateMutationError = ProblemDetails
 
-    export const usePostApiPosVouchersValidate = <TError = ProblemDetails,
+    /**
+ * @summary Validate a voucher code for the current tenant.
+Accepts `voucherCode` or `code` in the body. Success returns masked code only (never plaintext).
+ */
+export const usePostApiPosVouchersValidate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, TError,{data: ValidateVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosVouchersValidate>>,
@@ -6838,7 +7219,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPos = (
+    /**
+ * @summary Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
+ */
+export const getApiPos = (
     params?: GetApiPosParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6878,6 +7262,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPos>>>
 export type GetApiPosQueryError = unknown
 
+/**
+ * @summary Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
+ */
 export const useGetApiPos = <TData = Awaited<ReturnType<typeof getApiPos>>, TError = unknown>(
  params?: GetApiPosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPos>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6894,6 +7281,9 @@ export const useGetApiPos = <TData = Awaited<ReturnType<typeof getApiPos>>, TErr
 
 
 
+/**
+ * @summary Create product (compatibility). Prefer `POST /api/admin/products` (KasseAPI_Final.Controllers.AdminProductsController) for new Admin features.
+ */
 export const postApiPos = (
     product: Product,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6932,7 +7322,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosMutationBody = Product
     export type PostApiPosMutationError = unknown
 
-    export const usePostApiPos = <TError = unknown,
+    /**
+ * @summary Create product (compatibility). Prefer `POST /api/admin/products` (KasseAPI_Final.Controllers.AdminProductsController) for new Admin features.
+ */
+export const usePostApiPos = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPos>>, TError,{data: Product}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPos>>,
@@ -6945,7 +7338,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosList = (
+    /**
+ * @summary Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/pos/list
+ */
+export const getApiPosList = (
     params?: GetApiPosListParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6985,6 +7381,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosList>>>
 export type GetApiPosListQueryError = unknown
 
+/**
+ * @summary Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/pos/list
+ */
 export const useGetApiPosList = <TData = Awaited<ReturnType<typeof getApiPosList>>, TError = unknown>(
  params?: GetApiPosListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7001,6 +7400,10 @@ export const useGetApiPosList = <TData = Awaited<ReturnType<typeof getApiPosList
 
 
 
+/**
+ * @summary Retail barcode lookup. Same product shape as the POS list, including `hasVariants`.
+Unknown or foreign barcodes return 404 `BARCODE_NOT_FOUND`.
+ */
 export const getApiPosProductsByBarcodeBarcode = (
     barcode: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7040,6 +7443,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosProductsByBarcodeBarcodeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>>
 export type GetApiPosProductsByBarcodeBarcodeQueryError = unknown
 
+/**
+ * @summary Retail barcode lookup. Same product shape as the POS list, including `hasVariants`.
+Unknown or foreign barcodes return 404 `BARCODE_NOT_FOUND`.
+ */
 export const useGetApiPosProductsByBarcodeBarcode = <TData = Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError = unknown>(
  barcode: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7056,6 +7463,9 @@ export const useGetApiPosProductsByBarcodeBarcode = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
+ */
 export const getApiPosAll = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7095,6 +7505,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosAllQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosAll>>>
 export type GetApiPosAllQueryError = unknown
 
+/**
+ * @summary Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
+ */
 export const useGetApiPosAll = <TData = Awaited<ReturnType<typeof getApiPosAll>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosAll>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7111,6 +7524,10 @@ export const useGetApiPosAll = <TData = Awaited<ReturnType<typeof getApiPosAll>>
 
 
 
+/**
+ * @summary Katalog: Kategoriler + ürünler (ürün başına modifierGroups dahil). Flat DTO, EF entity dönülmez; JSON camelCase.
+Modifier grupları toplu yüklenir (N+1 yok).
+ */
 export const getApiPosCatalog = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7150,6 +7567,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCatalog>>>
 export type GetApiPosCatalogQueryError = unknown
 
+/**
+ * @summary Katalog: Kategoriler + ürünler (ürün başına modifierGroups dahil). Flat DTO, EF entity dönülmez; JSON camelCase.
+Modifier grupları toplu yüklenir (N+1 yok).
+ */
 export const useGetApiPosCatalog = <TData = Awaited<ReturnType<typeof getApiPosCatalog>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7166,6 +7587,9 @@ export const useGetApiPosCatalog = <TData = Awaited<ReturnType<typeof getApiPosC
 
 
 
+/**
+ * @summary Ana sayfa için tüm aktif ürünleri getir (kategori bazlı gruplandırılmış)
+ */
 export const getApiPosActive = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7205,6 +7629,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosActiveQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosActive>>>
 export type GetApiPosActiveQueryError = unknown
 
+/**
+ * @summary Ana sayfa için tüm aktif ürünleri getir (kategori bazlı gruplandırılmış)
+ */
 export const useGetApiPosActive = <TData = Awaited<ReturnType<typeof getApiPosActive>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosActive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7221,6 +7648,9 @@ export const useGetApiPosActive = <TData = Awaited<ReturnType<typeof getApiPosAc
 
 
 
+/**
+ * @summary Debug: Veritabanındaki mevcut kategorileri ve ürünleri göster
+ */
 export const getApiPosDebugCategoriesProducts = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7260,6 +7690,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosDebugCategoriesProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>>
 export type GetApiPosDebugCategoriesProductsQueryError = unknown
 
+/**
+ * @summary Debug: Veritabanındaki mevcut kategorileri ve ürünleri göster
+ */
 export const useGetApiPosDebugCategoriesProducts = <TData = Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7276,6 +7709,9 @@ export const useGetApiPosDebugCategoriesProducts = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Active POS categories with icon/color (same appearance as admin).
+ */
 export const getApiPosCategories = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7315,6 +7751,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCategories>>>
 export type GetApiPosCategoriesQueryError = unknown
 
+/**
+ * @summary Active POS categories with icon/color (same appearance as admin).
+ */
 export const useGetApiPosCategories = <TData = Awaited<ReturnType<typeof getApiPosCategories>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7331,6 +7770,9 @@ export const useGetApiPosCategories = <TData = Awaited<ReturnType<typeof getApiP
 
 
 
+/**
+ * @summary Kategoriye göre ürünleri getir
+ */
 export const getApiPosCategoryCategoryName = (
     categoryName: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7370,6 +7812,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCategoryCategoryNameQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>>
 export type GetApiPosCategoryCategoryNameQueryError = unknown
 
+/**
+ * @summary Kategoriye göre ürünleri getir
+ */
 export const useGetApiPosCategoryCategoryName = <TData = Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>, TError = unknown>(
  categoryName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7386,6 +7831,9 @@ export const useGetApiPosCategoryCategoryName = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Stok durumuna göre ürünleri getir
+ */
 export const getApiPosStockStatus = (
     status: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7425,6 +7873,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosStockStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosStockStatus>>>
 export type GetApiPosStockStatusQueryError = unknown
 
+/**
+ * @summary Stok durumuna göre ürünleri getir
+ */
 export const useGetApiPosStockStatus = <TData = Awaited<ReturnType<typeof getApiPosStockStatus>>, TError = unknown>(
  status: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosStockStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7441,6 +7892,9 @@ export const useGetApiPosStockStatus = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Ürün arama (çoklu kriter ile)
+ */
 export const getApiPosSearch = (
     params?: GetApiPosSearchParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7481,6 +7935,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosSearch>>>
 export type GetApiPosSearchQueryError = unknown
 
+/**
+ * @summary Ürün arama (çoklu kriter ile)
+ */
 export const useGetApiPosSearch = <TData = Awaited<ReturnType<typeof getApiPosSearch>>, TError = unknown>(
  params?: GetApiPosSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7497,6 +7954,9 @@ export const useGetApiPosSearch = <TData = Awaited<ReturnType<typeof getApiPosSe
 
 
 
+/**
+ * @summary Ürüne atanmış modifier gruplarını getir (Extra Zutaten). Admin / POS.
+ */
 export const getApiPosIdModifierGroups = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7536,6 +7996,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosIdModifierGroupsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosIdModifierGroups>>>
 export type GetApiPosIdModifierGroupsQueryError = unknown
 
+/**
+ * @summary Ürüne atanmış modifier gruplarını getir (Extra Zutaten). Admin / POS.
+ */
 export const useGetApiPosIdModifierGroups = <TData = Awaited<ReturnType<typeof getApiPosIdModifierGroups>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdModifierGroups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7552,6 +8015,9 @@ export const useGetApiPosIdModifierGroups = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Ürüne modifier gruplarını ata. Mevcut atamalar replace edilir.
+ */
 export const postApiPosIdModifierGroups = (
     id: string,
     setProductModifierGroupsRequest: SetProductModifierGroupsRequest,
@@ -7591,7 +8057,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPosIdModifierGroupsMutationBody = SetProductModifierGroupsRequest
     export type PostApiPosIdModifierGroupsMutationError = unknown
 
-    export const usePostApiPosIdModifierGroups = <TError = unknown,
+    /**
+ * @summary Ürüne modifier gruplarını ata. Mevcut atamalar replace edilir.
+ */
+export const usePostApiPosIdModifierGroups = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosIdModifierGroups>>, TError,{id: string;data: SetProductModifierGroupsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosIdModifierGroups>>,
@@ -7604,7 +8073,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiPosId = (
+    /**
+ * @summary Ürün güncelle
+ */
+export const putApiPosId = (
     id: string,
     product: Product,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7643,7 +8115,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiPosIdMutationBody = Product
     export type PutApiPosIdMutationError = unknown
 
-    export const usePutApiPosId = <TError = unknown,
+    /**
+ * @summary Ürün güncelle
+ */
+export const usePutApiPosId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiPosId>>, TError,{id: string;data: Product}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiPosId>>,
@@ -7656,7 +8131,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosId = (
+    /**
+ * @summary ID'ye göre entity getir
+ */
+export const getApiPosId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7695,6 +8173,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosId>>>
 export type GetApiPosIdQueryError = unknown
 
+/**
+ * @summary ID'ye göre entity getir
+ */
 export const useGetApiPosId = <TData = Awaited<ReturnType<typeof getApiPosId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7711,6 +8192,9 @@ export const useGetApiPosId = <TData = Awaited<ReturnType<typeof getApiPosId>>, 
 
 
 
+/**
+ * @summary Entity sil (soft delete)
+ */
 export const deleteApiPosId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7747,7 +8231,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiPosIdMutationError = unknown
 
-    export const useDeleteApiPosId = <TError = unknown,
+    /**
+ * @summary Entity sil (soft delete)
+ */
+export const useDeleteApiPosId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiPosId>>,
@@ -7760,7 +8247,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiPosStockId = (
+    /**
+ * @summary Ürün stok güncelle
+ */
+export const putApiPosStockId = (
     id: string,
     updateStockRequest: UpdateStockRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7799,7 +8289,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiPosStockIdMutationBody = UpdateStockRequest
     export type PutApiPosStockIdMutationError = unknown
 
-    export const usePutApiPosStockId = <TError = unknown,
+    /**
+ * @summary Ürün stok güncelle
+ */
+export const usePutApiPosStockId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiPosStockId>>, TError,{id: string;data: UpdateStockRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiPosStockId>>,
@@ -7812,7 +8305,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiPosIdPermanent = (
+    /**
+ * @summary Entity'yi kalıcı olarak sil
+ */
+export const deleteApiPosIdPermanent = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -7848,7 +8344,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiPosIdPermanentMutationError = unknown
 
-    export const useDeleteApiPosIdPermanent = <TError = unknown,
+    /**
+ * @summary Entity'yi kalıcı olarak sil
+ */
+export const useDeleteApiPosIdPermanent = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosIdPermanent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiPosIdPermanent>>,
@@ -7861,7 +8360,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosCount = (
+    /**
+ * @summary Entity sayısını getir
+ */
+export const getApiPosCount = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7900,6 +8402,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosCountQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCount>>>
 export type GetApiPosCountQueryError = unknown
 
+/**
+ * @summary Entity sayısını getir
+ */
 export const useGetApiPosCount = <TData = Awaited<ReturnType<typeof getApiPosCount>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7916,6 +8421,9 @@ export const useGetApiPosCount = <TData = Awaited<ReturnType<typeof getApiPosCou
 
 
 
+/**
+ * @summary Entity'nin var olup olmadığını kontrol et
+ */
 export const getApiPosIdExists = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7955,6 +8463,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPosIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosIdExists>>>
 export type GetApiPosIdExistsQueryError = unknown
 
+/**
+ * @summary Entity'nin var olup olmadığını kontrol et
+ */
 export const useGetApiPosIdExists = <TData = Awaited<ReturnType<typeof getApiPosIdExists>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

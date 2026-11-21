@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/license/transfer`.
+ */
 export interface TransferLicenseRequestBody {
   /** @minLength 1 */
   licenseKey: string;

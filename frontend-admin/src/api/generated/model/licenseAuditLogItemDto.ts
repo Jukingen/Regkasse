@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Unified Super Admin license audit projection (billing_audit_log + LICENSE_* audit_logs).
+ */
 export interface LicenseAuditLogItemDto {
   /** @nullable */
   action?: string | null;

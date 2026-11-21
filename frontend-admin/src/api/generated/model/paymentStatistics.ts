@@ -9,6 +9,9 @@ import type { PaymentStatisticsAmountByMethod } from './paymentStatisticsAmountB
 import type { PaymentStatisticsPaymentsByMethod } from './paymentStatisticsPaymentsByMethod';
 import type { PaymentStatisticsPaymentsByTaxType } from './paymentStatisticsPaymentsByTaxType';
 
+/**
+ * Ödeme istatistikleri
+ */
 export interface PaymentStatistics {
   /** @nullable */
   amountByMethod?: PaymentStatisticsAmountByMethod;

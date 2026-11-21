@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Platform-wide maintenance mode status (derived from InProgress / in-window notices).
+ */
 export interface MaintenanceModeStatusDto {
   blocksApiWrites?: boolean;
   blocksPosPayments?: boolean;

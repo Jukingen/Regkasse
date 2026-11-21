@@ -30,6 +30,8 @@ export interface UpdateCompanySettingsRequest {
    */
   bankSwiftCode?: string | null;
   /**
+   * Optional ISO 3166-1 alpha-2 billing country when it differs from the operating country.
+Omit to leave unchanged; send an empty string to clear it.
    * @maxLength 2
    * @nullable
    * @pattern ^([A-Za-z]{2})?$
@@ -186,7 +188,10 @@ export interface UpdateCompanySettingsRequest {
    * @maxLength 50
    */
   taxCalculationMethod: string;
-  /** @nullable */
+  /**
+   * Optional VAT exemption flag. Omit to leave unchanged.
+   * @nullable
+   */
   taxExempt?: boolean | null;
   /**
    * @maxLength 500

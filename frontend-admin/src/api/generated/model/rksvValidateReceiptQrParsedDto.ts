@@ -7,10 +7,16 @@
  */
 import type { RksvValidateReceiptQrTotalsDto } from './rksvValidateReceiptQrTotalsDto';
 
+/**
+ * Structured parse result for a valid RKSV-style receipt QR payload (BMF §9 standard or legacy internal compact).
+ */
 export interface RksvValidateReceiptQrParsedDto {
   /** @nullable */
   certificateSerial?: string | null;
-  /** @nullable */
+  /**
+   * Previous chain signature segment when present (BMF §9 layout).
+   * @nullable
+   */
   previousSignature?: string | null;
   /** @nullable */
   receiptNumber?: string | null;

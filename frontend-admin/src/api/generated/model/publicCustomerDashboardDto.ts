@@ -7,6 +7,9 @@
  */
 import type { PublicCustomerOrderSummaryDto } from './publicCustomerOrderSummaryDto';
 
+/**
+ * Anonymous customer portal snapshot (phone + tenant slug gate).
+ */
 export interface PublicCustomerDashboardDto {
   /** @nullable */
   customerDisplayName?: string | null;

@@ -14,7 +14,10 @@ export interface FiscalExportAuditLogDetailDto {
   downloadTimeUtc?: string;
   /** @nullable */
   errorDetails?: string | null;
-  /** @nullable */
+  /**
+   * Heuristic size estimate from receipt/closing counts; not measured from wire bytes.
+   * @nullable
+   */
   estimatedFileSizeBytes?: number | null;
   /** @nullable */
   exportPeriodFromUtc?: string | null;
@@ -23,9 +26,11 @@ export interface FiscalExportAuditLogDetailDto {
   /** @nullable */
   exportTypeLabel?: string | null;
   id?: string;
+  /** True when the export request asked for RKSV DEP CSV fragments (may accompany JSON envelope). */
   includesCsvFragment?: boolean;
   /** @nullable */
   ipAddress?: string | null;
+  /** True when exported period spans more than one calendar year (potential bulk extraction). */
   longRangeBulkWarning?: boolean;
   /** @nullable */
   requestDataJson?: string | null;

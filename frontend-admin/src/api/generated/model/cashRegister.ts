@@ -13,6 +13,9 @@ import type { CashRegisterTransaction } from './cashRegisterTransaction';
 export interface CashRegister {
   assignedUser?: ApplicationUser;
   /**
+   * Admin-managed cashier assignment (visibility only). Null means the register is selectable by every POS user of the tenant.
+Distinct from KasseAPI_Final.Models.CashRegister.CurrentUserId (shift ownership) and from `UserSettings.CashRegisterId` (the user's own preference).
+Never used for payment authorization.
    * @maxLength 450
    * @nullable
    */
@@ -25,26 +28,46 @@ export interface CashRegister {
   createdBy?: string | null;
   currentBalance: number;
   currentUser?: ApplicationUser;
-  /** @nullable */
+  /**
+   * Operational shift owner (who opened this register). Not the same as per-user preference in UserSettings.
+   * @nullable
+   */
   currentUserId?: string | null;
-  /** @nullable */
+  /**
+   * UTC when the register was permanently decommissioned (RKSV Schlussbeleg path).
+   * @nullable
+   */
   decommissionedAtUtc?: string | null;
   /**
+   * Operator reason captured at decommissioning (max 450 chars).
    * @maxLength 450
    * @nullable
    */
   decommissionReason?: string | null;
   id?: string;
   isActive?: boolean;
+  /** Preferred register for Admin FA when a mandant is selected (at most one per tenant). */
   isDefaultForTenant?: boolean;
   lastBalanceUpdate: string;
-  /** @nullable */
+  /**
+   * UTC instant when the last RKSV Jahresbeleg was issued for this register.
+   * @nullable
+   */
   lastJahresbelegUtc?: string | null;
-  /** @nullable */
+  /**
+   * UTC instant when the last RKSV Monatsbeleg (or December Jahresbeleg closing the month) was issued for this register.
+   * @nullable
+   */
   lastMonatsbelegUtc?: string | null;
-  /** @nullable */
+  /**
+   * UTC when KasseAPI_Final.Models.CashRegister.LastServerTimeOffsetSeconds was last updated.
+   * @nullable
+   */
   lastServerTimeDriftAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Last known server vs NTP offset (seconds) copied from global sync — dashboard drift visibility per register.
+   * @nullable
+   */
   lastServerTimeOffsetSeconds?: number | null;
   /**
    * @minLength 1
@@ -56,11 +79,15 @@ export interface CashRegister {
    * @maxLength 20
    */
   registerNumber: string;
-  /** @nullable */
+  /**
+   * UTC instant when the RKSV Startbeleg was issued for this register (one-time commissioning).
+   * @nullable
+   */
   startbelegCreatedAt?: string | null;
   startingBalance: number;
   status: RegisterStatus;
   tenant?: Tenant;
+  /** FK to KasseAPI_Final.Models.CashRegister.Tenant; register numbers are unique per tenant. */
   tenantId?: string;
   /** @nullable */
   transactions?: CashRegisterTransaction[] | null;

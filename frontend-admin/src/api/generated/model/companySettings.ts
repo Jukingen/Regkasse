@@ -11,9 +11,19 @@ import type { Tenant } from './tenant';
 import type { VatRegime } from './vatRegime';
 import type { WorkingHoursSettings } from './workingHoursSettings';
 
+/**
+ * Tenant-wide company master data (single source of truth for POS receipts, invoices, and FinanzOnline).
+RKSV §8 mandatory receipt fields are mapped from KasseAPI_Final.Models.CompanySettings.CompanyName, KasseAPI_Final.Models.CompanySettings.CompanyAddress,
+and KasseAPI_Final.Models.CompanySettings.CompanyTaxNumber; values are snapshotted onto each KasseAPI_Final.Models.PaymentDetails at sale time.
+ */
 export interface CompanySettings {
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyAddress.
+   * @nullable
+   */
   address?: string | null;
+  /** When true (default), the hosted worker creates the previous-month TSE Monatsbeleg
+on Vienna day 1 at 00:01 (catch-up through day 7) and notifies Mandanten-Admin. */
   autoMonatsbelegEnabled?: boolean;
   autoTagesabschluss: AutoTagesabschlussSettings;
   /**
@@ -37,6 +47,8 @@ export interface CompanySettings {
    */
   bankSwiftCode?: string | null;
   /**
+   * ISO 3166-1 alpha-2 billing country when invoicing happens elsewhere than the operating
+KasseAPI_Final.Models.CompanySettings.Country. Null means "bill in the operating country".
    * @maxLength 2
    * @nullable
    * @pattern ^([A-Za-z]{2})?$
@@ -44,6 +56,7 @@ export interface CompanySettings {
   billingCountry?: string | null;
   businessHours: CompanySettingsBusinessHours;
   /**
+   * RKSV §8 — Firmenadresse / Sitz der gewerblichen Betriebsstätte.
    * @minLength 1
    * @maxLength 200
    */
@@ -64,6 +77,7 @@ export interface CompanySettings {
    */
   companyLogo?: string | null;
   /**
+   * RKSV §8 — Firmenname / Unternehmensbezeichnung.
    * @minLength 1
    * @maxLength 100
    */
@@ -79,6 +93,7 @@ export interface CompanySettings {
    */
   companyRegistrationNumber?: string | null;
   /**
+   * RKSV §8 — UID (Umsatzsteuer-Identifikationsnummer), format ATU12345678.
    * @minLength 1
    * @maxLength 20
    */
@@ -109,6 +124,7 @@ export interface CompanySettings {
    */
   contactPhone?: string | null;
   /**
+   * ISO 3166-1 alpha-2 country code (e.g. AT). Changed only via Super Admin settings approval workflow.
    * @minLength 1
    * @maxLength 2
    */
@@ -135,6 +151,7 @@ export interface CompanySettings {
    */
   decimalPlaces?: number;
   /**
+   * Fiskaly SIGN DE client id. Null until a canary tenant is configured.
    * @maxLength 64
    * @nullable
    */
@@ -150,11 +167,15 @@ export interface CompanySettings {
    */
   defaultTseDeviceId?: string | null;
   /**
+   * Fiskaly SIGN DE TSS id. Null until a canary tenant is configured.
    * @maxLength 64
    * @nullable
    */
   deTssId?: string | null;
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyEmail.
+   * @nullable
+   */
   email?: string | null;
   /**
    * @maxLength 500
@@ -194,10 +215,12 @@ export interface CompanySettings {
   invoiceNumbering: string;
   isActive?: boolean;
   /**
+   * Minutes after Ready before FA may hide a kitchen ticket. POS does not read this yet.
    * @minimum 1
    * @maximum 240
    */
   kitchenOrderAutoClearMinutes?: number;
+  /** Whether the kitchen display may play a new-order sound. POS does not read this yet. */
   kitchenOrderSound?: boolean;
   /**
    * @minLength 1
@@ -207,16 +230,22 @@ export interface CompanySettings {
   /** @nullable */
   lastFinanzOnlineSync?: string | null;
   /**
+   * POS sales blocking when the previous Vienna-month Monatsbeleg is missing:
+`Strict` (default), `GracePeriod`, or `WarningOnly`.
    * @minLength 1
    * @maxLength 32
    */
   monatsbelegBlockingMode: string;
   /**
+   * Max Auto-Monatsbeleg attempts per register/month (1–5, default 3).
    * @minimum 1
    * @maximum 5
    */
   monatsbelegRetryCount?: number;
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyName.
+   * @nullable
+   */
   name?: string | null;
   /**
    * @maxLength 50
@@ -225,14 +254,19 @@ export interface CompanySettings {
   paymentTerms?: string | null;
   /** @nullable */
   pendingInvoices?: number | null;
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyPhone.
+   * @nullable
+   */
   phone?: string | null;
   /**
+   * Printed cancellation / return policy line on Besorgerzettel receipts.
    * @maxLength 500
    * @nullable
    */
   preorderCancellationPolicyText?: string | null;
   /**
+   * Printed pickup window on Vorbestellung / Besorgerzettel receipts.
    * @minimum 1
    * @maximum 52
    */
@@ -247,12 +281,18 @@ export interface CompanySettings {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  /** True when the mandant is exempt from VAT (small-business or equivalent relief). */
   taxExempt?: boolean;
-  /** @nullable */
+  /**
+   * Optional taxi fare per kilometre (EUR). Product configuration, not a fiscal rate.
+   * @nullable
+   */
   taxiTariffPerKm?: number | null;
   tenant?: Tenant;
   tenantId: string;
   /**
+   * Custom POS receipt thank-you line (Dankesnachricht). Null/empty uses
+KasseAPI_Final.Models.ReceiptThankYouMessage.Default. Printed before KasseAPI_Final.Models.CompanySettings.CompanyDescription.
    * @maxLength 500
    * @nullable
    */
@@ -276,16 +316,26 @@ export interface CompanySettings {
    * @nullable
    */
   updatedBy?: string | null;
+  /** When true (default), Vienna December uses Jahresbeleg flow instead of a separate Monatsbeleg row,
+and December Monatsbeleg may satisfy Jahresbeleg detection where configured. */
   useDecemberMonatsbelegAsJahresbeleg?: boolean;
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyTaxNumber.
+   * @nullable
+   */
   vatId?: string | null;
   vatRegime: VatRegime;
   /**
+   * Assigned POS vertical profile. Null preserves compatibility for tenants that have not
+been classified yet; the effective-profile service falls back to gastronomy.
    * @maxLength 64
    * @nullable
    */
   verticalProfileId?: string | null;
-  /** @nullable */
+  /**
+   * RKSV report alias for KasseAPI_Final.Models.CompanySettings.CompanyWebsite.
+   * @nullable
+   */
   website?: string | null;
   workingHours: WorkingHoursSettings;
 }

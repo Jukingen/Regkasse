@@ -6,9 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV Startbeleg (first zero signed receipt for a cash register).
+ */
 export interface CreateStartbelegRequest {
   cashRegisterId: string;
   /**
+   * Optional client correlation (stored on payment CorrelationId when short enough).
    * @maxLength 100
    * @nullable
    */

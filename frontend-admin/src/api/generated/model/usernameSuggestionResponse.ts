@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Preview for Quick Create username allocation.
+ */
 export interface UsernameSuggestionResponse {
-  /** @nullable */
+  /**
+   * Next free numeric suffixes for the role prefix (e.g. 5, 6, 7).
+   * @nullable
+   */
   availableNumbers: number[] | null;
   /** @nullable */
   suggestedUsername: string | null;

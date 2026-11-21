@@ -6,9 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Public tenant profile for shared website / PWA (no secrets).
+ */
 export interface PublicTenantProfileDto {
   /** @nullable */
   accentColor?: string | null;
+  /** Whether Web/App may accept new online orders right now
+(working hours + special days + stop-before-close cutoff).
+Never apply this gate to POS sales. */
   acceptingOnlineOrders?: boolean;
   /** @nullable */
   address?: string | null;
@@ -20,15 +26,23 @@ export interface PublicTenantProfileDto {
   email?: string | null;
   /** @nullable */
   logoUrl?: string | null;
-  /** @nullable */
+  /**
+   * Customer-facing status message (German default from settings).
+   * @nullable
+   */
   orderStatusMessage?: string | null;
   /** @nullable */
   phone?: string | null;
   /** @nullable */
   primaryColor?: string | null;
+  /** Restaurant is within today's open window (display; cutoff may still block orders). */
   restaurantIsOpen?: boolean;
   /** @nullable */
   slug?: string | null;
-  /** @nullable */
+  /**
+   * POS vertical profile id for this mandant (product configuration, not a secret).
+Null when the tenant has no company-settings profile assignment.
+   * @nullable
+   */
   verticalProfileId?: string | null;
 }

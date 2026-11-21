@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Change kinds supported by the read-only impact simulator.
+ */
 export type ChangeType = typeof ChangeType[keyof typeof ChangeType];
 
 

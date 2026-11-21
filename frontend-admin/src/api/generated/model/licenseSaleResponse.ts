@@ -10,6 +10,8 @@ import type { LicenseType } from './licenseType';
 export interface LicenseSaleResponse {
   /** @nullable */
   activationDateUtc?: string | null;
+  /** True when this sale is currently applied on the tenant row
+(`tenants.current_license_sale_id` equals this sale). */
   appliedToTenant?: boolean;
   /** @nullable */
   cancellationReason?: string | null;

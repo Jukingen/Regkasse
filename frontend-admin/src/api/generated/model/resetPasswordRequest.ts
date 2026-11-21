@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Contract: JSON property must be "newPassword" (camelCase) to match OpenAPI and frontend. Min length must match Identity Password.RequiredLength (8).
+ */
 export interface ResetPasswordRequest {
   /** @minLength 8 */
   newPassword: string;

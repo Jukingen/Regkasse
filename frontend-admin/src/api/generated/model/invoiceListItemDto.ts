@@ -9,6 +9,7 @@ import type { DocumentType } from './documentType';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface InvoiceListItemDto {
+  /** Authoritative register row id (FK). Use for admin links/filters; not the same as KasseAPI_Final.DTOs.InvoiceListItemDto.KassenId display text. */
   cashRegisterId?: string;
   /** @nullable */
   companyName?: string | null;
@@ -21,7 +22,10 @@ export interface InvoiceListItemDto {
   invoiceNumber?: string | null;
   /** @nullable */
   kassenId?: string | null;
-  /** @nullable */
+  /**
+   * List row semantics: `PersistedInvoice` = row from `invoices` table; `PaymentDerivedListRow` = row built from `PaymentDetails` (POS list) — not a substitute for persisted invoice unless backfilled.
+   * @nullable
+   */
   listRowOrigin?: string | null;
   /** @nullable */
   originalInvoiceId?: string | null;

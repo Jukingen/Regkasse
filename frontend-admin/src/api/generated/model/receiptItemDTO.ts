@@ -7,21 +7,35 @@
  */
 
 export interface ReceiptItemDTO {
-  /** @nullable */
+  /**
+   * Kategori adı (opsiyonel).
+   * @nullable
+   */
   categoryName?: string | null;
+  /** Phase 2 legacy: true when line is nested under a product (e.g. "+ Extra Cheese"). New receipts: all false (product-only lines). */
   isModifierLine?: boolean;
   /** @nullable */
   itemId?: string | null;
+  /** Satır brüt tutarı (TotalPrice ile aynı). */
   lineTotalGross?: number;
+  /** Satır net tutarı. */
   lineTotalNet?: number;
   /** @nullable */
   name?: string | null;
-  /** @nullable */
+  /**
+   * Phase 2 legacy: parent line ID when this is a nested modifier line. New receipts are flat (null).
+   * @nullable
+   */
   parentItemId?: string | null;
   quantity?: number;
+  /** Vergi oranı yüzde (10, 20). */
   taxRate?: number;
+  /** Satır toplam brüt (lineTotalGross). */
   totalPrice?: number;
+  /** Birim fiyat (brüt, inkl. MwSt). */
   unitPrice?: number;
+  /** Satır vergi tutarı. */
   vatAmount?: number;
+  /** Vergi oranı kesir (0.10, 0.20). */
   vatRate?: number;
 }

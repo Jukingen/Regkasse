@@ -14,5 +14,6 @@ export interface PaymentCreateTseData {
   qrPayload?: string | null;
   /** @nullable */
   receiptNumber?: string | null;
+  /** True when POS should show the DEMO / NICHT FISKAL disclaimer (`RKSV:ShowDemoLabel`). Independent of KasseAPI_Final.DTOs.PaymentCreateTseData.IsDemoFiscal (TSE simulation). */
   showDemoLabel?: boolean;
 }

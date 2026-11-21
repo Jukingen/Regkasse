@@ -9,4 +9,6 @@
 export type GetApiAdminProductsSearchParams = {
 name?: string;
 category?: string;
+page?: number;
+pageSize?: number;
 };

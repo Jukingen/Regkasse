@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV-oriented classification for full receipt cancellation (Storno), distinct from partial refund.
+ */
 export type StornoReason = typeof StornoReason[keyof typeof StornoReason];
 
 

@@ -9,8 +9,14 @@ import type { AddOnGroupProduct } from './addOnGroupProduct';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
 import type { Tenant } from './tenant';
 
+/**
+ * Extra Zutaten grubu (örn. Saucen, Extras, Beilagen). Ürünlere M:N atanır.
+ */
 export interface ProductModifierGroup {
-  /** @nullable */
+  /**
+   * Faz 1: Bu grupta önerilen product referansları (sellable add-on). Fiyat Product'ta.
+   * @nullable
+   */
   addOnGroupProducts?: AddOnGroupProduct[] | null;
   createdAt: string;
   /**
@@ -33,6 +39,7 @@ export interface ProductModifierGroup {
   productAssignments?: ProductModifierGroupAssignment[] | null;
   sortOrder?: number;
   tenant?: Tenant;
+  /** FK to KasseAPI_Final.Models.Tenant; aligns composite FKs on assignments and add-on links. */
   tenantId?: string;
   /** @nullable */
   updatedAt?: string | null;

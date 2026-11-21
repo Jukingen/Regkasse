@@ -8,6 +8,10 @@
 import type { BackupComplianceListItemDto } from './backupComplianceListItemDto';
 import type { BackupKnownGapCardDto } from './backupKnownGapCardDto';
 
+/**
+ * Aggregated backup restore-readiness / RKSV product-gate status (30-day window).
+Not a BMF/RKSV legal certification — metadata gates for validation restore.
+ */
 export interface BackupComplianceStatusResponseDto {
   allCompliant?: boolean;
   /** @nullable */
@@ -15,10 +19,17 @@ export interface BackupComplianceStatusResponseDto {
   compliant?: number;
   /** @nullable */
   disclaimer?: string | null;
-  /** @nullable */
+  /**
+   * Known-gap card for the ambient tenant. Empty when no tenant is selected.
+Accepted open gaps are amber. The verdict stays fail unless gate override is enabled.
+   * @nullable
+   */
   knownGaps?: BackupKnownGapCardDto[] | null;
   knownGapsAllowGateOverride?: boolean;
-  /** @nullable */
+  /**
+   * `pass` or `fail`. Null when the card was not evaluated.
+   * @nullable
+   */
   knownGapVerdict?: string | null;
   lastCheckUtc?: string;
   nonCompliant?: number;

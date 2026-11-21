@@ -7,6 +7,9 @@
  */
 import type { DepExportHistoryValidationSummaryItem } from './depExportHistoryValidationSummaryItem';
 
+/**
+ * Tenant-scoped aggregate of recent DEP export validation outcomes.
+ */
 export interface DepExportValidationReport {
   allValidatedPassed?: boolean;
   failedCount?: number;

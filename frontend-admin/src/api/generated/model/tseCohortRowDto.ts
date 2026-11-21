@@ -11,6 +11,9 @@ export interface TseCohortRowDto {
   cohortStart?: string;
   /** @nullable */
   cohortWeek?: string | null;
-  /** @nullable */
+  /**
+   * Retention percent by relative week index (0 = signup week).
+   * @nullable
+   */
   retentionByWeek?: number[] | null;
 }

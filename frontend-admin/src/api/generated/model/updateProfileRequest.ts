@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * PUT /api/user/profile — self-service profile fields (no role/username changes).
+ */
 export interface UpdateProfileRequest {
   /**
    * @maxLength 100

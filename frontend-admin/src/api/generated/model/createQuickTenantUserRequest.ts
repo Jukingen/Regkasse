@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/admin/tenants/{tenantId}/users/quick — role only; email/password generated server-side.
+ */
 export interface CreateQuickTenantUserRequest {
   /**
    * @minLength 1
@@ -13,6 +16,7 @@ export interface CreateQuickTenantUserRequest {
    */
   role: string;
   /**
+   * Optional login name; generated from role when omitted (e.g. cashier2).
    * @maxLength 256
    * @nullable
    */

@@ -11,7 +11,16 @@ cashRegisterId?: string;
 fromUtc?: string;
 toUtc?: string;
 includeCsv?: boolean;
+/**
+ * json (default) | jsonDownload | pdf
+ */
 format?: string;
+/**
+ * operational_preview (default) | accounting_report | legal_compliance_export | diagnostic_package
+ */
 exportProfile?: string;
+/**
+ * Disclaimer language for CSV, PDF, and embedded notices: de (default) | en
+ */
 lang?: string;
 };

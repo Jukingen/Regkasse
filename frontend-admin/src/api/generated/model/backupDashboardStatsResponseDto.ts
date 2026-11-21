@@ -13,6 +13,9 @@ import type { BackupRunStatus } from './backupRunStatus';
 import type { BackupVerificationStatus } from './backupVerificationStatus';
 import type { RestoreVerificationStatus } from './restoreVerificationStatus';
 
+/**
+ * Aggregated backup monitoring metrics for admin dashboard (30-day window).
+ */
 export interface BackupDashboardStatsResponseDto {
   artifactPipelinePolicy?: BackupArtifactPipelinePolicyResponseDto;
   averageSucceededBackupDurationSampleCount?: number;
@@ -22,9 +25,14 @@ export interface BackupDashboardStatsResponseDto {
   backupSizeBytes?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
   contentValidationSummary?: BackupDashboardContentValidationSummaryDto;
+  /** Failed + VerificationFailed in last 30 days. */
   failedRuns30Days?: number;
-  /** @nullable */
+  /**
+   * healthy (80–100) | warning (50–79) | critical (0–49)
+   * @nullable
+   */
   healthLevel?: string | null;
+  /** 0–100 composite health score (config + RPO + verification + drill). */
   healthScore?: number;
   /** @nullable */
   history30Days?: BackupDashboardHistoryPointDto[] | null;
@@ -35,7 +43,11 @@ export interface BackupDashboardStatsResponseDto {
   lastBackupStatus?: BackupRunStatus;
   /** @nullable */
   lastSuccessfulBackupAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * `CompletedAt` of the latest scheduled restore drill that succeeded.
+            Manual successes are excluded so this matches recoverability `lastSuccessfulRestoreProofAt`.
+   * @nullable
+   */
   lastSuccessfulRestoreDrillAtUtc?: string | null;
   /** @nullable */
   lastVerificationRunId?: string | null;
@@ -43,23 +55,47 @@ export interface BackupDashboardStatsResponseDto {
   /** @nullable */
   lastVerifiedBackupAtUtc?: string | null;
   latestRestoreDrillStatus?: RestoreVerificationStatus;
-  /** @nullable */
+  /**
+   * Earliest next scheduled fire (UTC) from enabled schedule rows; null when none.
+   * @nullable
+   */
   nextScheduledBackupAtUtc?: string | null;
+  /** Queued + Running (active) runs visible to the caller. */
   pendingRunsCount?: number;
-  /** @nullable */
+  /**
+   * Hours since last succeeded backup; null when none.
+   * @nullable
+   */
   rpoHours?: number | null;
-  /** @nullable */
+  /**
+   * Healthy | AtRisk | Critical | Unknown — derived from RPO vs AlertOnNoBackupDays.
+   * @nullable
+   */
   rpoStatus?: string | null;
-  /** @nullable */
+  /**
+   * Average restore drill duration (minutes) or backup duration fallback.
+   * @nullable
+   */
   rtoMinutes?: number | null;
+  /** True when staging usage is at/above `Backup:StagingDiskUsageAlertPercent`. */
   stagingDiskAlert?: boolean;
-  /** @nullable */
+  /**
+   * Staging volume used percent when measurable; null when unset/unavailable.
+   * @nullable
+   */
   stagingDiskUsedPercent?: number | null;
   succeededRuns30Days?: number;
-  /** @nullable */
+  /**
+   * Terminal runs in last 30 days; null when no terminal runs in window.
+   * @nullable
+   */
   successRate30DaysPercent?: number | null;
-  /** @nullable */
+  /**
+   * Current 30d rate minus prior 30d rate (percentage points); null when not comparable.
+   * @nullable
+   */
   successRateTrendVsPrior30DaysPercent?: number | null;
   terminalRuns30Days?: number;
+  /** Total runs in the 30-day window (all statuses). */
   totalRuns30Days?: number;
 }

@@ -6,17 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Phase 2 deprecated: Satır bazlı extra/modifier. Yeni akış: add-on = ayrı PaymentItem (productId). Legacy compat için hâlâ kabul edilir.
+ */
 export interface PaymentItemModifierRequest {
-  /** @nullable */
+  /**
+   * Opsiyonel modifier grup ID (katalog ilişkisi doğrulaması için).
+   * @nullable
+   */
   groupId?: string | null;
   modifierId: string;
   /**
+   * Opsiyonel: FE gönderirse DB fiyatı ile karşılaştırılır; uyuşmazsa 400. Hesaplama her zaman DB fiyatı ile yapılır. 2 dp.
    * @minimum 0
    * @maximum 1.7976931348623157e+308
    * @nullable
    */
   priceDelta?: number | null;
   /**
+   * Miktar (varsayılan 1).
    * @minimum 1
    * @maximum 2147483647
    */

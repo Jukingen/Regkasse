@@ -6,18 +6,33 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Read-only conflict group for triage; no auto-fix.
+ */
 export interface PayloadHashConflictGroup {
   /** @nullable */
   canonicalHash?: string | null;
   cashRegisterId?: string;
   /** @nullable */
   latestCreatedAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Row IDs that cannot be repaired (skipped).
+   * @nullable
+   */
   mismatchRowIds?: string[] | null;
-  /** @nullable */
+  /**
+   * Row IDs that already have this hash and block repair (when SkipReason is OccupantExists).
+   * @nullable
+   */
   occupantRowIds?: string[] | null;
-  /** @nullable */
+  /**
+   * Suggested priority for triage: High = real occupant block, Medium = multiple rows for same slot.
+   * @nullable
+   */
   severitySuggestion?: string | null;
-  /** @nullable */
+  /**
+   * Why repair was skipped: OccupantExists | MultipleRowsForSameSlot.
+   * @nullable
+   */
   skipReason?: string | null;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Explicit customer classification for requests (avoids inferring meaning from nulls alone).
+ */
 export type CustomerKind = typeof CustomerKind[keyof typeof CustomerKind];
 
 

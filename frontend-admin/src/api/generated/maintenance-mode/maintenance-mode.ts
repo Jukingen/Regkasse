@@ -23,6 +23,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Current platform maintenance mode (any authenticated user).
+ */
 export const getApiMaintenanceStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -62,6 +65,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiMaintenanceStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiMaintenanceStatus>>>
 export type GetApiMaintenanceStatusQueryError = unknown
 
+/**
+ * @summary Current platform maintenance mode (any authenticated user).
+ */
 export const useGetApiMaintenanceStatus = <TData = Awaited<ReturnType<typeof getApiMaintenanceStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMaintenanceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

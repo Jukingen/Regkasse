@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Single check / step inside a TSE developer-tools operation.
+ */
 export interface TseDevToolCheckDto {
   /** @nullable */
   details?: string | null;
@@ -13,6 +16,9 @@ export interface TseDevToolCheckDto {
   isSuccess?: boolean;
   /** @nullable */
   name?: string | null;
-  /** @nullable */
+  /**
+   * Info | Warning | Error
+   * @nullable
+   */
   severity?: string | null;
 }

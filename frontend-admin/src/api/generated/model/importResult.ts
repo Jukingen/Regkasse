@@ -9,6 +9,7 @@ import type { CategoryImportSummary } from './categoryImportSummary';
 
 export interface ImportResult {
   averageImportedPrice?: number;
+  /** New categories inserted during this import (existing rows are not counted). */
   categoriesCreated?: number;
   /** @nullable */
   categoryIds?: string[] | null;
@@ -17,6 +18,7 @@ export interface ImportResult {
   created?: number;
   /** @nullable */
   errorMessage?: string | null;
+  /** Products created or updated in this import (excludes skipped). */
   importedProductCount?: number;
   /** @nullable */
   productIds?: string[] | null;

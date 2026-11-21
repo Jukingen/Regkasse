@@ -18,6 +18,9 @@ export interface BackupPipelineStepDto {
   message?: string | null;
   /** @nullable */
   startedAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * pending, running, success, failed, skipped, degraded, not_required
+   * @nullable
+   */
   status?: string | null;
 }

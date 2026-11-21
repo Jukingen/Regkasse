@@ -12,6 +12,10 @@ import type { InterimOperationalReportDto } from './interimOperationalReportDto'
 import type { XzOperationalVsClosingDto } from './xzOperationalVsClosingDto';
 import type { XzReferenceBundlePartDto } from './xzReferenceBundlePartDto';
 
+/**
+ * Named X/Z reference bundle: operational interim + full-day totals + database daily closings.
+Not a hardware TSE-native X/Z artefact; see KasseAPI_Final.Models.Reports.XzReferenceBundleDto.LegalDisclaimers.
+ */
 export interface XzReferenceBundleDto {
   activeOnly?: boolean;
   /** @nullable */
@@ -26,12 +30,21 @@ export interface XzReferenceBundleDto {
   interimVsFullDaySnapshot?: XzInterimVsFullDayDto;
   interimXLike?: InterimOperationalReportDto;
   isCurrentBusinessDay?: boolean;
-  /** @nullable */
+  /**
+   * Must-display legal / operator notices (English for audit consistency).
+   * @nullable
+   */
   legalDisclaimers?: string[] | null;
-  /** @nullable */
+  /**
+   * IDs of daily_closing rows included in KasseAPI_Final.Models.Reports.XzReferenceBundleDto.ClosingReference.
+   * @nullable
+   */
   linkedClosingIds?: string[] | null;
   operationalVsClosing?: XzOperationalVsClosingDto;
-  /** @nullable */
+  /**
+   * Structured sections for UI labels (no duplicate fiscal semantics).
+   * @nullable
+   */
   parts?: XzReferenceBundlePartDto[] | null;
   /** @nullable */
   paymentMethodFilter?: number | null;

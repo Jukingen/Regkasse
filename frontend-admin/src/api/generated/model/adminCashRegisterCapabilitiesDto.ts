@@ -8,5 +8,6 @@
 
 export interface AdminCashRegisterCapabilitiesDto {
   allowHardDelete?: boolean;
+  /** True when decommission uses RKSV Schlussbeleg (production-safe path). */
   decommissionViaSchlussbeleg?: boolean;
 }

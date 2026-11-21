@@ -13,7 +13,10 @@ export interface CreateSupportTicketRequest {
   message?: string | null;
   /** @nullable */
   priority?: string | null;
-  /** @nullable */
+  /**
+   * Preferred subject field. KasseAPI_Final.Services.Support.CreateSupportTicketRequest.Title is accepted as an alias.
+   * @nullable
+   */
   subject?: string | null;
   /** @nullable */
   title?: string | null;

@@ -6,8 +6,12 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin cancel response for POST /api/admin/payments/{id}/cancel.
+ */
 export interface CancellationResponse {
   /**
+   * Prefer KasseAPI_Final.Models.DTOs.PaymentReversalApprovalRequestDto.ApprovalRequestId flows; clients should use KasseAPI_Final.Models.DTOs.CancellationResponse.RequiresApproval.
    * @deprecated
    * @nullable
    */

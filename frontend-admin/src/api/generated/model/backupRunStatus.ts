@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Explicit backup run state machine. Terminal success is only reached after verification passes.
+ */
 export type BackupRunStatus = typeof BackupRunStatus[keyof typeof BackupRunStatus];
 
 

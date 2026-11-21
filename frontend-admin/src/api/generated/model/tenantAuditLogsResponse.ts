@@ -7,6 +7,9 @@
  */
 import type { TenantAuditLogItemDto } from './tenantAuditLogItemDto';
 
+/**
+ * Paginated tenant audit log response.
+ */
 export interface TenantAuditLogsResponse {
   /** @nullable */
   items?: TenantAuditLogItemDto[] | null;

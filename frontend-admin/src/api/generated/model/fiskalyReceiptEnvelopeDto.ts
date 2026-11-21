@@ -11,7 +11,10 @@ import type { FiskalyReceiptErrorDto } from './fiskalyReceiptErrorDto';
 export interface FiskalyReceiptEnvelopeDto {
   data?: FiskalyReceiptDataDto;
   error?: FiskalyReceiptErrorDto;
-  /** @nullable */
+  /**
+   * History row created for this attempt, when recording succeeded.
+   * @nullable
+   */
   historyId?: string | null;
   success?: boolean;
 }

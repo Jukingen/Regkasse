@@ -7,6 +7,9 @@
  */
 
 export interface GenerateTseDrRunbookRequestDto {
-  /** @nullable */
+  /**
+   * TSEFailure | NetworkIsolation | DataCorruption
+   * @nullable
+   */
   scenario?: string | null;
 }

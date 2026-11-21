@@ -33,6 +33,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Export customers as CSV or JSON. Filename: `customer_{tenantSlug}_{stamp}.{ext}`.
+ */
 export const getApiCustomerExport = (
     params?: GetApiCustomerExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -74,6 +77,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerExport>>>
 export type GetApiCustomerExportQueryError = ProblemDetails
 
+/**
+ * @summary Export customers as CSV or JSON. Filename: `customer_{tenantSlug}_{stamp}.{ext}`.
+ */
 export const useGetApiCustomerExport = <TData = Awaited<ReturnType<typeof getApiCustomerExport>>, TError = ProblemDetails>(
  params?: GetApiCustomerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -90,6 +96,9 @@ export const useGetApiCustomerExport = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary List customers. System customers are hidden from non–Super Admin users.
+ */
 export const getApiCustomer = (
     params?: GetApiCustomerParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -130,6 +139,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomer>>>
 export type GetApiCustomerQueryError = unknown
 
+/**
+ * @summary List customers. System customers are hidden from non–Super Admin users.
+ */
 export const useGetApiCustomer = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(
  params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -146,6 +158,9 @@ export const useGetApiCustomer = <TData = Awaited<ReturnType<typeof getApiCustom
 
 
 
+/**
+ * @summary Create customer (with custom validation).
+ */
 export const postApiCustomer = (
     customer: Customer,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -184,7 +199,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCustomerMutationBody = Customer
     export type PostApiCustomerMutationError = unknown
 
-    export const usePostApiCustomer = <TError = unknown,
+    /**
+ * @summary Create customer (with custom validation).
+ */
+export const usePostApiCustomer = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCustomer>>,
@@ -197,7 +215,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCustomerNumberCustomerNumber = (
+    /**
+ * @summary Get customer by customer number.
+ */
+export const getApiCustomerNumberCustomerNumber = (
     customerNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -236,6 +257,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerNumberCustomerNumberQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>>
 export type GetApiCustomerNumberCustomerNumberQueryError = unknown
 
+/**
+ * @summary Get customer by customer number.
+ */
 export const useGetApiCustomerNumberCustomerNumber = <TData = Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>, TError = unknown>(
  customerNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -252,6 +276,9 @@ export const useGetApiCustomerNumberCustomerNumber = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Get customer by email.
+ */
 export const getApiCustomerEmailEmail = (
     email: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -291,6 +318,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerEmailEmailQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerEmailEmail>>>
 export type GetApiCustomerEmailEmailQueryError = unknown
 
+/**
+ * @summary Get customer by email.
+ */
 export const useGetApiCustomerEmailEmail = <TData = Awaited<ReturnType<typeof getApiCustomerEmailEmail>>, TError = unknown>(
  email: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerEmailEmail>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -307,6 +337,9 @@ export const useGetApiCustomerEmailEmail = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Returns the stable walk-in guest customer id used by POS.
+ */
 export const getApiCustomerWalkIn = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -346,6 +379,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerWalkInQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerWalkIn>>>
 export type GetApiCustomerWalkInQueryError = unknown
 
+/**
+ * @summary Returns the stable walk-in guest customer id used by POS.
+ */
 export const useGetApiCustomerWalkIn = <TData = Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -362,6 +398,9 @@ export const useGetApiCustomerWalkIn = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Get customer by tax number.
+ */
 export const getApiCustomerTaxTaxNumber = (
     taxNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -401,6 +440,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerTaxTaxNumberQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>>
 export type GetApiCustomerTaxTaxNumberQueryError = unknown
 
+/**
+ * @summary Get customer by tax number.
+ */
 export const useGetApiCustomerTaxTaxNumber = <TData = Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>, TError = unknown>(
  taxNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -417,6 +459,9 @@ export const useGetApiCustomerTaxTaxNumber = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Update customer (with custom validation).
+ */
 export const putApiCustomerId = (
     id: string,
     customer: Customer,
@@ -456,7 +501,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiCustomerIdMutationBody = Customer
     export type PutApiCustomerIdMutationError = unknown
 
-    export const usePutApiCustomerId = <TError = unknown,
+    /**
+ * @summary Update customer (with custom validation).
+ */
+export const usePutApiCustomerId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCustomerId>>, TError,{id: string;data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiCustomerId>>,
@@ -469,7 +517,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiCustomerId = (
+    /**
+ * @summary Soft-delete customer. Requires customer.manage.
+ */
+export const deleteApiCustomerId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -505,7 +556,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiCustomerIdMutationError = unknown
 
-    export const useDeleteApiCustomerId = <TError = unknown,
+    /**
+ * @summary Soft-delete customer. Requires customer.manage.
+ */
+export const useDeleteApiCustomerId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiCustomerId>>,
@@ -518,7 +572,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCustomerId = (
+    /**
+ * @summary ID'ye göre entity getir
+ */
+export const getApiCustomerId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -557,6 +614,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerId>>>
 export type GetApiCustomerIdQueryError = unknown
 
+/**
+ * @summary ID'ye göre entity getir
+ */
 export const useGetApiCustomerId = <TData = Awaited<ReturnType<typeof getApiCustomerId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -573,6 +633,12 @@ export const useGetApiCustomerId = <TData = Awaited<ReturnType<typeof getApiCust
 
 
 
+/**
+ * @summary Returns the count of benefit assignments that are active and within their validity window (ValidFrom/ValidTo).
+Assignment-level only; does not reflect payment-time applicability. Consumed by two distinct intents:
+admin = assignment visibility for display; POS = preview (POS may attach eligibility semantics separately).
+Read-only.
+ */
 export const getApiCustomerIdBenefitSummary = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -612,6 +678,12 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerIdBenefitSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>>
 export type GetApiCustomerIdBenefitSummaryQueryError = unknown
 
+/**
+ * @summary Returns the count of benefit assignments that are active and within their validity window (ValidFrom/ValidTo).
+Assignment-level only; does not reflect payment-time applicability. Consumed by two distinct intents:
+admin = assignment visibility for display; POS = preview (POS may attach eligibility semantics separately).
+Read-only.
+ */
 export const useGetApiCustomerIdBenefitSummary = <TData = Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -628,6 +700,10 @@ export const useGetApiCustomerIdBenefitSummary = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Eligibility preview for POS: which benefits would apply for this customer and cart, and which are blocked (reasons).
+Read-only; does not create payment or update BenefitDailyUsage. Distinct from GET benefit-summary (assignment count only).
+ */
 export const postApiCustomerIdBenefitEligibilityPreview = (
     id: string,
     benefitEligibilityPreviewRequest: BenefitEligibilityPreviewRequest,
@@ -667,7 +743,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCustomerIdBenefitEligibilityPreviewMutationBody = BenefitEligibilityPreviewRequest
     export type PostApiCustomerIdBenefitEligibilityPreviewMutationError = unknown
 
-    export const usePostApiCustomerIdBenefitEligibilityPreview = <TError = unknown,
+    /**
+ * @summary Eligibility preview for POS: which benefits would apply for this customer and cart, and which are blocked (reasons).
+Read-only; does not create payment or update BenefitDailyUsage. Distinct from GET benefit-summary (assignment count only).
+ */
+export const usePostApiCustomerIdBenefitEligibilityPreview = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, TError,{id: string;data: BenefitEligibilityPreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>,
@@ -680,7 +760,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCustomerSearch = (
+    /**
+ * @summary Search customers by name, email, or phone.
+ */
+export const getApiCustomerSearch = (
     params?: GetApiCustomerSearchParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -720,6 +803,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerSearch>>>
 export type GetApiCustomerSearchQueryError = unknown
 
+/**
+ * @summary Search customers by name, email, or phone.
+ */
 export const useGetApiCustomerSearch = <TData = Awaited<ReturnType<typeof getApiCustomerSearch>>, TError = unknown>(
  params?: GetApiCustomerSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -736,6 +822,9 @@ export const useGetApiCustomerSearch = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Current loyalty point balance for a customer.
+ */
 export const getApiCustomerIdLoyalty = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -775,6 +864,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerIdLoyaltyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>>
 export type GetApiCustomerIdLoyaltyQueryError = ProblemDetails
 
+/**
+ * @summary Current loyalty point balance for a customer.
+ */
 export const useGetApiCustomerIdLoyalty = <TData = Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -791,6 +883,9 @@ export const useGetApiCustomerIdLoyalty = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Redeem loyalty points for an EUR discount (100 points = 1 EUR). Not a fiscal payment.
+ */
 export const postApiCustomerIdLoyaltyRedeem = (
     id: string,
     redeemLoyaltyPointsRequest: RedeemLoyaltyPointsRequest,
@@ -830,7 +925,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCustomerIdLoyaltyRedeemMutationBody = RedeemLoyaltyPointsRequest
     export type PostApiCustomerIdLoyaltyRedeemMutationError = ProblemDetails
 
-    export const usePostApiCustomerIdLoyaltyRedeem = <TError = ProblemDetails,
+    /**
+ * @summary Redeem loyalty points for an EUR discount (100 points = 1 EUR). Not a fiscal payment.
+ */
+export const usePostApiCustomerIdLoyaltyRedeem = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdLoyaltyRedeem>>, TError,{id: string;data: RedeemLoyaltyPointsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCustomerIdLoyaltyRedeem>>,
@@ -843,7 +941,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiCustomerIdPermanent = (
+    /**
+ * @summary Entity'yi kalıcı olarak sil
+ */
+export const deleteApiCustomerIdPermanent = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -879,7 +980,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiCustomerIdPermanentMutationError = unknown
 
-    export const useDeleteApiCustomerIdPermanent = <TError = unknown,
+    /**
+ * @summary Entity'yi kalıcı olarak sil
+ */
+export const useDeleteApiCustomerIdPermanent = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerIdPermanent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiCustomerIdPermanent>>,
@@ -892,7 +996,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCustomerCount = (
+    /**
+ * @summary Entity sayısını getir
+ */
+export const getApiCustomerCount = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -931,6 +1038,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerCountQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerCount>>>
 export type GetApiCustomerCountQueryError = unknown
 
+/**
+ * @summary Entity sayısını getir
+ */
 export const useGetApiCustomerCount = <TData = Awaited<ReturnType<typeof getApiCustomerCount>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -947,6 +1057,9 @@ export const useGetApiCustomerCount = <TData = Awaited<ReturnType<typeof getApiC
 
 
 
+/**
+ * @summary Entity'nin var olup olmadığını kontrol et
+ */
 export const getApiCustomerIdExists = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -986,6 +1099,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCustomerIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerIdExists>>>
 export type GetApiCustomerIdExistsQueryError = unknown
 
+/**
+ * @summary Entity'nin var olup olmadığını kontrol et
+ */
 export const useGetApiCustomerIdExists = <TData = Awaited<ReturnType<typeof getApiCustomerIdExists>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

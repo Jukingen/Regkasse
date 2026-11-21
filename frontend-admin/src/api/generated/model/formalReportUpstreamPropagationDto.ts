@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Überlagerung: untergeordnete Korrektur betrifft Aggregation — getrennt von FinanzOnline-Submission.
+ */
 export interface FormalReportUpstreamPropagationDto {
   /** @nullable */
   noteDe?: string | null;

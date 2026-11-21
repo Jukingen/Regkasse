@@ -6,15 +6,24 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin payment gateway status — never includes secrets.
+ */
 export interface PaymentGatewaySettingsDto {
   apiKeyConfigured?: boolean;
   isStripeProvider?: boolean;
-  /** @nullable */
+  /**
+   * Online checkout methods for website/PWA (card, paypal, bank, cash, online).
+   * @nullable
+   */
   onlinePaymentMethods?: string[] | null;
   /** @nullable */
   provider?: string | null;
   requireCardIntentForPosPayments?: boolean;
-  /** @nullable */
+  /**
+   * Fixed route path (prefix with API host in FA).
+   * @nullable
+   */
   webhookPath?: string | null;
   webhookSecretConfigured?: boolean;
 }

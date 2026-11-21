@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One currently active primary→backup failover pairing.
+ */
 export interface TseActiveFailoverDto {
   backupDeviceId?: string;
   /** @nullable */

@@ -97,7 +97,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiUserManagementMeUsernameChangePolicy = (
+    /**
+ * @summary GET api/UserManagement/me/username-change-policy — cooldown status for self-service username change.
+ */
+export const getApiUserManagementMeUsernameChangePolicy = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -136,6 +139,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiUserManagementMeUsernameChangePolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>>
 export type GetApiUserManagementMeUsernameChangePolicyQueryError = unknown
 
+/**
+ * @summary GET api/UserManagement/me/username-change-policy — cooldown status for self-service username change.
+ */
 export const useGetApiUserManagementMeUsernameChangePolicy = <TData = Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -152,6 +158,9 @@ export const useGetApiUserManagementMeUsernameChangePolicy = <TData = Awaited<Re
 
 
 
+/**
+ * @summary PATCH api/UserManagement/me/username — self-service login username change (audited; invalidates sessions).
+ */
 export const patchApiUserManagementMeUsername = (
     updateUsernameRequest: UpdateUsernameRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -190,7 +199,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiUserManagementMeUsernameMutationBody = UpdateUsernameRequest
     export type PatchApiUserManagementMeUsernameMutationError = unknown
 
-    export const usePatchApiUserManagementMeUsername = <TError = unknown,
+    /**
+ * @summary PATCH api/UserManagement/me/username — self-service login username change (audited; invalidates sessions).
+ */
+export const usePatchApiUserManagementMeUsername = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, TError,{data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>,
@@ -310,7 +322,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiUserManagementId = (
+    /**
+ * @summary Single user detail for view/edit. Returns JSON with camelCase (e.g. firstName, lastName, role).
+Example response: { "id": "...", "userName": "...", "firstName": "...", "lastName": "...", "email": "...", "employeeNumber": "...", "role": "SuperAdmin", "taxNumber": "...", "notes": "...", "isActive": true, "createdAt": "...", "lastLoginAt": "..." }.
+Route: GET /api/UserManagement/{id}
+ */
+export const getApiUserManagementId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -349,6 +366,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiUserManagementIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserManagementId>>>
 export type GetApiUserManagementIdQueryError = unknown
 
+/**
+ * @summary Single user detail for view/edit. Returns JSON with camelCase (e.g. firstName, lastName, role).
+Example response: { "id": "...", "userName": "...", "firstName": "...", "lastName": "...", "email": "...", "employeeNumber": "...", "role": "SuperAdmin", "taxNumber": "...", "notes": "...", "isActive": true, "createdAt": "...", "lastLoginAt": "..." }.
+Route: GET /api/UserManagement/{id}
+ */
 export const useGetApiUserManagementId = <TData = Awaited<ReturnType<typeof getApiUserManagementId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

@@ -8,10 +8,14 @@
 
 export interface ExtendTenantLicenseRequest {
   /**
+   * Mandant billing key (`license_sales`) for Managers; deployment REGK key for Super Admin when omitted KasseAPI_Final.Services.AdminTenants.ExtendTenantLicenseRequest.ValidUntilUtc.
    * @maxLength 100
    * @nullable
    */
   licenseKey?: string | null;
-  /** @nullable */
+  /**
+   * Super Admin override only; Managers must omit (validity comes from the billing or issued key).
+   * @nullable
+   */
   validUntilUtc?: string | null;
 }

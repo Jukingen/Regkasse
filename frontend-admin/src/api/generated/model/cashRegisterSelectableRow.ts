@@ -7,13 +7,29 @@
  */
 import type { RegisterStatus } from './registerStatus';
 
+/**
+ * Minimal row for POS picker (no sensitive fields).
+ */
 export interface CashRegisterSelectableRow {
-  /** @nullable */
+  /**
+   * Admin-managed cashier assignment. Null means the register is shared. POS uses this only for
+picker labeling / client-side visibility; payment authorization does not read it.
+   * @nullable
+   */
   assignedUserId?: string | null;
   id?: string;
+  /** False when this row is assigned to the caller but the open shift belongs to someone else.
+The row stays visible. Payment authorization still rejects that shift. */
+  isSelectable?: boolean;
   /** @nullable */
   location?: string | null;
   /** @nullable */
   registerNumber?: string | null;
   status?: RegisterStatus;
+  /**
+   * German picker label when KasseAPI_Final.Services.CashRegisterSelectableRow.IsSelectable is false, for example
+`In Benutzung von Anna Berger`. Null when the row can be picked.
+   * @nullable
+   */
+  statusText?: string | null;
 }

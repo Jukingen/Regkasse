@@ -26,7 +26,10 @@ export interface FinanzOnlineReconciliationItemDto {
   outboxLastResponsePreview?: string | null;
   /** @nullable */
   outboxLifecyclePhase?: string | null;
-  /** @nullable */
+  /**
+   * Authoritative outbox row for this payment's invoice (latest Invoice aggregate message).
+   * @nullable
+   */
   outboxMessageId?: string | null;
   /** @nullable */
   outboxProcessedAtUtc?: string | null;
@@ -38,7 +41,10 @@ export interface FinanzOnlineReconciliationItemDto {
   outboxStatus?: string | null;
   /** @nullable */
   outboxTransmissionId?: string | null;
-  /** @nullable */
+  /**
+   * Simulated | RealTest | RealProduction for the joined outbox row (live transport simulation flags + stored message mode).
+   * @nullable
+   */
   outboxTransportPathKind?: string | null;
   paymentId?: string;
   /** @nullable */

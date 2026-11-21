@@ -7,6 +7,9 @@
  */
 import type { TseChainBreakDto } from './tseChainBreakDto';
 
+/**
+ * Per-register TSE continuity summary (maps to operator TseContinuityReport contract).
+ */
 export interface TseContinuityRegisterReportDto {
   /** @nullable */
   breaks?: TseChainBreakDto[] | null;
@@ -14,7 +17,10 @@ export interface TseContinuityRegisterReportDto {
   chainBreakCount?: number;
   /** @nullable */
   detailsExportJsonPath?: string | null;
-  /** @nullable */
+  /**
+   * Relative API path for CSV chain export (append to API base URL).
+   * @nullable
+   */
   detailsExportPath?: string | null;
   duplicateCount?: number;
   /** @nullable */

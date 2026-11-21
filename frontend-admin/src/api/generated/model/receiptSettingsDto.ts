@@ -6,13 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Tenant receipt print settings (Dankesnachricht). Source: KasseAPI_Final.Models.CompanySettings.ThankYouMessage.
+ */
 export interface ReceiptSettingsDto {
-  /** @nullable */
+  /**
+   * Company description printed after the thank-you line (read-only on this endpoint).
+   * @nullable
+   */
   companyDescription?: string | null;
   /** @nullable */
   defaultThankYouMessage?: string | null;
-  /** @nullable */
+  /**
+   * Message POS/print should show (custom or default).
+   * @nullable
+   */
   effectiveThankYouMessage?: string | null;
-  /** @nullable */
+  /**
+   * Stored custom message; null when using the default.
+   * @nullable
+   */
   thankYouMessage?: string | null;
 }

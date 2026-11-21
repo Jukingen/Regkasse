@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * High-risk tenant / admin mutations that require two-step confirmation
+(operator intent + 2FA or Super Admin approval token).
+ */
 export type CriticalActionType = typeof CriticalActionType[keyof typeof CriticalActionType];
 
 

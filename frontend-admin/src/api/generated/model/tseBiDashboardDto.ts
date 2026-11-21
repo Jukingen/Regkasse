@@ -11,6 +11,7 @@ import type { TseBiNamedCountDto } from './tseBiNamedCountDto';
 export interface TseBiDashboardDto {
   activeDevices?: number;
   criticalAlerts?: number;
+  /** Diagnostic BI only — not a Finanzamt / DEP export. */
   diagnosticOnly?: boolean;
   generatedAt?: string;
   /** @nullable */

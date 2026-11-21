@@ -8,6 +8,9 @@
 import type { RestoreProofMilestoneSnapshotDto } from './restoreProofMilestoneSnapshotDto';
 import type { RestoreProofMilestonesSemanticsDto } from './restoreProofMilestonesSemanticsDto';
 
+/**
+ * Yedek / artifact / restore drill kanıtı için "son" ve "son bilinen iyi" ayırımları.
+ */
 export interface RestoreProofMilestonesResponseDto {
   lastKnownGoodL4ContinuityProven?: RestoreProofMilestoneSnapshotDto;
   lastKnownGoodL5aRestoredDbSmokeProven?: RestoreProofMilestoneSnapshotDto;

@@ -8,26 +8,36 @@
 import type { ChangeType } from './changeType';
 import type { ProductPriceUpdateDto } from './productPriceUpdateDto';
 
+/**
+ * API request for `POST /api/admin/impact-simulation/simulate`.
+ */
 export interface ImpactSimulationRequestDto {
   changeType: ChangeType;
   /**
+   * Optional: only products currently at this rate are counted as affected.
+Defaults to the tenant's most common product tax rate (or AT standard 20%).
    * @minimum 0
    * @maximum 100
    * @nullable
    */
   currentTaxRate?: number | null;
   /**
+   * Required when KasseAPI_Final.DTOs.ImpactSimulationRequestDto.ChangeType is KasseAPI_Final.Models.ChangeType.Currency.
    * @maxLength 3
    * @nullable
    */
   newCurrency?: string | null;
   /**
+   * Required when KasseAPI_Final.DTOs.ImpactSimulationRequestDto.ChangeType is KasseAPI_Final.Models.ChangeType.TaxRate.
    * @minimum 0
    * @maximum 100
    * @nullable
    */
   newTaxRate?: number | null;
-  /** @nullable */
+  /**
+   * Required when KasseAPI_Final.DTOs.ImpactSimulationRequestDto.ChangeType is KasseAPI_Final.Models.ChangeType.ProductPrice.
+   * @nullable
+   */
   productPriceUpdates?: ProductPriceUpdateDto[] | null;
   tenantId: string;
 }

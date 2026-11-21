@@ -10,6 +10,9 @@ import type { SuspiciousAlertSeverity } from './suspiciousAlertSeverity';
 import type { SuspiciousAlertStatus } from './suspiciousAlertStatus';
 import type { SuspiciousAlertType } from './suspiciousAlertType';
 
+/**
+ * Suspicious payment alert returned by `GET /api/admin/payments/alerts`.
+ */
 export interface SuspiciousAlertDto {
   createdAtUtc?: string;
   /** @nullable */

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Receipt counts by payment type for daily closing reports.
+ */
 export interface TransactionBreakdown {
   cancellations?: number;
   card?: number;

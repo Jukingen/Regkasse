@@ -8,9 +8,18 @@
 import type { WorkingHoursDay } from './workingHoursDay';
 import type { WorkingHoursSpecialDay } from './workingHoursSpecialDay';
 
+/**
+ * Per-tenant restaurant working hours stored as JSON on KasseAPI_Final.Models.CompanySettings.
+Used by POS smart Tagesabschluss reminders, public closed-day messaging,
+and online-order intake cutoffs.
+ */
 export interface WorkingHoursSettings {
+  /** FA preference: surface a strong POS closing prompt at closing time.
+Does <strong>not</strong> authorize automatic fiscal Tagesabschluss / RKSV close,
+and must never block POS orders or payments — cashiers always work. */
   autoClosePOSAtClosing?: boolean;
   /**
+   * Customer-facing message when the restaurant is closed today.
    * @maxLength 200
    * @nullable
    */
@@ -18,14 +27,20 @@ export interface WorkingHoursSettings {
   friday?: WorkingHoursDay;
   monday?: WorkingHoursDay;
   /**
+   * Show POS Tagesabschluss reminder this many hours before today's closing time.
    * @minimum 0
    * @maximum 12
    */
   reminderHoursBeforeClosing?: number;
   saturday?: WorkingHoursDay;
-  /** @nullable */
+  /**
+   * Holiday / one-off date overrides (sorted by date after M:KasseAPI_Final.Models.WorkingHoursSettings.Normalize).
+   * @nullable
+   */
   specialDays?: WorkingHoursSpecialDay[] | null;
   /**
+   * Reject new online orders this many minutes before today's closing time
+(and all day when closed / special closed day).
    * @minimum 0
    * @maximum 180
    */

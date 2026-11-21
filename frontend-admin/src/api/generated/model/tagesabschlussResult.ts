@@ -18,8 +18,12 @@ export interface TagesabschlussResult {
   closingId?: string | null;
   /** @nullable */
   closingType?: string | null;
+  /** Real UTC creation/signing instant (never forged for late closings). */
   createdAt: string;
-  /** @nullable */
+  /**
+   * `normal` or `empty` for Daily closings. Independent of KasseAPI_Final.Services.TagesabschlussResult.ClosingType.
+   * @nullable
+   */
   dayKind?: string | null;
   /** @nullable */
   errorMessage?: string | null;
@@ -27,17 +31,31 @@ export interface TagesabschlussResult {
   finanzOnlineStatus?: string | null;
   /** @nullable */
   fiskalyError?: string | null;
-  /** @nullable */
+  /**
+   * Fiskaly SIGN AT receipt UUID when submitted.
+   * @nullable
+   */
   fiskalyReceiptId?: string | null;
-  /** @nullable */
+  /**
+   * Fiskaly SIGN AT marker-receipt status for this closing (KasseAPI_Final.Models.DailyClosingFiskalyStatuses).
+   * @nullable
+   */
   fiskalyStatus?: string | null;
+  /** True when a persisted RKSV closing PDF exists for download. */
   hasStoredPdf?: boolean;
+  /** True when this daily closing covers a past Vienna business day (nachträglich).
+Creation/signing timestamps remain real UTC — not backdated. */
   isBackdated: boolean;
+  /** True when this Daily closing has no fiscal invoices. */
   isEmpty: boolean;
-  /** @nullable */
+  /**
+   * Operator reason when KasseAPI_Final.Services.TagesabschlussResult.IsBackdated; null for on-time closings.
+   * @nullable
+   */
   lateCreationReason?: string | null;
   openOrdersCount?: number;
   openOrdersForced?: boolean;
+  /** When Success is false due to Sprint 4 enforcement: count of payments without Invoice that blocked closing. On success, 0. */
   paymentsWithoutInvoiceCount: number;
   /** @nullable */
   status?: string | null;
@@ -45,10 +63,16 @@ export interface TagesabschlussResult {
   totalAmount: number;
   totalTaxAmount: number;
   transactionCount: number;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.Models.DailyClosingTriggers — Manual or Automatic.
+   * @nullable
+   */
   trigger?: string | null;
   /** @nullable */
   tseSignature?: string | null;
-  /** @nullable */
+  /**
+   * Optional warning on success. Unused when closing is blocked (PaymentsWithoutInvoiceCount > 0).
+   * @nullable
+   */
   warning?: string | null;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Fiş toplamları: net, vergi, brüt.
+ */
 export interface ReceiptTotalsDTO {
   totalGross?: number;
   totalNet?: number;

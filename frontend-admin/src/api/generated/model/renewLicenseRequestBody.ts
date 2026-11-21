@@ -6,20 +6,37 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/license/renew`.
+ */
 export interface RenewLicenseRequestBody {
   /**
+   * Months to add for mandant renewal (required when KasseAPI_Final.Controllers.RenewLicenseRequestBody.TenantId is set).
    * @minimum 1
    * @maximum 120
    * @nullable
    */
   additionalMonths?: number | null;
-  /** @nullable */
+  /**
+   * Row id from `GET /api/admin/license/list` (mutually exclusive with KasseAPI_Final.Controllers.RenewLicenseRequestBody.LicenseKey).
+   * @nullable
+   */
   issuedLicenseId?: string | null;
-  /** @nullable */
+  /**
+   * Full REGK key of the row to renew (mutually exclusive with KasseAPI_Final.Controllers.RenewLicenseRequestBody.IssuedLicenseId).
+   * @nullable
+   */
   licenseKey?: string | null;
-  /** @nullable */
+  /**
+   * Issued-license renewal end date (YYYY-MM-DD UTC end-of-day); required for issued path.
+   * @nullable
+   */
   newExpiryDate?: string | null;
+  /** Mandant renewal requires explicit payment confirmation. */
   paymentConfirmed?: boolean;
-  /** @nullable */
+  /**
+   * Mandant SaaS renewal: tenant row id (mutually exclusive with issued-license fields).
+   * @nullable
+   */
   tenantId?: string | null;
 }

@@ -7,6 +7,9 @@
  */
 import type { BackupChecksumArtifactResultDto } from './backupChecksumArtifactResultDto';
 
+/**
+ * On-demand or scheduled SHA-256 re-hash result for a backup run.
+ */
 export interface BackupChecksumVerifyResponseDto {
   /** @nullable */
   artifacts?: BackupChecksumArtifactResultDto[] | null;

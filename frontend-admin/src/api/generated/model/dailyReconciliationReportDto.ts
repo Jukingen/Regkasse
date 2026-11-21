@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Daily cash/payment reconciliation read model (payment rows + shift close when available).
+ */
 export interface DailyReconciliationReportDto {
   /** @nullable */
   actualCash?: number | null;
@@ -16,7 +19,10 @@ export interface DailyReconciliationReportDto {
   /** @nullable */
   cashRegisterId?: string | null;
   cashTotal?: number;
-  /** @nullable */
+  /**
+   * German operator disclaimer when counts are derived, not manually posted.
+   * @nullable
+   */
   disclaimerDe?: string | null;
   expectedCash?: number;
   isReconciled?: boolean;

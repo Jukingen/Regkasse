@@ -6,11 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/Auth/refresh`.
+Optional KasseAPI_Final.Models.RefreshRequest.TenantId re-binds the session JWT `tenant_id` (dev tenant switcher / Super Admin).
+Browser FA may omit KasseAPI_Final.Models.RefreshRequest.RefreshToken and send the HttpOnly admin refresh cookie instead.
+Optional KasseAPI_Final.Models.RefreshRequest.ClientApp selects `rk_admin_*` vs `rk_pos_*` when both cookies are present.
+ */
 export interface RefreshRequest {
-  /** @nullable */
+  /**
+   * `admin` or `pos`. Used to pick the HttpOnly refresh cookie when the body token is omitted.
+            Also accepted via `X-App-Context`.
+   * @nullable
+   */
   clientApp?: string | null;
   /** @nullable */
   refreshToken?: string | null;
-  /** @nullable */
+  /**
+   * When set, refresh rotation updates `auth_sessions.tenant_id` and issues a JWT for this tenant.
+Allowed for SuperAdmin (any active tenant) or users with an active membership in the tenant.
+   * @nullable
+   */
   tenantId?: string | null;
 }

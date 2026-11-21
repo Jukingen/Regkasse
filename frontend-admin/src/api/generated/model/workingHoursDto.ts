@@ -8,7 +8,11 @@
 import type { WorkingHoursDay } from './workingHoursDay';
 import type { WorkingHoursSpecialDay } from './workingHoursSpecialDay';
 
+/**
+ * API DTO returned by working-hours endpoints (same shape as persisted JSON).
+ */
 export interface WorkingHoursDto {
+  /** POS preference only — never triggers automatic fiscal Tagesabschluss or blocks POS sales. */
   autoClosePOSAtClosing?: boolean;
   /** @nullable */
   closedDayMessage?: string | null;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Parsed row from import file (preview or processing).
+ */
 export interface BulkImportPreviewRowDto {
   /** @nullable */
   email?: string | null;

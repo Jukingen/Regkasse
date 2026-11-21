@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One automated go-live gate (Fiskaly, config, FON, backup, monitoring, sign-off).
+ */
 export interface GoLiveCheckDto {
   /** @nullable */
   category?: string | null;
@@ -14,6 +17,9 @@ export interface GoLiveCheckDto {
   /** @nullable */
   name?: string | null;
   passed?: boolean;
-  /** @nullable */
+  /**
+   * What to do when KasseAPI_Final.DTOs.GoLiveCheckDto.Passed is false. Empty when the check passed.
+   * @nullable
+   */
   remediation?: string | null;
 }

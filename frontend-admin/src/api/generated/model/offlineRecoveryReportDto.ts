@@ -23,6 +23,7 @@ export interface OfflineRecoveryReportDto {
   operatorNoteDe?: string | null;
   pendingAtEnd?: number;
   pendingAtStart?: number;
+  /** Legacy summary fields (aligned with queue snapshot). */
   pendingCount?: number;
   periodEndLocal?: string;
   periodStartLocal?: string;

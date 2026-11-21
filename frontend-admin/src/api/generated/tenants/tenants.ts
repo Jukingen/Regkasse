@@ -26,6 +26,11 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Tenants visible in the dev header switcher (FA and POS `DevTenantSwitcher`).
+SuperAdmin: all non-deleted tenants; others: active memberships only. Requires authentication.
+Unused legacy `default` is excluded (not used in development — prefer seeded `dev`).
+ */
 export const getApiTenantsSwitcher = (
     params?: GetApiTenantsSwitcherParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -66,6 +71,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTenantsSwitcherQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTenantsSwitcher>>>
 export type GetApiTenantsSwitcherQueryError = unknown
 
+/**
+ * @summary Tenants visible in the dev header switcher (FA and POS `DevTenantSwitcher`).
+SuperAdmin: all non-deleted tenants; others: active memberships only. Requires authentication.
+Unused legacy `default` is excluded (not used in development — prefer seeded `dev`).
+ */
 export const useGetApiTenantsSwitcher = <TData = Awaited<ReturnType<typeof getApiTenantsSwitcher>>, TError = unknown>(
  params?: GetApiTenantsSwitcherParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsSwitcher>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -82,6 +92,10 @@ export const useGetApiTenantsSwitcher = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary Current mandant from ambient KasseAPI_Final.Tenancy.ICurrentTenantAccessor (set by tenant middleware).
+Used by FA `TenantProvider`.
+ */
 export const getApiTenantsCurrent = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -121,6 +135,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTenantsCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTenantsCurrent>>>
 export type GetApiTenantsCurrentQueryError = ProblemDetails
 
+/**
+ * @summary Current mandant from ambient KasseAPI_Final.Tenancy.ICurrentTenantAccessor (set by tenant middleware).
+Used by FA `TenantProvider`.
+ */
 export const useGetApiTenantsCurrent = <TData = Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

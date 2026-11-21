@@ -7,6 +7,9 @@
  */
 import type { AuditLogStatus } from './auditLogStatus';
 
+/**
+ * Query filters for audit log list, export, and scheduled reports.
+ */
 export interface AuditLogQueryFilters {
   /** @nullable */
   action?: string | null;
@@ -16,19 +19,37 @@ export interface AuditLogQueryFilters {
   entityId?: string | null;
   /** @nullable */
   entityType?: string | null;
+  /** When true, omit audit rows whose actor KasseAPI_Final.Models.AuditLog.UserRole is a platform operator (SuperAdmin).
+Applied automatically for non–Super Admin callers on list/export endpoints. */
   excludePlatformOperatorActors?: boolean;
   /** @nullable */
   hasChanges?: boolean | null;
   /** @nullable */
   ipAddress?: string | null;
+  /**
+   * When both are set, export returns this page instead of the full filtered set.
+   * @nullable
+   */
+  page?: number | null;
   /** @nullable */
+  pageSize?: number | null;
+  /**
+   * Full-text query against the stored search vector (action, entity type, description, actor email).
+   * @nullable
+   */
   search?: string | null;
   /** @nullable */
   startDate?: string | null;
   status?: AuditLogStatus;
-  /** @nullable */
+  /**
+   * When KasseAPI_Final.Models.DTOs.AuditLogQueryFilters.Status is null: "success" or "failure".
+   * @nullable
+   */
   statusOutcome?: string | null;
-  /** @nullable */
+  /**
+   * User lifecycle target (EntityName or metadata targetUserId).
+   * @nullable
+   */
   targetUserId?: string | null;
   /** @nullable */
   userId?: string | null;

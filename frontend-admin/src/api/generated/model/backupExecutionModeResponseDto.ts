@@ -10,32 +10,66 @@ import type { BackupConfigurationDiagnosticResponseDto } from './backupConfigura
 import type { BackupExecutionSelectableModeDto } from './backupExecutionSelectableModeDto';
 
 export interface BackupExecutionModeResponseDto {
-  /** @nullable */
+  /**
+   * Yalnızca kalıcı mod Inherit olsaydı uygulanacak adaptör (bilgi amaçlı; geçersiz kılma yok).
+   * @nullable
+   */
   adapterKindIfConfigurationDefaultOnly?: string | null;
-  /** @nullable */
+  /**
+   * Unhealthy ise engelleyici kısa mesajlar (İngilizce).
+   * @nullable
+   */
   blockers?: string[] | null;
-  /** @nullable */
+  /**
+   * Yapılandırma dosyasındaki adaptörün kullanıcıya dönük karşılığı (Fake, RealPgDump, ProductionStub).
+   * @nullable
+   */
   configurationDefaultUserFacingMode?: string | null;
   /** @nullable */
   configurationExecutionAdapterKind?: string | null;
   effectiveConfigurationHealth?: BackupConfigurationHealthResponseDto;
   /** @nullable */
   effectiveExecutionAdapterKind?: string | null;
-  /** @nullable */
+  /**
+   * Tek satır İngilizce çözüm özeti (günlük / operatör).
+   * @nullable
+   */
   effectiveModeResolutionSummaryEnglish?: string | null;
+  /** Etkin mod için yapılandırma sağlığı Unhealthy değilse true. */
   effectiveModeRunnable?: boolean;
-  /** @nullable */
+  /**
+   * Çözümlenmiş etkin adaptörün kullanıcıya dönük karşılığı.
+   * @nullable
+   */
   effectiveUserFacingMode?: string | null;
-  /** @nullable */
+  /**
+   * PostgreSqlPgDump admin modu varsayıldığında sağlık (Real seçilebilirlik ve RealModeBlockingDiagnostics bununla uyumludur).
+   * @nullable
+   */
   hypotheticalPgDumpHealthLevel?: string | null;
-  /** @nullable */
+  /**
+   * RealPgDump varsayılarak hesaplanan önkoşul tanıları (Error/Warning; pg_dump/pg_restore probları dahil).
+   * @nullable
+   */
   realModeBlockingDiagnostics?: BackupConfigurationDiagnosticResponseDto[] | null;
-  /** @nullable */
+  /**
+   * Kalıcı RealPgDump + Unhealthy iken önerilen mod (UseConfigurationDefault). Çalışma zamanı adaptörü otomatik düşürülmez.
+   * @nullable
+   */
   recommendedFallbackUserFacingMode?: string | null;
-  /** @nullable */
+  /**
+   * Kullanıcıya dönük: UseConfigurationDefault | Fake | RealPgDump.
+   * @nullable
+   */
   requestedUserFacingMode?: string | null;
-  /** @nullable */
+  /**
+   * Seçilebilir kullanıcı modları ve engel nedenleri.
+   * @nullable
+   */
   selectableModes?: BackupExecutionSelectableModeDto[] | null;
-  /** @nullable */
+  /**
+   * Kalıcı admin modu adı (InheritFromConfiguration, SimulatedFake, PostgreSqlPgDump).
+   * @nullable
+   */
   storedMode?: string | null;
 }

@@ -7,17 +7,27 @@
  */
 import type { LicenseActivityDto } from './licenseActivityDto';
 
+/**
+ * Dashboard KPIs for Mandantenlizenz (tenants) and deployment licenses (issued_licenses).
+ */
 export interface LicenseDashboardStatsDto {
+  /** Distinct active machine fingerprints (`activated_licenses`). */
   activatedDevices?: number;
+  /** Active deployment licenses (`issued_licenses`). */
   activeDeploymentLicenses?: number;
+  /** Active SaaS tenant licenses (`tenants.license_valid_until_utc`). */
   activeTenantLicenses?: number;
   expiredDeploymentLicenses?: number;
+  /** Past `license_valid_until_utc` (includes grace + locked). */
   expiredTenantLicenses?: number;
   expiringDeploymentLicenses?: number;
   expiringTenantLicenses?: number;
+  /** Expired mandant licenses still inside the grace window. */
   graceTenantLicenses?: number;
+  /** Expired mandant licenses past grace (locked / archived cohort). */
   lockedTenantLicenses?: number;
   /** @nullable */
   recentActivities?: LicenseActivityDto[] | null;
+  /** Non-deleted tenants visible to the actor (Super Admin: all; Manager: memberships). */
   totalTenants?: number;
 }

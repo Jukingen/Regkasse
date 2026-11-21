@@ -29,7 +29,10 @@ export interface AdminFeedbackDto {
   submittedByDisplayName?: string | null;
   /** @nullable */
   submittedByUserId?: string | null;
-  /** @nullable */
+  /**
+   * Login username from Identity (resolved at read time for inbox).
+   * @nullable
+   */
   submittedByUsername?: string | null;
   tenantId?: string;
   /** @nullable */

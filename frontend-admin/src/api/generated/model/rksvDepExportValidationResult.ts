@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Structural BMF DEP JSON validation result (does not invoke Prüftool).
+ */
 export interface RksvDepExportValidationResult {
   belegCount?: number;
   belegeGruppeCount?: number;

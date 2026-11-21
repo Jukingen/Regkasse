@@ -32,14 +32,20 @@ export interface FinanzOnlineOutboxItemDto {
   lastErrorCode?: string | null;
   /** @nullable */
   lastErrorSummary?: string | null;
-  /** @nullable */
+  /**
+   * Truncated JSON preview of last remote response (no raw SOAP/XML).
+   * @nullable
+   */
   lastResponsePreview?: string | null;
   /** @nullable */
   messageType?: string | null;
   /** @nullable */
   mode?: string | null;
   nextAttemptAtUtc?: string;
-  /** @nullable */
+  /**
+   * Brief hint for operators; technical detail remains in KasseAPI_Final.Controllers.FinanzOnlineOutboxItemDto.LastErrorCode / KasseAPI_Final.Controllers.FinanzOnlineOutboxItemDto.LastErrorSummary.
+   * @nullable
+   */
   operatorFailureHint?: string | null;
   /** @nullable */
   operatorStatusLabel?: string | null;
@@ -63,10 +69,16 @@ export interface FinanzOnlineOutboxItemDto {
   scope?: FinanzOnlineOutboxScopeDto;
   /** @nullable */
   status?: string | null;
-  /** @nullable */
+  /**
+   * Flat scope fields (same as KasseAPI_Final.Controllers.FinanzOnlineOutboxItemDto.Scope).
+   * @nullable
+   */
   tenantId?: string | null;
   /** @nullable */
   transmissionId?: string | null;
-  /** @nullable */
+  /**
+   * Simulated | RealTest | RealProduction — derived from live transport simulation flags and stored message mode.
+   * @nullable
+   */
   transportPathKind?: string | null;
 }

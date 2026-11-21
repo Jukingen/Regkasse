@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Request body for `POST /api/admin/license/generate`.
+ */
 export interface GenerateLicenseRequestBody {
   /** @nullable */
   bindToMachineFingerprint?: boolean | null;
@@ -13,7 +16,10 @@ export interface GenerateLicenseRequestBody {
   customerName?: string | null;
   /** @nullable */
   expiryDate?: string | null;
-  /** @nullable */
+  /**
+   * Optional explicit feature bundle; omitted = full single-license bundle.
+   * @nullable
+   */
   features?: string[] | null;
   /** @nullable */
   machineHashHex?: string | null;

@@ -40,6 +40,11 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).
+When tenantId or resolved tenant context is present, mandant grace-period fields are included.
+Requires KasseAPI_Final.Authorization.AppPermissions.LicenseView (Cashier POS JWT includes this claim).
+ */
 export const getApiLicenseStatus = (
     params?: GetApiLicenseStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -80,6 +85,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiLicenseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseStatus>>>
 export type GetApiLicenseStatusQueryError = unknown
 
+/**
+ * @summary Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).
+When tenantId or resolved tenant context is present, mandant grace-period fields are included.
+Requires KasseAPI_Final.Authorization.AppPermissions.LicenseView (Cashier POS JWT includes this claim).
+ */
 export const useGetApiLicenseStatus = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>(
  params?: GetApiLicenseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -96,6 +106,9 @@ export const useGetApiLicenseStatus = <TData = Awaited<ReturnType<typeof getApiL
 
 
 
+/**
+ * @summary Optional POS-facing feature limits (configuration-driven).
+ */
 export const getApiLicenseFeatures = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -135,6 +148,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiLicenseFeaturesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseFeatures>>>
 export type GetApiLicenseFeaturesQueryError = unknown
 
+/**
+ * @summary Optional POS-facing feature limits (configuration-driven).
+ */
 export const useGetApiLicenseFeatures = <TData = Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -152,8 +168,22 @@ export const useGetApiLicenseFeatures = <TData = Awaited<ReturnType<typeof getAp
 
 
 /**
- * Single activation contract for POS and frontend-admin. **Authentication is optional** (POS may activate before login; FA typically sends Bearer JWT for audit: initiating user id + `app_context` claim). When unauthenticated, send header `X-App-Context: pos` or `X-App-Context: admin` so activation attempts record the source app. Machine binding uses this server's canonical fingerprint (`ILicenseStorageService`); optional `machineFingerprint` in JSON or `X-Machine-Fingerprint` must match the server when provided.
- * @summary Activate license (unified POS + FA)
+ * <list type="bullet">
+  <item>
+    <description>
+      <b>No authentication required</b> — POS may activate before any cashier logs in. FA usually calls while authenticated.</description>
+  </item>
+  <item>
+    <description>When Bearer JWT is present, `app_context` claim and user id are used for audit (`created_by_user_id`).</description>
+  </item>
+  <item>
+    <description>When anonymous, send `X-App-Context: pos` or `X-App-Context: admin` (see KasseAPI_Final.Authorization.ClientAppPolicy.AppContextHttpHeader) so the activation attempt records the client app.</description>
+  </item>
+  <item>
+    <description>Machine binding uses this deployment's canonical fingerprint from KasseAPI_Final.Services.ILicenseStorageService (not IP/User-Agent heuristics). Optional JSON `machineFingerprint` or header KasseAPI_Final.Controllers.LicenseController.MachineFingerprintHttpHeader must match the server hash when set.</description>
+  </item>
+</list>
+ * @summary <b>Single activation endpoint</b> for POS and frontend-admin: REGK display key (and optional offline JWT in the body).
  */
 export const postApiLicenseActivate = (
     activateLicenseRequest: ActivateLicenseRequest,
@@ -194,7 +224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiLicenseActivateMutationError = unknown
 
     /**
- * @summary Activate license (unified POS + FA)
+ * @summary <b>Single activation endpoint</b> for POS and frontend-admin: REGK display key (and optional offline JWT in the body).
  */
 export const usePostApiLicenseActivate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -209,7 +239,10 @@ export const usePostApiLicenseActivate = <TError = unknown,
 
       return useMutation(mutationOptions);
     }
-    export const postApiLicenseValidate = (
+    /**
+ * @summary Validate a unified REGK key (format, expiry, slug, database) without activating.
+ */
+export const postApiLicenseValidate = (
     licenseKeyLookupRequest: LicenseKeyLookupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -247,7 +280,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiLicenseValidateMutationBody = LicenseKeyLookupRequest
     export type PostApiLicenseValidateMutationError = ProblemDetails
 
-    export const usePostApiLicenseValidate = <TError = ProblemDetails,
+    /**
+ * @summary Validate a unified REGK key (format, expiry, slug, database) without activating.
+ */
+export const usePostApiLicenseValidate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseValidate>>, TError,{data: LicenseKeyLookupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiLicenseValidate>>,
@@ -260,7 +296,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiLicenseInfo = (
+    /**
+ * @summary Resolved metadata for a unified or mapped REGK key (no activation).
+ */
+export const getApiLicenseInfo = (
     params?: GetApiLicenseInfoParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -300,6 +339,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiLicenseInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseInfo>>>
 export type GetApiLicenseInfoQueryError = ProblemDetails
 
+/**
+ * @summary Resolved metadata for a unified or mapped REGK key (no activation).
+ */
 export const useGetApiLicenseInfo = <TData = Awaited<ReturnType<typeof getApiLicenseInfo>>, TError = ProblemDetails>(
  params?: GetApiLicenseInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -316,6 +358,11 @@ export const useGetApiLicenseInfo = <TData = Awaited<ReturnType<typeof getApiLic
 
 
 
+/**
+ * Route is `GET /api/license/billing/status` (not `/status`) so the anonymous deployment
+snapshot at `GET /api/license/status` stays available for POS bootstrap.
+ * @summary Current tenant mandant license status from billing `license_sales`.
+ */
 export const getApiLicenseBillingStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -355,6 +402,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiLicenseBillingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseBillingStatus>>>
 export type GetApiLicenseBillingStatusQueryError = ProblemDetails
 
+/**
+ * @summary Current tenant mandant license status from billing `license_sales`.
+ */
 export const useGetApiLicenseBillingStatus = <TData = Awaited<ReturnType<typeof getApiLicenseBillingStatus>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseBillingStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -373,6 +423,7 @@ export const useGetApiLicenseBillingStatus = <TData = Awaited<ReturnType<typeof 
 
 /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (unified server + tenant activation).
  */
 export const postApiLicenseBillingActivate = (
     mandantLicenseKeyRequest: MandantLicenseKeyRequest,
@@ -414,6 +465,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (unified server + tenant activation).
  */
 export const usePostApiLicenseBillingActivate = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, TError,{data: MandantLicenseKeyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -428,7 +480,10 @@ export const usePostApiLicenseBillingActivate = <TError = void,
 
       return useMutation(mutationOptions);
     }
-    export const postApiLicenseExtend = (
+    /**
+ * @summary Extend the current tenant mandant license via a new billing sale key.
+ */
+export const postApiLicenseExtend = (
     extendLicenseRequest: ExtendLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -466,7 +521,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiLicenseExtendMutationBody = ExtendLicenseRequest
     export type PostApiLicenseExtendMutationError = ProblemDetails
 
-    export const usePostApiLicenseExtend = <TError = ProblemDetails,
+    /**
+ * @summary Extend the current tenant mandant license via a new billing sale key.
+ */
+export const usePostApiLicenseExtend = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseExtend>>, TError,{data: ExtendLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiLicenseExtend>>,

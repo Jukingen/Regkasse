@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS: validate Gutschein code before payment.
+ */
 export interface ValidateVoucherRequest {
   /**
    * @minimum 0.01
@@ -13,7 +16,10 @@ export interface ValidateVoucherRequest {
    * @nullable
    */
   amount?: number | null;
-  /** @nullable */
+  /**
+   * Alias for KasseAPI_Final.DTOs.ValidateVoucherRequest.VoucherCode (API spec: `code`).
+   * @nullable
+   */
   code?: string | null;
   /**
    * @minLength 3

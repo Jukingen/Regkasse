@@ -7,13 +7,21 @@
  */
 import type { DigitalBillingSubscriptionRowDto } from './digitalBillingSubscriptionRowDto';
 
+/**
+ * Super Admin digital-service revenue snapshot (MRR from active subscription price snapshots).
+Not license_sales / not fiscal revenue.
+ */
 export interface DigitalBillingDashboardDto {
+  /** Active MRR for app-type services. */
   apps?: number;
   /** @nullable */
   currency?: string | null;
+  /** Count of active subscriptions. */
   subscribers?: number;
   /** @nullable */
   subscriptions?: DigitalBillingSubscriptionRowDto[] | null;
+  /** Sum of active subscription monthly prices (MRR). */
   total?: number;
+  /** Active MRR for website-type services. */
   websites?: number;
 }

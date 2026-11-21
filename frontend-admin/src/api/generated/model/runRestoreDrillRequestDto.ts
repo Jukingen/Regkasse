@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Alias request for POST /api/admin/backup/drill/run.
+ */
 export interface RunRestoreDrillRequestDto {
-  /** @nullable */
+  /**
+   * Optional succeeded backup run to pin; null = orchestrator uses latest eligible dump.
+   * @nullable
+   */
   backupRunId?: string | null;
   /**
    * @minLength 0

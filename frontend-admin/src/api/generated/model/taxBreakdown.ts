@@ -7,8 +7,14 @@
  */
 import type { TaxBreakdownByRate } from './taxBreakdownByRate';
 
+/**
+ * Day/period tax breakdown using historical receipt rates only.
+ */
 export interface TaxBreakdown {
-  /** @nullable */
+  /**
+   * Tax rate (%) → VAT amount.
+   * @nullable
+   */
   byRate?: TaxBreakdownByRate;
   date?: string;
   periodEnd?: string;

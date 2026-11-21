@@ -18,7 +18,10 @@ export interface StartMaintenanceModeRequestDto {
    * @maximum 5
    */
   priority?: number;
-  /** @nullable */
+  /**
+   * UTC end of the window. Defaults to now + 2 hours when omitted.
+   * @nullable
+   */
   scheduledEndAt?: string | null;
   /**
    * @maxLength 200

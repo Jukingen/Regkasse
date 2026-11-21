@@ -7,15 +7,21 @@
  */
 import type { RksvComplianceFinding } from './rksvComplianceFinding';
 
+/**
+ * Result of an RKSV compliance check for a proposed product price / tax-group change.
+Named distinctly from backup `ComplianceResult` and catalog KasseAPI_Final.Models.ComplianceReport.
+ */
 export interface RksvPriceChangeComplianceResult {
   /** @nullable */
   errors?: RksvComplianceFinding[] | null;
+  /** True when the product appears on prior sales lines (order history). */
   hasFiscalHistory?: boolean;
   isCompliant?: boolean;
   /** @nullable */
   newTaxRate?: number | null;
   /** @nullable */
   requirements?: RksvComplianceFinding[] | null;
+  /** True when the change must create a new catalog product version. */
   requiresNewProductVersion?: boolean;
   /** @nullable */
   warnings?: RksvComplianceFinding[] | null;

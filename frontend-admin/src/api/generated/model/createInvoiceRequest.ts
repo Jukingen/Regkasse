@@ -34,7 +34,10 @@ export interface CreateInvoiceRequest {
   invoiceItems?: unknown;
   /** @nullable */
   invoiceNumber?: string | null;
-  /** @nullable */
+  /**
+   * Fiscal Kassen-ID is taken from CashRegister.RegisterNumber when saving.
+   * @nullable
+   */
   kassenId?: string | null;
   paymentMethod?: PaymentMethod;
   /** @nullable */

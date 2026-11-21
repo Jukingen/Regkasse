@@ -9,15 +9,23 @@ import type { CustomerKind } from './customerKind';
 import type { OrderItemRequest } from './orderItemRequest';
 import type { OrderLocationData } from './orderLocationData';
 
+/**
+ * Kitchen/order create payload. KasseAPI_Final.Controllers.CreateOrderRequest.WaiterName is a display snapshot only (no user FK on KasseAPI_Final.Models.Order).
+Identity for auditing is the authenticated principal on the API, not these name fields.
+ */
 export interface CreateOrderRequest {
   /** @nullable */
   customerId?: string | null;
   customerKind?: CustomerKind;
-  /** @nullable */
+  /**
+   * Free-text or walk-in label when KasseAPI_Final.Controllers.CreateOrderRequest.CustomerId is absent; not a substitute for authenticated user id.
+   * @nullable
+   */
   customerName?: string | null;
   /** @nullable */
   customerPhone?: string | null;
   /**
+   * Sprint 6: Optional idempotency key; retries with same key return existing order.
    * @maxLength 64
    * @nullable
    */
@@ -29,6 +37,9 @@ export interface CreateOrderRequest {
   notes?: string | null;
   /** @nullable */
   tableNumber?: number | null;
-  /** @nullable */
+  /**
+   * Display-only waiter name on the order ticket; not used for authorization.
+   * @nullable
+   */
   waiterName?: string | null;
 }

@@ -7,11 +7,15 @@
  */
 import type { SelectedModifierInputDto } from './selectedModifierInputDto';
 
+/**
+ * Primary: Quantity, Notes. Legacy: SelectedModifiers (prefer flat cart).
+ */
 export interface UpdateCartItemRequest {
   /** @nullable */
   notes?: string | null;
   quantity?: number;
   /**
+   * Phase 2 legacy: Prefer flat cart. Still accepted for backward compat.
    * @deprecated
    * @nullable
    */

@@ -6,12 +6,24 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin seçim listesi: hangi kullanıcı modunun seçilebileceği ve engel nedeni.
+ */
 export interface BackupExecutionSelectableModeDto {
-  /** @nullable */
+  /**
+   * Seçilemiyorsa İngilizce kısa gerekçe; aksi halde null.
+   * @nullable
+   */
   blockReason?: string | null;
-  /** @nullable */
+  /**
+   * PUT ile gönderilebilecek iç enum adı (geriye dönük).
+   * @nullable
+   */
   internalMode?: string | null;
   selectable?: boolean;
-  /** @nullable */
+  /**
+   * Örn. UseConfigurationDefault, Fake, RealPgDump.
+   * @nullable
+   */
   userFacingMode?: string | null;
 }

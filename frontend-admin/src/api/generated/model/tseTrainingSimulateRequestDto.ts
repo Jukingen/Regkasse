@@ -8,6 +8,9 @@
 
 export interface TseTrainingSimulateRequestDto {
   deviceId?: string;
-  /** @nullable */
+  /**
+   * NetworkTimeout | CertificateExpiry | SignatureError (and other simulator failure names).
+   * @nullable
+   */
   failureType?: string | null;
 }

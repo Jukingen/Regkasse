@@ -10,17 +10,29 @@ import type { DailyClosingSummaryLineDto } from './dailyClosingSummaryLineDto';
 import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto';
 import type { TransactionBreakdown } from './transactionBreakdown';
 
+/**
+ * Admin daily closing snapshot from `payment_details` (read-only, not a legal Z-report).
+ */
 export interface DailyClosingSummaryDto {
+  /** Austria business calendar date (date component only). */
   businessDate?: string;
-  /** @nullable */
+  /**
+   * When set, the summary is restricted to this register; otherwise all tenant registers.
+   * @nullable
+   */
   cashRegisterId?: string | null;
+  /** Invoice-authoritative gross (same filter as RKSV Tagesabschluss signing). */
   fiscalTotalAmount?: number;
   fiscalTotalTaxAmount?: number;
   fiscalTransactionCount?: number;
   paymentBreakdown?: PaymentBreakdown;
   receiptCount?: number;
+  /** Payment-row sales total minus KasseAPI_Final.Models.Reports.DailyClosingSummaryDto.FiscalTotalAmount when they diverge. */
   salesFiscalDelta?: number;
-  /** @nullable */
+  /**
+   * German operator hint (UI may show as-is).
+   * @nullable
+   */
   snapshotDisclaimerDe?: string | null;
   /** @nullable */
   specialReceipts?: DailyClosingSummaryLineDto[] | null;
@@ -31,6 +43,7 @@ export interface DailyClosingSummaryDto {
   taxBreakdown?: DailyClosingTaxBreakdownDto;
   totalCard?: number;
   totalCash?: number;
+  /** Other payment methods on normal sale rows (e.g. mobile, bank transfer). */
   totalOtherPaymentMethods?: number;
   totalSales?: number;
   totalVoucherRedemptions?: number;

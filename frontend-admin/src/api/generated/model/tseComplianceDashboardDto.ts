@@ -10,6 +10,9 @@ import type { TseComplianceCertificateRowDto } from './tseComplianceCertificateR
 import type { TseComplianceReportDto } from './tseComplianceReportDto';
 import type { TseComplianceTransactionSummaryDto } from './tseComplianceTransactionSummaryDto';
 
+/**
+ * FA audit-readiness dashboard (diagnostic; not a Finanzamt proof).
+ */
 export interface TseComplianceDashboardDto {
   auditLogCount?: number;
   /** @nullable */
@@ -23,7 +26,10 @@ export interface TseComplianceDashboardDto {
   periodEnd?: string;
   periodStart?: string;
   report?: TseComplianceReportDto;
-  /** @nullable */
+  /**
+   * Healthy | AtRisk | Broken
+   * @nullable
+   */
   signatureChainStatus?: string | null;
   /** @nullable */
   status?: string | null;

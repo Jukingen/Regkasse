@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV-relevant audit row for regulatory review.
+ */
 export interface UserActivityTimelineItemDto {
   /** @nullable */
   action?: string | null;

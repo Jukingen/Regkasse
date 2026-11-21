@@ -9,6 +9,7 @@
 export interface OfflinePayloadHashMaintenanceControllerRepairRequest {
   /** @nullable */
   cashRegisterId?: string | null;
+  /** When true, only counts rows that would be updated. */
   dryRun?: boolean;
   /**
    * @minimum 1

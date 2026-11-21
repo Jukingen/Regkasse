@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * PATCH username change — admin: /api/admin/users/{id}/username; self-service: /api/UserManagement/me/username.
+ */
 export interface UpdateUsernameRequest {
   /**
    * @minLength 3
@@ -14,6 +17,7 @@ export interface UpdateUsernameRequest {
    */
   newUsername: string;
   /**
+   * Optional operator note; recommended for audit compliance.
    * @maxLength 500
    * @nullable
    */

@@ -7,6 +7,9 @@
  */
 
 export interface ConfirmCardPaymentIntentRequest {
-  /** @nullable */
+  /**
+   * Simulated card number or Stripe payment method id (pm_xxx).
+   * @nullable
+   */
   paymentMethodId?: string | null;
 }

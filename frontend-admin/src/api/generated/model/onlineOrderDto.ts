@@ -27,6 +27,8 @@ export interface OnlineOrderDto {
   id?: string;
   /** @nullable */
   items?: OnlineOrderItemDto[] | null;
+  /** False only for a Wolt order whose provider is disabled or whose venue has no OAuth token.
+Website and other orders stay true. */
   marketplaceStatusActionsEnabled?: boolean;
   /** @nullable */
   notes?: string | null;

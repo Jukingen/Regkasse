@@ -282,10 +282,12 @@ import type {
   ExtendTrialRequest,
   FeatureFlagStatusDto,
   FinanzOnlineMetricsResponse,
+  FinanzOnlineOutboxHealthDto,
   FinanzOnlineOutboxItemDto,
   FinanzOnlineOutboxListResponse,
   FinanzOnlineOutboxMarkResolvedRequest,
   FinanzOnlineOutboxRetryFailedRequest,
+  FinanzOnlineOutboxSummaryDto,
   FinanzOnlineOutboxWorkerSettingsDto,
   FinanzOnlineReadinessResponse,
   FinanzOnlineReconciliationListResponse,
@@ -301,6 +303,7 @@ import type {
   FiskalySettingsDto,
   FiskalySetupStatusDto,
   FiskalyStatusDto,
+  FiskalyTenantCredentialStatusDto,
   FoodoraTenantCredentialStatusDto,
   ForceLogoutResultDto,
   GenerateLicenseRequestBody,
@@ -319,6 +322,7 @@ import type {
   GetApiAdminApprovalsHistoryReportParams,
   GetApiAdminAuditFiscalExportLogsExportParams,
   GetApiAdminAuditFiscalExportLogsParams,
+  GetApiAdminAuditLogsExportParams,
   GetApiAdminAuditPermissionsComplianceParams,
   GetApiAdminAuditPermissionsExportParams,
   GetApiAdminAuditPermissionsParams,
@@ -354,6 +358,7 @@ import type {
   GetApiAdminErrorsExportParams,
   GetApiAdminErrorsParams,
   GetApiAdminExportEmailHistoryParams,
+  GetApiAdminExportTypeParams,
   GetApiAdminFeatureFlagsNameEnabledParams,
   GetApiAdminFeatureFlagsParams,
   GetApiAdminFeedbackMineParams,
@@ -461,6 +466,7 @@ import type {
   GetApiAdminRksvDepExportStatusParams,
   GetApiAdminRksvDepExportTestMaterialParams,
   GetApiAdminRksvMonatsbelegeParams,
+  GetApiAdminRksvMonatsbelegeSalesSummaryParams,
   GetApiAdminSessionsParams,
   GetApiAdminShiftsOverviewParams,
   GetApiAdminSupportAdminTicketsParams,
@@ -480,6 +486,7 @@ import type {
   GetApiAdminTenantsSlugSuggestionsParams,
   GetApiAdminTenantsTenantIdCountryImpactParams,
   GetApiAdminTenantsTenantIdProfileImpactParams,
+  GetApiAdminTenantsTenantIdUsersParams,
   GetApiAdminTicketsRedemptionsParams,
   GetApiAdminTseAnalyticsDashboardParams,
   GetApiAdminTseAnomaliesDashboardParams,
@@ -567,6 +574,7 @@ import type {
   JahresbelegDetailDto,
   JahresbelegListItemDto,
   JahresbelegSummaryDto,
+  JahresbelegTenantStatusDto,
   KassenSicherheitConfigRequest,
   KassenSicherheitExportRequest,
   KassenSicherheitExportResultDto,
@@ -660,6 +668,7 @@ import type {
   PeppolParticipantDto,
   PeppolSubmissionDetailDto,
   PeppolSubmissionListResponse,
+  PeriodSalesSummaryDto,
   PermissionAnalyticsSummaryDto,
   PermissionAnalyticsTrendPointDto,
   PermissionAuditLogsResponse,
@@ -886,6 +895,7 @@ import type {
   TenantSlugAvailabilityDto,
   TenantSlugSuggestionsDto,
   TenantUserDto,
+  TenantUserListPage,
   TenantUserPasswordResetResultDto,
   TerminateSessionResultDto,
   TerminateSessionsCountDto,
@@ -1055,6 +1065,7 @@ import type {
   UpdateUsernameRequest,
   UpdateVerticalProfileFeaturesRequest,
   UpgradeLicenseRequestBody,
+  UpsertFiskalyTenantCredentialRequest,
   UpsertFoodoraTenantCredentialRequest,
   UpsertHairSalonCampaignRequest,
   UpsertLieferandoTenantCredentialRequest,
@@ -1093,6 +1104,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.
+ */
 export const getApiAdminDailyClosingCalendar = (
     params?: GetApiAdminDailyClosingCalendarParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1133,6 +1147,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDailyClosingCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>>
 export type GetApiAdminDailyClosingCalendarQueryError = ProblemDetails
 
+/**
+ * @summary GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.
+ */
 export const useGetApiAdminDailyClosingCalendar = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError = ProblemDetails>(
  params?: GetApiAdminDailyClosingCalendarParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1149,6 +1166,9 @@ export const useGetApiAdminDailyClosingCalendar = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.
+ */
 export const getApiAdminDailyClosingDashboardSummary = (
     params?: GetApiAdminDailyClosingDashboardSummaryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1189,6 +1209,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDailyClosingDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>>
 export type GetApiAdminDailyClosingDashboardSummaryQueryError = ProblemDetails
 
+/**
+ * @summary GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.
+ */
 export const useGetApiAdminDailyClosingDashboardSummary = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError = ProblemDetails>(
  params?: GetApiAdminDailyClosingDashboardSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1261,6 +1284,9 @@ export const useGetApiAdminActivities = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary SSE stream: `event: activity` with JSON payload; `event: ping` keep-alive.
+ */
 export const getApiAdminActivitiesStream = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1300,6 +1326,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminActivitiesStreamQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>>
 export type GetApiAdminActivitiesStreamQueryError = unknown
 
+/**
+ * @summary SSE stream: `event: activity` with JSON payload; `event: ping` keep-alive.
+ */
 export const useGetApiAdminActivitiesStream = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1735,6 +1764,9 @@ export const useGetApiAdminApprovalsPending = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Historical approval requests (all statuses) for reporting / audit UI.
+ */
 export const getApiAdminApprovalsHistory = (
     params?: GetApiAdminApprovalsHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1775,6 +1807,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminApprovalsHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminApprovalsHistory>>>
 export type GetApiAdminApprovalsHistoryQueryError = unknown
 
+/**
+ * @summary Historical approval requests (all statuses) for reporting / audit UI.
+ */
 export const useGetApiAdminApprovalsHistory = <TData = Awaited<ReturnType<typeof getApiAdminApprovalsHistory>>, TError = unknown>(
  params?: GetApiAdminApprovalsHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminApprovalsHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1791,6 +1826,9 @@ export const useGetApiAdminApprovalsHistory = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Aggregate approval history report (default last 30 days).
+ */
 export const getApiAdminApprovalsHistoryReport = (
     params?: GetApiAdminApprovalsHistoryReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -1831,6 +1869,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminApprovalsHistoryReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminApprovalsHistoryReport>>>
 export type GetApiAdminApprovalsHistoryReportQueryError = unknown
 
+/**
+ * @summary Aggregate approval history report (default last 30 days).
+ */
 export const useGetApiAdminApprovalsHistoryReport = <TData = Awaited<ReturnType<typeof getApiAdminApprovalsHistoryReport>>, TError = unknown>(
  params?: GetApiAdminApprovalsHistoryReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminApprovalsHistoryReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -1902,6 +1943,9 @@ export const useGetApiAdminApprovalsRequestId = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Any authenticated admin user may request Super Admin approval for a critical action.
+ */
 export const postApiAdminApprovals = (
     createApprovalRequestDto: CreateApprovalRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -1940,7 +1984,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminApprovalsMutationBody = CreateApprovalRequestDto
     export type PostApiAdminApprovalsMutationError = ProblemDetails
 
-    export const usePostApiAdminApprovals = <TError = ProblemDetails,
+    /**
+ * @summary Any authenticated admin user may request Super Admin approval for a critical action.
+ */
+export const usePostApiAdminApprovals = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminApprovals>>, TError,{data: CreateApprovalRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminApprovals>>,
@@ -2057,7 +2104,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminApprovalsRequestIdClaim = (
+    /**
+ * @summary Requester claims the single-use approval token after Super Admin approval.
+ */
+export const postApiAdminApprovalsRequestIdClaim = (
     requestId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -2093,7 +2143,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminApprovalsRequestIdClaimMutationError = ProblemDetails
 
-    export const usePostApiAdminApprovalsRequestIdClaim = <TError = ProblemDetails,
+    /**
+ * @summary Requester claims the single-use approval token after Super Admin approval.
+ */
+export const usePostApiAdminApprovalsRequestIdClaim = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminApprovalsRequestIdClaim>>, TError,{requestId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminApprovalsRequestIdClaim>>,
@@ -2161,6 +2214,9 @@ export const useGetApiAdminAuditRetention = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Super Admin: paginated audit log for a specific tenant (cross-tenant; IgnoreQueryFilters).
+ */
 export const getApiAdminAuditTenantTenantId = (
     tenantId: string,
     params?: GetApiAdminAuditTenantTenantIdParams,
@@ -2204,6 +2260,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditTenantTenantIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditTenantTenantId>>>
 export type GetApiAdminAuditTenantTenantIdQueryError = ProblemDetails
 
+/**
+ * @summary Super Admin: paginated audit log for a specific tenant (cross-tenant; IgnoreQueryFilters).
+ */
 export const useGetApiAdminAuditTenantTenantId = <TData = Awaited<ReturnType<typeof getApiAdminAuditTenantTenantId>>, TError = ProblemDetails>(
  tenantId: string,
     params?: GetApiAdminAuditTenantTenantIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditTenantTenantId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -2592,7 +2651,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBackofficePrintRoutingOptions = (
+    /**
+ * @summary Streams the filtered audit log as a CSV or XLSX attachment.
+Filters match the activity list. Requires permission `audit.view`.
+ */
+export const getApiAdminAuditLogsExport = (
+    params?: GetApiAdminAuditLogsExportParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<Blob>(
+      {url: `/api/admin/audit-logs/export`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminAuditLogsExportQueryKey = (params?: GetApiAdminAuditLogsExportParams,) => {
+    return [`/api/admin/audit-logs/export`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminAuditLogsExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>, TError = ProblemDetails | void>(params?: GetApiAdminAuditLogsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditLogsExportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>> = ({ signal }) => getApiAdminAuditLogsExport(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditLogsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>>
+export type GetApiAdminAuditLogsExportQueryError = ProblemDetails | void
+
+/**
+ * @summary Streams the filtered audit log as a CSV or XLSX attachment.
+Filters match the activity list. Requires permission `audit.view`.
+ */
+export const useGetApiAdminAuditLogsExport = <TData = Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>, TError = ProblemDetails | void>(
+ params?: GetApiAdminAuditLogsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditLogsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditLogsExportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackofficePrintRoutingOptions = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2699,7 +2823,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBackupTrigger = (
+    /**
+ * @summary Enqueue manual backup (HTTP thread does not run pg_dump / file IO).
+ */
+export const postApiAdminBackupTrigger = (
     backupTriggerRequestDto: BackupTriggerRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -2737,7 +2864,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBackupTriggerMutationBody = BackupTriggerRequestDto
     export type PostApiAdminBackupTriggerMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupTrigger = <TError = ProblemDetails,
+    /**
+ * @summary Enqueue manual backup (HTTP thread does not run pg_dump / file IO).
+ */
+export const usePostApiAdminBackupTrigger = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, TError,{data: BackupTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupTrigger>>,
@@ -2805,6 +2935,9 @@ export const useGetApiAdminBackupSettings = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Updates singleton automation settings (cron is UTC CronFormat.Standard).
+ */
 export const putApiAdminBackupSettings = (
     backupSettingsPutRequestDto: BackupSettingsPutRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -2843,7 +2976,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminBackupSettingsMutationBody = BackupSettingsPutRequestDto
     export type PutApiAdminBackupSettingsMutationError = ProblemDetails
 
-    export const usePutApiAdminBackupSettings = <TError = ProblemDetails,
+    /**
+ * @summary Updates singleton automation settings (cron is UTC CronFormat.Standard).
+ */
+export const usePutApiAdminBackupSettings = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupSettings>>, TError,{data: BackupSettingsPutRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminBackupSettings>>,
@@ -2911,6 +3047,9 @@ export const useGetApiAdminBackupScheduleStatus = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Monitoring dashboard aggregates (30-day success rate, RPO/RTO, history series).
+ */
 export const getApiAdminBackupDashboardStats = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -2950,6 +3089,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupDashboardStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>>
 export type GetApiAdminBackupDashboardStatsQueryError = unknown
 
+/**
+ * @summary Monitoring dashboard aggregates (30-day success rate, RPO/RTO, history series).
+ */
 export const useGetApiAdminBackupDashboardStats = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -2966,6 +3108,10 @@ export const useGetApiAdminBackupDashboardStats = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Aggregated backup health for widgets (score, verification, content validation, RPO).
+Projection of `dashboard/stats` — not a parallel metrics pipeline.
+ */
 export const getApiAdminBackupDashboardHealth = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3005,6 +3151,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupDashboardHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>>
 export type GetApiAdminBackupDashboardHealthQueryError = unknown
 
+/**
+ * @summary Aggregated backup health for widgets (score, verification, content validation, RPO).
+Projection of `dashboard/stats` — not a parallel metrics pipeline.
+ */
 export const useGetApiAdminBackupDashboardHealth = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3021,6 +3171,9 @@ export const useGetApiAdminBackupDashboardHealth = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Backup restore-readiness / RKSV product-gate rollup (30 days). Not BMF certification.
+ */
 export const getApiAdminBackupComplianceStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3060,6 +3213,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupComplianceStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupComplianceStatus>>>
 export type GetApiAdminBackupComplianceStatusQueryError = unknown
 
+/**
+ * @summary Backup restore-readiness / RKSV product-gate rollup (30 days). Not BMF certification.
+ */
 export const useGetApiAdminBackupComplianceStatus = <TData = Awaited<ReturnType<typeof getApiAdminBackupComplianceStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupComplianceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3076,6 +3232,9 @@ export const useGetApiAdminBackupComplianceStatus = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Indicative Hot/Warm/Cold storage cost rollup (ops estimate — not a cloud invoice).
+ */
 export const getApiAdminBackupStorageCosts = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3115,6 +3274,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupStorageCostsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupStorageCosts>>>
 export type GetApiAdminBackupStorageCostsQueryError = unknown
 
+/**
+ * @summary Indicative Hot/Warm/Cold storage cost rollup (ops estimate — not a cloud invoice).
+ */
 export const useGetApiAdminBackupStorageCosts = <TData = Awaited<ReturnType<typeof getApiAdminBackupStorageCosts>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupStorageCosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3186,6 +3348,9 @@ export const useGetApiAdminBackupStatusLatest = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Başarılı yedek çalıştırmasına ait artefakt dosyasını indirir (staging veya harici arşiv); yalnızca tamamlanmış başarılı koşular.
+ */
 export const getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = (
     runId: string,
     artifactId: string,
@@ -3228,6 +3393,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>>
 export type GetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryError = ProblemDetails
 
+/**
+ * @summary Başarılı yedek çalıştırmasına ait artefakt dosyasını indirir (staging veya harici arşiv); yalnızca tamamlanmış başarılı koşular.
+ */
 export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError = ProblemDetails>(
  runId: string,
     artifactId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -3245,6 +3413,10 @@ export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData =
 
 
 
+/**
+ * @summary Downloads the primary artifact of a succeeded run (logical dump preferred).
+Streamed via !:PhysicalFileResult.EnableRangeProcessing.
+ */
 export const getApiAdminBackupRunsIdDownload = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3284,6 +3456,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>>
 export type GetApiAdminBackupRunsIdDownloadQueryError = ProblemDetails
 
+/**
+ * @summary Downloads the primary artifact of a succeeded run (logical dump preferred).
+Streamed via !:PhysicalFileResult.EnableRangeProcessing.
+ */
 export const useGetApiAdminBackupRunsIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3300,6 +3476,9 @@ export const useGetApiAdminBackupRunsIdDownload = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Who downloaded this run and when (tenant-scoped; Super Admin may see system rows).
+ */
 export const getApiAdminBackupRunsIdDownloadHistory = (
     id: string,
     params?: GetApiAdminBackupRunsIdDownloadHistoryParams,
@@ -3343,6 +3522,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsIdDownloadHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>>
 export type GetApiAdminBackupRunsIdDownloadHistoryQueryError = ProblemDetails
 
+/**
+ * @summary Who downloaded this run and when (tenant-scoped; Super Admin may see system rows).
+ */
 export const useGetApiAdminBackupRunsIdDownloadHistory = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError = ProblemDetails>(
  id: string,
     params?: GetApiAdminBackupRunsIdDownloadHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -3360,6 +3542,10 @@ export const useGetApiAdminBackupRunsIdDownloadHistory = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Registers an operator-uploaded logical dump (and optional manifest) for the current tenant.
+Does not restore the database — files are available for download and audit only.
+ */
 export const postApiAdminBackupArtifactsImport = (
     postApiAdminBackupArtifactsImportBody: PostApiAdminBackupArtifactsImportBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3405,7 +3591,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBackupArtifactsImportMutationBody = PostApiAdminBackupArtifactsImportBody
     export type PostApiAdminBackupArtifactsImportMutationError = ProblemDetails | void
 
-    export const usePostApiAdminBackupArtifactsImport = <TError = ProblemDetails | void,
+    /**
+ * @summary Registers an operator-uploaded logical dump (and optional manifest) for the current tenant.
+Does not restore the database — files are available for download and audit only.
+ */
+export const usePostApiAdminBackupArtifactsImport = <TError = ProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>, TError,{data: PostApiAdminBackupArtifactsImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>,
@@ -3418,7 +3608,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBackupRecoverabilitySummary = (
+    /**
+ * @summary Recoverability proof özeti (first-class): en son backup isteği, son başarılı yedek, son geçen artifact doğrulama,
+son başarılı <em>zamanlanmış</em> restore drill kanıtı ve UTC yaşı (kanıt yoksa null).
+ */
+export const getApiAdminBackupRecoverabilitySummary = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3457,6 +3651,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRecoverabilitySummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>>
 export type GetApiAdminBackupRecoverabilitySummaryQueryError = unknown
 
+/**
+ * @summary Recoverability proof özeti (first-class): en son backup isteği, son başarılı yedek, son geçen artifact doğrulama,
+son başarılı <em>zamanlanmış</em> restore drill kanıtı ve UTC yaşı (kanıt yoksa null).
+ */
 export const useGetApiAdminBackupRecoverabilitySummary = <TData = Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3473,6 +3671,9 @@ export const useGetApiAdminBackupRecoverabilitySummary = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Point-in-time recovery window (base backups + declared WAL archiving).
+ */
 export const getApiAdminBackupPitrAvailability = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3512,6 +3713,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupPitrAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>>
 export type GetApiAdminBackupPitrAvailabilityQueryError = ProblemDetails
 
+/**
+ * @summary Point-in-time recovery window (base backups + declared WAL archiving).
+ */
 export const useGetApiAdminBackupPitrAvailability = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3528,6 +3732,9 @@ export const useGetApiAdminBackupPitrAvailability = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Validate a target UTC restore point against base backups and WAL coverage.
+ */
 export const postApiAdminBackupPitrValidate = (
     validatePitrRestorePointRequestDto: ValidatePitrRestorePointRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3566,7 +3773,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBackupPitrValidateMutationBody = ValidatePitrRestorePointRequestDto
     export type PostApiAdminBackupPitrValidateMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupPitrValidate = <TError = ProblemDetails,
+    /**
+ * @summary Validate a target UTC restore point against base backups and WAL coverage.
+ */
+export const usePostApiAdminBackupPitrValidate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>,
@@ -3745,6 +3955,9 @@ export const useGetApiAdminBackupRunsId = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Detailed verification report: logical dump TOC vs live table row counts.
+ */
 export const getApiAdminBackupRunsIdVerificationReport = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3784,6 +3997,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsIdVerificationReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>>
 export type GetApiAdminBackupRunsIdVerificationReportQueryError = ProblemDetails
 
+/**
+ * @summary Detailed verification report: logical dump TOC vs live table row counts.
+ */
 export const useGetApiAdminBackupRunsIdVerificationReport = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3800,6 +4016,10 @@ export const useGetApiAdminBackupRunsIdVerificationReport = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary On-demand SHA-256 re-hash of backup artifacts vs stored `content_hash_sha256`.
+Writes a `backup_verifications` row (`on_demand_http`). Not restore proof.
+ */
 export const getApiAdminBackupRunsIdVerifyChecksum = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3839,6 +4059,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsIdVerifyChecksumQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>>
 export type GetApiAdminBackupRunsIdVerifyChecksumQueryError = ProblemDetails
 
+/**
+ * @summary On-demand SHA-256 re-hash of backup artifacts vs stored `content_hash_sha256`.
+Writes a `backup_verifications` row (`on_demand_http`). Not restore proof.
+ */
 export const useGetApiAdminBackupRunsIdVerifyChecksum = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3855,6 +4079,10 @@ export const useGetApiAdminBackupRunsIdVerifyChecksum = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Manual verify: same SHA-256 re-hash as automatic / 24h re-verification, plus table TOC row counts.
+Writes a `backup_verifications` row (`on_demand_http`). Not restore proof.
+ */
 export const postApiAdminBackupBackupIdVerify = (
     backupId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3891,7 +4119,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBackupBackupIdVerifyMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupBackupIdVerify = <TError = ProblemDetails,
+    /**
+ * @summary Manual verify: same SHA-256 re-hash as automatic / 24h re-verification, plus table TOC row counts.
+Writes a `backup_verifications` row (`on_demand_http`). Not restore proof.
+ */
+export const usePostApiAdminBackupBackupIdVerify = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>, TError,{backupId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>,
@@ -3904,7 +4136,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBackupRunsIdContentValidation = (
+    /**
+ * @summary Content validation: manifest row counts vs live DB + fiscal checks.
+Returns cached `content_validation` verification when present; otherwise runs and persists.
+Distinct from SHA-256 verify-checksum and from TOC verification-report.
+ */
+export const getApiAdminBackupRunsIdContentValidation = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3943,6 +4180,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupRunsIdContentValidationQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>>
 export type GetApiAdminBackupRunsIdContentValidationQueryError = ProblemDetails
 
+/**
+ * @summary Content validation: manifest row counts vs live DB + fiscal checks.
+Returns cached `content_validation` verification when present; otherwise runs and persists.
+Distinct from SHA-256 verify-checksum and from TOC verification-report.
+ */
 export const useGetApiAdminBackupRunsIdContentValidation = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -3959,6 +4201,11 @@ export const useGetApiAdminBackupRunsIdContentValidation = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary Alias for `POST /api/admin/restore-verification/trigger` (restore drill enqueue).
+Optional `backupRunId` pins the drill to that succeeded LogicalDump; omit to use latest eligible dump.
+Work runs asynchronously in the restore-verification orchestrator — response is enqueue acceptance, not terminal drill proof.
+ */
 export const postApiAdminBackupDrillRun = (
     runRestoreDrillRequestDto: RunRestoreDrillRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3997,7 +4244,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBackupDrillRunMutationBody = RunRestoreDrillRequestDto
     export type PostApiAdminBackupDrillRunMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupDrillRun = <TError = ProblemDetails,
+    /**
+ * @summary Alias for `POST /api/admin/restore-verification/trigger` (restore drill enqueue).
+Optional `backupRunId` pins the drill to that succeeded LogicalDump; omit to use latest eligible dump.
+Work runs asynchronously in the restore-verification orchestrator — response is enqueue acceptance, not terminal drill proof.
+ */
+export const usePostApiAdminBackupDrillRun = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>, TError,{data: RunRestoreDrillRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>,
@@ -4065,6 +4317,9 @@ export const useGetApiAdminBackupVerificationLatest = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Kalıcı yedek çalıştırma modu + etkin sağlık (Fake / PgDump / yapılandırmayı izle).
+ */
 export const getApiAdminBackupExecutionMode = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4104,6 +4359,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupExecutionModeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupExecutionMode>>>
 export type GetApiAdminBackupExecutionModeQueryError = unknown
 
+/**
+ * @summary Kalıcı yedek çalıştırma modu + etkin sağlık (Fake / PgDump / yapılandırmayı izle).
+ */
 export const useGetApiAdminBackupExecutionMode = <TData = Awaited<ReturnType<typeof getApiAdminBackupExecutionMode>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupExecutionMode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4120,6 +4378,9 @@ export const useGetApiAdminBackupExecutionMode = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Admin yedek modunu kalıcı olarak günceller; PgDump önkoşulları Unhealthy ise kayıt yapılmaz.
+ */
 export const putApiAdminBackupExecutionMode = (
     backupExecutionModePutRequestDto: BackupExecutionModePutRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -4158,7 +4419,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminBackupExecutionModeMutationBody = BackupExecutionModePutRequestDto
     export type PutApiAdminBackupExecutionModeMutationError = ProblemDetails
 
-    export const usePutApiAdminBackupExecutionMode = <TError = ProblemDetails,
+    /**
+ * @summary Admin yedek modunu kalıcı olarak günceller; PgDump önkoşulları Unhealthy ise kayıt yapılmaz.
+ */
+export const usePutApiAdminBackupExecutionMode = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupExecutionMode>>, TError,{data: BackupExecutionModePutRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminBackupExecutionMode>>,
@@ -4171,7 +4435,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBackupDrillsIdPdf = (
+    /**
+ * @summary Single-drill PDF for a Passed or Failed drill. Cancelled drills are HTTP 400.
+ */
+export const postApiAdminBackupDrillsIdPdf = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -4208,7 +4475,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBackupDrillsIdPdfMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupDrillsIdPdf = <TError = ProblemDetails,
+    /**
+ * @summary Single-drill PDF for a Passed or Failed drill. Cancelled drills are HTTP 400.
+ */
+export const usePostApiAdminBackupDrillsIdPdf = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>,
@@ -4221,7 +4491,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBackupKnownGaps = (
+    /**
+ * @summary Catalog, the tenant acceptance record, and the current card (red / amber / green).
+ */
+export const getApiAdminBackupKnownGaps = (
     params?: GetApiAdminBackupKnownGapsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -4261,6 +4534,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupKnownGapsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>>
 export type GetApiAdminBackupKnownGapsQueryError = ProblemDetails
 
+/**
+ * @summary Catalog, the tenant acceptance record, and the current card (red / amber / green).
+ */
 export const useGetApiAdminBackupKnownGaps = <TData = Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError = ProblemDetails>(
  params?: GetApiAdminBackupKnownGapsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4277,6 +4553,10 @@ export const useGetApiAdminBackupKnownGaps = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Replaces accepted catalog ids. `acceptedAtUtc` is stamped on the server.
+Unknown ids return HTTP 400 `BACKUP_KNOWN_GAP_UNKNOWN`.
+ */
 export const putApiAdminBackupKnownGaps = (
     saveBackupKnownGapsRequest: SaveBackupKnownGapsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -4315,7 +4595,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminBackupKnownGapsMutationBody = SaveBackupKnownGapsRequest
     export type PutApiAdminBackupKnownGapsMutationError = ProblemDetails
 
-    export const usePutApiAdminBackupKnownGaps = <TError = ProblemDetails,
+    /**
+ * @summary Replaces accepted catalog ids. `acceptedAtUtc` is stamped on the server.
+Unknown ids return HTTP 400 `BACKUP_KNOWN_GAP_UNKNOWN`.
+ */
+export const usePutApiAdminBackupKnownGaps = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>, TError,{data: SaveBackupKnownGapsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>,
@@ -4383,6 +4667,10 @@ export const useGetApiAdminBackupPitrWal = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Live WAL archival health for Super Admin. Reads M:KasseAPI_Final.Services.Backup.IWalArchiveService.GetObservation only.
+Does not audit, and does not return WAL bytes, archive paths, or secrets.
+ */
 export const getApiAdminBackupPitrWalStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4422,6 +4710,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBackupPitrWalStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>>
 export type GetApiAdminBackupPitrWalStatusQueryError = unknown
 
+/**
+ * @summary Live WAL archival health for Super Admin. Reads M:KasseAPI_Final.Services.Backup.IWalArchiveService.GetObservation only.
+Does not audit, and does not return WAL bytes, archive paths, or secrets.
+ */
 export const useGetApiAdminBackupPitrWalStatus = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -4905,7 +5197,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingLicenseSalesPreview = (
+    /**
+ * @summary Preview a license sale before creating it.
+ */
+export const postApiAdminBillingLicenseSalesPreview = (
     licenseSalePreviewRequest: LicenseSalePreviewRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -4943,7 +5238,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBillingLicenseSalesPreviewMutationBody = LicenseSalePreviewRequest
     export type PostApiAdminBillingLicenseSalesPreviewMutationError = ValidationProblemDetails | ProblemDetails
 
-    export const usePostApiAdminBillingLicenseSalesPreview = <TError = ValidationProblemDetails | ProblemDetails,
+    /**
+ * @summary Preview a license sale before creating it.
+ */
+export const usePostApiAdminBillingLicenseSalesPreview = <TError = ValidationProblemDetails | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesPreview>>, TError,{data: LicenseSalePreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesPreview>>,
@@ -4956,7 +5254,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingLicenseSales = (
+    /**
+ * @summary Create a new license sale (Super Admin only).
+ */
+export const postApiAdminBillingLicenseSales = (
     createLicenseSaleRequest: CreateLicenseSaleRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -4994,7 +5295,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBillingLicenseSalesMutationBody = CreateLicenseSaleRequest
     export type PostApiAdminBillingLicenseSalesMutationError = ValidationProblemDetails | ProblemDetails
 
-    export const usePostApiAdminBillingLicenseSales = <TError = ValidationProblemDetails | ProblemDetails,
+    /**
+ * @summary Create a new license sale (Super Admin only).
+ */
+export const usePostApiAdminBillingLicenseSales = <TError = ValidationProblemDetails | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingLicenseSales>>, TError,{data: CreateLicenseSaleRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingLicenseSales>>,
@@ -5007,7 +5311,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBillingLicenseSales = (
+    /**
+ * @summary List license sales with pagination and filters.
+ */
+export const getApiAdminBillingLicenseSales = (
     params?: GetApiAdminBillingLicenseSalesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5047,6 +5354,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSales>>>
 export type GetApiAdminBillingLicenseSalesQueryError = ProblemDetails
 
+/**
+ * @summary List license sales with pagination and filters.
+ */
 export const useGetApiAdminBillingLicenseSales = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSales>>, TError = ProblemDetails>(
  params?: GetApiAdminBillingLicenseSalesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSales>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5063,6 +5373,9 @@ export const useGetApiAdminBillingLicenseSales = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Get a single license sale by ID.
+ */
 export const getApiAdminBillingLicenseSalesId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5102,6 +5415,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesId>>>
 export type GetApiAdminBillingLicenseSalesIdQueryError = ProblemDetails
 
+/**
+ * @summary Get a single license sale by ID.
+ */
 export const useGetApiAdminBillingLicenseSalesId = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5118,6 +5434,9 @@ export const useGetApiAdminBillingLicenseSalesId = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Get license sale statistics.
+ */
 export const getApiAdminBillingStats = (
     params?: GetApiAdminBillingStatsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5158,6 +5477,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingStats>>>
 export type GetApiAdminBillingStatsQueryError = unknown
 
+/**
+ * @summary Get license sale statistics.
+ */
 export const useGetApiAdminBillingStats = <TData = Awaited<ReturnType<typeof getApiAdminBillingStats>>, TError = unknown>(
  params?: GetApiAdminBillingStatsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5174,6 +5496,9 @@ export const useGetApiAdminBillingStats = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Digital service list prices (website / app). Catalog only — not license_sales.
+ */
 export const getApiAdminBillingDigitalPricing = (
     params?: GetApiAdminBillingDigitalPricingParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5214,6 +5539,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingDigitalPricingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingDigitalPricing>>>
 export type GetApiAdminBillingDigitalPricingQueryError = unknown
 
+/**
+ * @summary Digital service list prices (website / app). Catalog only — not license_sales.
+ */
 export const useGetApiAdminBillingDigitalPricing = <TData = Awaited<ReturnType<typeof getApiAdminBillingDigitalPricing>>, TError = unknown>(
  params?: GetApiAdminBillingDigitalPricingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingDigitalPricing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5230,6 +5558,9 @@ export const useGetApiAdminBillingDigitalPricing = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Cross-tenant digital-service MRR dashboard (active price snapshots). Not license_sales.
+ */
 export const getApiAdminBillingDigital = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5269,6 +5600,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingDigitalQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingDigital>>>
 export type GetApiAdminBillingDigitalQueryError = unknown
 
+/**
+ * @summary Cross-tenant digital-service MRR dashboard (active price snapshots). Not license_sales.
+ */
 export const useGetApiAdminBillingDigital = <TData = Awaited<ReturnType<typeof getApiAdminBillingDigital>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingDigital>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5285,6 +5619,9 @@ export const useGetApiAdminBillingDigital = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Create a digital-service subscription for a tenant (list price snapshot; no payment capture).
+ */
 export const postApiAdminBillingSubscriptions = (
     createSubscriptionRequestDto: CreateSubscriptionRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5323,7 +5660,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBillingSubscriptionsMutationBody = CreateSubscriptionRequestDto
     export type PostApiAdminBillingSubscriptionsMutationError = SubscriptionMutationResponseDto
 
-    export const usePostApiAdminBillingSubscriptions = <TError = SubscriptionMutationResponseDto,
+    /**
+ * @summary Create a digital-service subscription for a tenant (list price snapshot; no payment capture).
+ */
+export const usePostApiAdminBillingSubscriptions = <TError = SubscriptionMutationResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingSubscriptions>>, TError,{data: CreateSubscriptionRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingSubscriptions>>,
@@ -5336,7 +5676,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBillingTenantsTenantIdSubscriptions = (
+    /**
+ * @summary List digital-service subscriptions for a tenant.
+ */
+export const getApiAdminBillingTenantsTenantIdSubscriptions = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5375,6 +5718,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingTenantsTenantIdSubscriptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdSubscriptions>>>
 export type GetApiAdminBillingTenantsTenantIdSubscriptionsQueryError = unknown
 
+/**
+ * @summary List digital-service subscriptions for a tenant.
+ */
 export const useGetApiAdminBillingTenantsTenantIdSubscriptions = <TData = Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdSubscriptions>>, TError = unknown>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5391,6 +5737,9 @@ export const useGetApiAdminBillingTenantsTenantIdSubscriptions = <TData = Awaite
 
 
 
+/**
+ * @summary Cancel a digital-service subscription.
+ */
 export const postApiAdminBillingSubscriptionsSubscriptionIdCancel = (
     subscriptionId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5427,7 +5776,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingSubscriptionsSubscriptionIdCancelMutationError = SubscriptionMutationResponseDto
 
-    export const usePostApiAdminBillingSubscriptionsSubscriptionIdCancel = <TError = SubscriptionMutationResponseDto,
+    /**
+ * @summary Cancel a digital-service subscription.
+ */
+export const usePostApiAdminBillingSubscriptionsSubscriptionIdCancel = <TError = SubscriptionMutationResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingSubscriptionsSubscriptionIdCancel>>, TError,{subscriptionId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingSubscriptionsSubscriptionIdCancel>>,
@@ -5440,7 +5792,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBillingLicenseSalesByKeyLicenseKey = (
+    /**
+ * @summary Get a sale by license key.
+ */
+export const getApiAdminBillingLicenseSalesByKeyLicenseKey = (
     licenseKey: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5479,6 +5834,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesByKeyLicenseKeyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesByKeyLicenseKey>>>
 export type GetApiAdminBillingLicenseSalesByKeyLicenseKeyQueryError = ProblemDetails
 
+/**
+ * @summary Get a sale by license key.
+ */
 export const useGetApiAdminBillingLicenseSalesByKeyLicenseKey = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesByKeyLicenseKey>>, TError = ProblemDetails>(
  licenseKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesByKeyLicenseKey>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5495,6 +5853,9 @@ export const useGetApiAdminBillingLicenseSalesByKeyLicenseKey = <TData = Awaited
 
 
 
+/**
+ * @summary Get license information for a specific tenant.
+ */
 export const getApiAdminBillingTenantsTenantIdLicense = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5534,6 +5895,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingTenantsTenantIdLicenseQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdLicense>>>
 export type GetApiAdminBillingTenantsTenantIdLicenseQueryError = ProblemDetails
 
+/**
+ * @summary Get license information for a specific tenant.
+ */
 export const useGetApiAdminBillingTenantsTenantIdLicense = <TData = Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdLicense>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdLicense>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5550,6 +5914,9 @@ export const useGetApiAdminBillingTenantsTenantIdLicense = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary Get expiring licenses (for reminders).
+ */
 export const getApiAdminBillingLicenseSalesExpiring = (
     params?: GetApiAdminBillingLicenseSalesExpiringParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5590,6 +5957,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesExpiringQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesExpiring>>>
 export type GetApiAdminBillingLicenseSalesExpiringQueryError = unknown
 
+/**
+ * @summary Get expiring licenses (for reminders).
+ */
 export const useGetApiAdminBillingLicenseSalesExpiring = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesExpiring>>, TError = unknown>(
  params?: GetApiAdminBillingLicenseSalesExpiringParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesExpiring>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5606,6 +5976,9 @@ export const useGetApiAdminBillingLicenseSalesExpiring = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Download PDF invoice for a license sale.
+ */
 export const getApiAdminBillingLicenseSalesIdPdf = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5645,6 +6018,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesIdPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdPdf>>>
 export type GetApiAdminBillingLicenseSalesIdPdfQueryError = ProblemDetails
 
+/**
+ * @summary Download PDF invoice for a license sale.
+ */
 export const useGetApiAdminBillingLicenseSalesIdPdf = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdPdf>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5661,6 +6037,9 @@ export const useGetApiAdminBillingLicenseSalesIdPdf = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Generate preview PDF for a license sale (without saving).
+ */
 export const postApiAdminBillingLicenseSalesPreviewPdf = (
     licenseSalePreviewRequest: LicenseSalePreviewRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5699,7 +6078,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBillingLicenseSalesPreviewPdfMutationBody = LicenseSalePreviewRequest
     export type PostApiAdminBillingLicenseSalesPreviewPdfMutationError = ProblemDetails
 
-    export const usePostApiAdminBillingLicenseSalesPreviewPdf = <TError = ProblemDetails,
+    /**
+ * @summary Generate preview PDF for a license sale (without saving).
+ */
+export const usePostApiAdminBillingLicenseSalesPreviewPdf = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesPreviewPdf>>, TError,{data: LicenseSalePreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesPreviewPdf>>,
@@ -5712,7 +6094,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingLicenseSalesIdCancel = (
+    /**
+ * @summary Cancel a license sale.
+ */
+export const postApiAdminBillingLicenseSalesIdCancel = (
     id: string,
     cancelLicenseSaleRequest: CancelLicenseSaleRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5751,7 +6136,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminBillingLicenseSalesIdCancelMutationBody = CancelLicenseSaleRequest
     export type PostApiAdminBillingLicenseSalesIdCancelMutationError = ProblemDetails
 
-    export const usePostApiAdminBillingLicenseSalesIdCancel = <TError = ProblemDetails,
+    /**
+ * @summary Cancel a license sale.
+ */
+export const usePostApiAdminBillingLicenseSalesIdCancel = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesIdCancel>>, TError,{id: string;data: CancelLicenseSaleRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingLicenseSalesIdCancel>>,
@@ -5764,7 +6152,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBillingAudit = (
+    /**
+ * @summary Get billing audit logs.
+ */
+export const getApiAdminBillingAudit = (
     params?: GetApiAdminBillingAuditParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5804,6 +6195,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingAudit>>>
 export type GetApiAdminBillingAuditQueryError = unknown
 
+/**
+ * @summary Get billing audit logs.
+ */
 export const useGetApiAdminBillingAudit = <TData = Awaited<ReturnType<typeof getApiAdminBillingAudit>>, TError = unknown>(
  params?: GetApiAdminBillingAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingAudit>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5820,6 +6214,9 @@ export const useGetApiAdminBillingAudit = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Get audit logs for a specific sale.
+ */
 export const getApiAdminBillingLicenseSalesIdAudit = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5859,6 +6256,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingLicenseSalesIdAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdAudit>>>
 export type GetApiAdminBillingLicenseSalesIdAuditQueryError = ProblemDetails
 
+/**
+ * @summary Get audit logs for a specific sale.
+ */
 export const useGetApiAdminBillingLicenseSalesIdAudit = <TData = Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdAudit>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingLicenseSalesIdAudit>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5875,6 +6275,9 @@ export const useGetApiAdminBillingLicenseSalesIdAudit = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Get reminders for a specific tenant.
+ */
 export const getApiAdminBillingTenantsTenantIdReminders = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -5914,6 +6317,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingTenantsTenantIdRemindersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdReminders>>>
 export type GetApiAdminBillingTenantsTenantIdRemindersQueryError = ProblemDetails
 
+/**
+ * @summary Get reminders for a specific tenant.
+ */
 export const useGetApiAdminBillingTenantsTenantIdReminders = <TData = Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdReminders>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingTenantsTenantIdReminders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -5930,6 +6336,9 @@ export const useGetApiAdminBillingTenantsTenantIdReminders = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Trigger reminder creation (admin manual trigger).
+ */
 export const postApiAdminBillingRemindersCheck = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -5966,7 +6375,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingRemindersCheckMutationError = unknown
 
-    export const usePostApiAdminBillingRemindersCheck = <TError = unknown,
+    /**
+ * @summary Trigger reminder creation (admin manual trigger).
+ */
+export const usePostApiAdminBillingRemindersCheck = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingRemindersCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingRemindersCheck>>,
@@ -5979,7 +6391,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingRemindersSend = (
+    /**
+ * @summary Send pending reminders (admin manual trigger).
+ */
+export const postApiAdminBillingRemindersSend = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -6015,7 +6430,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingRemindersSendMutationError = unknown
 
-    export const usePostApiAdminBillingRemindersSend = <TError = unknown,
+    /**
+ * @summary Send pending reminders (admin manual trigger).
+ */
+export const usePostApiAdminBillingRemindersSend = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingRemindersSend>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingRemindersSend>>,
@@ -6028,7 +6446,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBillingBackupHistory = (
+    /**
+ * @summary List billing backup history.
+ */
+export const getApiAdminBillingBackupHistory = (
     params?: GetApiAdminBillingBackupHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6068,6 +6489,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingBackupHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>>
 export type GetApiAdminBillingBackupHistoryQueryError = ProblemDetails
 
+/**
+ * @summary List billing backup history.
+ */
 export const useGetApiAdminBillingBackupHistory = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError = ProblemDetails>(
  params?: GetApiAdminBillingBackupHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6084,6 +6508,9 @@ export const useGetApiAdminBillingBackupHistory = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Get billing backup details.
+ */
 export const getApiAdminBillingBackupId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -6123,6 +6550,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingBackupIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>>
 export type GetApiAdminBillingBackupIdQueryError = ProblemDetails
 
+/**
+ * @summary Get billing backup details.
+ */
 export const useGetApiAdminBillingBackupId = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6139,6 +6569,9 @@ export const useGetApiAdminBillingBackupId = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Download a billing backup archive.
+ */
 export const getApiAdminBillingBackupIdDownload = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -6178,6 +6611,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminBillingBackupIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>>
 export type GetApiAdminBillingBackupIdDownloadQueryError = ProblemDetails
 
+/**
+ * @summary Download a billing backup archive.
+ */
 export const useGetApiAdminBillingBackupIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6194,6 +6630,9 @@ export const useGetApiAdminBillingBackupIdDownload = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Trigger daily billing backup for yesterday (UTC).
+ */
 export const postApiAdminBillingBackupDaily = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6230,7 +6669,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingBackupDailyMutationError = unknown
 
-    export const usePostApiAdminBillingBackupDaily = <TError = unknown,
+    /**
+ * @summary Trigger daily billing backup for yesterday (UTC).
+ */
+export const usePostApiAdminBillingBackupDaily = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>,
@@ -6243,7 +6685,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingBackupWeekly = (
+    /**
+ * @summary Trigger weekly billing backup for the previous week.
+ */
+export const postApiAdminBillingBackupWeekly = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -6279,7 +6724,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingBackupWeeklyMutationError = unknown
 
-    export const usePostApiAdminBillingBackupWeekly = <TError = unknown,
+    /**
+ * @summary Trigger weekly billing backup for the previous week.
+ */
+export const usePostApiAdminBillingBackupWeekly = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>,
@@ -6292,7 +6740,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingBackupFull = (
+    /**
+ * @summary Trigger full billing backup.
+ */
+export const postApiAdminBillingBackupFull = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -6328,7 +6779,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingBackupFullMutationError = unknown
 
-    export const usePostApiAdminBillingBackupFull = <TError = unknown,
+    /**
+ * @summary Trigger full billing backup.
+ */
+export const usePostApiAdminBillingBackupFull = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>,
@@ -6341,7 +6795,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminBillingBackupCleanup = (
+    /**
+ * @summary Remove expired billing backups per retention policy.
+ */
+export const postApiAdminBillingBackupCleanup = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -6377,7 +6834,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBillingBackupCleanupMutationError = unknown
 
-    export const usePostApiAdminBillingBackupCleanup = <TError = unknown,
+    /**
+ * @summary Remove expired billing backups per retention policy.
+ */
+export const usePostApiAdminBillingBackupCleanup = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>,
@@ -6390,7 +6850,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCacheClear = (
+    /**
+ * @summary Clear application cache entries (tenant, prefix, or all).
+ */
+export const postApiAdminCacheClear = (
     clearCacheRequest: ClearCacheRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -6428,7 +6891,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCacheClearMutationBody = ClearCacheRequest
     export type PostApiAdminCacheClearMutationError = ProblemDetails
 
-    export const usePostApiAdminCacheClear = <TError = ProblemDetails,
+    /**
+ * @summary Clear application cache entries (tenant, prefix, or all).
+ */
+export const usePostApiAdminCacheClear = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCacheClear>>, TError,{data: ClearCacheRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCacheClear>>,
@@ -6552,6 +7018,10 @@ export const useGetApiAdminCardTransactionsId = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Pending (default) or filtered POS cash register open requests for Mandanten-Admin.
+SuperAdmin may pass tenantId to filter a mandant.
+ */
 export const getApiAdminCashRegistersOpenRequests = (
     params?: GetApiAdminCashRegistersOpenRequestsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -6592,6 +7062,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersOpenRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>>
 export type GetApiAdminCashRegistersOpenRequestsQueryError = unknown
 
+/**
+ * @summary Pending (default) or filtered POS cash register open requests for Mandanten-Admin.
+SuperAdmin may pass tenantId to filter a mandant.
+ */
 export const useGetApiAdminCashRegistersOpenRequests = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError = unknown>(
  params?: GetApiAdminCashRegistersOpenRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6608,6 +7082,9 @@ export const useGetApiAdminCashRegistersOpenRequests = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Approve a cashier open request: opens the register as the requesting cashier (not as Mandanten-Admin).
+ */
 export const postApiAdminCashRegistersOpenRequestsIdApprove = (
     id: string,
     resolveCashRegisterOpenRequestBody: ResolveCashRegisterOpenRequestBody,
@@ -6647,7 +7124,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersOpenRequestsIdApproveMutationBody = ResolveCashRegisterOpenRequestBody
     export type PostApiAdminCashRegistersOpenRequestsIdApproveMutationError = CashRegisterOpenRequestMutationResult
 
-    export const usePostApiAdminCashRegistersOpenRequestsIdApprove = <TError = CashRegisterOpenRequestMutationResult,
+    /**
+ * @summary Approve a cashier open request: opens the register as the requesting cashier (not as Mandanten-Admin).
+ */
+export const usePostApiAdminCashRegistersOpenRequestsIdApprove = <TError = CashRegisterOpenRequestMutationResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>,
@@ -6660,7 +7140,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCashRegistersOpenRequestsIdDeny = (
+    /**
+ * @summary Deny a cashier cash register open request.
+ */
+export const postApiAdminCashRegistersOpenRequestsIdDeny = (
     id: string,
     resolveCashRegisterOpenRequestBody: ResolveCashRegisterOpenRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6699,7 +7182,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersOpenRequestsIdDenyMutationBody = ResolveCashRegisterOpenRequestBody
     export type PostApiAdminCashRegistersOpenRequestsIdDenyMutationError = CashRegisterOpenRequestMutationResult
 
-    export const usePostApiAdminCashRegistersOpenRequestsIdDeny = <TError = CashRegisterOpenRequestMutationResult,
+    /**
+ * @summary Deny a cashier cash register open request.
+ */
+export const usePostApiAdminCashRegistersOpenRequestsIdDeny = <TError = CashRegisterOpenRequestMutationResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>,
@@ -6712,7 +7198,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCashRegisters = (
+    /**
+ * @summary Lists cash registers. SuperAdmin may pass tenantId to filter a mandant, or omit it to list all tenants.
+Pass cashRegisterId to fetch a single register (same authorization rules).
+ */
+export const getApiAdminCashRegisters = (
     params?: GetApiAdminCashRegistersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6752,6 +7242,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegisters>>>
 export type GetApiAdminCashRegistersQueryError = ProblemDetails
 
+/**
+ * @summary Lists cash registers. SuperAdmin may pass tenantId to filter a mandant, or omit it to list all tenants.
+Pass cashRegisterId to fetch a single register (same authorization rules).
+ */
 export const useGetApiAdminCashRegisters = <TData = Awaited<ReturnType<typeof getApiAdminCashRegisters>>, TError = ProblemDetails>(
  params?: GetApiAdminCashRegistersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegisters>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6768,6 +7262,10 @@ export const useGetApiAdminCashRegisters = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Creates a new cash register row for the effective tenant (Closed, no shift transaction).
+Requires KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage — SuperAdmin and Manager only.
+ */
 export const postApiAdminCashRegisters = (
     createCashRegisterRequest: CreateCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6806,7 +7304,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersMutationBody = CreateCashRegisterRequest
     export type PostApiAdminCashRegistersMutationError = ProblemDetails
 
-    export const usePostApiAdminCashRegisters = <TError = ProblemDetails,
+    /**
+ * @summary Creates a new cash register row for the effective tenant (Closed, no shift transaction).
+Requires KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage — SuperAdmin and Manager only.
+ */
+export const usePostApiAdminCashRegisters = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegisters>>, TError,{data: CreateCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegisters>>,
@@ -6819,7 +7321,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCashRegistersId = (
+    /**
+ * @summary Single register detail. SuperAdmin may read any mandant; other actors only their JWT tenant.
+Cross-tenant / missing register → HTTP 404 (not 403).
+ */
+export const getApiAdminCashRegistersId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6858,6 +7364,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersId>>>
 export type GetApiAdminCashRegistersIdQueryError = ProblemDetails
 
+/**
+ * @summary Single register detail. SuperAdmin may read any mandant; other actors only their JWT tenant.
+Cross-tenant / missing register → HTTP 404 (not 403).
+ */
 export const useGetApiAdminCashRegistersId = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -6874,6 +7384,9 @@ export const useGetApiAdminCashRegistersId = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Updates register number and location for a tenant-scoped inventory row.
+ */
 export const putApiAdminCashRegistersId = (
     id: string,
     updateCashRegisterRequest: UpdateCashRegisterRequest,
@@ -6913,7 +7426,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminCashRegistersIdMutationBody = UpdateCashRegisterRequest
     export type PutApiAdminCashRegistersIdMutationError = ProblemDetails
 
-    export const usePutApiAdminCashRegistersId = <TError = ProblemDetails,
+    /**
+ * @summary Updates register number and location for a tenant-scoped inventory row.
+ */
+export const usePutApiAdminCashRegistersId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminCashRegistersId>>, TError,{id: string;data: UpdateCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminCashRegistersId>>,
@@ -6926,7 +7442,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminCashRegistersId = (
+    /**
+ * @summary Hard-deletes an empty cash register row (Development + CashRegister:AllowHardDelete only).
+ */
+export const deleteApiAdminCashRegistersId = (
     id: string,
     hardDeleteCashRegisterRequest: HardDeleteCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6965,7 +7484,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type DeleteApiAdminCashRegistersIdMutationBody = HardDeleteCashRegisterRequest
     export type DeleteApiAdminCashRegistersIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminCashRegistersId = <TError = ProblemDetails,
+    /**
+ * @summary Hard-deletes an empty cash register row (Development + CashRegister:AllowHardDelete only).
+ */
+export const useDeleteApiAdminCashRegistersId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminCashRegistersId>>, TError,{id: string;data: HardDeleteCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminCashRegistersId>>,
@@ -6978,7 +7500,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCashRegistersByTenant = (
+    /**
+ * @summary Active registers for the selected mandant; default register is listed first.
+ */
+export const getApiAdminCashRegistersByTenant = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7017,6 +7542,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersByTenantQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersByTenant>>>
 export type GetApiAdminCashRegistersByTenantQueryError = ProblemDetails
 
+/**
+ * @summary Active registers for the selected mandant; default register is listed first.
+ */
 export const useGetApiAdminCashRegistersByTenant = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersByTenant>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersByTenant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7033,6 +7561,9 @@ export const useGetApiAdminCashRegistersByTenant = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Non-decommissioned cash register count for a tenant (Manager: own tenant only).
+ */
 export const getApiAdminTenantsTenantIdCashRegistersCount = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7072,6 +7603,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdCashRegistersCountQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegistersCount>>>
 export type GetApiAdminTenantsTenantIdCashRegistersCountQueryError = ProblemDetails
 
+/**
+ * @summary Non-decommissioned cash register count for a tenant (Manager: own tenant only).
+ */
 export const useGetApiAdminTenantsTenantIdCashRegistersCount = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegistersCount>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegistersCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7088,6 +7622,9 @@ export const useGetApiAdminTenantsTenantIdCashRegistersCount = <TData = Awaited<
 
 
 
+/**
+ * @summary TSE health snapshot for a single cash register (includes offline queue count).
+ */
 export const getApiAdminCashRegistersIdTseHealth = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7127,6 +7664,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersIdTseHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>>
 export type GetApiAdminCashRegistersIdTseHealthQueryError = ProblemDetails
 
+/**
+ * @summary TSE health snapshot for a single cash register (includes offline queue count).
+ */
 export const useGetApiAdminCashRegistersIdTseHealth = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7143,6 +7683,9 @@ export const useGetApiAdminCashRegistersIdTseHealth = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Feature flags for FA (hard delete visible only in Development + AllowHardDelete).
+ */
 export const getApiAdminCashRegistersCapabilities = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -7182,6 +7725,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCashRegistersCapabilitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersCapabilities>>>
 export type GetApiAdminCashRegistersCapabilitiesQueryError = unknown
 
+/**
+ * @summary Feature flags for FA (hard delete visible only in Development + AllowHardDelete).
+ */
 export const useGetApiAdminCashRegistersCapabilities = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersCapabilities>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersCapabilities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7198,6 +7744,12 @@ export const useGetApiAdminCashRegistersCapabilities = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Assigns a cashier to a cash register, or clears the assignment when the body carries no user id.
+The assignment scopes the POS picker (`GET /api/pos/cash-register/selectable`): a register assigned to
+someone else disappears from every other cashier's list, while an unassigned register stays shared.
+It is not a payment right — that stays with the open shift.
+ */
 export const postApiAdminCashRegistersIdAssign = (
     id: string,
     assignCashRegisterUserRequest: AssignCashRegisterUserRequest,
@@ -7237,7 +7789,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersIdAssignMutationBody = AssignCashRegisterUserRequest
     export type PostApiAdminCashRegistersIdAssignMutationError = ProblemDetails
 
-    export const usePostApiAdminCashRegistersIdAssign = <TError = ProblemDetails,
+    /**
+ * @summary Assigns a cashier to a cash register, or clears the assignment when the body carries no user id.
+The assignment scopes the POS picker (`GET /api/pos/cash-register/selectable`): a register assigned to
+someone else disappears from every other cashier's list, while an unassigned register stays shared.
+It is not a payment right — that stays with the open shift.
+ */
+export const usePostApiAdminCashRegistersIdAssign = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersIdAssign>>, TError,{id: string;data: AssignCashRegisterUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegistersIdAssign>>,
@@ -7250,7 +7808,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCashRegistersIdOpen = (
+    /**
+ * @summary Opens a closed cash register for the authenticated back-office actor.
+FA must use this route (not `POST /api/CashRegister/{id}/open`): admin JWTs strip
+KasseAPI_Final.Authorization.AppPermissions.ShiftOpen but keep KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage.
+SuperAdmin compact JWTs (KasseAPI_Final.Authorization.AppPermissions.SystemCritical) satisfy manage via implication.
+ */
+export const postApiAdminCashRegistersIdOpen = (
     id: string,
     openCashRegisterModel: OpenCashRegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7289,7 +7853,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersIdOpenMutationBody = OpenCashRegisterModel
     export type PostApiAdminCashRegistersIdOpenMutationError = ProblemDetails
 
-    export const usePostApiAdminCashRegistersIdOpen = <TError = ProblemDetails,
+    /**
+ * @summary Opens a closed cash register for the authenticated back-office actor.
+FA must use this route (not `POST /api/CashRegister/{id}/open`): admin JWTs strip
+KasseAPI_Final.Authorization.AppPermissions.ShiftOpen but keep KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage.
+SuperAdmin compact JWTs (KasseAPI_Final.Authorization.AppPermissions.SystemCritical) satisfy manage via implication.
+ */
+export const usePostApiAdminCashRegistersIdOpen = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersIdOpen>>, TError,{id: string;data: OpenCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegistersIdOpen>>,
@@ -7302,7 +7872,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCashRegistersIdClose = (
+    /**
+ * @summary Closes an open cash register for the operational shift owner only.
+FA must use this route (not `POST /api/CashRegister/{id}/close`): admin JWTs strip
+KasseAPI_Final.Authorization.AppPermissions.ShiftClose but keep KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage.
+A register held by another user returns HTTP 403 (`REGISTER_HELD_BY_OTHER`); recovery close is
+M:KasseAPI_Final.Services.ICashRegisterShiftService.TryForceCloseCashRegisterAsync(System.Guid,System.String,System.Decimal,System.String,System.Threading.CancellationToken) (shift management), not this action.
+ */
+export const postApiAdminCashRegistersIdClose = (
     id: string,
     closeCashRegisterModel: CloseCashRegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7341,7 +7918,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCashRegistersIdCloseMutationBody = CloseCashRegisterModel
     export type PostApiAdminCashRegistersIdCloseMutationError = ProblemDetails
 
-    export const usePostApiAdminCashRegistersIdClose = <TError = ProblemDetails,
+    /**
+ * @summary Closes an open cash register for the operational shift owner only.
+FA must use this route (not `POST /api/CashRegister/{id}/close`): admin JWTs strip
+KasseAPI_Final.Authorization.AppPermissions.ShiftClose but keep KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage.
+A register held by another user returns HTTP 403 (`REGISTER_HELD_BY_OTHER`); recovery close is
+M:KasseAPI_Final.Services.ICashRegisterShiftService.TryForceCloseCashRegisterAsync(System.Guid,System.String,System.Decimal,System.String,System.Threading.CancellationToken) (shift management), not this action.
+ */
+export const usePostApiAdminCashRegistersIdClose = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersIdClose>>, TError,{id: string;data: CloseCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCashRegistersIdClose>>,
@@ -7354,7 +7938,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiAdminCashRegistersIdDecommission = (
+    /**
+ * @summary Permanently decommissions a cash register via RKSV Schlussbeleg (Endbeleg) and sets status to Decommissioned atomically.
+ */
+export const putApiAdminCashRegistersIdDecommission = (
     id: string,
     decommissionCashRegisterRequest: DecommissionCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7393,7 +7980,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminCashRegistersIdDecommissionMutationBody = DecommissionCashRegisterRequest
     export type PutApiAdminCashRegistersIdDecommissionMutationError = ProblemDetails
 
-    export const usePutApiAdminCashRegistersIdDecommission = <TError = ProblemDetails,
+    /**
+ * @summary Permanently decommissions a cash register via RKSV Schlussbeleg (Endbeleg) and sets status to Decommissioned atomically.
+ */
+export const usePutApiAdminCashRegistersIdDecommission = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminCashRegistersIdDecommission>>, TError,{id: string;data: DecommissionCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminCashRegistersIdDecommission>>,
@@ -7406,7 +7996,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdChQrGapAcceptance = (
+    /**
+ * @summary Current acceptance plus every gap id from the known-gap catalog.
+ */
+export const getApiAdminTenantsTenantIdChQrGapAcceptance = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7445,6 +8038,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdChQrGapAcceptanceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrGapAcceptance>>>
 export type GetApiAdminTenantsTenantIdChQrGapAcceptanceQueryError = ProblemDetails
 
+/**
+ * @summary Current acceptance plus every gap id from the known-gap catalog.
+ */
 export const useGetApiAdminTenantsTenantIdChQrGapAcceptance = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrGapAcceptance>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrGapAcceptance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7461,6 +8057,9 @@ export const useGetApiAdminTenantsTenantIdChQrGapAcceptance = <TData = Awaited<R
 
 
 
+/**
+ * @summary Records which catalog gap ids the operator has acknowledged.
+ */
 export const postApiAdminTenantsTenantIdChQrGapAcceptance = (
     tenantId: string,
     acceptChQrGapsRequest: AcceptChQrGapsRequest,
@@ -7500,7 +8099,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdChQrGapAcceptanceMutationBody = AcceptChQrGapsRequest
     export type PostApiAdminTenantsTenantIdChQrGapAcceptanceMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdChQrGapAcceptance = <TError = ProblemDetails,
+    /**
+ * @summary Records which catalog gap ids the operator has acknowledged.
+ */
+export const usePostApiAdminTenantsTenantIdChQrGapAcceptance = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrGapAcceptance>>, TError,{tenantId: string;data: AcceptChQrGapsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrGapAcceptance>>,
@@ -7625,7 +8227,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCountries = (
+    /**
+ * @summary Tenant-selectable country profiles (excludes registry-only `EU_DEFAULT`).
+ */
+export const getApiAdminCountries = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7664,6 +8269,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCountriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCountries>>>
 export type GetApiAdminCountriesQueryError = ProblemDetails
 
+/**
+ * @summary Tenant-selectable country profiles (excludes registry-only `EU_DEFAULT`).
+ */
 export const useGetApiAdminCountries = <TData = Awaited<ReturnType<typeof getApiAdminCountries>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCountries>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7680,6 +8288,9 @@ export const useGetApiAdminCountries = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Verify TOTP / Dev bypass and issue a single-use approval token.
+ */
 export const postApiAdminCriticalActionsApproveWith2fa = (
     adminCriticalActionsControllerIssueWithTwoFactorRequest: AdminCriticalActionsControllerIssueWithTwoFactorRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7718,7 +8329,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCriticalActionsApproveWith2faMutationBody = AdminCriticalActionsControllerIssueWithTwoFactorRequest
     export type PostApiAdminCriticalActionsApproveWith2faMutationError = ProblemDetails
 
-    export const usePostApiAdminCriticalActionsApproveWith2fa = <TError = ProblemDetails,
+    /**
+ * @summary Verify TOTP / Dev bypass and issue a single-use approval token.
+ */
+export const usePostApiAdminCriticalActionsApproveWith2fa = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCriticalActionsApproveWith2fa>>, TError,{data: AdminCriticalActionsControllerIssueWithTwoFactorRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCriticalActionsApproveWith2fa>>,
@@ -7731,7 +8345,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCriticalActionsRequestApproval = (
+    /**
+ * @summary Request Super Admin approval for a critical action (async four-eyes).
+ */
+export const postApiAdminCriticalActionsRequestApproval = (
     adminCriticalActionsControllerRequestApprovalBody: AdminCriticalActionsControllerRequestApprovalBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -7769,7 +8386,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCriticalActionsRequestApprovalMutationBody = AdminCriticalActionsControllerRequestApprovalBody
     export type PostApiAdminCriticalActionsRequestApprovalMutationError = ProblemDetails
 
-    export const usePostApiAdminCriticalActionsRequestApproval = <TError = ProblemDetails,
+    /**
+ * @summary Request Super Admin approval for a critical action (async four-eyes).
+ */
+export const usePostApiAdminCriticalActionsRequestApproval = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCriticalActionsRequestApproval>>, TError,{data: AdminCriticalActionsControllerRequestApprovalBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCriticalActionsRequestApproval>>,
@@ -7782,7 +8402,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCriticalActionsPending = (
+    /**
+ * @summary List pending Super Admin approval requests.
+ */
+export const getApiAdminCriticalActionsPending = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7821,6 +8444,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCriticalActionsPendingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCriticalActionsPending>>>
 export type GetApiAdminCriticalActionsPendingQueryError = unknown
 
+/**
+ * @summary List pending Super Admin approval requests.
+ */
 export const useGetApiAdminCriticalActionsPending = <TData = Awaited<ReturnType<typeof getApiAdminCriticalActionsPending>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCriticalActionsPending>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -7837,6 +8463,9 @@ export const useGetApiAdminCriticalActionsPending = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Super Admin approves a pending request and returns a token for the requester.
+ */
 export const postApiAdminCriticalActionsPendingRequestIdApprove = (
     requestId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -7873,7 +8502,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminCriticalActionsPendingRequestIdApproveMutationError = ProblemDetails
 
-    export const usePostApiAdminCriticalActionsPendingRequestIdApprove = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin approves a pending request and returns a token for the requester.
+ */
+export const usePostApiAdminCriticalActionsPendingRequestIdApprove = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCriticalActionsPendingRequestIdApprove>>, TError,{requestId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCriticalActionsPendingRequestIdApprove>>,
@@ -7886,7 +8518,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCriticalActionsPendingRequestIdReject = (
+    /**
+ * @summary Super Admin rejects a pending request.
+ */
+export const postApiAdminCriticalActionsPendingRequestIdReject = (
     requestId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -7922,7 +8557,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminCriticalActionsPendingRequestIdRejectMutationError = ProblemDetails
 
-    export const usePostApiAdminCriticalActionsPendingRequestIdReject = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin rejects a pending request.
+ */
+export const usePostApiAdminCriticalActionsPendingRequestIdReject = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCriticalActionsPendingRequestIdReject>>, TError,{requestId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCriticalActionsPendingRequestIdReject>>,
@@ -7990,6 +8628,9 @@ export const useGetApiAdminVerticalProfile = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary GET: payment-row snapshot for one Austria business day (optional cash register filter).
+ */
 export const getApiAdminReportsDailyClosing = (
     params?: GetApiAdminReportsDailyClosingParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8030,6 +8671,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsDailyClosingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsDailyClosing>>>
 export type GetApiAdminReportsDailyClosingQueryError = ProblemDetails
 
+/**
+ * @summary GET: payment-row snapshot for one Austria business day (optional cash register filter).
+ */
 export const useGetApiAdminReportsDailyClosing = <TData = Awaited<ReturnType<typeof getApiAdminReportsDailyClosing>>, TError = ProblemDetails>(
  params?: GetApiAdminReportsDailyClosingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsDailyClosing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8046,6 +8690,9 @@ export const useGetApiAdminReportsDailyClosing = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Pending + recent applied migrations for the connected database.
+ */
 export const getApiAdminDatabaseMigrations = (
     params?: GetApiAdminDatabaseMigrationsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8086,6 +8733,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDatabaseMigrationsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDatabaseMigrations>>>
 export type GetApiAdminDatabaseMigrationsQueryError = unknown
 
+/**
+ * @summary Pending + recent applied migrations for the connected database.
+ */
 export const useGetApiAdminDatabaseMigrations = <TData = Awaited<ReturnType<typeof getApiAdminDatabaseMigrations>>, TError = unknown>(
  params?: GetApiAdminDatabaseMigrationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDatabaseMigrations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8102,6 +8752,9 @@ export const useGetApiAdminDatabaseMigrations = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary List all active tenants with data-management / RKSV retention status.
+ */
 export const getApiAdminDataManagement = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8141,6 +8794,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDataManagementQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDataManagement>>>
 export type GetApiAdminDataManagementQueryError = unknown
 
+/**
+ * @summary List all active tenants with data-management / RKSV retention status.
+ */
 export const useGetApiAdminDataManagement = <TData = Awaited<ReturnType<typeof getApiAdminDataManagement>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDataManagement>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8213,6 +8869,9 @@ export const useGetApiAdminDemoRequests = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary List recent deployment runs (Super Admin).
+ */
 export const getApiAdminDeployments = (
     params?: GetApiAdminDeploymentsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8253,6 +8912,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDeploymentsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDeployments>>>
 export type GetApiAdminDeploymentsQueryError = unknown
 
+/**
+ * @summary List recent deployment runs (Super Admin).
+ */
 export const useGetApiAdminDeployments = <TData = Awaited<ReturnType<typeof getApiAdminDeployments>>, TError = unknown>(
  params?: GetApiAdminDeploymentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDeployments>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8269,6 +8931,10 @@ export const useGetApiAdminDeployments = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Automated production-readiness GO / NO-GO (Super Admin).
+Default refresh re-runs all gates; set false to return the last stored result.
+ */
 export const getApiAdminDeploymentsGoLiveStatus = (
     params?: GetApiAdminDeploymentsGoLiveStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8309,6 +8975,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDeploymentsGoLiveStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDeploymentsGoLiveStatus>>>
 export type GetApiAdminDeploymentsGoLiveStatusQueryError = unknown
 
+/**
+ * @summary Automated production-readiness GO / NO-GO (Super Admin).
+Default refresh re-runs all gates; set false to return the last stored result.
+ */
 export const useGetApiAdminDeploymentsGoLiveStatus = <TData = Awaited<ReturnType<typeof getApiAdminDeploymentsGoLiveStatus>>, TError = unknown>(
  params?: GetApiAdminDeploymentsGoLiveStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDeploymentsGoLiveStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8325,6 +8995,9 @@ export const useGetApiAdminDeploymentsGoLiveStatus = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Overall tenant deployment status (canary progressive rollouts).
+ */
 export const getApiAdminDeploymentsStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8364,6 +9037,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDeploymentsStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDeploymentsStatus>>>
 export type GetApiAdminDeploymentsStatusQueryError = unknown
 
+/**
+ * @summary Overall tenant deployment status (canary progressive rollouts).
+ */
 export const useGetApiAdminDeploymentsStatus = <TData = Awaited<ReturnType<typeof getApiAdminDeploymentsStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDeploymentsStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8380,6 +9056,9 @@ export const useGetApiAdminDeploymentsStatus = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Latest deployment version per tenant.
+ */
 export const getApiAdminDeploymentsTenants = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8419,6 +9098,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDeploymentsTenantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDeploymentsTenants>>>
 export type GetApiAdminDeploymentsTenantsQueryError = unknown
 
+/**
+ * @summary Latest deployment version per tenant.
+ */
 export const useGetApiAdminDeploymentsTenants = <TData = Awaited<ReturnType<typeof getApiAdminDeploymentsTenants>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDeploymentsTenants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8435,6 +9117,9 @@ export const useGetApiAdminDeploymentsTenants = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Rollback a single tenant to previousVersion (confirm = "rollback").
+ */
 export const postApiAdminDeploymentsTenantsTenantIdRollback = (
     tenantId: string,
     tenantDeploymentRollbackRequest: TenantDeploymentRollbackRequest,
@@ -8474,7 +9159,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDeploymentsTenantsTenantIdRollbackMutationBody = TenantDeploymentRollbackRequest
     export type PostApiAdminDeploymentsTenantsTenantIdRollbackMutationError = ProblemDetails
 
-    export const usePostApiAdminDeploymentsTenantsTenantIdRollback = <TError = ProblemDetails,
+    /**
+ * @summary Rollback a single tenant to previousVersion (confirm = "rollback").
+ */
+export const usePostApiAdminDeploymentsTenantsTenantIdRollback = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDeploymentsTenantsTenantIdRollback>>, TError,{tenantId: string;data: TenantDeploymentRollbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDeploymentsTenantsTenantIdRollback>>,
@@ -8487,7 +9175,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminDeploymentsRollback = (
+    /**
+ * @summary Manual stage rollback (confirm = "rollback"). Invokes configured stage webhook.
+ */
+export const postApiAdminDeploymentsRollback = (
     deploymentRollbackRequest: DeploymentRollbackRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -8525,7 +9216,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDeploymentsRollbackMutationBody = DeploymentRollbackRequest
     export type PostApiAdminDeploymentsRollbackMutationError = ProblemDetails
 
-    export const usePostApiAdminDeploymentsRollback = <TError = ProblemDetails,
+    /**
+ * @summary Manual stage rollback (confirm = "rollback"). Invokes configured stage webhook.
+ */
+export const usePostApiAdminDeploymentsRollback = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDeploymentsRollback>>, TError,{data: DeploymentRollbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDeploymentsRollback>>,
@@ -8538,7 +9232,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminDeploymentsComplianceSignoff = (
+    /**
+ * @summary Compliance officer (or Super Admin) signs off the RKSV production checklist for an image tag.
+ */
+export const postApiAdminDeploymentsComplianceSignoff = (
     deploymentComplianceSignoffRequest: DeploymentComplianceSignoffRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -8576,7 +9273,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDeploymentsComplianceSignoffMutationBody = DeploymentComplianceSignoffRequest
     export type PostApiAdminDeploymentsComplianceSignoffMutationError = ProblemDetails
 
-    export const usePostApiAdminDeploymentsComplianceSignoff = <TError = ProblemDetails,
+    /**
+ * @summary Compliance officer (or Super Admin) signs off the RKSV production checklist for an image tag.
+ */
+export const usePostApiAdminDeploymentsComplianceSignoff = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDeploymentsComplianceSignoff>>, TError,{data: DeploymentComplianceSignoffRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDeploymentsComplianceSignoff>>,
@@ -8589,7 +9289,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDeploymentsComplianceGate = (
+    /**
+ * @summary Compliance gate status for an image (FA + CI).
+ */
+export const getApiAdminDeploymentsComplianceGate = (
     params?: GetApiAdminDeploymentsComplianceGateParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -8629,6 +9332,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDeploymentsComplianceGateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDeploymentsComplianceGate>>>
 export type GetApiAdminDeploymentsComplianceGateQueryError = unknown
 
+/**
+ * @summary Compliance gate status for an image (FA + CI).
+ */
 export const useGetApiAdminDeploymentsComplianceGate = <TData = Awaited<ReturnType<typeof getApiAdminDeploymentsComplianceGate>>, TError = unknown>(
  params?: GetApiAdminDeploymentsComplianceGateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDeploymentsComplianceGate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8647,7 +9353,7 @@ export const useGetApiAdminDeploymentsComplianceGate = <TData = Awaited<ReturnTy
 
 /**
  * Reads the persisted development-mode singleton from PostgreSQL (cached ~30s on the server). Requires permission **system.critical** (default role matrix: SuperAdmin only). Response includes `updatedBy` (email) when `updated_by_user_id` matches an Identity user id.
- * @summary Get development mode settings (singleton)
+ * @summary Load singleton development-mode settings from the database (cached in KasseAPI_Final.Services.DevelopmentModeService).
  */
 export const getApiAdminDevelopmentModeSettings = (
 
@@ -8689,7 +9395,7 @@ export type GetApiAdminDevelopmentModeSettingsQueryResult = NonNullable<Awaited<
 export type GetApiAdminDevelopmentModeSettingsQueryError = void
 
 /**
- * @summary Get development mode settings (singleton)
+ * @summary Load singleton development-mode settings from the database (cached in KasseAPI_Final.Services.DevelopmentModeService).
  */
 export const useGetApiAdminDevelopmentModeSettings = <TData = Awaited<ReturnType<typeof getApiAdminDevelopmentModeSettings>>, TError = void>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDevelopmentModeSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -8709,7 +9415,7 @@ export const useGetApiAdminDevelopmentModeSettings = <TData = Awaited<ReturnType
 
 /**
  * Replaces development-mode toggles and feature list. Requires **system.critical**. Updates are rejected when the API host environment is not **Development** (see `DevelopmentModeService`). On success the server reloads its in-memory settings cache and appends a system audit event.
- * @summary Update development mode settings (singleton)
+ * @summary Persist development-mode singleton; reloads service cache and writes an audit row.
  */
 export const putApiAdminDevelopmentModeSettings = (
     developmentModeSettingsPutRequestDto: DevelopmentModeSettingsPutRequestDto,
@@ -8750,7 +9456,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminDevelopmentModeSettingsMutationError = ProblemDetails | void
 
     /**
- * @summary Update development mode settings (singleton)
+ * @summary Persist development-mode singleton; reloads service cache and writes an audit row.
  */
 export const usePutApiAdminDevelopmentModeSettings = <TError = ProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminDevelopmentModeSettings>>, TError,{data: DevelopmentModeSettingsPutRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -8765,7 +9471,10 @@ export const usePutApiAdminDevelopmentModeSettings = <TError = ProblemDetails | 
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDigitalTenants = (
+    /**
+ * @summary List all tenants with website/app service status and effective prices.
+ */
+export const getApiAdminDigitalTenants = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -8804,6 +9513,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDigitalTenantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDigitalTenants>>>
 export type GetApiAdminDigitalTenantsQueryError = unknown
 
+/**
+ * @summary List all tenants with website/app service status and effective prices.
+ */
 export const useGetApiAdminDigitalTenants = <TData = Awaited<ReturnType<typeof getApiAdminDigitalTenants>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDigitalTenants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8820,6 +9532,9 @@ export const useGetApiAdminDigitalTenants = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Mandanten portal / tenant page: status for one tenant (own tenant only unless Super Admin).
+ */
 export const getApiAdminDigitalTenantsTenantId = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -8859,6 +9574,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDigitalTenantsTenantIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDigitalTenantsTenantId>>>
 export type GetApiAdminDigitalTenantsTenantIdQueryError = ProblemDetails
 
+/**
+ * @summary Mandanten portal / tenant page: status for one tenant (own tenant only unless Super Admin).
+ */
 export const useGetApiAdminDigitalTenantsTenantId = <TData = Awaited<ReturnType<typeof getApiAdminDigitalTenantsTenantId>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDigitalTenantsTenantId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -8875,6 +9593,9 @@ export const useGetApiAdminDigitalTenantsTenantId = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Super Admin platform gate: set `IsActive` for website or app.
+ */
 export const postApiAdminDigitalTenantIdToggle = (
     tenantId: string,
     toggleTenantDigitalServiceRequestDto: ToggleTenantDigitalServiceRequestDto,
@@ -8914,7 +9635,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDigitalTenantIdToggleMutationBody = ToggleTenantDigitalServiceRequestDto
     export type PostApiAdminDigitalTenantIdToggleMutationError = TenantDigitalServiceMutationResponseDto
 
-    export const usePostApiAdminDigitalTenantIdToggle = <TError = TenantDigitalServiceMutationResponseDto,
+    /**
+ * @summary Super Admin platform gate: set `IsActive` for website or app.
+ */
+export const usePostApiAdminDigitalTenantIdToggle = <TError = TenantDigitalServiceMutationResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDigitalTenantIdToggle>>, TError,{tenantId: string;data: ToggleTenantDigitalServiceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDigitalTenantIdToggle>>,
@@ -8927,7 +9651,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminDigitalTenantIdEnable = (
+    /**
+ * @summary Mandanten preference: enable/disable own digital service (`IsEnabled`).
+ */
+export const postApiAdminDigitalTenantIdEnable = (
     tenantId: string,
     enableTenantDigitalServiceRequestDto: EnableTenantDigitalServiceRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -8966,7 +9693,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDigitalTenantIdEnableMutationBody = EnableTenantDigitalServiceRequestDto
     export type PostApiAdminDigitalTenantIdEnableMutationError = TenantDigitalServiceMutationResponseDto
 
-    export const usePostApiAdminDigitalTenantIdEnable = <TError = TenantDigitalServiceMutationResponseDto,
+    /**
+ * @summary Mandanten preference: enable/disable own digital service (`IsEnabled`).
+ */
+export const usePostApiAdminDigitalTenantIdEnable = <TError = TenantDigitalServiceMutationResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDigitalTenantIdEnable>>, TError,{tenantId: string;data: EnableTenantDigitalServiceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDigitalTenantIdEnable>>,
@@ -8979,7 +9709,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiAdminDigitalTenantIdPrice = (
+    /**
+ * @summary Super Admin custom monthly price override (null clears override).
+ */
+export const putApiAdminDigitalTenantIdPrice = (
     tenantId: string,
     updateTenantDigitalServicePriceRequestDto: UpdateTenantDigitalServicePriceRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -9018,7 +9751,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminDigitalTenantIdPriceMutationBody = UpdateTenantDigitalServicePriceRequestDto
     export type PutApiAdminDigitalTenantIdPriceMutationError = TenantDigitalServiceMutationResponseDto
 
-    export const usePutApiAdminDigitalTenantIdPrice = <TError = TenantDigitalServiceMutationResponseDto,
+    /**
+ * @summary Super Admin custom monthly price override (null clears override).
+ */
+export const usePutApiAdminDigitalTenantIdPrice = <TError = TenantDigitalServiceMutationResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminDigitalTenantIdPrice>>, TError,{tenantId: string;data: UpdateTenantDigitalServicePriceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminDigitalTenantIdPrice>>,
@@ -9031,7 +9767,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminDigitalTenantIdRequest = (
+    /**
+ * @summary Manager: request website or app creation for own tenant (Super Admin approval queue).
+ */
+export const postApiAdminDigitalTenantIdRequest = (
     tenantId: string,
     createDigitalServiceRequestDto: CreateDigitalServiceRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -9070,7 +9809,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDigitalTenantIdRequestMutationBody = CreateDigitalServiceRequestDto
     export type PostApiAdminDigitalTenantIdRequestMutationError = DigitalServiceRequestResponseDto
 
-    export const usePostApiAdminDigitalTenantIdRequest = <TError = DigitalServiceRequestResponseDto,
+    /**
+ * @summary Manager: request website or app creation for own tenant (Super Admin approval queue).
+ */
+export const usePostApiAdminDigitalTenantIdRequest = <TError = DigitalServiceRequestResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDigitalTenantIdRequest>>, TError,{tenantId: string;data: CreateDigitalServiceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDigitalTenantIdRequest>>,
@@ -9083,7 +9825,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDigitalTenantIdRequests = (
+    /**
+ * @summary List creation requests for one tenant (own tenant unless Super Admin).
+ */
+export const getApiAdminDigitalTenantIdRequests = (
     tenantId: string,
     params?: GetApiAdminDigitalTenantIdRequestsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -9126,6 +9871,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDigitalTenantIdRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDigitalTenantIdRequests>>>
 export type GetApiAdminDigitalTenantIdRequestsQueryError = ProblemDetails
 
+/**
+ * @summary List creation requests for one tenant (own tenant unless Super Admin).
+ */
 export const useGetApiAdminDigitalTenantIdRequests = <TData = Awaited<ReturnType<typeof getApiAdminDigitalTenantIdRequests>>, TError = ProblemDetails>(
  tenantId: string,
     params?: GetApiAdminDigitalTenantIdRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDigitalTenantIdRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -9143,6 +9891,9 @@ export const useGetApiAdminDigitalTenantIdRequests = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Super Admin: list digital creation requests (default Pending; pass status=all for every status).
+ */
 export const getApiAdminDigitalRequests = (
     params?: GetApiAdminDigitalRequestsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -9183,6 +9934,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDigitalRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDigitalRequests>>>
 export type GetApiAdminDigitalRequestsQueryError = unknown
 
+/**
+ * @summary Super Admin: list digital creation requests (default Pending; pass status=all for every status).
+ */
 export const useGetApiAdminDigitalRequests = <TData = Awaited<ReturnType<typeof getApiAdminDigitalRequests>>, TError = unknown>(
  params?: GetApiAdminDigitalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDigitalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -9199,6 +9953,9 @@ export const useGetApiAdminDigitalRequests = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Super Admin: approve a pending creation request (does not auto-generate).
+ */
 export const postApiAdminDigitalRequestsIdApprove = (
     id: string,
     resolveDigitalServiceRequestDto: ResolveDigitalServiceRequestDto,
@@ -9238,7 +9995,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDigitalRequestsIdApproveMutationBody = ResolveDigitalServiceRequestDto
     export type PostApiAdminDigitalRequestsIdApproveMutationError = DigitalServiceRequestResponseDto
 
-    export const usePostApiAdminDigitalRequestsIdApprove = <TError = DigitalServiceRequestResponseDto,
+    /**
+ * @summary Super Admin: approve a pending creation request (does not auto-generate).
+ */
+export const usePostApiAdminDigitalRequestsIdApprove = <TError = DigitalServiceRequestResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDigitalRequestsIdApprove>>, TError,{id: string;data: ResolveDigitalServiceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDigitalRequestsIdApprove>>,
@@ -9251,7 +10011,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminDigitalRequestsIdReject = (
+    /**
+ * @summary Super Admin: reject a pending creation request.
+ */
+export const postApiAdminDigitalRequestsIdReject = (
     id: string,
     resolveDigitalServiceRequestDto: ResolveDigitalServiceRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -9290,7 +10053,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDigitalRequestsIdRejectMutationBody = ResolveDigitalServiceRequestDto
     export type PostApiAdminDigitalRequestsIdRejectMutationError = DigitalServiceRequestResponseDto
 
-    export const usePostApiAdminDigitalRequestsIdReject = <TError = DigitalServiceRequestResponseDto,
+    /**
+ * @summary Super Admin: reject a pending creation request.
+ */
+export const usePostApiAdminDigitalRequestsIdReject = <TError = DigitalServiceRequestResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDigitalRequestsIdReject>>, TError,{id: string;data: ResolveDigitalServiceRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDigitalRequestsIdReject>>,
@@ -9303,7 +10069,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDownloadHistory = (
+    /**
+ * @summary Lists recent export downloads for the ambient tenant (newest first).
+ */
+export const getApiAdminDownloadHistory = (
     params?: GetApiAdminDownloadHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -9343,6 +10112,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDownloadHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDownloadHistory>>>
 export type GetApiAdminDownloadHistoryQueryError = ProblemDetails
 
+/**
+ * @summary Lists recent export downloads for the ambient tenant (newest first).
+ */
 export const useGetApiAdminDownloadHistory = <TData = Awaited<ReturnType<typeof getApiAdminDownloadHistory>>, TError = ProblemDetails>(
  params?: GetApiAdminDownloadHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDownloadHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -9359,6 +10131,9 @@ export const useGetApiAdminDownloadHistory = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Records a client-side (or server) download for the download-history UI.
+ */
 export const postApiAdminDownloadHistory = (
     recordDownloadHistoryRequest: RecordDownloadHistoryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -9397,7 +10172,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDownloadHistoryMutationBody = RecordDownloadHistoryRequest
     export type PostApiAdminDownloadHistoryMutationError = ProblemDetails
 
-    export const usePostApiAdminDownloadHistory = <TError = ProblemDetails,
+    /**
+ * @summary Records a client-side (or server) download for the download-history UI.
+ */
+export const usePostApiAdminDownloadHistory = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDownloadHistory>>, TError,{data: RecordDownloadHistoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDownloadHistory>>,
@@ -9410,7 +10188,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDownloadHistoryStats = (
+    /**
+ * @summary Aggregate download stats for the ambient tenant (optionally scoped to current user).
+ */
+export const getApiAdminDownloadHistoryStats = (
     params?: GetApiAdminDownloadHistoryStatsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -9450,6 +10231,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDownloadHistoryStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDownloadHistoryStats>>>
 export type GetApiAdminDownloadHistoryStatsQueryError = ProblemDetails
 
+/**
+ * @summary Aggregate download stats for the ambient tenant (optionally scoped to current user).
+ */
 export const useGetApiAdminDownloadHistoryStats = <TData = Awaited<ReturnType<typeof getApiAdminDownloadHistoryStats>>, TError = ProblemDetails>(
  params?: GetApiAdminDownloadHistoryStatsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDownloadHistoryStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -9466,6 +10250,10 @@ export const useGetApiAdminDownloadHistoryStats = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Download analytics dashboard: totals, top kinds/users, usage trends, slow exports.
+Super Admin may request `platform=true` for cross-tenant popularity.
+ */
 export const getApiAdminDownloadHistoryAnalytics = (
     params?: GetApiAdminDownloadHistoryAnalyticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -9506,6 +10294,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDownloadHistoryAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDownloadHistoryAnalytics>>>
 export type GetApiAdminDownloadHistoryAnalyticsQueryError = ProblemDetails
 
+/**
+ * @summary Download analytics dashboard: totals, top kinds/users, usage trends, slow exports.
+Super Admin may request `platform=true` for cross-tenant popularity.
+ */
 export const useGetApiAdminDownloadHistoryAnalytics = <TData = Awaited<ReturnType<typeof getApiAdminDownloadHistoryAnalytics>>, TError = ProblemDetails>(
  params?: GetApiAdminDownloadHistoryAnalyticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDownloadHistoryAnalytics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -9522,6 +10314,9 @@ export const useGetApiAdminDownloadHistoryAnalytics = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Deletes download-history rows older than the configured retention window for this tenant.
+ */
 export const postApiAdminDownloadHistoryCleanupOld = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -9558,7 +10353,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminDownloadHistoryCleanupOldMutationError = ProblemDetails
 
-    export const usePostApiAdminDownloadHistoryCleanupOld = <TError = ProblemDetails,
+    /**
+ * @summary Deletes download-history rows older than the configured retention window for this tenant.
+ */
+export const usePostApiAdminDownloadHistoryCleanupOld = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDownloadHistoryCleanupOld>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDownloadHistoryCleanupOld>>,
@@ -9571,7 +10369,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDownloadHistoryIdRedownload = (
+    /**
+ * @summary Re-downloads a previously recorded export when a resolvable `sourceKind`/`sourceId` exists.
+Currently supports `dep-export` → stored DEP history artifact.
+ */
+export const getApiAdminDownloadHistoryIdRedownload = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -9610,6 +10412,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDownloadHistoryIdRedownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDownloadHistoryIdRedownload>>>
 export type GetApiAdminDownloadHistoryIdRedownloadQueryError = ProblemDetails
 
+/**
+ * @summary Re-downloads a previously recorded export when a resolvable `sourceKind`/`sourceId` exists.
+Currently supports `dep-export` → stored DEP history artifact.
+ */
 export const useGetApiAdminDownloadHistoryIdRedownload = <TData = Awaited<ReturnType<typeof getApiAdminDownloadHistoryIdRedownload>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDownloadHistoryIdRedownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -10051,7 +10857,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminErrorsExport = (
+    /**
+ * @summary Export Elmah error logs. Filename: `log_{tenantSlug}_{stamp}.{txt|csv|json}`.
+ */
+export const getApiAdminErrorsExport = (
     params?: GetApiAdminErrorsExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -10092,6 +10901,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminErrorsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminErrorsExport>>>
 export type GetApiAdminErrorsExportQueryError = void
 
+/**
+ * @summary Export Elmah error logs. Filename: `log_{tenantSlug}_{stamp}.{txt|csv|json}`.
+ */
 export const useGetApiAdminErrorsExport = <TData = Awaited<ReturnType<typeof getApiAdminErrorsExport>>, TError = void>(
  params?: GetApiAdminErrorsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminErrorsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -10555,7 +11367,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminExportEmailSend = (
+    /**
+ * @summary Send or schedule an export email. Provide a file upload and/or `sourceKind`+`sourceId`
+(currently `dep-export`). Large files are sent as a time-limited download link.
+ */
+export const postApiAdminExportEmailSend = (
     postApiAdminExportEmailSendBody: PostApiAdminExportEmailSendBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -10614,7 +11430,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminExportEmailSendMutationBody = PostApiAdminExportEmailSendBody
     export type PostApiAdminExportEmailSendMutationError = ProblemDetails
 
-    export const usePostApiAdminExportEmailSend = <TError = ProblemDetails,
+    /**
+ * @summary Send or schedule an export email. Provide a file upload and/or `sourceKind`+`sourceId`
+(currently `dep-export`). Large files are sent as a time-limited download link.
+ */
+export const usePostApiAdminExportEmailSend = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminExportEmailSend>>, TError,{data: PostApiAdminExportEmailSendBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminExportEmailSend>>,
@@ -10732,7 +11552,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFeatureFlags = (
+    /**
+ * @summary List known flags with effective state (optional tenant scope).
+ */
+export const getApiAdminFeatureFlags = (
     params?: GetApiAdminFeatureFlagsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -10772,6 +11595,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFeatureFlagsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFeatureFlags>>>
 export type GetApiAdminFeatureFlagsQueryError = unknown
 
+/**
+ * @summary List known flags with effective state (optional tenant scope).
+ */
 export const useGetApiAdminFeatureFlags = <TData = Awaited<ReturnType<typeof getApiAdminFeatureFlags>>, TError = unknown>(
  params?: GetApiAdminFeatureFlagsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFeatureFlags>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -10788,6 +11614,9 @@ export const useGetApiAdminFeatureFlags = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Set or clear a flag override (global or per tenant).
+ */
 export const putApiAdminFeatureFlags = (
     setFeatureFlagRequest: SetFeatureFlagRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -10826,7 +11655,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminFeatureFlagsMutationBody = SetFeatureFlagRequest
     export type PutApiAdminFeatureFlagsMutationError = ProblemDetails
 
-    export const usePutApiAdminFeatureFlags = <TError = ProblemDetails,
+    /**
+ * @summary Set or clear a flag override (global or per tenant).
+ */
+export const usePutApiAdminFeatureFlags = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminFeatureFlags>>, TError,{data: SetFeatureFlagRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminFeatureFlags>>,
@@ -10839,7 +11671,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFeatureFlagsNameEnabled = (
+    /**
+ * @summary Quick check: is a flag enabled for an optional tenant?
+ */
+export const getApiAdminFeatureFlagsNameEnabled = (
     name: string,
     params?: GetApiAdminFeatureFlagsNameEnabledParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -10882,6 +11717,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFeatureFlagsNameEnabledQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFeatureFlagsNameEnabled>>>
 export type GetApiAdminFeatureFlagsNameEnabledQueryError = unknown
 
+/**
+ * @summary Quick check: is a flag enabled for an optional tenant?
+ */
 export const useGetApiAdminFeatureFlagsNameEnabled = <TData = Awaited<ReturnType<typeof getApiAdminFeatureFlagsNameEnabled>>, TError = unknown>(
  name: string,
     params?: GetApiAdminFeatureFlagsNameEnabledParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFeatureFlagsNameEnabled>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -10899,6 +11737,9 @@ export const useGetApiAdminFeatureFlagsNameEnabled = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Submit feedback (any authenticated admin user with tenant context).
+ */
 export const postApiAdminFeedback = (
     createAdminFeedbackRequestDto: CreateAdminFeedbackRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -10937,7 +11778,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFeedbackMutationBody = CreateAdminFeedbackRequestDto
     export type PostApiAdminFeedbackMutationError = ProblemDetails
 
-    export const usePostApiAdminFeedback = <TError = ProblemDetails,
+    /**
+ * @summary Submit feedback (any authenticated admin user with tenant context).
+ */
+export const usePostApiAdminFeedback = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFeedback>>, TError,{data: CreateAdminFeedbackRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFeedback>>,
@@ -10950,7 +11794,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFeedback = (
+    /**
+ * @summary Super Admin inbox: all tenants.
+ */
+export const getApiAdminFeedback = (
     params?: GetApiAdminFeedbackParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -10990,6 +11837,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFeedback>>>
 export type GetApiAdminFeedbackQueryError = unknown
 
+/**
+ * @summary Super Admin inbox: all tenants.
+ */
 export const useGetApiAdminFeedback = <TData = Awaited<ReturnType<typeof getApiAdminFeedback>>, TError = unknown>(
  params?: GetApiAdminFeedbackParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFeedback>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11006,6 +11856,9 @@ export const useGetApiAdminFeedback = <TData = Awaited<ReturnType<typeof getApiA
 
 
 
+/**
+ * @summary List feedback submitted by the current user (status closes the loop).
+ */
 export const getApiAdminFeedbackMine = (
     params?: GetApiAdminFeedbackMineParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -11046,6 +11899,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFeedbackMineQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFeedbackMine>>>
 export type GetApiAdminFeedbackMineQueryError = unknown
 
+/**
+ * @summary List feedback submitted by the current user (status closes the loop).
+ */
 export const useGetApiAdminFeedbackMine = <TData = Awaited<ReturnType<typeof getApiAdminFeedbackMine>>, TError = unknown>(
  params?: GetApiAdminFeedbackMineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFeedbackMine>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11062,6 +11918,9 @@ export const useGetApiAdminFeedbackMine = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Update status / reviewer note (Implemented, In Progress, Under Review, …).
+ */
 export const patchApiAdminFeedbackIdStatus = (
     id: string,
     updateAdminFeedbackStatusRequestDto: UpdateAdminFeedbackStatusRequestDto,
@@ -11101,7 +11960,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminFeedbackIdStatusMutationBody = UpdateAdminFeedbackStatusRequestDto
     export type PatchApiAdminFeedbackIdStatusMutationError = ProblemDetails
 
-    export const usePatchApiAdminFeedbackIdStatus = <TError = ProblemDetails,
+    /**
+ * @summary Update status / reviewer note (Implemented, In Progress, Under Review, …).
+ */
+export const usePatchApiAdminFeedbackIdStatus = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminFeedbackIdStatus>>, TError,{id: string;data: UpdateAdminFeedbackStatusRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminFeedbackIdStatus>>,
@@ -11114,7 +11976,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminAuditFiscalExportLogs = (
+    /**
+ * @summary Paged fiscal export download audit log (successful builds are logged today).
+ */
+export const getApiAdminAuditFiscalExportLogs = (
     params?: GetApiAdminAuditFiscalExportLogsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -11154,6 +12019,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditFiscalExportLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogs>>>
 export type GetApiAdminAuditFiscalExportLogsQueryError = unknown
 
+/**
+ * @summary Paged fiscal export download audit log (successful builds are logged today).
+ */
 export const useGetApiAdminAuditFiscalExportLogs = <TData = Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogs>>, TError = unknown>(
  params?: GetApiAdminAuditFiscalExportLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11170,6 +12038,9 @@ export const useGetApiAdminAuditFiscalExportLogs = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Full row with raw Request/Response JSON for compliance review.
+ */
 export const getApiAdminAuditFiscalExportLogsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -11209,6 +12080,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditFiscalExportLogsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsId>>>
 export type GetApiAdminAuditFiscalExportLogsIdQueryError = ProblemDetails
 
+/**
+ * @summary Full row with raw Request/Response JSON for compliance review.
+ */
 export const useGetApiAdminAuditFiscalExportLogsId = <TData = Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11225,6 +12099,10 @@ export const useGetApiAdminAuditFiscalExportLogsId = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Auditor CSV extract (same filters as list). Requires KasseAPI_Final.Authorization.AppPermissions.AuditExport.
+When the filtered set exceeds maxRows the response is truncated; see `X-Fiscal-Audit-Export-Truncated`.
+ */
 export const getApiAdminAuditFiscalExportLogsExport = (
     params?: GetApiAdminAuditFiscalExportLogsExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -11266,6 +12144,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditFiscalExportLogsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsExport>>>
 export type GetApiAdminAuditFiscalExportLogsExportQueryError = unknown
 
+/**
+ * @summary Auditor CSV extract (same filters as list). Requires KasseAPI_Final.Authorization.AppPermissions.AuditExport.
+When the filtered set exceeds maxRows the response is truncated; see `X-Fiscal-Audit-Export-Truncated`.
+ */
 export const useGetApiAdminAuditFiscalExportLogsExport = <TData = Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsExport>>, TError = unknown>(
  params?: GetApiAdminAuditFiscalExportLogsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditFiscalExportLogsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11282,6 +12164,9 @@ export const useGetApiAdminAuditFiscalExportLogsExport = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Effective Fiskaly settings (config + tenant/global overlay). No secrets.
+ */
 export const getApiAdminFiskalySettings = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -11321,6 +12206,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiskalySettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiskalySettings>>>
 export type GetApiAdminFiskalySettingsQueryError = unknown
 
+/**
+ * @summary Effective Fiskaly settings (config + tenant/global overlay). No secrets.
+ */
 export const useGetApiAdminFiskalySettings = <TData = Awaited<ReturnType<typeof getApiAdminFiskalySettings>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalySettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11337,6 +12225,10 @@ export const useGetApiAdminFiskalySettings = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Persist Fiskaly Enabled overlay for the ambient tenant (Mandanten-Admin / Super Admin).
+Super Admin without ambient tenant writes a deployment-wide overlay. Does not write API secrets.
+ */
 export const postApiAdminFiskalySettings = (
     updateFiskalySettingsRequest: UpdateFiskalySettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -11375,7 +12267,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFiskalySettingsMutationBody = UpdateFiskalySettingsRequest
     export type PostApiAdminFiskalySettingsMutationError = ProblemDetails
 
-    export const usePostApiAdminFiskalySettings = <TError = ProblemDetails,
+    /**
+ * @summary Persist Fiskaly Enabled overlay for the ambient tenant (Mandanten-Admin / Super Admin).
+Super Admin without ambient tenant writes a deployment-wide overlay. Does not write API secrets.
+ */
+export const usePostApiAdminFiskalySettings = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFiskalySettings>>, TError,{data: UpdateFiskalySettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFiskalySettings>>,
@@ -11388,7 +12284,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFiskalyStatus = (
+    /**
+ * @summary Live Fiskaly status including optional authentication probe.
+ */
+export const getApiAdminFiskalyStatus = (
     params?: GetApiAdminFiskalyStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -11428,6 +12327,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiskalyStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiskalyStatus>>>
 export type GetApiAdminFiskalyStatusQueryError = unknown
 
+/**
+ * @summary Live Fiskaly status including optional authentication probe.
+ */
 export const useGetApiAdminFiskalyStatus = <TData = Awaited<ReturnType<typeof getApiAdminFiskalyStatus>>, TError = unknown>(
  params?: GetApiAdminFiskalyStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalyStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11444,6 +12346,127 @@ export const useGetApiAdminFiskalyStatus = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Tenant Fiskaly credential status. Never returns the API secret.
+ */
+export const getApiAdminFiskalyCredentials = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<FiskalyTenantCredentialStatusDto>(
+      {url: `/api/admin/fiskaly/credentials`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminFiskalyCredentialsQueryKey = () => {
+    return [`/api/admin/fiskaly/credentials`] as const;
+    }
+
+
+export const getGetApiAdminFiskalyCredentialsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFiskalyCredentialsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>> = ({ signal }) => getApiAdminFiskalyCredentials(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFiskalyCredentialsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>>
+export type GetApiAdminFiskalyCredentialsQueryError = ProblemDetails
+
+/**
+ * @summary Tenant Fiskaly credential status. Never returns the API secret.
+ */
+export const useGetApiAdminFiskalyCredentials = <TData = Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalyCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFiskalyCredentialsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Store the ambient tenant's Fiskaly API key, secret, and SCU. Empty secret keeps the previous ciphertext.
+ */
+export const putApiAdminFiskalyCredentials = (
+    upsertFiskalyTenantCredentialRequest: UpsertFiskalyTenantCredentialRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<FiskalyTenantCredentialStatusDto>(
+      {url: `/api/admin/fiskaly/credentials`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertFiskalyTenantCredentialRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminFiskalyCredentialsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>, TError,{data: UpsertFiskalyTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>, TError,{data: UpsertFiskalyTenantCredentialRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>, {data: UpsertFiskalyTenantCredentialRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminFiskalyCredentials(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminFiskalyCredentialsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>>
+    export type PutApiAdminFiskalyCredentialsMutationBody = UpsertFiskalyTenantCredentialRequest
+    export type PutApiAdminFiskalyCredentialsMutationError = ProblemDetails
+
+    /**
+ * @summary Store the ambient tenant's Fiskaly API key, secret, and SCU. Empty secret keeps the previous ciphertext.
+ */
+export const usePutApiAdminFiskalyCredentials = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>, TError,{data: UpsertFiskalyTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminFiskalyCredentials>>,
+        TError,
+        {data: UpsertFiskalyTenantCredentialRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminFiskalyCredentialsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary FON / SCU / cash-register initialization snapshot (no PIN). Manager: own tenant registers.
+ */
 export const getApiAdminFiskalySetup = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -11483,6 +12506,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiskalySetupQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiskalySetup>>>
 export type GetApiAdminFiskalySetupQueryError = unknown
 
+/**
+ * @summary FON / SCU / cash-register initialization snapshot (no PIN). Manager: own tenant registers.
+ */
 export const useGetApiAdminFiskalySetup = <TData = Awaited<ReturnType<typeof getApiAdminFiskalySetup>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiskalySetup>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -11499,6 +12525,9 @@ export const useGetApiAdminFiskalySetup = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary PUT fiskaly /fon/auth. PIN is never stored or logged.
+ */
 export const postApiAdminFiskalyFonAuthenticate = (
     authenticateFonRequest: AuthenticateFonRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -11537,7 +12566,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFiskalyFonAuthenticateMutationBody = AuthenticateFonRequest
     export type PostApiAdminFiskalyFonAuthenticateMutationError = ProblemDetails
 
-    export const usePostApiAdminFiskalyFonAuthenticate = <TError = ProblemDetails,
+    /**
+ * @summary PUT fiskaly /fon/auth. PIN is never stored or logged.
+ */
+export const usePostApiAdminFiskalyFonAuthenticate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFiskalyFonAuthenticate>>, TError,{data: AuthenticateFonRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFiskalyFonAuthenticate>>,
@@ -11550,7 +12582,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminFiskalyScuInitialize = (
+    /**
+ * @summary Create SCU if needed, then PATCH state INITIALIZED (registers SCU with FinanzOnline).
+ */
+export const postApiAdminFiskalyScuInitialize = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -11586,7 +12621,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminFiskalyScuInitializeMutationError = ProblemDetails
 
-    export const usePostApiAdminFiskalyScuInitialize = <TError = ProblemDetails,
+    /**
+ * @summary Create SCU if needed, then PATCH state INITIALIZED (registers SCU with FinanzOnline).
+ */
+export const usePostApiAdminFiskalyScuInitialize = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFiskalyScuInitialize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFiskalyScuInitialize>>,
@@ -11599,7 +12637,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminFiskalyCashRegisterIdInitialize = (
+    /**
+ * @summary Create cash register if needed, PATCH REGISTERED then INITIALIZED.
+SIGN AT cash_register_id is the local cash register UUID.
+ */
+export const postApiAdminFiskalyCashRegisterIdInitialize = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -11635,7 +12677,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminFiskalyCashRegisterIdInitializeMutationError = ProblemDetails
 
-    export const usePostApiAdminFiskalyCashRegisterIdInitialize = <TError = ProblemDetails,
+    /**
+ * @summary Create cash register if needed, PATCH REGISTERED then INITIALIZED.
+SIGN AT cash_register_id is the local cash register UUID.
+ */
+export const usePostApiAdminFiskalyCashRegisterIdInitialize = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFiskalyCashRegisterIdInitialize>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFiskalyCashRegisterIdInitialize>>,
@@ -11751,112 +12797,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const getApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
-
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-
-
-      return customInstance<LieferandoTenantCredentialStatusDto>(
-      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'GET', signal
-    },
-      options);
-    }
-
-
-export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey = () => {
-    return [`/api/admin/online-order-integrations/lieferando/credentials`] as const;
-    }
-
-
-export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsLieferandoCredentials(requestOptions, signal);
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
-export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryError = ProblemDetails
-
-export const useGetApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const putApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
-    upsertLieferandoTenantCredentialRequest: UpsertLieferandoTenantCredentialRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-
-
-      return customInstance<void>(
-      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'PUT',
-      headers: {'Content-Type': 'application/json', },
-      data: upsertLieferandoTenantCredentialRequest
-    },
-      options);
-    }
-
-
-
-export const getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, {data: UpsertLieferandoTenantCredentialRequest}> = (props) => {
-          const {data} = props ?? {};
-
-          return  putApiAdminOnlineOrderIntegrationsLieferandoCredentials(data,requestOptions)
-        }
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
-    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationBody = UpsertLieferandoTenantCredentialRequest
-    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationError = ProblemDetails
-
-    export const usePutApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>,
-        TError,
-        {data: UpsertLieferandoTenantCredentialRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -12335,7 +13275,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminImpactSimulationSimulate = (
+    /**
+ * @summary Simulate the impact of a proposed tax rate, currency, or product price change.
+ */
+export const postApiAdminImpactSimulationSimulate = (
     impactSimulationRequestDto: ImpactSimulationRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -12373,7 +13316,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminImpactSimulationSimulateMutationBody = ImpactSimulationRequestDto
     export type PostApiAdminImpactSimulationSimulateMutationError = ProblemDetails
 
-    export const usePostApiAdminImpactSimulationSimulate = <TError = ProblemDetails,
+    /**
+ * @summary Simulate the impact of a proposed tax rate, currency, or product price change.
+ */
+export const usePostApiAdminImpactSimulationSimulate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminImpactSimulationSimulate>>, TError,{data: ImpactSimulationRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminImpactSimulationSimulate>>,
@@ -12386,7 +13332,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminIncidentsCorrelationId = (
+    /**
+ * @summary GET: Aggregated incident view for a replay batch correlation id (Guid, with or without dashes).
+ */
+export const getApiAdminIncidentsCorrelationId = (
     correlationId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -12425,6 +13374,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminIncidentsCorrelationIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminIncidentsCorrelationId>>>
 export type GetApiAdminIncidentsCorrelationIdQueryError = unknown
 
+/**
+ * @summary GET: Aggregated incident view for a replay batch correlation id (Guid, with or without dashes).
+ */
 export const useGetApiAdminIncidentsCorrelationId = <TData = Awaited<ReturnType<typeof getApiAdminIncidentsCorrelationId>>, TError = unknown>(
  correlationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminIncidentsCorrelationId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -12658,7 +13610,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminJahresbelegClosingPreview = (
+    /**
+ * @summary Preview yearly totals from Monatsbeleg rows without TSE signing.
+ */
+export const getApiAdminJahresbelegClosingPreview = (
     params?: GetApiAdminJahresbelegClosingPreviewParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -12698,6 +13653,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminJahresbelegClosingPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>>
 export type GetApiAdminJahresbelegClosingPreviewQueryError = unknown
 
+/**
+ * @summary Preview yearly totals from Monatsbeleg rows without TSE signing.
+ */
 export const useGetApiAdminJahresbelegClosingPreview = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError = unknown>(
  params?: GetApiAdminJahresbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -12714,6 +13672,9 @@ export const useGetApiAdminJahresbelegClosingPreview = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Create RKSV Jahresbeleg for a Vienna calendar year (default: current year).
+ */
 export const postApiAdminJahresbelegClosing = (
     createJahresbelegClosingRequest: CreateJahresbelegClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -12752,7 +13713,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminJahresbelegClosingMutationBody = CreateJahresbelegClosingRequest
     export type PostApiAdminJahresbelegClosingMutationError = ProblemDetails
 
-    export const usePostApiAdminJahresbelegClosing = <TError = ProblemDetails,
+    /**
+ * @summary Create RKSV Jahresbeleg for a Vienna calendar year (default: current year).
+ */
+export const usePostApiAdminJahresbelegClosing = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>, TError,{data: CreateJahresbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>,
@@ -12876,6 +13840,9 @@ export const useGetApiAdminJahresbelegClosingId = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Localized PDF for a persisted Jahresbeleg.
+ */
 export const getApiAdminJahresbelegClosingIdReportPdf = (
     id: string,
     params?: GetApiAdminJahresbelegClosingIdReportPdfParams,
@@ -12920,6 +13887,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminJahresbelegClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>>
 export type GetApiAdminJahresbelegClosingIdReportPdfQueryError = ProblemDetails
 
+/**
+ * @summary Localized PDF for a persisted Jahresbeleg.
+ */
 export const useGetApiAdminJahresbelegClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError = ProblemDetails>(
  id: string,
     params?: GetApiAdminJahresbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -12927,6 +13897,61 @@ export const useGetApiAdminJahresbelegClosingIdReportPdf = <TData = Awaited<Retu
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminJahresbelegClosingIdReportPdfQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminJahresbelegReminderStatus = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<JahresbelegTenantStatusDto[]>(
+      {url: `/api/admin/jahresbeleg-reminder/status`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminJahresbelegReminderStatusQueryKey = () => {
+    return [`/api/admin/jahresbeleg-reminder/status`] as const;
+    }
+
+
+export const getGetApiAdminJahresbelegReminderStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminJahresbelegReminderStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>> = ({ signal }) => getApiAdminJahresbelegReminderStatus(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminJahresbelegReminderStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>>
+export type GetApiAdminJahresbelegReminderStatusQueryError = unknown
+
+export const useGetApiAdminJahresbelegReminderStatus = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegReminderStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminJahresbelegReminderStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -13367,6 +14392,9 @@ export const useGetApiAdminKitchenAnalytics = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Paged activation audit for `POST /api/license/activate` (full key in DB; response uses masked key).
+ */
 export const getApiAdminLicenseActivationAttempts = (
     params?: GetApiAdminLicenseActivationAttemptsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13407,6 +14435,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseActivationAttemptsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseActivationAttempts>>>
 export type GetApiAdminLicenseActivationAttemptsQueryError = unknown
 
+/**
+ * @summary Paged activation audit for `POST /api/license/activate` (full key in DB; response uses masked key).
+ */
 export const useGetApiAdminLicenseActivationAttempts = <TData = Awaited<ReturnType<typeof getApiAdminLicenseActivationAttempts>>, TError = unknown>(
  params?: GetApiAdminLicenseActivationAttemptsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseActivationAttempts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13423,6 +14454,9 @@ export const useGetApiAdminLicenseActivationAttempts = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Removes `activated_licenses` for the attempt's key + machine and marks the audit row revoked.
+ */
 export const postApiAdminLicenseActivationAttemptsIdForceDeactivate = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -13459,7 +14493,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminLicenseActivationAttemptsIdForceDeactivateMutationError = unknown
 
-    export const usePostApiAdminLicenseActivationAttemptsIdForceDeactivate = <TError = unknown,
+    /**
+ * @summary Removes `activated_licenses` for the attempt's key + machine and marks the audit row revoked.
+ */
+export const usePostApiAdminLicenseActivationAttemptsIdForceDeactivate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseActivationAttemptsIdForceDeactivate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseActivationAttemptsIdForceDeactivate>>,
@@ -13472,7 +14509,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseCertificate = (
+    /**
+ * @summary PDF certificate for the ambient mandant license (Manager self-service).
+ */
+export const getApiAdminLicenseCertificate = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -13512,6 +14552,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseCertificateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseCertificate>>>
 export type GetApiAdminLicenseCertificateQueryError = ProblemDetails
 
+/**
+ * @summary PDF certificate for the ambient mandant license (Manager self-service).
+ */
 export const useGetApiAdminLicenseCertificate = <TData = Awaited<ReturnType<typeof getApiAdminLicenseCertificate>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseCertificate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13528,6 +14571,10 @@ export const useGetApiAdminLicenseCertificate = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Download a single issued license as plain text.
+Filename: `license_{tenantSlug}_{stamp}.txt`.
+ */
 export const getApiAdminLicenseIssuedLicenseIdExport = (
     issuedLicenseId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13568,6 +14615,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseIssuedLicenseIdExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseIssuedLicenseIdExport>>>
 export type GetApiAdminLicenseIssuedLicenseIdExportQueryError = ProblemDetails
 
+/**
+ * @summary Download a single issued license as plain text.
+Filename: `license_{tenantSlug}_{stamp}.txt`.
+ */
 export const useGetApiAdminLicenseIssuedLicenseIdExport = <TData = Awaited<ReturnType<typeof getApiAdminLicenseIssuedLicenseIdExport>>, TError = ProblemDetails>(
  issuedLicenseId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseIssuedLicenseIdExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13584,6 +14635,9 @@ export const useGetApiAdminLicenseIssuedLicenseIdExport = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Current license/trial snapshot for this machine.
+ */
 export const getApiAdminLicenseStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13623,6 +14677,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseStatus>>>
 export type GetApiAdminLicenseStatusQueryError = unknown
 
+/**
+ * @summary Current license/trial snapshot for this machine.
+ */
 export const useGetApiAdminLicenseStatus = <TData = Awaited<ReturnType<typeof getApiAdminLicenseStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13639,6 +14696,9 @@ export const useGetApiAdminLicenseStatus = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Current deployment/on-premise license snapshot without tenant overlay.
+ */
 export const getApiAdminLicenseDeploymentStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13678,6 +14738,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDeploymentStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDeploymentStatus>>>
 export type GetApiAdminLicenseDeploymentStatusQueryError = unknown
 
+/**
+ * @summary Current deployment/on-premise license snapshot without tenant overlay.
+ */
 export const useGetApiAdminLicenseDeploymentStatus = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDeploymentStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDeploymentStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13694,6 +14757,9 @@ export const useGetApiAdminLicenseDeploymentStatus = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Super-admin SaaS tenant license inventory for the `/admin/licenses` platform page.
+ */
 export const getApiAdminLicenseTenants = (
     params?: GetApiAdminLicenseTenantsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13734,6 +14800,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseTenantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseTenants>>>
 export type GetApiAdminLicenseTenantsQueryError = unknown
 
+/**
+ * @summary Super-admin SaaS tenant license inventory for the `/admin/licenses` platform page.
+ */
 export const useGetApiAdminLicenseTenants = <TData = Awaited<ReturnType<typeof getApiAdminLicenseTenants>>, TError = unknown>(
  params?: GetApiAdminLicenseTenantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTenants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13750,6 +14819,12 @@ export const useGetApiAdminLicenseTenants = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Paged list of issued licenses (`issued_licenses`). JWT is never returned.
+Super Admin / `system.critical` receives the full `licenseKey` for support.
+Other callers with `settings.manage` get REGK-****-****- plus the real final segment only.
+Optional machineFingerprint filters rows that have a matching `activated_licenses` machine hash substring.
+ */
 export const getApiAdminLicenseList = (
     params?: GetApiAdminLicenseListParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -13790,6 +14865,12 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseList>>>
 export type GetApiAdminLicenseListQueryError = unknown
 
+/**
+ * @summary Paged list of issued licenses (`issued_licenses`). JWT is never returned.
+Super Admin / `system.critical` receives the full `licenseKey` for support.
+Other callers with `settings.manage` get REGK-****-****- plus the real final segment only.
+Optional machineFingerprint filters rows that have a matching `activated_licenses` machine hash substring.
+ */
 export const useGetApiAdminLicenseList = <TData = Awaited<ReturnType<typeof getApiAdminLicenseList>>, TError = unknown>(
  params?: GetApiAdminLicenseListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13806,6 +14887,10 @@ export const useGetApiAdminLicenseList = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Generate (sign) a new offline license. Requires a deployment with `License:SigningPrivateKeyPem` configured;
+otherwise responds 503. The returned `signedJwt` is the activation proof — treat as a secret in transit.
+ */
 export const postApiAdminLicenseGenerate = (
     generateLicenseRequestBody: GenerateLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -13844,7 +14929,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseGenerateMutationBody = GenerateLicenseRequestBody
     export type PostApiAdminLicenseGenerateMutationError = unknown
 
-    export const usePostApiAdminLicenseGenerate = <TError = unknown,
+    /**
+ * @summary Generate (sign) a new offline license. Requires a deployment with `License:SigningPrivateKeyPem` configured;
+otherwise responds 503. The returned `signedJwt` is the activation proof — treat as a secret in transit.
+ */
+export const usePostApiAdminLicenseGenerate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseGenerate>>, TError,{data: GenerateLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseGenerate>>,
@@ -13857,7 +14946,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseUpgrade = (
+    /**
+ * @summary Upgrade / supersede: creates a NEW row + JWT (same customer and fingerprint binding), marks the
+previous row superseded (`superseded_by_license_id`) without revocation. Supply exactly one of
+`licenseKey` (full REGK) or `issuedLicenseId` (row id when `GET list` returns masked keys).
+Rejects when the stored expiry is after the requested new expiry, or when the row is revoked/already superseded.
+ */
+export const postApiAdminLicenseUpgrade = (
     upgradeLicenseRequestBody: UpgradeLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -13895,7 +14990,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseUpgradeMutationBody = UpgradeLicenseRequestBody
     export type PostApiAdminLicenseUpgradeMutationError = unknown
 
-    export const usePostApiAdminLicenseUpgrade = <TError = unknown,
+    /**
+ * @summary Upgrade / supersede: creates a NEW row + JWT (same customer and fingerprint binding), marks the
+previous row superseded (`superseded_by_license_id`) without revocation. Supply exactly one of
+`licenseKey` (full REGK) or `issuedLicenseId` (row id when `GET list` returns masked keys).
+Rejects when the stored expiry is after the requested new expiry, or when the row is revoked/already superseded.
+ */
+export const usePostApiAdminLicenseUpgrade = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseUpgrade>>, TError,{data: UpgradeLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseUpgrade>>,
@@ -13908,7 +15009,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseTransferRequestLicenseKey = (
+    /**
+ * @summary Original expiry (`expiry_at_utc`) plus a suggested calendar date (`YYYY-MM-DD`) for renewal
+(anchor = max(active expiry calendar day, UTC today) + one calendar year, end-of-day UTC).
+ */
+export const getApiAdminLicenseTransferRequestLicenseKey = (
     licenseKey: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -13947,6 +15052,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseTransferRequestLicenseKeyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseTransferRequestLicenseKey>>>
 export type GetApiAdminLicenseTransferRequestLicenseKeyQueryError = ProblemDetails
 
+/**
+ * @summary Original expiry (`expiry_at_utc`) plus a suggested calendar date (`YYYY-MM-DD`) for renewal
+(anchor = max(active expiry calendar day, UTC today) + one calendar year, end-of-day UTC).
+ */
 export const useGetApiAdminLicenseTransferRequestLicenseKey = <TData = Awaited<ReturnType<typeof getApiAdminLicenseTransferRequestLicenseKey>>, TError = ProblemDetails>(
  licenseKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTransferRequestLicenseKey>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -13963,6 +15072,10 @@ export const useGetApiAdminLicenseTransferRequestLicenseKey = <TData = Awaited<R
 
 
 
+/**
+ * @summary Creates a NEW issued row + JWT (same expiry, same customer); old row gets `transferred_to_license_id` (audit; not revoked).
+Caller must supply the new server's SHA-256 machine fingerprint (`newMachineHashHex`), typically from `/api/health/license`.
+ */
 export const postApiAdminLicenseTransfer = (
     transferLicenseRequestBody: TransferLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -14001,7 +15114,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseTransferMutationBody = TransferLicenseRequestBody
     export type PostApiAdminLicenseTransferMutationError = unknown
 
-    export const usePostApiAdminLicenseTransfer = <TError = unknown,
+    /**
+ * @summary Creates a NEW issued row + JWT (same expiry, same customer); old row gets `transferred_to_license_id` (audit; not revoked).
+Caller must supply the new server's SHA-256 machine fingerprint (`newMachineHashHex`), typically from `/api/health/license`.
+ */
+export const usePostApiAdminLicenseTransfer = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTransfer>>, TError,{data: TransferLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTransfer>>,
@@ -14069,6 +15186,11 @@ export const useGetApiAdminLicenseRenewalInfoLicenseKey = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Renew an issued license: creates a new row (new `licenseKey` + JWT), revokes the previous row for audit.
+Body: `newExpiryDate` (YYYY-MM-DD, end-of-day UTC) must be in the future. Supply exactly one of
+`licenseKey` (full REGK) or `issuedLicenseId` (row id from GET list).
+ */
 export const postApiAdminLicenseRenew = (
     renewLicenseRequestBody: RenewLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -14107,7 +15229,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseRenewMutationBody = RenewLicenseRequestBody
     export type PostApiAdminLicenseRenewMutationError = unknown
 
-    export const usePostApiAdminLicenseRenew = <TError = unknown,
+    /**
+ * @summary Renew an issued license: creates a new row (new `licenseKey` + JWT), revokes the previous row for audit.
+Body: `newExpiryDate` (YYYY-MM-DD, end-of-day UTC) must be in the future. Supply exactly one of
+`licenseKey` (full REGK) or `issuedLicenseId` (row id from GET list).
+ */
+export const usePostApiAdminLicenseRenew = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseRenew>>, TError,{data: RenewLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseRenew>>,
@@ -14120,7 +15247,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseRevoke = (
+    /**
+ * @summary Mark an issued license as revoked. Requires `settings.manage` (SuperAdmin has the full permission set).
+ */
+export const postApiAdminLicenseRevoke = (
     revokeLicenseRequestBody: RevokeLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -14158,7 +15288,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseRevokeMutationBody = RevokeLicenseRequestBody
     export type PostApiAdminLicenseRevokeMutationError = unknown
 
-    export const usePostApiAdminLicenseRevoke = <TError = unknown,
+    /**
+ * @summary Mark an issued license as revoked. Requires `settings.manage` (SuperAdmin has the full permission set).
+ */
+export const usePostApiAdminLicenseRevoke = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseRevoke>>, TError,{data: RevokeLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseRevoke>>,
@@ -14171,7 +15304,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminLicenseRevokeId = (
+    /**
+ * @summary Revoke an issued license by row id (`GET /api/admin/license/list`). Same rules as POST revoke by key.
+ */
+export const deleteApiAdminLicenseRevokeId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -14207,7 +15343,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminLicenseRevokeIdMutationError = unknown
 
-    export const useDeleteApiAdminLicenseRevokeId = <TError = unknown,
+    /**
+ * @summary Revoke an issued license by row id (`GET /api/admin/license/list`). Same rules as POST revoke by key.
+ */
+export const useDeleteApiAdminLicenseRevokeId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminLicenseRevokeId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminLicenseRevokeId>>,
@@ -14220,7 +15359,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseDashboardStats = (
+    /**
+ * @summary Mandantenlizenz + deployment license KPIs. Super Admin: all tenants; Manager: membership-scoped tenants only.
+ */
+export const getApiAdminLicenseDashboardStats = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -14259,6 +15401,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDashboardStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDashboardStats>>>
 export type GetApiAdminLicenseDashboardStatsQueryError = unknown
 
+/**
+ * @summary Mandantenlizenz + deployment license KPIs. Super Admin: all tenants; Manager: membership-scoped tenants only.
+ */
 export const useGetApiAdminLicenseDashboardStats = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDashboardStats>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDashboardStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14275,6 +15420,9 @@ export const useGetApiAdminLicenseDashboardStats = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Issued-license counts and activated device cardinality (no JWT).
+ */
 export const getApiAdminLicenseDashboardSummary = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14314,6 +15462,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDashboardSummary>>>
 export type GetApiAdminLicenseDashboardSummaryQueryError = unknown
 
+/**
+ * @summary Issued-license counts and activated device cardinality (no JWT).
+ */
 export const useGetApiAdminLicenseDashboardSummary = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDashboardSummary>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14330,6 +15481,9 @@ export const useGetApiAdminLicenseDashboardSummary = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Activation counts grouped by calendar day or ISO week (UTC).
+ */
 export const getApiAdminLicenseDashboardActivationSeries = (
     params?: GetApiAdminLicenseDashboardActivationSeriesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14370,6 +15524,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDashboardActivationSeriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDashboardActivationSeries>>>
 export type GetApiAdminLicenseDashboardActivationSeriesQueryError = unknown
 
+/**
+ * @summary Activation counts grouped by calendar day or ISO week (UTC).
+ */
 export const useGetApiAdminLicenseDashboardActivationSeries = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDashboardActivationSeries>>, TError = unknown>(
  params?: GetApiAdminLicenseDashboardActivationSeriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDashboardActivationSeries>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14386,6 +15543,9 @@ export const useGetApiAdminLicenseDashboardActivationSeries = <TData = Awaited<R
 
 
 
+/**
+ * @summary Recent license-related events (activations + lifecycle audit).
+ */
 export const getApiAdminLicenseDashboardRecentActivity = (
     params?: GetApiAdminLicenseDashboardRecentActivityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14426,6 +15586,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDashboardRecentActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDashboardRecentActivity>>>
 export type GetApiAdminLicenseDashboardRecentActivityQueryError = unknown
 
+/**
+ * @summary Recent license-related events (activations + lifecycle audit).
+ */
 export const useGetApiAdminLicenseDashboardRecentActivity = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDashboardRecentActivity>>, TError = unknown>(
  params?: GetApiAdminLicenseDashboardRecentActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDashboardRecentActivity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14442,6 +15605,9 @@ export const useGetApiAdminLicenseDashboardRecentActivity = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary CSV export of non-deleted issued licenses (masked keys, no JWT).
+ */
 export const getApiAdminLicenseDashboardReportCsv = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14481,6 +15647,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseDashboardReportCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseDashboardReportCsv>>>
 export type GetApiAdminLicenseDashboardReportCsvQueryError = unknown
 
+/**
+ * @summary CSV export of non-deleted issued licenses (masked keys, no JWT).
+ */
 export const useGetApiAdminLicenseDashboardReportCsv = <TData = Awaited<ReturnType<typeof getApiAdminLicenseDashboardReportCsv>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseDashboardReportCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14499,6 +15668,7 @@ export const useGetApiAdminLicenseDashboardReportCsv = <TData = Awaited<ReturnTy
 
 /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (unified server + tenant activation).
  */
 export const postApiAdminLicenseActivate = (
     activateLicenseRequest: ActivateLicenseRequest,
@@ -14540,6 +15710,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (unified server + tenant activation).
  */
 export const usePostApiAdminLicenseActivate = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -14556,6 +15727,7 @@ export const usePostApiAdminLicenseActivate = <TError = void,
     }
     /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (billing extend is activation of the new sale key).
  */
 export const postApiAdminLicenseExtend = (
     extendLicenseRequest: ExtendLicenseRequest,
@@ -14597,6 +15769,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     /**
  * @deprecated
+ * @summary Deprecated. Use `POST /api/license/activate` (billing extend is activation of the new sale key).
  */
 export const usePostApiAdminLicenseExtend = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseExtend>>, TError,{data: ExtendLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -14611,7 +15784,11 @@ export const usePostApiAdminLicenseExtend = <TError = void,
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseGracePeriod = (
+    /**
+ * @summary Super Admin overview of mandants currently in the license grace window
+(bucket KPIs + sortable tenant list).
+ */
+export const getApiAdminLicenseGracePeriod = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -14650,6 +15827,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseGracePeriodQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseGracePeriod>>>
 export type GetApiAdminLicenseGracePeriodQueryError = unknown
 
+/**
+ * @summary Super Admin overview of mandants currently in the license grace window
+(bucket KPIs + sortable tenant list).
+ */
 export const useGetApiAdminLicenseGracePeriod = <TData = Awaited<ReturnType<typeof getApiAdminLicenseGracePeriod>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseGracePeriod>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14666,6 +15847,9 @@ export const useGetApiAdminLicenseGracePeriod = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Super Admin unified license audit trail (billing_audit_log + LICENSE_* audit_logs).
+ */
 export const getApiAdminLicenseAudit = (
     params?: GetApiAdminLicenseAuditParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14706,6 +15890,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseAudit>>>
 export type GetApiAdminLicenseAuditQueryError = unknown
 
+/**
+ * @summary Super Admin unified license audit trail (billing_audit_log + LICENSE_* audit_logs).
+ */
 export const useGetApiAdminLicenseAudit = <TData = Awaited<ReturnType<typeof getApiAdminLicenseAudit>>, TError = unknown>(
  params?: GetApiAdminLicenseAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseAudit>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14722,6 +15909,9 @@ export const useGetApiAdminLicenseAudit = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary CSV export of the unified license audit trail (same filters as list).
+ */
 export const getApiAdminLicenseAuditExport = (
     params?: GetApiAdminLicenseAuditExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14763,6 +15953,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseAuditExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseAuditExport>>>
 export type GetApiAdminLicenseAuditExportQueryError = unknown
 
+/**
+ * @summary CSV export of the unified license audit trail (same filters as list).
+ */
 export const useGetApiAdminLicenseAuditExport = <TData = Awaited<ReturnType<typeof getApiAdminLicenseAuditExport>>, TError = unknown>(
  params?: GetApiAdminLicenseAuditExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseAuditExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14779,6 +15972,9 @@ export const useGetApiAdminLicenseAuditExport = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Full issued row + JWT + activation audit (sensitive — SuperAdmin only).
+ */
 export const getApiAdminLicenseIdDetails = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -14818,6 +16014,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseIdDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseIdDetails>>>
 export type GetApiAdminLicenseIdDetailsQueryError = unknown
 
+/**
+ * @summary Full issued row + JWT + activation audit (sensitive — SuperAdmin only).
+ */
 export const useGetApiAdminLicenseIdDetails = <TData = Awaited<ReturnType<typeof getApiAdminLicenseIdDetails>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseIdDetails>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -14886,7 +16085,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseIdRevoke = (
+    /**
+ * @summary Revokes (blocks) the issued license row by id.
+ */
+export const postApiAdminLicenseIdRevoke = (
     id: string,
     revokeLicenseByIdRequestBody: RevokeLicenseByIdRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -14925,7 +16127,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseIdRevokeMutationBody = RevokeLicenseByIdRequestBody
     export type PostApiAdminLicenseIdRevokeMutationError = unknown
 
-    export const usePostApiAdminLicenseIdRevoke = <TError = unknown,
+    /**
+ * @summary Revokes (blocks) the issued license row by id.
+ */
+export const usePostApiAdminLicenseIdRevoke = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseIdRevoke>>, TError,{id: string;data: RevokeLicenseByIdRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseIdRevoke>>,
@@ -14938,7 +16143,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseIdCancel = (
+    /**
+ * @summary Terminal cancellation: revoked + cancelled flags (no reactivation path on this row).
+ */
+export const postApiAdminLicenseIdCancel = (
     id: string,
     cancelLicenseRequestBody: CancelLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -14977,7 +16185,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseIdCancelMutationBody = CancelLicenseRequestBody
     export type PostApiAdminLicenseIdCancelMutationError = unknown
 
-    export const usePostApiAdminLicenseIdCancel = <TError = unknown,
+    /**
+ * @summary Terminal cancellation: revoked + cancelled flags (no reactivation path on this row).
+ */
+export const usePostApiAdminLicenseIdCancel = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseIdCancel>>, TError,{id: string;data: CancelLicenseRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseIdCancel>>,
@@ -14990,7 +16201,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminLicenseId = (
+    /**
+ * @summary Soft-delete: hides from list and blocks validation via registry overlay.
+ */
+export const deleteApiAdminLicenseId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -15026,7 +16240,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminLicenseIdMutationError = unknown
 
-    export const useDeleteApiAdminLicenseId = <TError = unknown,
+    /**
+ * @summary Soft-delete: hides from list and blocks validation via registry overlay.
+ */
+export const useDeleteApiAdminLicenseId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminLicenseId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminLicenseId>>,
@@ -15088,7 +16305,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseMandant = (
+    /**
+ * @summary Mandantenlizenz overview for the effective tenant (Manager self-service on `/admin/license`).
+ */
+export const getApiAdminLicenseMandant = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -15127,6 +16347,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseMandantQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseMandant>>>
 export type GetApiAdminLicenseMandantQueryError = ProblemDetails
 
+/**
+ * @summary Mandantenlizenz overview for the effective tenant (Manager self-service on `/admin/license`).
+ */
 export const useGetApiAdminLicenseMandant = <TData = Awaited<ReturnType<typeof getApiAdminLicenseMandant>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseMandant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15143,6 +16366,9 @@ export const useGetApiAdminLicenseMandant = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Extend the effective tenant license with a REGK key (Manager self-service; Super Admin may also set `validUntilUtc`).
+ */
 export const postApiAdminLicenseMandantExtend = (
     extendTenantLicenseRequest: ExtendTenantLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -15181,7 +16407,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseMandantExtendMutationBody = ExtendTenantLicenseRequest
     export type PostApiAdminLicenseMandantExtendMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseMandantExtend = <TError = ProblemDetails,
+    /**
+ * @summary Extend the effective tenant license with a REGK key (Manager self-service; Super Admin may also set `validUntilUtc`).
+ */
+export const usePostApiAdminLicenseMandantExtend = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseMandantExtend>>, TError,{data: ExtendTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseMandantExtend>>,
@@ -15194,7 +16423,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseMandantPreview = (
+    /**
+ * @summary Preview a unified REGK key (issued_licenses and license_sales). Super Admin does not need ambient tenant.
+ */
+export const postApiAdminLicenseMandantPreview = (
     previewTenantLicenseRequest: PreviewTenantLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -15232,7 +16464,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseMandantPreviewMutationBody = PreviewTenantLicenseRequest
     export type PostApiAdminLicenseMandantPreviewMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseMandantPreview = <TError = ProblemDetails,
+    /**
+ * @summary Preview a unified REGK key (issued_licenses and license_sales). Super Admin does not need ambient tenant.
+ */
+export const usePostApiAdminLicenseMandantPreview = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseMandantPreview>>, TError,{data: PreviewTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseMandantPreview>>,
@@ -15245,7 +16480,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseMandantRenew = (
+    /**
+ * @summary Renew the effective tenant license (Manager self-service; requires payment confirmation).
+ */
+export const postApiAdminLicenseMandantRenew = (
     renewTenantLicenseRequest: RenewTenantLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -15283,7 +16521,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseMandantRenewMutationBody = RenewTenantLicenseRequest
     export type PostApiAdminLicenseMandantRenewMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseMandantRenew = <TError = ProblemDetails,
+    /**
+ * @summary Renew the effective tenant license (Manager self-service; requires payment confirmation).
+ */
+export const usePostApiAdminLicenseMandantRenew = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseMandantRenew>>, TError,{data: RenewTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseMandantRenew>>,
@@ -15296,7 +16537,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseHistory = (
+    /**
+ * @summary Mandant license renewal events and issued-license history for a tenant.
+ */
+export const getApiAdminLicenseHistory = (
     params?: GetApiAdminLicenseHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -15336,6 +16580,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>>
 export type GetApiAdminLicenseHistoryQueryError = ProblemDetails
 
+/**
+ * @summary Mandant license renewal events and issued-license history for a tenant.
+ */
 export const useGetApiAdminLicenseHistory = <TData = Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError = ProblemDetails>(
  params?: GetApiAdminLicenseHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15352,6 +16599,9 @@ export const useGetApiAdminLicenseHistory = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Synthetic HTML/plain preview of the mandant license reminder email (no SMTP send).
+ */
 export const getApiAdminLicenseReminderEmailPreview = (
     params?: GetApiAdminLicenseReminderEmailPreviewParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -15392,6 +16642,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseReminderEmailPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseReminderEmailPreview>>>
 export type GetApiAdminLicenseReminderEmailPreviewQueryError = unknown
 
+/**
+ * @summary Synthetic HTML/plain preview of the mandant license reminder email (no SMTP send).
+ */
 export const useGetApiAdminLicenseReminderEmailPreview = <TData = Awaited<ReturnType<typeof getApiAdminLicenseReminderEmailPreview>>, TError = unknown>(
  params?: GetApiAdminLicenseReminderEmailPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseReminderEmailPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15408,6 +16661,9 @@ export const useGetApiAdminLicenseReminderEmailPreview = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Super Admin renewal conversion funnel (reminder → page view → renew → activate).
+ */
 export const getApiAdminLicenseRenewalFunnel = (
     params?: GetApiAdminLicenseRenewalFunnelParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -15448,6 +16704,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseRenewalFunnelQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseRenewalFunnel>>>
 export type GetApiAdminLicenseRenewalFunnelQueryError = unknown
 
+/**
+ * @summary Super Admin renewal conversion funnel (reminder → page view → renew → activate).
+ */
 export const useGetApiAdminLicenseRenewalFunnel = <TData = Awaited<ReturnType<typeof getApiAdminLicenseRenewalFunnel>>, TError = unknown>(
  params?: GetApiAdminLicenseRenewalFunnelParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseRenewalFunnel>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15464,6 +16723,9 @@ export const useGetApiAdminLicenseRenewalFunnel = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Records that the current tenant opened the license renewal UI (deduped per UTC day).
+ */
 export const postApiAdminLicenseRenewalFunnelPageView = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -15500,7 +16762,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminLicenseRenewalFunnelPageViewMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseRenewalFunnelPageView = <TError = ProblemDetails,
+    /**
+ * @summary Records that the current tenant opened the license renewal UI (deduped per UTC day).
+ */
+export const usePostApiAdminLicenseRenewalFunnelPageView = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseRenewalFunnelPageView>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseRenewalFunnelPageView>>,
@@ -15513,7 +16778,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseCacheClear = (
+    /**
+ * @summary Clear billing license status cache for one tenant (by `tenantId` or `tenantSlug`).
+ */
+export const postApiAdminLicenseCacheClear = (
     clearLicenseCacheRequest: ClearLicenseCacheRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -15551,7 +16819,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseCacheClearMutationBody = ClearLicenseCacheRequest
     export type PostApiAdminLicenseCacheClearMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseCacheClear = <TError = ProblemDetails,
+    /**
+ * @summary Clear billing license status cache for one tenant (by `tenantId` or `tenantSlug`).
+ */
+export const usePostApiAdminLicenseCacheClear = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseCacheClear>>, TError,{data: ClearLicenseCacheRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseCacheClear>>,
@@ -15564,7 +16835,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicensesExportCsv = (
+    /**
+ * @summary CSV export: issued licenses, matching activations, optional activation attempts.
+Filename: `licenses_{tenantSlug}_{stamp}.csv`.
+ */
+export const getApiAdminLicensesExportCsv = (
     params?: GetApiAdminLicensesExportCsvParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -15604,6 +16879,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicensesExportCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicensesExportCsv>>>
 export type GetApiAdminLicensesExportCsvQueryError = unknown
 
+/**
+ * @summary CSV export: issued licenses, matching activations, optional activation attempts.
+Filename: `licenses_{tenantSlug}_{stamp}.csv`.
+ */
 export const useGetApiAdminLicensesExportCsv = <TData = Awaited<ReturnType<typeof getApiAdminLicensesExportCsv>>, TError = unknown>(
  params?: GetApiAdminLicensesExportCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicensesExportCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15620,6 +16899,10 @@ export const useGetApiAdminLicensesExportCsv = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary JSON backup export (same filter semantics as CSV).
+Filename: `licenses_{tenantSlug}_{stamp}.json`.
+ */
 export const getApiAdminLicensesExportJson = (
     params?: GetApiAdminLicensesExportJsonParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -15660,6 +16943,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicensesExportJsonQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicensesExportJson>>>
 export type GetApiAdminLicensesExportJsonQueryError = unknown
 
+/**
+ * @summary JSON backup export (same filter semantics as CSV).
+Filename: `licenses_{tenantSlug}_{stamp}.json`.
+ */
 export const useGetApiAdminLicensesExportJson = <TData = Awaited<ReturnType<typeof getApiAdminLicensesExportJson>>, TError = unknown>(
  params?: GetApiAdminLicensesExportJsonParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicensesExportJson>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15676,6 +16963,9 @@ export const useGetApiAdminLicensesExportJson = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Summary counts for dashboard / scheduled mail (issued date filter optional).
+ */
 export const getApiAdminLicensesReportSummary = (
     params?: GetApiAdminLicensesReportSummaryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -15716,6 +17006,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicensesReportSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicensesReportSummary>>>
 export type GetApiAdminLicensesReportSummaryQueryError = unknown
 
+/**
+ * @summary Summary counts for dashboard / scheduled mail (issued date filter optional).
+ */
 export const useGetApiAdminLicensesReportSummary = <TData = Awaited<ReturnType<typeof getApiAdminLicensesReportSummary>>, TError = unknown>(
  params?: GetApiAdminLicensesReportSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicensesReportSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -15732,7 +17025,113 @@ export const useGetApiAdminLicensesReportSummary = <TData = Awaited<ReturnType<t
 
 
 
-export const getApiAdminRooms = (
+export const getApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<LieferandoTenantCredentialStatusDto>(
+      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey = () => {
+    return [`/api/admin/online-order-integrations/lieferando/credentials`] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsLieferandoCredentials(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
+export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
+    upsertLieferandoTenantCredentialRequest: UpsertLieferandoTenantCredentialRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertLieferandoTenantCredentialRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, {data: UpsertLieferandoTenantCredentialRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsLieferandoCredentials(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationBody = UpsertLieferandoTenantCredentialRequest
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>,
+        TError,
+        {data: UpsertLieferandoTenantCredentialRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminRooms = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -16423,7 +17822,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminMaintenanceNotificationsActive = (
+    /**
+ * @summary Active notices for the current FA user (banner / force modal).
+ */
+export const getApiAdminMaintenanceNotificationsActive = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -16462,6 +17864,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMaintenanceNotificationsActiveQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMaintenanceNotificationsActive>>>
 export type GetApiAdminMaintenanceNotificationsActiveQueryError = unknown
 
+/**
+ * @summary Active notices for the current FA user (banner / force modal).
+ */
 export const useGetApiAdminMaintenanceNotificationsActive = <TData = Awaited<ReturnType<typeof getApiAdminMaintenanceNotificationsActive>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMaintenanceNotificationsActive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -16478,6 +17883,9 @@ export const useGetApiAdminMaintenanceNotificationsActive = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary Dismiss / mark-read for the current user.
+ */
 export const postApiAdminMaintenanceNotificationsIdAcknowledge = (
     id: string,
     acknowledgeMaintenanceNotificationRequestDto: AcknowledgeMaintenanceNotificationRequestDto,
@@ -16517,7 +17925,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminMaintenanceNotificationsIdAcknowledgeMutationBody = AcknowledgeMaintenanceNotificationRequestDto
     export type PostApiAdminMaintenanceNotificationsIdAcknowledgeMutationError = ProblemDetails
 
-    export const usePostApiAdminMaintenanceNotificationsIdAcknowledge = <TError = ProblemDetails,
+    /**
+ * @summary Dismiss / mark-read for the current user.
+ */
+export const usePostApiAdminMaintenanceNotificationsIdAcknowledge = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMaintenanceNotificationsIdAcknowledge>>, TError,{id: string;data: AcknowledgeMaintenanceNotificationRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminMaintenanceNotificationsIdAcknowledge>>,
@@ -16530,7 +17941,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminMaintenanceNotifications = (
+    /**
+ * @summary Super Admin: list all maintenance notifications.
+ */
+export const getApiAdminMaintenanceNotifications = (
     params?: GetApiAdminMaintenanceNotificationsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -16570,6 +17984,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMaintenanceNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMaintenanceNotifications>>>
 export type GetApiAdminMaintenanceNotificationsQueryError = unknown
 
+/**
+ * @summary Super Admin: list all maintenance notifications.
+ */
 export const useGetApiAdminMaintenanceNotifications = <TData = Awaited<ReturnType<typeof getApiAdminMaintenanceNotifications>>, TError = unknown>(
  params?: GetApiAdminMaintenanceNotificationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMaintenanceNotifications>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -16586,6 +18003,9 @@ export const useGetApiAdminMaintenanceNotifications = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Super Admin: create a draft (or publish immediately).
+ */
 export const postApiAdminMaintenanceNotifications = (
     createMaintenanceNotificationRequestDto: CreateMaintenanceNotificationRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -16624,7 +18044,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminMaintenanceNotificationsMutationBody = CreateMaintenanceNotificationRequestDto
     export type PostApiAdminMaintenanceNotificationsMutationError = unknown
 
-    export const usePostApiAdminMaintenanceNotifications = <TError = unknown,
+    /**
+ * @summary Super Admin: create a draft (or publish immediately).
+ */
+export const usePostApiAdminMaintenanceNotifications = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMaintenanceNotifications>>, TError,{data: CreateMaintenanceNotificationRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminMaintenanceNotifications>>,
@@ -16885,7 +18308,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminMonatsbelegClosingPreview = (
+    /**
+ * @summary Preview monthly totals from daily closings without TSE signing.
+ */
+export const getApiAdminMonatsbelegClosingPreview = (
     params?: GetApiAdminMonatsbelegClosingPreviewParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -16925,6 +18351,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMonatsbelegClosingPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>>
 export type GetApiAdminMonatsbelegClosingPreviewQueryError = unknown
 
+/**
+ * @summary Preview monthly totals from daily closings without TSE signing.
+ */
 export const useGetApiAdminMonatsbelegClosingPreview = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError = unknown>(
  params?: GetApiAdminMonatsbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -16941,6 +18370,9 @@ export const useGetApiAdminMonatsbelegClosingPreview = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Create RKSV Monatsbeleg for a Vienna calendar month (default: current month).
+ */
 export const postApiAdminMonatsbelegClosing = (
     createMonatsbelegClosingRequest: CreateMonatsbelegClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -16979,7 +18411,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminMonatsbelegClosingMutationBody = CreateMonatsbelegClosingRequest
     export type PostApiAdminMonatsbelegClosingMutationError = ProblemDetails
 
-    export const usePostApiAdminMonatsbelegClosing = <TError = ProblemDetails,
+    /**
+ * @summary Create RKSV Monatsbeleg for a Vienna calendar month (default: current month).
+ */
+export const usePostApiAdminMonatsbelegClosing = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>, TError,{data: CreateMonatsbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>,
@@ -17103,6 +18538,9 @@ export const useGetApiAdminMonatsbelegClosingId = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Localized PDF for a persisted Monatsbeleg.
+ */
 export const getApiAdminMonatsbelegClosingIdReportPdf = (
     id: string,
     params?: GetApiAdminMonatsbelegClosingIdReportPdfParams,
@@ -17147,6 +18585,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMonatsbelegClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>>
 export type GetApiAdminMonatsbelegClosingIdReportPdfQueryError = ProblemDetails
 
+/**
+ * @summary Localized PDF for a persisted Monatsbeleg.
+ */
 export const useGetApiAdminMonatsbelegClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError = ProblemDetails>(
  id: string,
     params?: GetApiAdminMonatsbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -17268,7 +18709,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminMwstTenantsTenantIdRates = (
+    /**
+ * @summary Effective Swiss MWST rates for tenantId.
+Missing tenant → 404. A non-CH mandant returns the code seed with `applies: false`.
+ */
+export const getApiAdminMwstTenantsTenantIdRates = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -17307,6 +18752,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMwstTenantsTenantIdRatesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMwstTenantsTenantIdRates>>>
 export type GetApiAdminMwstTenantsTenantIdRatesQueryError = ProblemDetails
 
+/**
+ * @summary Effective Swiss MWST rates for tenantId.
+Missing tenant → 404. A non-CH mandant returns the code seed with `applies: false`.
+ */
 export const useGetApiAdminMwstTenantsTenantIdRates = <TData = Awaited<ReturnType<typeof getApiAdminMwstTenantsTenantIdRates>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMwstTenantsTenantIdRates>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -17753,7 +19202,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminOfflineTransactionsSummary = (
+    /**
+ * @summary Dashboard widget: pending/failed counts and last replay instant.
+ */
+export const getApiAdminOfflineTransactionsSummary = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -17792,6 +19244,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflineTransactionsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>>
 export type GetApiAdminOfflineTransactionsSummaryQueryError = unknown
 
+/**
+ * @summary Dashboard widget: pending/failed counts and last replay instant.
+ */
 export const useGetApiAdminOfflineTransactionsSummary = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -17808,6 +19263,10 @@ export const useGetApiAdminOfflineTransactionsSummary = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Filterable list: statusGroup = pending | completed | failed | all.
+Date bounds apply to KasseAPI_Final.Models.OfflineTransaction.ServerReceivedAtUtc (UTC).
+ */
 export const getApiAdminOfflineTransactions = (
     params?: GetApiAdminOfflineTransactionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -17848,6 +19307,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflineTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>>
 export type GetApiAdminOfflineTransactionsQueryError = unknown
 
+/**
+ * @summary Filterable list: statusGroup = pending | completed | failed | all.
+Date bounds apply to KasseAPI_Final.Models.OfflineTransaction.ServerReceivedAtUtc (UTC).
+ */
 export const useGetApiAdminOfflineTransactions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError = unknown>(
  params?: GetApiAdminOfflineTransactionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -17864,6 +19327,9 @@ export const useGetApiAdminOfflineTransactions = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary CSV export of failed transactions for the same tenant and optional filters.
+ */
 export const getApiAdminOfflineTransactionsExportFailed = (
     params?: GetApiAdminOfflineTransactionsExportFailedParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -17904,6 +19370,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflineTransactionsExportFailedQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>>
 export type GetApiAdminOfflineTransactionsExportFailedQueryError = unknown
 
+/**
+ * @summary CSV export of failed transactions for the same tenant and optional filters.
+ */
 export const useGetApiAdminOfflineTransactionsExportFailed = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError = unknown>(
  params?: GetApiAdminOfflineTransactionsExportFailedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -17920,6 +19389,9 @@ export const useGetApiAdminOfflineTransactionsExportFailed = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Replay one offline intent (pending or failed).
+ */
 export const postApiAdminOfflineTransactionsIdRetry = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -17956,7 +19428,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminOfflineTransactionsIdRetryMutationError = unknown
 
-    export const usePostApiAdminOfflineTransactionsIdRetry = <TError = unknown,
+    /**
+ * @summary Replay one offline intent (pending or failed).
+ */
+export const usePostApiAdminOfflineTransactionsIdRetry = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>,
@@ -17969,7 +19444,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminOfflineTransactionsRetryAll = (
+    /**
+ * @summary Replay all failed offline intents for this tenant (FIFO by server receive time).
+ */
+export const postApiAdminOfflineTransactionsRetryAll = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -18005,7 +19483,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminOfflineTransactionsRetryAllMutationError = unknown
 
-    export const usePostApiAdminOfflineTransactionsRetryAll = <TError = unknown,
+    /**
+ * @summary Replay all failed offline intents for this tenant (FIFO by server receive time).
+ */
+export const usePostApiAdminOfflineTransactionsRetryAll = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>,
@@ -18555,6 +20036,11 @@ export const useGetApiAdminOnlineOrdersId = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Optional POS cart bridge (creates a POS cart for the actor). Requires
+KasseAPI_Final.Authorization.AppPermissions.DigitalOrdersApprove (Super Admin) — not Manager status-only flow.
+Prefer M:KasseAPI_Final.Controllers.AdminOnlineOrdersController.UpdateStatus(System.Guid,KasseAPI_Final.DTOs.UpdateOnlineOrderStatusRequestDto,System.Threading.CancellationToken) for website/app fulfillment.
+ */
 export const postApiAdminOnlineOrdersIdAccept = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -18591,7 +20077,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminOnlineOrdersIdAcceptMutationError = AcceptOnlineOrderResponseDto
 
-    export const usePostApiAdminOnlineOrdersIdAccept = <TError = AcceptOnlineOrderResponseDto,
+    /**
+ * @summary Optional POS cart bridge (creates a POS cart for the actor). Requires
+KasseAPI_Final.Authorization.AppPermissions.DigitalOrdersApprove (Super Admin) — not Manager status-only flow.
+Prefer M:KasseAPI_Final.Controllers.AdminOnlineOrdersController.UpdateStatus(System.Guid,KasseAPI_Final.DTOs.UpdateOnlineOrderStatusRequestDto,System.Threading.CancellationToken) for website/app fulfillment.
+ */
+export const usePostApiAdminOnlineOrdersIdAccept = <TError = AcceptOnlineOrderResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlineOrdersIdAccept>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOnlineOrdersIdAccept>>,
@@ -18604,7 +20095,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const patchApiAdminOnlineOrdersIdStatus = (
+    /**
+ * @summary Update kitchen/fulfillment status only (no POS cart, no TSE, no fiscal receipt).
+Allowed: pending→accepted→preparing→ready→completed, or cancel from non-terminal states.
+ */
+export const patchApiAdminOnlineOrdersIdStatus = (
     id: string,
     updateOnlineOrderStatusRequestDto: UpdateOnlineOrderStatusRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -18643,7 +20138,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminOnlineOrdersIdStatusMutationBody = UpdateOnlineOrderStatusRequestDto
     export type PatchApiAdminOnlineOrdersIdStatusMutationError = UpdateOnlineOrderStatusResponseDto
 
-    export const usePatchApiAdminOnlineOrdersIdStatus = <TError = UpdateOnlineOrderStatusResponseDto,
+    /**
+ * @summary Update kitchen/fulfillment status only (no POS cart, no TSE, no fiscal receipt).
+Allowed: pending→accepted→preparing→ready→completed, or cancel from non-terminal states.
+ */
+export const usePatchApiAdminOnlineOrdersIdStatus = <TError = UpdateOnlineOrderStatusResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminOnlineOrdersIdStatus>>, TError,{id: string;data: UpdateOnlineOrderStatusRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminOnlineOrdersIdStatus>>,
@@ -18711,6 +20210,9 @@ export const useGetApiAdminOnlineOrdersIdTimeline = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Create payment intent for an online order (staff-assisted checkout).
+ */
 export const postApiAdminOnlineOrdersIdPaymentIntent = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -18747,7 +20249,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminOnlineOrdersIdPaymentIntentMutationError = OnlineOrderPaymentIntentResponseDto
 
-    export const usePostApiAdminOnlineOrdersIdPaymentIntent = <TError = OnlineOrderPaymentIntentResponseDto,
+    /**
+ * @summary Create payment intent for an online order (staff-assisted checkout).
+ */
+export const usePostApiAdminOnlineOrdersIdPaymentIntent = <TError = OnlineOrderPaymentIntentResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlineOrdersIdPaymentIntent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOnlineOrdersIdPaymentIntent>>,
@@ -18871,6 +20376,10 @@ export const useGetApiAdminOnlinePaymentsId = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Synthetic test payment or webhook simulation.
+`action`: `create`, `webhookSucceeded`/`success`, `webhookFailed`/`failed`, or `expire`.
+ */
 export const postApiAdminOnlinePaymentsTest = (
     adminOnlinePaymentTestRequest: AdminOnlinePaymentTestRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -18909,7 +20418,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminOnlinePaymentsTestMutationBody = AdminOnlinePaymentTestRequest
     export type PostApiAdminOnlinePaymentsTestMutationError = AdminOnlinePaymentTestResponse
 
-    export const usePostApiAdminOnlinePaymentsTest = <TError = AdminOnlinePaymentTestResponse,
+    /**
+ * @summary Synthetic test payment or webhook simulation.
+`action`: `create`, `webhookSucceeded`/`success`, `webhookFailed`/`failed`, or `expire`.
+ */
+export const usePostApiAdminOnlinePaymentsTest = <TError = AdminOnlinePaymentTestResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>, TError,{data: AdminOnlinePaymentTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>,
@@ -19140,7 +20653,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminOperationsSummary = (
+    /**
+ * @summary GET: Aggregated summary for RKSV operations dashboard (defaults to last 24h).
+ */
+export const getApiAdminOperationsSummary = (
     params?: GetApiAdminOperationsSummaryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -19180,6 +20696,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOperationsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOperationsSummary>>>
 export type GetApiAdminOperationsSummaryQueryError = unknown
 
+/**
+ * @summary GET: Aggregated summary for RKSV operations dashboard (defaults to last 24h).
+ */
 export const useGetApiAdminOperationsSummary = <TData = Awaited<ReturnType<typeof getApiAdminOperationsSummary>>, TError = unknown>(
  params?: GetApiAdminOperationsSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOperationsSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -19251,6 +20770,10 @@ export const useGetApiAdminSettingsPaymentGateway = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Updates tenant online-checkout payment methods only.
+Stripe secrets cannot be changed via API (deployment config).
+ */
 export const putApiAdminSettingsPaymentGateway = (
     updatePaymentGatewaySettingsRequestDto: UpdatePaymentGatewaySettingsRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -19289,7 +20812,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminSettingsPaymentGatewayMutationBody = UpdatePaymentGatewaySettingsRequestDto
     export type PutApiAdminSettingsPaymentGatewayMutationError = ProblemDetails
 
-    export const usePutApiAdminSettingsPaymentGateway = <TError = ProblemDetails,
+    /**
+ * @summary Updates tenant online-checkout payment methods only.
+Stripe secrets cannot be changed via API (deployment config).
+ */
+export const usePutApiAdminSettingsPaymentGateway = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminSettingsPaymentGateway>>, TError,{data: UpdatePaymentGatewaySettingsRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminSettingsPaymentGateway>>,
@@ -19413,6 +20940,9 @@ export const useGetApiAdminPaymentsId = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary RKSV-compliant receipt reprint as PDF (watermarked). Uses persisted receipt/QR/TSE snapshot only; no new signing or DB rows.
+ */
 export const getApiAdminPaymentsIdReprintPdf = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -19453,6 +20983,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminPaymentsIdReprintPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsIdReprintPdf>>>
 export type GetApiAdminPaymentsIdReprintPdfQueryError = ProblemDetails
 
+/**
+ * @summary RKSV-compliant receipt reprint as PDF (watermarked). Uses persisted receipt/QR/TSE snapshot only; no new signing or DB rows.
+ */
 export const useGetApiAdminPaymentsIdReprintPdf = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsIdReprintPdf>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsIdReprintPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -19469,6 +21002,9 @@ export const useGetApiAdminPaymentsIdReprintPdf = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Same RKSV-safe reprint PDF as M:KasseAPI_Final.Controllers.AdminPaymentsController.DownloadReprintPdf(System.Guid,System.Threading.CancellationToken); alternate path and filename for integrations.
+ */
 export const getApiAdminPaymentsPaymentIdReprint = (
     paymentId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -19509,6 +21045,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminPaymentsPaymentIdReprintQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsPaymentIdReprint>>>
 export type GetApiAdminPaymentsPaymentIdReprintQueryError = ProblemDetails | void
 
+/**
+ * @summary Same RKSV-safe reprint PDF as M:KasseAPI_Final.Controllers.AdminPaymentsController.DownloadReprintPdf(System.Guid,System.Threading.CancellationToken); alternate path and filename for integrations.
+ */
 export const useGetApiAdminPaymentsPaymentIdReprint = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsPaymentIdReprint>>, TError = ProblemDetails | void>(
  paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsPaymentIdReprint>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -19581,6 +21120,9 @@ export const useGetApiAdminPaymentsStatistics = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary List suspicious transaction alerts for the effective tenant.
+ */
 export const getApiAdminPaymentsAlerts = (
     params?: GetApiAdminPaymentsAlertsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -19621,6 +21163,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminPaymentsAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>>
 export type GetApiAdminPaymentsAlertsQueryError = unknown
 
+/**
+ * @summary List suspicious transaction alerts for the effective tenant.
+ */
 export const useGetApiAdminPaymentsAlerts = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError = unknown>(
  params?: GetApiAdminPaymentsAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -19637,6 +21182,9 @@ export const useGetApiAdminPaymentsAlerts = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Mark a suspicious transaction alert as read (acknowledged).
+ */
 export const postApiAdminPaymentsAlertsIdRead = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -19673,7 +21221,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminPaymentsAlertsIdReadMutationError = unknown
 
-    export const usePostApiAdminPaymentsAlertsIdRead = <TError = unknown,
+    /**
+ * @summary Mark a suspicious transaction alert as read (acknowledged).
+ */
+export const usePostApiAdminPaymentsAlertsIdRead = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>,
@@ -19686,7 +21237,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminPaymentsTrends = (
+    /**
+ * @summary Payment trend analysis (daily / weekly / monthly buckets with period comparison).
+ */
+export const getApiAdminPaymentsTrends = (
     params?: GetApiAdminPaymentsTrendsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -19726,6 +21280,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminPaymentsTrendsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>>
 export type GetApiAdminPaymentsTrendsQueryError = unknown
 
+/**
+ * @summary Payment trend analysis (daily / weekly / monthly buckets with period comparison).
+ */
 export const useGetApiAdminPaymentsTrends = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError = unknown>(
  params?: GetApiAdminPaymentsTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -20290,6 +21847,9 @@ export const useGetApiAdminPermissionAnalyticsExport = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Paginated permission audit entries (expanded per permission key).
+ */
 export const getApiAdminAuditPermissions = (
     params?: GetApiAdminAuditPermissionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -20330,6 +21890,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditPermissions>>>
 export type GetApiAdminAuditPermissionsQueryError = unknown
 
+/**
+ * @summary Paginated permission audit entries (expanded per permission key).
+ */
 export const useGetApiAdminAuditPermissions = <TData = Awaited<ReturnType<typeof getApiAdminAuditPermissions>>, TError = unknown>(
  params?: GetApiAdminAuditPermissionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -20346,6 +21909,9 @@ export const useGetApiAdminAuditPermissions = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Aggregated permission-change report (by date, actors, permissions).
+ */
 export const getApiAdminAuditPermissionsReport = (
     params?: GetApiAdminAuditPermissionsReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -20386,6 +21952,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditPermissionsReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditPermissionsReport>>>
 export type GetApiAdminAuditPermissionsReportQueryError = unknown
 
+/**
+ * @summary Aggregated permission-change report (by date, actors, permissions).
+ */
 export const useGetApiAdminAuditPermissionsReport = <TData = Awaited<ReturnType<typeof getApiAdminAuditPermissionsReport>>, TError = unknown>(
  params?: GetApiAdminAuditPermissionsReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditPermissionsReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -20402,6 +21971,9 @@ export const useGetApiAdminAuditPermissionsReport = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Export permission audit as CSV, JSON, or PDF.
+ */
 export const getApiAdminAuditPermissionsExport = (
     params?: GetApiAdminAuditPermissionsExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -20442,6 +22014,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditPermissionsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditPermissionsExport>>>
 export type GetApiAdminAuditPermissionsExportQueryError = unknown
 
+/**
+ * @summary Export permission audit as CSV, JSON, or PDF.
+ */
 export const useGetApiAdminAuditPermissionsExport = <TData = Awaited<ReturnType<typeof getApiAdminAuditPermissionsExport>>, TError = unknown>(
  params?: GetApiAdminAuditPermissionsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditPermissionsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -20458,6 +22033,9 @@ export const useGetApiAdminAuditPermissionsExport = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Compliance snapshot: who has access, last review, expired/stale overrides.
+ */
 export const getApiAdminAuditPermissionsCompliance = (
     params?: GetApiAdminAuditPermissionsComplianceParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -20498,6 +22076,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAuditPermissionsComplianceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditPermissionsCompliance>>>
 export type GetApiAdminAuditPermissionsComplianceQueryError = unknown
 
+/**
+ * @summary Compliance snapshot: who has access, last review, expired/stale overrides.
+ */
 export const useGetApiAdminAuditPermissionsCompliance = <TData = Awaited<ReturnType<typeof getApiAdminAuditPermissionsCompliance>>, TError = unknown>(
  params?: GetApiAdminAuditPermissionsComplianceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditPermissionsCompliance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -20514,6 +22095,9 @@ export const useGetApiAdminAuditPermissionsCompliance = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Schedule weekly/monthly permission audit reports emailed to auditors.
+ */
 export const postApiAdminAuditPermissionsScheduleReport = (
     schedulePermissionAuditReportRequest: SchedulePermissionAuditReportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -20552,7 +22136,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminAuditPermissionsScheduleReportMutationBody = SchedulePermissionAuditReportRequest
     export type PostApiAdminAuditPermissionsScheduleReportMutationError = unknown
 
-    export const usePostApiAdminAuditPermissionsScheduleReport = <TError = unknown,
+    /**
+ * @summary Schedule weekly/monthly permission audit reports emailed to auditors.
+ */
+export const usePostApiAdminAuditPermissionsScheduleReport = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditPermissionsScheduleReport>>, TError,{data: SchedulePermissionAuditReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminAuditPermissionsScheduleReport>>,
@@ -20565,7 +22152,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminAuditPermissionsAuditIdRevert = (
+    /**
+ * @summary Revert a role-permission audit entry to its oldValues snapshot.
+ */
+export const postApiAdminAuditPermissionsAuditIdRevert = (
     auditId: string,
     revertPermissionAuditRequest: RevertPermissionAuditRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -20604,7 +22194,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminAuditPermissionsAuditIdRevertMutationBody = RevertPermissionAuditRequest
     export type PostApiAdminAuditPermissionsAuditIdRevertMutationError = ProblemDetails | RevertPermissionAuditResponse
 
-    export const usePostApiAdminAuditPermissionsAuditIdRevert = <TError = ProblemDetails | RevertPermissionAuditResponse,
+    /**
+ * @summary Revert a role-permission audit entry to its oldValues snapshot.
+ */
+export const usePostApiAdminAuditPermissionsAuditIdRevert = <TError = ProblemDetails | RevertPermissionAuditResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditPermissionsAuditIdRevert>>, TError,{auditId: string;data: RevertPermissionAuditRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminAuditPermissionsAuditIdRevert>>,
@@ -20617,7 +22210,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminAuditPermissionsAuditIdNote = (
+    /**
+ * @summary Append a note related to a permission audit entry (new audit row; append-only).
+ */
+export const postApiAdminAuditPermissionsAuditIdNote = (
     auditId: string,
     addPermissionAuditNoteRequest: AddPermissionAuditNoteRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -20656,7 +22252,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminAuditPermissionsAuditIdNoteMutationBody = AddPermissionAuditNoteRequest
     export type PostApiAdminAuditPermissionsAuditIdNoteMutationError = ProblemDetails
 
-    export const usePostApiAdminAuditPermissionsAuditIdNote = <TError = ProblemDetails,
+    /**
+ * @summary Append a note related to a permission audit entry (new audit row; append-only).
+ */
+export const usePostApiAdminAuditPermissionsAuditIdNote = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditPermissionsAuditIdNote>>, TError,{auditId: string;data: AddPermissionAuditNoteRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminAuditPermissionsAuditIdNote>>,
@@ -22691,6 +24290,10 @@ export const useGetApiAdminPriceHistoryVersionsCurrent = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Soft-deactivate multiple products (RKSV: historical receipts keep product references).
+POST api/admin/products/bulk-deactivate
+ */
 export const postApiAdminProductsBulkDeactivate = (
     bulkDeactivateProductsRequest: BulkDeactivateProductsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -22729,7 +24332,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsBulkDeactivateMutationBody = BulkDeactivateProductsRequest
     export type PostApiAdminProductsBulkDeactivateMutationError = unknown
 
-    export const usePostApiAdminProductsBulkDeactivate = <TError = unknown,
+    /**
+ * @summary Soft-deactivate multiple products (RKSV: historical receipts keep product references).
+POST api/admin/products/bulk-deactivate
+ */
+export const usePostApiAdminProductsBulkDeactivate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsBulkDeactivate>>, TError,{data: BulkDeactivateProductsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsBulkDeactivate>>,
@@ -22742,7 +24349,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsExport = (
+    /**
+ * @summary Export products as CSV or JSON. Filename: `product_{tenantSlug}_{stamp}.{ext}`.
+ */
+export const getApiAdminProductsExport = (
     params?: GetApiAdminProductsExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -22783,6 +24393,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsExport>>>
 export type GetApiAdminProductsExportQueryError = ProblemDetails
 
+/**
+ * @summary Export products as CSV or JSON. Filename: `product_{tenantSlug}_{stamp}.{ext}`.
+ */
 export const useGetApiAdminProductsExport = <TData = Awaited<ReturnType<typeof getApiAdminProductsExport>>, TError = ProblemDetails>(
  params?: GetApiAdminProductsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -22799,6 +24412,9 @@ export const useGetApiAdminProductsExport = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog
+ */
 export const getApiAdminProductsDemoCatalog = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -22838,6 +24454,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsDemoCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>>
 export type GetApiAdminProductsDemoCatalogQueryError = unknown
 
+/**
+ * @summary Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog
+ */
 export const useGetApiAdminProductsDemoCatalog = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -22854,6 +24473,9 @@ export const useGetApiAdminProductsDemoCatalog = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Import the demo menu catalog for the current tenant. POST api/admin/products/demo/import
+ */
 export const postApiAdminProductsDemoImport = (
     demoImportRequest: DemoImportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -22892,7 +24514,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDemoImportMutationBody = DemoImportRequest
     export type PostApiAdminProductsDemoImportMutationError = ProblemDetails | void
 
-    export const usePostApiAdminProductsDemoImport = <TError = ProblemDetails | void,
+    /**
+ * @summary Import the demo menu catalog for the current tenant. POST api/admin/products/demo/import
+ */
+export const usePostApiAdminProductsDemoImport = <TError = ProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>,
@@ -22905,7 +24530,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProducts = (
+    /**
+ * @summary Ürün listesi (gelişmiş filtreleme, sayfalama). GET api/admin/products
+ */
+export const getApiAdminProducts = (
     params?: GetApiAdminProductsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -22945,6 +24573,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProducts>>>
 export type GetApiAdminProductsQueryError = ProblemDetails
 
+/**
+ * @summary Ürün listesi (gelişmiş filtreleme, sayfalama). GET api/admin/products
+ */
 export const useGetApiAdminProducts = <TData = Awaited<ReturnType<typeof getApiAdminProducts>>, TError = ProblemDetails>(
  params?: GetApiAdminProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -22961,6 +24592,9 @@ export const useGetApiAdminProducts = <TData = Awaited<ReturnType<typeof getApiA
 
 
 
+/**
+ * @summary Yeni ürün oluştur. POST api/admin/products
+ */
 export const postApiAdminProducts = (
     product: Product,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -22999,7 +24633,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsMutationBody = Product
     export type PostApiAdminProductsMutationError = unknown
 
-    export const usePostApiAdminProducts = <TError = unknown,
+    /**
+ * @summary Yeni ürün oluştur. POST api/admin/products
+ */
+export const usePostApiAdminProducts = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProducts>>, TError,{data: Product}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProducts>>,
@@ -23012,7 +24649,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsId = (
+    /**
+ * @summary Tekil ürün. GET api/admin/products/{id}
+ */
+export const getApiAdminProductsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -23051,6 +24691,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsId>>>
 export type GetApiAdminProductsIdQueryError = unknown
 
+/**
+ * @summary Tekil ürün. GET api/admin/products/{id}
+ */
 export const useGetApiAdminProductsId = <TData = Awaited<ReturnType<typeof getApiAdminProductsId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -23067,6 +24710,9 @@ export const useGetApiAdminProductsId = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary Ürün güncelle. PUT api/admin/products/{id}
+ */
 export const putApiAdminProductsId = (
     id: string,
     product: Product,
@@ -23106,7 +24752,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminProductsIdMutationBody = Product
     export type PutApiAdminProductsIdMutationError = unknown
 
-    export const usePutApiAdminProductsId = <TError = unknown,
+    /**
+ * @summary Ürün güncelle. PUT api/admin/products/{id}
+ */
+export const usePutApiAdminProductsId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminProductsId>>, TError,{id: string;data: Product}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminProductsId>>,
@@ -23119,7 +24768,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminProductsId = (
+    /**
+ * @summary Ürün sil (soft delete). DELETE api/admin/products/{id}
+ */
+export const deleteApiAdminProductsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -23155,7 +24807,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminProductsIdMutationError = unknown
 
-    export const useDeleteApiAdminProductsId = <TError = unknown,
+    /**
+ * @summary Ürün sil (soft delete). DELETE api/admin/products/{id}
+ */
+export const useDeleteApiAdminProductsId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminProductsId>>,
@@ -23168,7 +24823,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsSearch = (
+    /**
+ * @summary Ürün ara (name, category adı). GET api/admin/products/search
+ */
+export const getApiAdminProductsSearch = (
     params?: GetApiAdminProductsSearchParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -23208,6 +24866,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsSearch>>>
 export type GetApiAdminProductsSearchQueryError = unknown
 
+/**
+ * @summary Ürün ara (name, category adı). GET api/admin/products/search
+ */
 export const useGetApiAdminProductsSearch = <TData = Awaited<ReturnType<typeof getApiAdminProductsSearch>>, TError = unknown>(
  params?: GetApiAdminProductsSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -23224,6 +24885,9 @@ export const useGetApiAdminProductsSearch = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Ürün stok güncelle. PUT api/admin/products/stock/{id}
+ */
 export const putApiAdminProductsStockId = (
     id: string,
     updateStockRequest: UpdateStockRequest,
@@ -23263,7 +24927,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminProductsStockIdMutationBody = UpdateStockRequest
     export type PutApiAdminProductsStockIdMutationError = unknown
 
-    export const usePutApiAdminProductsStockId = <TError = unknown,
+    /**
+ * @summary Ürün stok güncelle. PUT api/admin/products/stock/{id}
+ */
+export const usePutApiAdminProductsStockId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminProductsStockId>>, TError,{id: string;data: UpdateStockRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminProductsStockId>>,
@@ -23276,7 +24943,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsIdModifierGroups = (
+    /**
+ * @summary Ürüne atanmış modifier gruplarını getir. GET api/admin/products/{id}/modifier-groups
+ */
+export const getApiAdminProductsIdModifierGroups = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -23315,6 +24985,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsIdModifierGroupsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsIdModifierGroups>>>
 export type GetApiAdminProductsIdModifierGroupsQueryError = unknown
 
+/**
+ * @summary Ürüne atanmış modifier gruplarını getir. GET api/admin/products/{id}/modifier-groups
+ */
 export const useGetApiAdminProductsIdModifierGroups = <TData = Awaited<ReturnType<typeof getApiAdminProductsIdModifierGroups>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsIdModifierGroups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -23331,6 +25004,9 @@ export const useGetApiAdminProductsIdModifierGroups = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Ürüne modifier gruplarını ata. POST api/admin/products/{id}/modifier-groups
+ */
 export const postApiAdminProductsIdModifierGroups = (
     id: string,
     setProductModifierGroupsRequest: SetProductModifierGroupsRequest,
@@ -23370,7 +25046,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsIdModifierGroupsMutationBody = SetProductModifierGroupsRequest
     export type PostApiAdminProductsIdModifierGroupsMutationError = unknown
 
-    export const usePostApiAdminProductsIdModifierGroups = <TError = unknown,
+    /**
+ * @summary Ürüne modifier gruplarını ata. POST api/admin/products/{id}/modifier-groups
+ */
+export const usePostApiAdminProductsIdModifierGroups = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsIdModifierGroups>>, TError,{id: string;data: SetProductModifierGroupsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsIdModifierGroups>>,
@@ -23383,7 +25062,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminProductsIdImage = (
+    /**
+ * @summary Upload product image (JPG, PNG, WebP; max 2 MB). Decodes input, center-crops to a square thumbnail (default 120×120), encodes WebP, stores only that file; response returns its public URL for KasseAPI_Final.Models.Product.ImageUrl.
+POST api/admin/products/{id}/image
+ */
+export const postApiAdminProductsIdImage = (
     id: string,
     postApiAdminProductsIdImageBody: PostApiAdminProductsIdImageBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -23426,7 +25109,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsIdImageMutationBody = PostApiAdminProductsIdImageBody
     export type PostApiAdminProductsIdImageMutationError = unknown
 
-    export const usePostApiAdminProductsIdImage = <TError = unknown,
+    /**
+ * @summary Upload product image (JPG, PNG, WebP; max 2 MB). Decodes input, center-crops to a square thumbnail (default 120×120), encodes WebP, stores only that file; response returns its public URL for KasseAPI_Final.Models.Product.ImageUrl.
+POST api/admin/products/{id}/image
+ */
+export const usePostApiAdminProductsIdImage = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>, TError,{id: string;data: PostApiAdminProductsIdImageBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsIdImage>>,
@@ -23439,7 +25126,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminProductsDeactivateAll = (
+    /**
+ * @summary Soft-deactivate all active products for the current tenant (RKSV: receipt history preserved).
+POST api/admin/products/deactivate-all
+ */
+export const postApiAdminProductsDeactivateAll = (
     deactivateAllProductsRequest: DeactivateAllProductsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -23477,7 +25168,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDeactivateAllMutationBody = DeactivateAllProductsRequest
     export type PostApiAdminProductsDeactivateAllMutationError = unknown
 
-    export const usePostApiAdminProductsDeactivateAll = <TError = unknown,
+    /**
+ * @summary Soft-deactivate all active products for the current tenant (RKSV: receipt history preserved).
+POST api/admin/products/deactivate-all
+ */
+export const usePostApiAdminProductsDeactivateAll = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDeactivateAll>>, TError,{data: DeactivateAllProductsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDeactivateAll>>,
@@ -23490,7 +25185,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminProductsDemoImportJobs = (
+    /**
+ * @summary Start background demo catalog import with real-time progress (SignalR). POST api/admin/products/demo/import/jobs
+ */
+export const postApiAdminProductsDemoImportJobs = (
     demoImportRequest: DemoImportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -23528,7 +25226,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDemoImportJobsMutationBody = DemoImportRequest
     export type PostApiAdminProductsDemoImportJobsMutationError = ProblemDetails
 
-    export const usePostApiAdminProductsDemoImportJobs = <TError = ProblemDetails,
+    /**
+ * @summary Start background demo catalog import with real-time progress (SignalR). POST api/admin/products/demo/import/jobs
+ */
+export const usePostApiAdminProductsDemoImportJobs = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>,
@@ -23541,7 +25242,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsDemoImportJobsJobId = (
+    /**
+ * @summary Poll demo import job progress (fallback when SignalR is unavailable).
+ */
+export const getApiAdminProductsDemoImportJobsJobId = (
     jobId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -23580,6 +25284,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsDemoImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>>
 export type GetApiAdminProductsDemoImportJobsJobIdQueryError = ProblemDetails
 
+/**
+ * @summary Poll demo import job progress (fallback when SignalR is unavailable).
+ */
 export const useGetApiAdminProductsDemoImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError = ProblemDetails>(
  jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -23596,6 +25303,9 @@ export const useGetApiAdminProductsDemoImportJobsJobId = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Cancel a running demo import job.
+ */
 export const deleteApiAdminProductsDemoImportJobsJobId = (
     jobId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -23632,7 +25342,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminProductsDemoImportJobsJobIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminProductsDemoImportJobsJobId = <TError = ProblemDetails,
+    /**
+ * @summary Cancel a running demo import job.
+ */
+export const useDeleteApiAdminProductsDemoImportJobsJobId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>,
@@ -23645,7 +25358,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminProductsDemoTemplate = (
+    /**
+ * @summary Download editable demo catalog template (CSV, Excel-compatible). GET api/admin/products/demo/template
+ */
+export const getApiAdminProductsDemoTemplate = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -23684,6 +25400,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminProductsDemoTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>>
 export type GetApiAdminProductsDemoTemplateQueryError = unknown
 
+/**
+ * @summary Download editable demo catalog template (CSV, Excel-compatible). GET api/admin/products/demo/template
+ */
 export const useGetApiAdminProductsDemoTemplate = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -23700,6 +25419,9 @@ export const useGetApiAdminProductsDemoTemplate = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Validate uploaded template and return preview. POST api/admin/products/demo/template/preview
+ */
 export const postApiAdminProductsDemoTemplatePreview = (
     postApiAdminProductsDemoTemplatePreviewBody: PostApiAdminProductsDemoTemplatePreviewBody,
     params?: PostApiAdminProductsDemoTemplatePreviewParams,
@@ -23744,7 +25466,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDemoTemplatePreviewMutationBody = PostApiAdminProductsDemoTemplatePreviewBody
     export type PostApiAdminProductsDemoTemplatePreviewMutationError = unknown
 
-    export const usePostApiAdminProductsDemoTemplatePreview = <TError = unknown,
+    /**
+ * @summary Validate uploaded template and return preview. POST api/admin/products/demo/template/preview
+ */
+export const usePostApiAdminProductsDemoTemplatePreview = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>, TError,{data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>,
@@ -23757,7 +25482,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminProductsDemoTemplateImport = (
+    /**
+ * @summary Import products from uploaded template file. POST api/admin/products/demo/template/import
+ */
+export const postApiAdminProductsDemoTemplateImport = (
     postApiAdminProductsDemoTemplateImportBody: PostApiAdminProductsDemoTemplateImportBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -23814,7 +25542,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDemoTemplateImportMutationBody = PostApiAdminProductsDemoTemplateImportBody
     export type PostApiAdminProductsDemoTemplateImportMutationError = ProblemDetails
 
-    export const usePostApiAdminProductsDemoTemplateImport = <TError = ProblemDetails,
+    /**
+ * @summary Import products from uploaded template file. POST api/admin/products/demo/template/import
+ */
+export const usePostApiAdminProductsDemoTemplateImport = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>, TError,{data: PostApiAdminProductsDemoTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>,
@@ -23827,7 +25558,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminProductsDevPurgeCatalog = (
+    /**
+ * @summary Development-only hard delete of all tenant products (and optionally categories).
+POST api/admin/products/dev/purge-catalog
+ */
+export const postApiAdminProductsDevPurgeCatalog = (
     devTenantCatalogCleanupRequest: DevTenantCatalogCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -23865,7 +25600,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminProductsDevPurgeCatalogMutationBody = DevTenantCatalogCleanupRequest
     export type PostApiAdminProductsDevPurgeCatalogMutationError = unknown
 
-    export const usePostApiAdminProductsDevPurgeCatalog = <TError = unknown,
+    /**
+ * @summary Development-only hard delete of all tenant products (and optionally categories).
+POST api/admin/products/dev/purge-catalog
+ */
+export const usePostApiAdminProductsDevPurgeCatalog = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDevPurgeCatalog>>, TError,{data: DevTenantCatalogCleanupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminProductsDevPurgeCatalog>>,
@@ -24247,7 +25986,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminReportPdfsClosingClosingId = (
+    /**
+ * @summary Download a persisted RKSV closing PDF (Tagesabschluss / Monatsbeleg / Jahresbeleg).
+ */
+export const getApiAdminReportPdfsClosingClosingId = (
     closingId: string,
     params?: GetApiAdminReportPdfsClosingClosingIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24291,6 +26033,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsClosingClosingIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>>
 export type GetApiAdminReportPdfsClosingClosingIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a persisted RKSV closing PDF (Tagesabschluss / Monatsbeleg / Jahresbeleg).
+ */
 export const useGetApiAdminReportPdfsClosingClosingId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError = ProblemDetails>(
  closingId: string,
     params?: GetApiAdminReportPdfsClosingClosingIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -24308,6 +26053,9 @@ export const useGetApiAdminReportPdfsClosingClosingId = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Download a persisted receipt / Sonderbeleg PDF (original without Nachdruck watermark).
+ */
 export const getApiAdminReportPdfsReceiptPaymentId = (
     paymentId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24348,6 +26096,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsReceiptPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>>
 export type GetApiAdminReportPdfsReceiptPaymentIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a persisted receipt / Sonderbeleg PDF (original without Nachdruck watermark).
+ */
 export const useGetApiAdminReportPdfsReceiptPaymentId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError = ProblemDetails>(
  paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24364,6 +26115,9 @@ export const useGetApiAdminReportPdfsReceiptPaymentId = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Whether a persisted PDF exists for the given closing.
+ */
 export const getApiAdminReportPdfsClosingClosingIdExists = (
     closingId: string,
     params?: GetApiAdminReportPdfsClosingClosingIdExistsParams,
@@ -24407,6 +26161,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsClosingClosingIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>>
 export type GetApiAdminReportPdfsClosingClosingIdExistsQueryError = ProblemDetails
 
+/**
+ * @summary Whether a persisted PDF exists for the given closing.
+ */
 export const useGetApiAdminReportPdfsClosingClosingIdExists = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError = ProblemDetails>(
  closingId: string,
     params?: GetApiAdminReportPdfsClosingClosingIdExistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -24424,6 +26181,9 @@ export const useGetApiAdminReportPdfsClosingClosingIdExists = <TData = Awaited<R
 
 
 
+/**
+ * @summary Whether a persisted PDF exists for the given payment/receipt.
+ */
 export const getApiAdminReportPdfsReceiptPaymentIdExists = (
     paymentId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24463,6 +26223,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsReceiptPaymentIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>>
 export type GetApiAdminReportPdfsReceiptPaymentIdExistsQueryError = ProblemDetails
 
+/**
+ * @summary Whether a persisted PDF exists for the given payment/receipt.
+ */
 export const useGetApiAdminReportPdfsReceiptPaymentIdExists = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError = ProblemDetails>(
  paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24479,6 +26242,9 @@ export const useGetApiAdminReportPdfsReceiptPaymentIdExists = <TData = Awaited<R
 
 
 
+/**
+ * @summary Compliance user activity report (RKSV audit fields).
+ */
 export const getApiAdminReportsUserActivity = (
     params?: GetApiAdminReportsUserActivityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24519,6 +26285,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsUserActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>>
 export type GetApiAdminReportsUserActivityQueryError = ProblemDetails
 
+/**
+ * @summary Compliance user activity report (RKSV audit fields).
+ */
 export const useGetApiAdminReportsUserActivity = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError = ProblemDetails>(
  params?: GetApiAdminReportsUserActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24535,6 +26304,9 @@ export const useGetApiAdminReportsUserActivity = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Export user activity report (CSV or PDF) for regulatory submission.
+ */
 export const getApiAdminReportsUserActivityExport = (
     params?: GetApiAdminReportsUserActivityExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24575,6 +26347,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsUserActivityExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>>
 export type GetApiAdminReportsUserActivityExportQueryError = unknown
 
+/**
+ * @summary Export user activity report (CSV or PDF) for regulatory submission.
+ */
 export const useGetApiAdminReportsUserActivityExport = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError = unknown>(
  params?: GetApiAdminReportsUserActivityExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24591,6 +26366,9 @@ export const useGetApiAdminReportsUserActivityExport = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Schedule weekly or monthly email of user audit export (CSV).
+ */
 export const postApiAdminReportsUserActivitySchedule = (
     scheduleUserActivityReportRequest: ScheduleUserActivityReportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -24629,7 +26407,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminReportsUserActivityScheduleMutationBody = ScheduleUserActivityReportRequest
     export type PostApiAdminReportsUserActivityScheduleMutationError = unknown
 
-    export const usePostApiAdminReportsUserActivitySchedule = <TError = unknown,
+    /**
+ * @summary Schedule weekly or monthly email of user audit export (CSV).
+ */
+export const usePostApiAdminReportsUserActivitySchedule = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>, TError,{data: ScheduleUserActivityReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>,
@@ -24642,7 +26423,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminRestoreRequest = (
+    /**
+ * @summary Request a validation-only restore (auto-executes in Development for Super Admin; otherwise pending second approval).
+ */
+export const postApiAdminRestoreRequest = (
     restoreRequest: RestoreRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -24680,7 +26464,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRestoreRequestMutationBody = RestoreRequest
     export type PostApiAdminRestoreRequestMutationError = ProblemDetails | void
 
-    export const usePostApiAdminRestoreRequest = <TError = ProblemDetails | void,
+    /**
+ * @summary Request a validation-only restore (auto-executes in Development for Super Admin; otherwise pending second approval).
+ */
+export const usePostApiAdminRestoreRequest = <TError = ProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>, TError,{data: RestoreRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRestoreRequest>>,
@@ -24693,7 +26480,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminRestoreApproveRequestId = (
+    /**
+ * @summary Approve or reject a pending request (different Super Admin; token from email).
+ */
+export const postApiAdminRestoreApproveRequestId = (
     requestId: string,
     restoreApprovalRequest: RestoreApprovalRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -24732,7 +26522,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRestoreApproveRequestIdMutationBody = RestoreApprovalRequest
     export type PostApiAdminRestoreApproveRequestIdMutationError = ProblemDetails
 
-    export const usePostApiAdminRestoreApproveRequestId = <TError = ProblemDetails,
+    /**
+ * @summary Approve or reject a pending request (different Super Admin; token from email).
+ */
+export const usePostApiAdminRestoreApproveRequestId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>, TError,{requestId: string;data: RestoreApprovalRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>,
@@ -24745,7 +26538,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRestoreRequestRequestId = (
+    /**
+ * @summary Get restore request status.
+ */
+export const getApiAdminRestoreRequestRequestId = (
     requestId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -24784,6 +26580,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreRequestRequestIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>>
 export type GetApiAdminRestoreRequestRequestIdQueryError = ProblemDetails
 
+/**
+ * @summary Get restore request status.
+ */
 export const useGetApiAdminRestoreRequestRequestId = <TData = Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError = ProblemDetails>(
  requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24800,6 +26599,9 @@ export const useGetApiAdminRestoreRequestRequestId = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary RKSV-oriented compliance report for a manual restore request (validation-only workflow evidence).
+ */
 export const getApiAdminRestoreRequestRequestIdReport = (
     requestId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24839,6 +26641,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreRequestRequestIdReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestIdReport>>>
 export type GetApiAdminRestoreRequestRequestIdReportQueryError = ProblemDetails
 
+/**
+ * @summary RKSV-oriented compliance report for a manual restore request (validation-only workflow evidence).
+ */
 export const useGetApiAdminRestoreRequestRequestIdReport = <TData = Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestIdReport>>, TError = ProblemDetails>(
  requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestIdReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24855,6 +26660,10 @@ export const useGetApiAdminRestoreRequestRequestIdReport = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary Pre-flight RKSV compliance check before requesting a validation restore (same-tenant, integrity, gates).
+Cross-tenant mismatch returns 404.
+ */
 export const getApiAdminRestoreComplianceCheck = (
     params?: GetApiAdminRestoreComplianceCheckParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24895,6 +26704,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreComplianceCheckQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreComplianceCheck>>>
 export type GetApiAdminRestoreComplianceCheckQueryError = ProblemDetails
 
+/**
+ * @summary Pre-flight RKSV compliance check before requesting a validation restore (same-tenant, integrity, gates).
+Cross-tenant mismatch returns 404.
+ */
 export const useGetApiAdminRestoreComplianceCheck = <TData = Awaited<ReturnType<typeof getApiAdminRestoreComplianceCheck>>, TError = ProblemDetails>(
  params?: GetApiAdminRestoreComplianceCheckParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreComplianceCheck>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24911,6 +26724,9 @@ export const useGetApiAdminRestoreComplianceCheck = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Paginated restore request history (newest first).
+ */
 export const getApiAdminRestoreHistory = (
     params?: GetApiAdminRestoreHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -24951,6 +26767,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>>
 export type GetApiAdminRestoreHistoryQueryError = unknown
 
+/**
+ * @summary Paginated restore request history (newest first).
+ */
 export const useGetApiAdminRestoreHistory = <TData = Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError = unknown>(
  params?: GetApiAdminRestoreHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -24967,6 +26786,9 @@ export const useGetApiAdminRestoreHistory = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Worker / dağıtık kilit yapılandırma özeti (backup artifact health değil).
+ */
 export const getApiAdminRestoreVerificationReadiness = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -25006,6 +26828,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreVerificationReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>>
 export type GetApiAdminRestoreVerificationReadinessQueryError = unknown
 
+/**
+ * @summary Worker / dağıtık kilit yapılandırma özeti (backup artifact health değil).
+ */
 export const useGetApiAdminRestoreVerificationReadiness = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -25022,6 +26847,11 @@ export const useGetApiAdminRestoreVerificationReadiness = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Restore drill sıraya alır (pg_restore --list + isteğe bağlı fiscal SQL + isteğe bağlı live integrity).
+Gövdede isteğe bağlı `idempotencyKey`: aynı anahtar mevcut satırı döndürür. Aktif Queued/Running satırı varsa yeni sıra oluşturulmaz.
+Yanıtta `runId`, `orchestrationState`, `newQueuedRunCreated`, `existingRunReturned` ve tam `run` bulunur.
+ */
 export const postApiAdminRestoreVerificationTrigger = (
     restoreVerificationManualTriggerRequestDto: RestoreVerificationManualTriggerRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -25060,7 +26890,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRestoreVerificationTriggerMutationBody = RestoreVerificationManualTriggerRequestDto
     export type PostApiAdminRestoreVerificationTriggerMutationError = unknown
 
-    export const usePostApiAdminRestoreVerificationTrigger = <TError = unknown,
+    /**
+ * @summary Restore drill sıraya alır (pg_restore --list + isteğe bağlı fiscal SQL + isteğe bağlı live integrity).
+Gövdede isteğe bağlı `idempotencyKey`: aynı anahtar mevcut satırı döndürür. Aktif Queued/Running satırı varsa yeni sıra oluşturulmaz.
+Yanıtta `runId`, `orchestrationState`, `newQueuedRunCreated`, `existingRunReturned` ve tam `run` bulunur.
+ */
+export const usePostApiAdminRestoreVerificationTrigger = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,{data: RestoreVerificationManualTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>,
@@ -25073,7 +26908,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRestoreVerificationMilestones = (
+    /**
+ * @summary Son yedek çalıştırması, pg_dump başarısı, artifact, restore drill denemesi / başarısı ve L4/L5 "son bilinen iyi" kilometre taşları (tek sorgu; muhafazakâr semantik).
+ */
+export const getApiAdminRestoreVerificationMilestones = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -25112,6 +26950,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreVerificationMilestonesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationMilestones>>>
 export type GetApiAdminRestoreVerificationMilestonesQueryError = unknown
 
+/**
+ * @summary Son yedek çalıştırması, pg_dump başarısı, artifact, restore drill denemesi / başarısı ve L4/L5 "son bilinen iyi" kilometre taşları (tek sorgu; muhafazakâr semantik).
+ */
 export const useGetApiAdminRestoreVerificationMilestones = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationMilestones>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationMilestones>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -25294,6 +27135,10 @@ export const useGetApiAdminRestoreVerificationRunsId = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Audit export: `format=json` (default), `csv`, or `pdf`.
+System dump drills stay Super Admin only (Manager → 404).
+ */
 export const getApiAdminRestoreVerificationRunsIdReport = (
     id: string,
     params?: GetApiAdminRestoreVerificationRunsIdReportParams,
@@ -25337,6 +27182,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreVerificationRunsIdReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>>
 export type GetApiAdminRestoreVerificationRunsIdReportQueryError = unknown
 
+/**
+ * @summary Audit export: `format=json` (default), `csv`, or `pdf`.
+System dump drills stay Super Admin only (Manager → 404).
+ */
 export const useGetApiAdminRestoreVerificationRunsIdReport = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError = unknown>(
  id: string,
     params?: GetApiAdminRestoreVerificationRunsIdReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -25354,6 +27203,9 @@ export const useGetApiAdminRestoreVerificationRunsIdReport = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Son drill için kalıcı `evidence_json` (schemaVersion, aşamalar, geçerlilik bantları). Boşsa 404 değil 200 + null gövde yok; boş dize dönebilir.
+ */
 export const getApiAdminRestoreVerificationRunsIdEvidence = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -25393,6 +27245,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRestoreVerificationRunsIdEvidenceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdEvidence>>>
 export type GetApiAdminRestoreVerificationRunsIdEvidenceQueryError = unknown
 
+/**
+ * @summary Son drill için kalıcı `evidence_json` (schemaVersion, aşamalar, geçerlilik bantları). Boşsa 404 değil 200 + null gövde yok; boş dize dönebilir.
+ */
 export const useGetApiAdminRestoreVerificationRunsIdEvidence = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdEvidence>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdEvidence>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -25409,6 +27264,9 @@ export const useGetApiAdminRestoreVerificationRunsIdEvidence = <TData = Awaited<
 
 
 
+/**
+ * @summary List risk scores across tenants (Super Admin).
+ */
 export const getApiAdminRisk = (
     params?: GetApiAdminRiskParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -25449,6 +27307,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRiskQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRisk>>>
 export type GetApiAdminRiskQueryError = unknown
 
+/**
+ * @summary List risk scores across tenants (Super Admin).
+ */
 export const useGetApiAdminRisk = <TData = Awaited<ReturnType<typeof getApiAdminRisk>>, TError = unknown>(
  params?: GetApiAdminRiskParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRisk>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -25465,6 +27326,9 @@ export const useGetApiAdminRisk = <TData = Awaited<ReturnType<typeof getApiAdmin
 
 
 
+/**
+ * @summary Mark a risk score as resolved with a resolution note.
+ */
 export const postApiAdminRiskIdResolve = (
     id: string,
     resolveRiskScoreRequestDto: ResolveRiskScoreRequestDto,
@@ -25504,7 +27368,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRiskIdResolveMutationBody = ResolveRiskScoreRequestDto
     export type PostApiAdminRiskIdResolveMutationError = ProblemDetails
 
-    export const usePostApiAdminRiskIdResolve = <TError = ProblemDetails,
+    /**
+ * @summary Mark a risk score as resolved with a resolution note.
+ */
+export const usePostApiAdminRiskIdResolve = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRiskIdResolve>>, TError,{id: string;data: ResolveRiskScoreRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRiskIdResolve>>,
@@ -25517,7 +27384,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminRiskEvaluate = (
+    /**
+ * @summary Evaluate (and optionally persist) risk for the current actor in tenant context.
+Intended for integration tests / guarded internal callers.
+ */
+export const postApiAdminRiskEvaluate = (
     evaluateUserActionRequestDto: EvaluateUserActionRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -25555,7 +27426,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRiskEvaluateMutationBody = EvaluateUserActionRequestDto
     export type PostApiAdminRiskEvaluateMutationError = ProblemDetails
 
-    export const usePostApiAdminRiskEvaluate = <TError = ProblemDetails,
+    /**
+ * @summary Evaluate (and optionally persist) risk for the current actor in tenant context.
+Intended for integration tests / guarded internal callers.
+ */
+export const usePostApiAdminRiskEvaluate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRiskEvaluate>>, TError,{data: EvaluateUserActionRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRiskEvaluate>>,
@@ -25568,7 +27443,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRksvComplianceReport = (
+    /**
+ * @summary Diagnostic RKSV compliance test report. Defaults to JSON; pass `format=pdf` for the PDF rendering.
+ */
+export const getApiAdminRksvComplianceReport = (
     params?: GetApiAdminRksvComplianceReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -25609,6 +27487,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvComplianceReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvComplianceReport>>>
 export type GetApiAdminRksvComplianceReportQueryError = ProblemDetails
 
+/**
+ * @summary Diagnostic RKSV compliance test report. Defaults to JSON; pass `format=pdf` for the PDF rendering.
+ */
 export const useGetApiAdminRksvComplianceReport = <TData = Awaited<ReturnType<typeof getApiAdminRksvComplianceReport>>, TError = ProblemDetails>(
  params?: GetApiAdminRksvComplianceReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvComplianceReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -25625,6 +27506,11 @@ export const useGetApiAdminRksvComplianceReport = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Builds an RKSV evidence ZIP bundle for auditor / BMF review (compliance report + payment_details CSV +
+receipts JSON + signature chain state + TSE signature log + manifest + NOTICE).
+Internal compliance evidence only — official DEP export is a separate workflow.
+ */
 export const postApiAdminRksvEvidenceBundle = (
     rksvEvidenceBundleRequestDto: RksvEvidenceBundleRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -25664,7 +27550,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRksvEvidenceBundleMutationBody = RksvEvidenceBundleRequestDto
     export type PostApiAdminRksvEvidenceBundleMutationError = ProblemDetails
 
-    export const usePostApiAdminRksvEvidenceBundle = <TError = ProblemDetails,
+    /**
+ * @summary Builds an RKSV evidence ZIP bundle for auditor / BMF review (compliance report + payment_details CSV +
+receipts JSON + signature chain state + TSE signature log + manifest + NOTICE).
+Internal compliance evidence only — official DEP export is a separate workflow.
+ */
+export const usePostApiAdminRksvEvidenceBundle = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvEvidenceBundle>>, TError,{data: RksvEvidenceBundleRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRksvEvidenceBundle>>,
@@ -25947,6 +27838,10 @@ export const useGetApiAdminRksvDepExportHistory = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Latest completed DEP export for the ambient tenant (compliance UX — last export date).
+Cross-tenant / missing tenant → HTTP 404.
+ */
 export const getApiAdminRksvDepExportLastExport = (
     params?: GetApiAdminRksvDepExportLastExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -25987,6 +27882,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvDepExportLastExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvDepExportLastExport>>>
 export type GetApiAdminRksvDepExportLastExportQueryError = ProblemDetails
 
+/**
+ * @summary Latest completed DEP export for the ambient tenant (compliance UX — last export date).
+Cross-tenant / missing tenant → HTTP 404.
+ */
 export const useGetApiAdminRksvDepExportLastExport = <TData = Awaited<ReturnType<typeof getApiAdminRksvDepExportLastExport>>, TError = ProblemDetails>(
  params?: GetApiAdminRksvDepExportLastExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvDepExportLastExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -26003,6 +27902,10 @@ export const useGetApiAdminRksvDepExportLastExport = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Current RKSV/TSE simulation flag plus last-export summary (FA warning banner).
+Cross-tenant / missing tenant → HTTP 404.
+ */
 export const getApiAdminRksvDepExportStatus = (
     params?: GetApiAdminRksvDepExportStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -26043,6 +27946,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvDepExportStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvDepExportStatus>>>
 export type GetApiAdminRksvDepExportStatusQueryError = ProblemDetails
 
+/**
+ * @summary Current RKSV/TSE simulation flag plus last-export summary (FA warning banner).
+Cross-tenant / missing tenant → HTTP 404.
+ */
 export const useGetApiAdminRksvDepExportStatus = <TData = Awaited<ReturnType<typeof getApiAdminRksvDepExportStatus>>, TError = ProblemDetails>(
  params?: GetApiAdminRksvDepExportStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvDepExportStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -26114,6 +28021,10 @@ export const useGetApiAdminRksvDepExportHistoryId = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Soft-delete a recent export: removes hot download file / tokens.
+Failed rows are hard-deleted; archived fiscal copies are retained.
+ */
 export const deleteApiAdminRksvDepExportHistoryId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -26150,7 +28061,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminRksvDepExportHistoryIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminRksvDepExportHistoryId = <TError = ProblemDetails,
+    /**
+ * @summary Soft-delete a recent export: removes hot download file / tokens.
+Failed rows are hard-deleted; archived fiscal copies are retained.
+ */
+export const useDeleteApiAdminRksvDepExportHistoryId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminRksvDepExportHistoryId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminRksvDepExportHistoryId>>,
@@ -26163,7 +28078,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRksvDepExportDownloadExportId = (
+    /**
+ * @summary Download a stored DEP export JSON by history id.
+Requires KasseAPI_Final.Authorization.AppPermissions.ReportExport (+ AuditView on controller).
+Cross-tenant → HTTP 404. Every attempt is audited (KasseAPI_Final.Models.AuditEventType.RksvDepExportDownloaded).
+Canonical alias of `GET history/{id}/download`.
+ */
+export const getApiAdminRksvDepExportDownloadExportId = (
     exportId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -26202,6 +28123,12 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvDepExportDownloadExportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadExportId>>>
 export type GetApiAdminRksvDepExportDownloadExportIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored DEP export JSON by history id.
+Requires KasseAPI_Final.Authorization.AppPermissions.ReportExport (+ AuditView on controller).
+Cross-tenant → HTTP 404. Every attempt is audited (KasseAPI_Final.Models.AuditEventType.RksvDepExportDownloaded).
+Canonical alias of `GET history/{id}/download`.
+ */
 export const useGetApiAdminRksvDepExportDownloadExportId = <TData = Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadExportId>>, TError = ProblemDetails>(
  exportId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadExportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -26273,6 +28200,9 @@ export const useGetApiAdminRksvDepExportHistoryIdDownload = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary Issue or rotate a short-lived (default 24h) opaque download token for a completed export.
+ */
 export const postApiAdminRksvDepExportDownloadExportIdToken = (
     exportId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -26309,7 +28239,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminRksvDepExportDownloadExportIdTokenMutationError = ProblemDetails
 
-    export const usePostApiAdminRksvDepExportDownloadExportIdToken = <TError = ProblemDetails,
+    /**
+ * @summary Issue or rotate a short-lived (default 24h) opaque download token for a completed export.
+ */
+export const usePostApiAdminRksvDepExportDownloadExportIdToken = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportDownloadExportIdToken>>, TError,{exportId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRksvDepExportDownloadExportIdToken>>,
@@ -26322,7 +28255,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRksvDepExportDownloadTokenToken = (
+    /**
+ * @summary Download by opaque token (JWT + ReportExport still required).
+Token TTL defaults to 24h; expired / cross-tenant → HTTP 404.
+ */
+export const getApiAdminRksvDepExportDownloadTokenToken = (
     token: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -26361,6 +28298,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvDepExportDownloadTokenTokenQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadTokenToken>>>
 export type GetApiAdminRksvDepExportDownloadTokenTokenQueryError = ProblemDetails
 
+/**
+ * @summary Download by opaque token (JWT + ReportExport still required).
+Token TTL defaults to 24h; expired / cross-tenant → HTTP 404.
+ */
 export const useGetApiAdminRksvDepExportDownloadTokenToken = <TData = Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadTokenToken>>, TError = ProblemDetails>(
  token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvDepExportDownloadTokenToken>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -26868,6 +28809,9 @@ export const useGetApiAdminRksvDepExportComplianceScoreSuggestions = <TData = Aw
 
 
 
+/**
+ * @summary Operational DEP export statistics from history (not BMF certification).
+ */
 export const getApiAdminRksvDepExportStatistics = (
     params?: GetApiAdminRksvDepExportStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -26908,6 +28852,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminRksvDepExportStatisticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvDepExportStatistics>>>
 export type GetApiAdminRksvDepExportStatisticsQueryError = ProblemDetails
 
+/**
+ * @summary Operational DEP export statistics from history (not BMF certification).
+ */
 export const useGetApiAdminRksvDepExportStatistics = <TData = Awaited<ReturnType<typeof getApiAdminRksvDepExportStatistics>>, TError = ProblemDetails>(
  params?: GetApiAdminRksvDepExportStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvDepExportStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -27565,7 +29512,69 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRksvMonatsbelege = (
+    /**
+ * @summary Live sales rollup for one register and Vienna month or year. Does not sign anything.
+ */
+export const getApiAdminRksvMonatsbelegeSalesSummary = (
+    params?: GetApiAdminRksvMonatsbelegeSalesSummaryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<PeriodSalesSummaryDto>(
+      {url: `/api/admin/rksv/monatsbelege/sales-summary`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminRksvMonatsbelegeSalesSummaryQueryKey = (params?: GetApiAdminRksvMonatsbelegeSalesSummaryParams,) => {
+    return [`/api/admin/rksv/monatsbelege/sales-summary`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminRksvMonatsbelegeSalesSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>, TError = ProblemDetails>(params?: GetApiAdminRksvMonatsbelegeSalesSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRksvMonatsbelegeSalesSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>> = ({ signal }) => getApiAdminRksvMonatsbelegeSalesSummary(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRksvMonatsbelegeSalesSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>>
+export type GetApiAdminRksvMonatsbelegeSalesSummaryQueryError = ProblemDetails
+
+/**
+ * @summary Live sales rollup for one register and Vienna month or year. Does not sign anything.
+ */
+export const useGetApiAdminRksvMonatsbelegeSalesSummary = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>, TError = ProblemDetails>(
+ params?: GetApiAdminRksvMonatsbelegeSalesSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegeSalesSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRksvMonatsbelegeSalesSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminRksvMonatsbelege = (
     params?: GetApiAdminRksvMonatsbelegeParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -28000,7 +30009,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminRksvSignatureVerify = (
+    /**
+ * @summary Verifies a single compact RKSV JWS signature against a certificate (explicit thumbprint or active TSE cert).
+ */
+export const postApiAdminRksvSignatureVerify = (
     rksvSignatureVerifyRequest: RksvSignatureVerifyRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28038,7 +30050,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminRksvSignatureVerifyMutationBody = RksvSignatureVerifyRequest
     export type PostApiAdminRksvSignatureVerifyMutationError = ProblemDetails
 
-    export const usePostApiAdminRksvSignatureVerify = <TError = ProblemDetails,
+    /**
+ * @summary Verifies a single compact RKSV JWS signature against a certificate (explicit thumbprint or active TSE cert).
+ */
+export const usePostApiAdminRksvSignatureVerify = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvSignatureVerify>>, TError,{data: RksvSignatureVerifyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRksvSignatureVerify>>,
@@ -28051,7 +30066,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminSessions = (
+    /**
+ * @summary List auth sessions (POS + Admin) with optional filters. Manager is limited to the ambient tenant.
+ */
+export const getApiAdminSessions = (
     params?: GetApiAdminSessionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -28091,6 +30109,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSessions>>>
 export type GetApiAdminSessionsQueryError = ProblemDetails
 
+/**
+ * @summary List auth sessions (POS + Admin) with optional filters. Manager is limited to the ambient tenant.
+ */
 export const useGetApiAdminSessions = <TData = Awaited<ReturnType<typeof getApiAdminSessions>>, TError = ProblemDetails>(
  params?: GetApiAdminSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -28107,6 +30128,9 @@ export const useGetApiAdminSessions = <TData = Awaited<ReturnType<typeof getApiA
 
 
 
+/**
+ * @summary List active sessions for one user (Identity user id). Manager: own tenant only.
+ */
 export const getApiAdminSessionsUserUserId = (
     userId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -28146,6 +30170,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSessionsUserUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>>
 export type GetApiAdminSessionsUserUserIdQueryError = ProblemDetails
 
+/**
+ * @summary List active sessions for one user (Identity user id). Manager: own tenant only.
+ */
 export const useGetApiAdminSessionsUserUserId = <TData = Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError = ProblemDetails>(
  userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -28162,6 +30189,9 @@ export const useGetApiAdminSessionsUserUserId = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Revoke one session and its refresh tokens. Cannot terminate the caller's current session.
+ */
 export const postApiAdminSessionsSessionIdTerminate = (
     sessionId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -28198,7 +30228,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsSessionIdTerminateMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsSessionIdTerminate = <TError = ProblemDetails,
+    /**
+ * @summary Revoke one session and its refresh tokens. Cannot terminate the caller's current session.
+ */
+export const usePostApiAdminSessionsSessionIdTerminate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdTerminate>>, TError,{sessionId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsSessionIdTerminate>>,
@@ -28211,7 +30244,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsSessionIdLogout = (
+    /**
+ * @summary Alias of M:KasseAPI_Final.Controllers.AdminSessionController.TerminateSession(System.Guid,System.Threading.CancellationToken) (`POST …/logout`).
+ */
+export const postApiAdminSessionsSessionIdLogout = (
     sessionId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28247,7 +30283,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsSessionIdLogoutMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsSessionIdLogout = <TError = ProblemDetails,
+    /**
+ * @summary Alias of M:KasseAPI_Final.Controllers.AdminSessionController.TerminateSession(System.Guid,System.Threading.CancellationToken) (`POST …/logout`).
+ */
+export const usePostApiAdminSessionsSessionIdLogout = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>, TError,{sessionId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>,
@@ -28260,7 +30299,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsUserUserIdTerminateAll = (
+    /**
+ * @summary Revoke every active session for one user (does not rotate security stamp). Super Admin only.
+ */
+export const postApiAdminSessionsUserUserIdTerminateAll = (
     userId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28296,7 +30338,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsUserUserIdTerminateAllMutationError = unknown
 
-    export const usePostApiAdminSessionsUserUserIdTerminateAll = <TError = unknown,
+    /**
+ * @summary Revoke every active session for one user (does not rotate security stamp). Super Admin only.
+ */
+export const usePostApiAdminSessionsUserUserIdTerminateAll = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsUserUserIdTerminateAll>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsUserUserIdTerminateAll>>,
@@ -28309,7 +30354,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsUserUserIdForceLogout = (
+    /**
+ * @summary Rotate security stamp (invalidates JWTs with `sst` claim) and revoke all sessions + refresh tokens.
+Super Admin only.
+ */
+export const postApiAdminSessionsUserUserIdForceLogout = (
     userId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28345,7 +30394,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsUserUserIdForceLogoutMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsUserUserIdForceLogout = <TError = ProblemDetails,
+    /**
+ * @summary Rotate security stamp (invalidates JWTs with `sst` claim) and revoke all sessions + refresh tokens.
+Super Admin only.
+ */
+export const usePostApiAdminSessionsUserUserIdForceLogout = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsUserUserIdForceLogout>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsUserUserIdForceLogout>>,
@@ -28358,7 +30411,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsTerminateAll = (
+    /**
+ * @summary Revoke all in-scope active sessions except the caller's current session.
+ */
+export const postApiAdminSessionsTerminateAll = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28394,7 +30450,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsTerminateAllMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsTerminateAll = <TError = ProblemDetails,
+    /**
+ * @summary Revoke all in-scope active sessions except the caller's current session.
+ */
+export const usePostApiAdminSessionsTerminateAll = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>,
@@ -28407,7 +30466,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsLogoutAll = (
+    /**
+ * @summary Alias of M:KasseAPI_Final.Controllers.AdminSessionController.TerminateAllSessions(System.Threading.CancellationToken) (`POST …/logout-all`).
+ */
+export const postApiAdminSessionsLogoutAll = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28443,7 +30505,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsLogoutAllMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsLogoutAll = <TError = ProblemDetails,
+    /**
+ * @summary Alias of M:KasseAPI_Final.Controllers.AdminSessionController.TerminateAllSessions(System.Threading.CancellationToken) (`POST …/logout-all`).
+ */
+export const usePostApiAdminSessionsLogoutAll = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>,
@@ -28456,7 +30521,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminSessionsLogoutBulk = (
+    /**
+ * @summary Revoke selected sessions (skips current session and out-of-scope ids).
+ */
+export const postApiAdminSessionsLogoutBulk = (
     logoutBulkSessionsRequestDto: LogoutBulkSessionsRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -28494,7 +30562,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminSessionsLogoutBulkMutationBody = LogoutBulkSessionsRequestDto
     export type PostApiAdminSessionsLogoutBulkMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsLogoutBulk = <TError = ProblemDetails,
+    /**
+ * @summary Revoke selected sessions (skips current session and out-of-scope ids).
+ */
+export const usePostApiAdminSessionsLogoutBulk = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>, TError,{data: LogoutBulkSessionsRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>,
@@ -28507,7 +30578,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminShiftsOverview = (
+    /**
+ * @summary Active shifts, recent history, and daily closings for the effective tenant.
+ */
+export const getApiAdminShiftsOverview = (
     params?: GetApiAdminShiftsOverviewParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -28547,6 +30621,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminShiftsOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminShiftsOverview>>>
 export type GetApiAdminShiftsOverviewQueryError = ProblemDetails
 
+/**
+ * @summary Active shifts, recent history, and daily closings for the effective tenant.
+ */
 export const useGetApiAdminShiftsOverview = <TData = Awaited<ReturnType<typeof getApiAdminShiftsOverview>>, TError = ProblemDetails>(
  params?: GetApiAdminShiftsOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminShiftsOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -28563,6 +30640,9 @@ export const useGetApiAdminShiftsOverview = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Force-closes an open register and any active shift rows (Manager recovery).
+ */
 export const postApiAdminShiftsRegistersCashRegisterIdForceClose = (
     cashRegisterId: string,
     adminForceCloseShiftRequest: AdminForceCloseShiftRequest,
@@ -28602,7 +30682,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationBody = AdminForceCloseShiftRequest
     export type PostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationError = ProblemDetails
 
-    export const usePostApiAdminShiftsRegistersCashRegisterIdForceClose = <TError = ProblemDetails,
+    /**
+ * @summary Force-closes an open register and any active shift rows (Manager recovery).
+ */
+export const usePostApiAdminShiftsRegistersCashRegisterIdForceClose = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>, TError,{cashRegisterId: string;data: AdminForceCloseShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>,
@@ -28615,7 +30698,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseSignaturkarteProgramStatus = (
+    /**
+ * @summary Program deadline status + totals (not certificate expiry).
+ */
+export const getApiAdminTseSignaturkarteProgramStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -28654,6 +30740,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseSignaturkarteProgramStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramStatus>>>
 export type GetApiAdminTseSignaturkarteProgramStatusQueryError = ProblemDetails
 
+/**
+ * @summary Program deadline status + totals (not certificate expiry).
+ */
 export const useGetApiAdminTseSignaturkarteProgramStatus = <TData = Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramStatus>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -28670,6 +30759,9 @@ export const useGetApiAdminTseSignaturkarteProgramStatus = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary Device compliance list for the program.
+ */
 export const getApiAdminTseSignaturkarteProgramDevices = (
     params?: GetApiAdminTseSignaturkarteProgramDevicesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -28710,6 +30802,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseSignaturkarteProgramDevicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramDevices>>>
 export type GetApiAdminTseSignaturkarteProgramDevicesQueryError = ProblemDetails
 
+/**
+ * @summary Device compliance list for the program.
+ */
 export const useGetApiAdminTseSignaturkarteProgramDevices = <TData = Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramDevices>>, TError = ProblemDetails>(
  params?: GetApiAdminTseSignaturkarteProgramDevicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramDevices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -28726,6 +30821,9 @@ export const useGetApiAdminTseSignaturkarteProgramDevices = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary Mark a device program-compliant (audit trail). Not related to certificate renew.
+ */
 export const postApiAdminTseSignaturkarteProgramDevicesIdMarkCompliant = (
     id: string,
     signaturkarteProgramMarkCompliantRequest: SignaturkarteProgramMarkCompliantRequest,
@@ -28765,7 +30863,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseSignaturkarteProgramDevicesIdMarkCompliantMutationBody = SignaturkarteProgramMarkCompliantRequest
     export type PostApiAdminTseSignaturkarteProgramDevicesIdMarkCompliantMutationError = ProblemDetails
 
-    export const usePostApiAdminTseSignaturkarteProgramDevicesIdMarkCompliant = <TError = ProblemDetails,
+    /**
+ * @summary Mark a device program-compliant (audit trail). Not related to certificate renew.
+ */
+export const usePostApiAdminTseSignaturkarteProgramDevicesIdMarkCompliant = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseSignaturkarteProgramDevicesIdMarkCompliant>>, TError,{id: string;data: SignaturkarteProgramMarkCompliantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseSignaturkarteProgramDevicesIdMarkCompliant>>,
@@ -28778,7 +30879,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseSignaturkarteProgramExportCsv = (
+    /**
+ * @summary CSV export for Ops review (UTF-8 BOM).
+ */
+export const getApiAdminTseSignaturkarteProgramExportCsv = (
     params?: GetApiAdminTseSignaturkarteProgramExportCsvParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -28818,6 +30922,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseSignaturkarteProgramExportCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramExportCsv>>>
 export type GetApiAdminTseSignaturkarteProgramExportCsvQueryError = ProblemDetails
 
+/**
+ * @summary CSV export for Ops review (UTF-8 BOM).
+ */
 export const useGetApiAdminTseSignaturkarteProgramExportCsv = <TData = Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramExportCsv>>, TError = ProblemDetails>(
  params?: GetApiAdminTseSignaturkarteProgramExportCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseSignaturkarteProgramExportCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -29056,6 +31163,9 @@ export const useGetApiAdminInvoicesIdPdf = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Manually trigger monthly invoice generation (also run by hosted service).
+ */
 export const postApiAdminInvoicesGenerateMonthly = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -29092,7 +31202,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminInvoicesGenerateMonthlyMutationError = unknown
 
-    export const usePostApiAdminInvoicesGenerateMonthly = <TError = unknown,
+    /**
+ * @summary Manually trigger monthly invoice generation (also run by hosted service).
+ */
+export const usePostApiAdminInvoicesGenerateMonthly = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminInvoicesGenerateMonthly>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminInvoicesGenerateMonthly>>,
@@ -29693,6 +31806,9 @@ export const useGetApiAdminSupportTicketsOpenCount = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Kept for Super Admin clients that still call the legacy inbox path.
+ */
 export const getApiAdminSupportTicketsAll = (
     params?: GetApiAdminSupportTicketsAllParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -29733,6 +31849,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSupportTicketsAllQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSupportTicketsAll>>>
 export type GetApiAdminSupportTicketsAllQueryError = unknown
 
+/**
+ * @summary Kept for Super Admin clients that still call the legacy inbox path.
+ */
 export const useGetApiAdminSupportTicketsAll = <TData = Awaited<ReturnType<typeof getApiAdminSupportTicketsAll>>, TError = unknown>(
  params?: GetApiAdminSupportTicketsAllParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSupportTicketsAll>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -29908,7 +32027,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminSystemTimeSyncConfiguration = (
+    /**
+ * @summary Current persisted admin overrides (or appsettings defaults when no row exists).
+ */
+export const getApiAdminSystemTimeSyncConfiguration = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -29947,6 +32069,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSystemTimeSyncConfigurationQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncConfiguration>>>
 export type GetApiAdminSystemTimeSyncConfigurationQueryError = unknown
 
+/**
+ * @summary Current persisted admin overrides (or appsettings defaults when no row exists).
+ */
 export const useGetApiAdminSystemTimeSyncConfiguration = <TData = Awaited<ReturnType<typeof getApiAdminSystemTimeSyncConfiguration>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncConfiguration>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -29963,6 +32088,9 @@ export const useGetApiAdminSystemTimeSyncConfiguration = <TData = Awaited<Return
 
 
 
+/**
+ * @summary Persist admin overrides for auto-sync cadence and drift thresholds.
+ */
 export const putApiAdminSystemTimeSyncConfiguration = (
     ntpAdminConfigurationUpdateDto: NtpAdminConfigurationUpdateDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -30001,7 +32129,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminSystemTimeSyncConfigurationMutationBody = NtpAdminConfigurationUpdateDto
     export type PutApiAdminSystemTimeSyncConfigurationMutationError = ProblemDetails
 
-    export const usePutApiAdminSystemTimeSyncConfiguration = <TError = ProblemDetails,
+    /**
+ * @summary Persist admin overrides for auto-sync cadence and drift thresholds.
+ */
+export const usePutApiAdminSystemTimeSyncConfiguration = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminSystemTimeSyncConfiguration>>, TError,{data: NtpAdminConfigurationUpdateDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminSystemTimeSyncConfiguration>>,
@@ -30014,7 +32145,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminSystemTimeSync = (
+    /**
+ * @summary Current drift snapshot plus effective configuration for the admin page.
+ */
+export const getApiAdminSystemTimeSync = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -30053,6 +32187,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSystemTimeSyncQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSystemTimeSync>>>
 export type GetApiAdminSystemTimeSyncQueryError = unknown
 
+/**
+ * @summary Current drift snapshot plus effective configuration for the admin page.
+ */
 export const useGetApiAdminSystemTimeSync = <TData = Awaited<ReturnType<typeof getApiAdminSystemTimeSync>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSystemTimeSync>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -30069,6 +32206,9 @@ export const useGetApiAdminSystemTimeSync = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Last 100 synchronization attempts.
+ */
 export const getApiAdminSystemTimeSyncLogs = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -30108,6 +32248,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSystemTimeSyncLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncLogs>>>
 export type GetApiAdminSystemTimeSyncLogsQueryError = unknown
 
+/**
+ * @summary Last 100 synchronization attempts.
+ */
 export const useGetApiAdminSystemTimeSyncLogs = <TData = Awaited<ReturnType<typeof getApiAdminSystemTimeSyncLogs>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -30124,6 +32267,9 @@ export const useGetApiAdminSystemTimeSyncLogs = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Registers whose last mirrored drift exceeds the effective max offset.
+ */
 export const getApiAdminSystemTimeSyncDriftSummary = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -30163,6 +32309,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminSystemTimeSyncDriftSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncDriftSummary>>>
 export type GetApiAdminSystemTimeSyncDriftSummaryQueryError = unknown
 
+/**
+ * @summary Registers whose last mirrored drift exceeds the effective max offset.
+ */
 export const useGetApiAdminSystemTimeSyncDriftSummary = <TData = Awaited<ReturnType<typeof getApiAdminSystemTimeSyncDriftSummary>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSystemTimeSyncDriftSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -30340,7 +32489,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTaxGroupsStats = (
+    /**
+ * @summary Product distribution + period Umsatz per tax group (FA stats cards).
+GET api/admin/tax-groups/stats?fromUtc=&toUtc=
+Defaults to the current UTC calendar year when dates are omitted.
+ */
+export const getApiAdminTaxGroupsStats = (
     params?: GetApiAdminTaxGroupsStatsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -30380,6 +32534,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTaxGroupsStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTaxGroupsStats>>>
 export type GetApiAdminTaxGroupsStatsQueryError = unknown
 
+/**
+ * @summary Product distribution + period Umsatz per tax group (FA stats cards).
+GET api/admin/tax-groups/stats?fromUtc=&toUtc=
+Defaults to the current UTC calendar year when dates are omitted.
+ */
 export const useGetApiAdminTaxGroupsStats = <TData = Awaited<ReturnType<typeof getApiAdminTaxGroupsStats>>, TError = unknown>(
  params?: GetApiAdminTaxGroupsStatsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTaxGroupsStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -30552,7 +32711,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTaxGroupsBulkUpdate = (
+    /**
+ * @summary Reassign all products from one tax group to another (writes tax history per product).
+ */
+export const postApiAdminTaxGroupsBulkUpdate = (
     taxBulkUpdateRequest: TaxBulkUpdateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -30590,7 +32752,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTaxGroupsBulkUpdateMutationBody = TaxBulkUpdateRequest
     export type PostApiAdminTaxGroupsBulkUpdateMutationError = unknown
 
-    export const usePostApiAdminTaxGroupsBulkUpdate = <TError = unknown,
+    /**
+ * @summary Reassign all products from one tax group to another (writes tax history per product).
+ */
+export const usePostApiAdminTaxGroupsBulkUpdate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTaxGroupsBulkUpdate>>, TError,{data: TaxBulkUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTaxGroupsBulkUpdate>>,
@@ -30603,7 +32768,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTaxGroupsApplyToProducts = (
+    /**
+ * @summary Assign one tax group to an explicit product selection (FA quick tax actions).
+POST api/admin/tax-groups/apply-to-products
+ */
+export const postApiAdminTaxGroupsApplyToProducts = (
     taxApplyToProductsRequest: TaxApplyToProductsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -30641,7 +32810,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTaxGroupsApplyToProductsMutationBody = TaxApplyToProductsRequest
     export type PostApiAdminTaxGroupsApplyToProductsMutationError = unknown
 
-    export const usePostApiAdminTaxGroupsApplyToProducts = <TError = unknown,
+    /**
+ * @summary Assign one tax group to an explicit product selection (FA quick tax actions).
+POST api/admin/tax-groups/apply-to-products
+ */
+export const usePostApiAdminTaxGroupsApplyToProducts = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTaxGroupsApplyToProducts>>, TError,{data: TaxApplyToProductsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTaxGroupsApplyToProducts>>,
@@ -31370,7 +33543,73 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdDataManagement = (
+    /**
+ * @summary GET /api/admin/export/{type}?format=csv|xlsx
+ */
+export const getApiAdminExportType = (
+    type: string,
+    params?: GetApiAdminExportTypeParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/export/${type}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminExportTypeQueryKey = (type: string,
+    params?: GetApiAdminExportTypeParams,) => {
+    return [`/api/admin/export/${type}`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminExportTypeQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminExportType>>, TError = ProblemDetails>(type: string,
+    params?: GetApiAdminExportTypeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminExportType>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminExportTypeQueryKey(type,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminExportType>>> = ({ signal }) => getApiAdminExportType(type,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(type), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminExportType>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminExportTypeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminExportType>>>
+export type GetApiAdminExportTypeQueryError = ProblemDetails
+
+/**
+ * @summary GET /api/admin/export/{type}?format=csv|xlsx
+ */
+export const useGetApiAdminExportType = <TData = Awaited<ReturnType<typeof getApiAdminExportType>>, TError = ProblemDetails>(
+ type: string,
+    params?: GetApiAdminExportTypeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminExportType>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminExportTypeQueryOptions(type,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminTenantsTenantIdDataManagement = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -31425,6 +33664,9 @@ export const useGetApiAdminTenantsTenantIdDataManagement = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary GDPR request type catalog (View / Export / Delete).
+ */
 export const getApiAdminTenantsTenantIdDataManagementRequestTypes = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -31464,6 +33706,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdDataManagementRequestTypesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementRequestTypes>>>
 export type GetApiAdminTenantsTenantIdDataManagementRequestTypesQueryError = ProblemDetails
 
+/**
+ * @summary GDPR request type catalog (View / Export / Delete).
+ */
 export const useGetApiAdminTenantsTenantIdDataManagementRequestTypes = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementRequestTypes>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementRequestTypes>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -31806,7 +34051,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdDataManagementExport = (
+    /**
+ * @summary Legacy sync ZIP export (also records a completed Export rights request when possible).
+ */
+export const getApiAdminTenantsTenantIdDataManagementExport = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -31846,6 +34094,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdDataManagementExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementExport>>>
 export type GetApiAdminTenantsTenantIdDataManagementExportQueryError = ProblemDetails
 
+/**
+ * @summary Legacy sync ZIP export (also records a completed Export rights request when possible).
+ */
 export const useGetApiAdminTenantsTenantIdDataManagementExport = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementExport>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -32014,7 +34265,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdDataManagementClosure = (
+    /**
+ * @summary Account closure status (facade over deletion request + RKSV retention flag).
+ */
+export const getApiAdminTenantsTenantIdDataManagementClosure = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -32053,6 +34307,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdDataManagementClosureQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementClosure>>>
 export type GetApiAdminTenantsTenantIdDataManagementClosureQueryError = ProblemDetails
 
+/**
+ * @summary Account closure status (facade over deletion request + RKSV retention flag).
+ */
 export const useGetApiAdminTenantsTenantIdDataManagementClosure = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementClosure>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDataManagementClosure>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -32069,6 +34326,9 @@ export const useGetApiAdminTenantsTenantIdDataManagementClosure = <TData = Await
 
 
 
+/**
+ * @summary Request account closure (Archived license only; same gates as deletion-request).
+ */
 export const postApiAdminTenantsTenantIdDataManagementClosure = (
     tenantId: string,
     requestTenantDataDeletionDto: RequestTenantDataDeletionDto,
@@ -32108,7 +34368,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdDataManagementClosureMutationBody = RequestTenantDataDeletionDto
     export type PostApiAdminTenantsTenantIdDataManagementClosureMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDataManagementClosure = <TError = ProblemDetails,
+    /**
+ * @summary Request account closure (Archived license only; same gates as deletion-request).
+ */
+export const usePostApiAdminTenantsTenantIdDataManagementClosure = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDataManagementClosure>>, TError,{tenantId: string;data: RequestTenantDataDeletionDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDataManagementClosure>>,
@@ -32170,7 +34433,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute = (
+    /**
+ * @summary Super Admin manual execute after the 7-day wait (same gates as auto-purge).
+ */
+export const postApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute = (
     tenantId: string,
     requestId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -32207,7 +34473,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecuteMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin manual execute after the 7-day wait (same gates as auto-purge).
+ */
+export const usePostApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute>>, TError,{tenantId: string;requestId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDataManagementDeletionRequestRequestIdExecute>>,
@@ -32588,7 +34857,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantDomainsGeneratePackage = (
+    /**
+ * @summary Download a static website ZIP (HTML/CSS/JS + deploy script) for a custom domain.
+ */
+export const postApiAdminTenantDomainsGeneratePackage = (
     generateTenantWebsitePackageRequestDto: GenerateTenantWebsitePackageRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -32627,7 +34899,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantDomainsGeneratePackageMutationBody = GenerateTenantWebsitePackageRequestDto
     export type PostApiAdminTenantDomainsGeneratePackageMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantDomainsGeneratePackage = <TError = ProblemDetails,
+    /**
+ * @summary Download a static website ZIP (HTML/CSS/JS + deploy script) for a custom domain.
+ */
+export const usePostApiAdminTenantDomainsGeneratePackage = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantDomainsGeneratePackage>>, TError,{data: GenerateTenantWebsitePackageRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantDomainsGeneratePackage>>,
@@ -33018,6 +35293,9 @@ export const useGetApiAdminTenantsTenantIdLicense = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Update mandant license (REGK key and/or valid-until). Managers: both fields required.
+ */
 export const putApiAdminTenantsTenantIdLicense = (
     tenantId: string,
     extendTenantLicenseRequest: ExtendTenantLicenseRequest,
@@ -33057,7 +35335,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminTenantsTenantIdLicenseMutationBody = ExtendTenantLicenseRequest
     export type PutApiAdminTenantsTenantIdLicenseMutationError = ProblemDetails
 
-    export const usePutApiAdminTenantsTenantIdLicense = <TError = ProblemDetails,
+    /**
+ * @summary Update mandant license (REGK key and/or valid-until). Managers: both fields required.
+ */
+export const usePutApiAdminTenantsTenantIdLicense = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdLicense>>, TError,{tenantId: string;data: ExtendTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminTenantsTenantIdLicense>>,
@@ -33275,7 +35556,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdLicenseConvertToPaid = (
+    /**
+ * @summary Convert an open trial to a paid license sale (Super Admin or Manager of this tenant).
+Cross-tenant Manager access returns 404.
+ */
+export const postApiAdminTenantsTenantIdLicenseConvertToPaid = (
     tenantId: string,
     convertToPaidRequest: ConvertToPaidRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -33314,7 +35599,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdLicenseConvertToPaidMutationBody = ConvertToPaidRequest
     export type PostApiAdminTenantsTenantIdLicenseConvertToPaidMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdLicenseConvertToPaid = <TError = ProblemDetails,
+    /**
+ * @summary Convert an open trial to a paid license sale (Super Admin or Manager of this tenant).
+Cross-tenant Manager access returns 404.
+ */
+export const usePostApiAdminTenantsTenantIdLicenseConvertToPaid = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseConvertToPaid>>, TError,{tenantId: string;data: ConvertToPaidRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseConvertToPaid>>,
@@ -33428,7 +35717,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdLicenseSync = (
+    /**
+ * @summary Compares mandant `license_valid_until_utc` with linked `issued_licenses` rows (key, name, or `[tenant:guid]` marker).
+ */
+export const postApiAdminTenantsTenantIdLicenseSync = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -33464,7 +35756,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdLicenseSyncMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdLicenseSync = <TError = ProblemDetails,
+    /**
+ * @summary Compares mandant `license_valid_until_utc` with linked `issued_licenses` rows (key, name, or `[tenant:guid]` marker).
+ */
+export const usePostApiAdminTenantsTenantIdLicenseSync = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseSync>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseSync>>,
@@ -33477,7 +35772,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdLicenseSyncIssue = (
+    /**
+ * @summary Issues a floating deployment JWT in `issued_licenses` aligned to the mandant end date.
+ */
+export const postApiAdminTenantsTenantIdLicenseSyncIssue = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -33513,7 +35811,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdLicenseSyncIssueMutationError = ProblemDetails | void
 
-    export const usePostApiAdminTenantsTenantIdLicenseSyncIssue = <TError = ProblemDetails | void,
+    /**
+ * @summary Issues a floating deployment JWT in `issued_licenses` aligned to the mandant end date.
+ */
+export const usePostApiAdminTenantsTenantIdLicenseSyncIssue = <TError = ProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseSyncIssue>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseSyncIssue>>,
@@ -33793,6 +36094,9 @@ export const useGetApiAdminLimitsDashboard = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary List tenants with optional filter, sort, and pagination.
+ */
 export const getApiAdminTenants = (
     params?: GetApiAdminTenantsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -33833,6 +36137,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenants>>>
 export type GetApiAdminTenantsQueryError = unknown
 
+/**
+ * @summary List tenants with optional filter, sort, and pagination.
+ */
 export const useGetApiAdminTenants = <TData = Awaited<ReturnType<typeof getApiAdminTenants>>, TError = unknown>(
  params?: GetApiAdminTenantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -33849,6 +36156,9 @@ export const useGetApiAdminTenants = <TData = Awaited<ReturnType<typeof getApiAd
 
 
 
+/**
+ * @summary Create a new tenant (generates id, unique slug).
+ */
 export const postApiAdminTenants = (
     createAdminTenantRequest: CreateAdminTenantRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -33887,7 +36197,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsMutationBody = CreateAdminTenantRequest
     export type PostApiAdminTenantsMutationError = ProblemDetails
 
-    export const usePostApiAdminTenants = <TError = ProblemDetails,
+    /**
+ * @summary Create a new tenant (generates id, unique slug).
+ */
+export const usePostApiAdminTenants = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenants>>, TError,{data: CreateAdminTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenants>>,
@@ -33900,7 +36213,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsExport = (
+    /**
+ * @summary Export filtered tenant inventory as CSV (same filters as list; no pagination).
+ */
+export const getApiAdminTenantsExport = (
     params?: GetApiAdminTenantsExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -33941,6 +36257,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsExport>>>
 export type GetApiAdminTenantsExportQueryError = unknown
 
+/**
+ * @summary Export filtered tenant inventory as CSV (same filters as list; no pagination).
+ */
 export const useGetApiAdminTenantsExport = <TData = Awaited<ReturnType<typeof getApiAdminTenantsExport>>, TError = unknown>(
  params?: GetApiAdminTenantsExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -33957,6 +36276,9 @@ export const useGetApiAdminTenantsExport = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary Super Admin mandant license inventory for `/admin/license` overview table.
+ */
 export const getApiAdminTenantsLicenseOverview = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -33996,6 +36318,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsLicenseOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsLicenseOverview>>>
 export type GetApiAdminTenantsLicenseOverviewQueryError = unknown
 
+/**
+ * @summary Super Admin mandant license inventory for `/admin/license` overview table.
+ */
 export const useGetApiAdminTenantsLicenseOverview = <TData = Awaited<ReturnType<typeof getApiAdminTenantsLicenseOverview>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsLicenseOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34012,6 +36337,9 @@ export const useGetApiAdminTenantsLicenseOverview = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Suggest available subdomain slugs from company name and/or preferred slug.
+ */
 export const getApiAdminTenantsSlugSuggestions = (
     params?: GetApiAdminTenantsSlugSuggestionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34052,6 +36380,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsSlugSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsSlugSuggestions>>>
 export type GetApiAdminTenantsSlugSuggestionsQueryError = unknown
 
+/**
+ * @summary Suggest available subdomain slugs from company name and/or preferred slug.
+ */
 export const useGetApiAdminTenantsSlugSuggestions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsSlugSuggestions>>, TError = unknown>(
  params?: GetApiAdminTenantsSlugSuggestionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsSlugSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34068,6 +36399,9 @@ export const useGetApiAdminTenantsSlugSuggestions = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Check whether a tenant slug is valid and not already taken.
+ */
 export const getApiAdminTenantsSlugAvailability = (
     params?: GetApiAdminTenantsSlugAvailabilityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34108,6 +36442,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsSlugAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsSlugAvailability>>>
 export type GetApiAdminTenantsSlugAvailabilityQueryError = unknown
 
+/**
+ * @summary Check whether a tenant slug is valid and not already taken.
+ */
 export const useGetApiAdminTenantsSlugAvailability = <TData = Awaited<ReturnType<typeof getApiAdminTenantsSlugAvailability>>, TError = unknown>(
  params?: GetApiAdminTenantsSlugAvailabilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsSlugAvailability>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34124,6 +36461,9 @@ export const useGetApiAdminTenantsSlugAvailability = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Get tenant by id.
+ */
 export const getApiAdminTenantsTenantId = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34163,6 +36503,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantId>>>
 export type GetApiAdminTenantsTenantIdQueryError = ProblemDetails
 
+/**
+ * @summary Get tenant by id.
+ */
 export const useGetApiAdminTenantsTenantId = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantId>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34179,6 +36522,9 @@ export const useGetApiAdminTenantsTenantId = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Update tenant metadata or status.
+ */
 export const putApiAdminTenantsTenantId = (
     tenantId: string,
     updateAdminTenantRequest: UpdateAdminTenantRequest,
@@ -34218,7 +36564,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminTenantsTenantIdMutationBody = UpdateAdminTenantRequest
     export type PutApiAdminTenantsTenantIdMutationError = ProblemDetails
 
-    export const usePutApiAdminTenantsTenantId = <TError = ProblemDetails,
+    /**
+ * @summary Update tenant metadata or status.
+ */
+export const usePutApiAdminTenantsTenantId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantId>>, TError,{tenantId: string;data: UpdateAdminTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminTenantsTenantId>>,
@@ -34231,7 +36580,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminTenantsTenantId = (
+    /**
+ * @summary Soft-delete tenant (status=deleted, is_active=false).
+ */
+export const deleteApiAdminTenantsTenantId = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -34267,7 +36619,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminTenantsTenantIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminTenantsTenantId = <TError = ProblemDetails,
+    /**
+ * @summary Soft-delete tenant (status=deleted, is_active=false).
+ */
+export const useDeleteApiAdminTenantsTenantId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantId>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminTenantsTenantId>>,
@@ -34280,7 +36635,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdCashRegisters = (
+    /**
+ * @summary List cash registers for a tenant (super-admin cross-tenant view).
+ */
+export const getApiAdminTenantsTenantIdCashRegisters = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -34319,6 +36677,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdCashRegistersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegisters>>>
 export type GetApiAdminTenantsTenantIdCashRegistersQueryError = ProblemDetails
 
+/**
+ * @summary List cash registers for a tenant (super-admin cross-tenant view).
+ */
 export const useGetApiAdminTenantsTenantIdCashRegisters = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegisters>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCashRegisters>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34335,6 +36696,9 @@ export const useGetApiAdminTenantsTenantIdCashRegisters = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Return tenant decommission preflight checks for the super-admin wizard.
+ */
 export const getApiAdminTenantsTenantIdDecommissionChecks = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34374,6 +36738,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdDecommissionChecksQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>>
 export type GetApiAdminTenantsTenantIdDecommissionChecksQueryError = ProblemDetails
 
+/**
+ * @summary Return tenant decommission preflight checks for the super-admin wizard.
+ */
 export const useGetApiAdminTenantsTenantIdDecommissionChecks = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34390,6 +36757,10 @@ export const useGetApiAdminTenantsTenantIdDecommissionChecks = <TData = Awaited<
 
 
 
+/**
+ * @summary Convert an open SaaS trial to a paid license sale (Super Admin).
+Managers use `POST /api/admin/tenants/{tenantId}/license/convert-to-paid` instead.
+ */
 export const postApiAdminTenantsTenantIdConvertToPaid = (
     tenantId: string,
     convertToPaidRequest: ConvertToPaidRequest,
@@ -34429,7 +36800,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdConvertToPaidMutationBody = ConvertToPaidRequest
     export type PostApiAdminTenantsTenantIdConvertToPaidMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdConvertToPaid = <TError = ProblemDetails,
+    /**
+ * @summary Convert an open SaaS trial to a paid license sale (Super Admin).
+Managers use `POST /api/admin/tenants/{tenantId}/license/convert-to-paid` instead.
+ */
+export const usePostApiAdminTenantsTenantIdConvertToPaid = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdConvertToPaid>>, TError,{tenantId: string;data: ConvertToPaidRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdConvertToPaid>>,
@@ -34442,7 +36817,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdDemoProductsImport = (
+    /**
+ * @summary Import the demo menu catalog (Salate, Pizzas, Pasta, …) for an existing tenant.
+ */
+export const postApiAdminTenantsTenantIdDemoProductsImport = (
     tenantId: string,
     demoImportRequest: DemoImportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -34481,7 +36859,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdDemoProductsImportMutationBody = DemoImportRequest
     export type PostApiAdminTenantsTenantIdDemoProductsImportMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDemoProductsImport = <TError = ProblemDetails,
+    /**
+ * @summary Import the demo menu catalog (Salate, Pizzas, Pasta, …) for an existing tenant.
+ */
+export const usePostApiAdminTenantsTenantIdDemoProductsImport = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>,
@@ -34494,7 +36875,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdDemoProductsImportJobs = (
+    /**
+ * @summary Start background demo catalog import with SignalR progress for a tenant.
+ */
+export const postApiAdminTenantsTenantIdDemoProductsImportJobs = (
     tenantId: string,
     demoImportRequest: DemoImportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -34533,7 +36917,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdDemoProductsImportJobsMutationBody = DemoImportRequest
     export type PostApiAdminTenantsTenantIdDemoProductsImportJobsMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDemoProductsImportJobs = <TError = ProblemDetails,
+    /**
+ * @summary Start background demo catalog import with SignalR progress for a tenant.
+ */
+export const usePostApiAdminTenantsTenantIdDemoProductsImportJobs = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>,
@@ -34546,7 +36933,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsDemoProductsImportJobsJobId = (
+    /**
+ * @summary Poll demo import job progress for a tenant import.
+ */
+export const getApiAdminTenantsDemoProductsImportJobsJobId = (
     jobId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -34585,6 +36975,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsDemoProductsImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>>
 export type GetApiAdminTenantsDemoProductsImportJobsJobIdQueryError = ProblemDetails
 
+/**
+ * @summary Poll demo import job progress for a tenant import.
+ */
 export const useGetApiAdminTenantsDemoProductsImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError = ProblemDetails>(
  jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34601,6 +36994,9 @@ export const useGetApiAdminTenantsDemoProductsImportJobsJobId = <TData = Awaited
 
 
 
+/**
+ * @summary Import demo products from uploaded CSV/Excel template for a tenant (super-admin).
+ */
 export const postApiAdminTenantsTenantIdDemoProductsTemplateImport = (
     tenantId: string,
     postApiAdminTenantsTenantIdDemoProductsTemplateImportBody: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody,
@@ -34659,7 +37055,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationBody = PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody
     export type PostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDemoProductsTemplateImport = <TError = ProblemDetails,
+    /**
+ * @summary Import demo products from uploaded CSV/Excel template for a tenant (super-admin).
+ */
+export const usePostApiAdminTenantsTenantIdDemoProductsTemplateImport = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>, TError,{tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>,
@@ -34672,7 +37071,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const patchApiAdminTenantsTenantIdOperationMode = (
+    /**
+ * @summary Set tenant operation mode (active / readonly / maintenance).
+ */
+export const patchApiAdminTenantsTenantIdOperationMode = (
     tenantId: string,
     updateTenantOperationModeRequest: UpdateTenantOperationModeRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -34711,7 +37113,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminTenantsTenantIdOperationModeMutationBody = UpdateTenantOperationModeRequest
     export type PatchApiAdminTenantsTenantIdOperationModeMutationError = ProblemDetails
 
-    export const usePatchApiAdminTenantsTenantIdOperationMode = <TError = ProblemDetails,
+    /**
+ * @summary Set tenant operation mode (active / readonly / maintenance).
+ */
+export const usePatchApiAdminTenantsTenantIdOperationMode = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdOperationMode>>, TError,{tenantId: string;data: UpdateTenantOperationModeRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdOperationMode>>,
@@ -34724,7 +37129,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const patchApiAdminTenantsTenantIdCountry = (
+    /**
+ * @summary Super Admin: change mandant operating country and VAT regime.
+ */
+export const patchApiAdminTenantsTenantIdCountry = (
     tenantId: string,
     updateAdminTenantCountryRequest: UpdateAdminTenantCountryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -34763,7 +37171,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminTenantsTenantIdCountryMutationBody = UpdateAdminTenantCountryRequest
     export type PatchApiAdminTenantsTenantIdCountryMutationError = ProblemDetails
 
-    export const usePatchApiAdminTenantsTenantIdCountry = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin: change mandant operating country and VAT regime.
+ */
+export const usePatchApiAdminTenantsTenantIdCountry = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>, TError,{tenantId: string;data: UpdateAdminTenantCountryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>,
@@ -34776,7 +37187,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdCountryImpact = (
+    /**
+ * @summary Super Admin: fiscal-row counts for a proposed country change. Does not mutate.
+ */
+export const getApiAdminTenantsTenantIdCountryImpact = (
     tenantId: string,
     params?: GetApiAdminTenantsTenantIdCountryImpactParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34819,6 +37233,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdCountryImpactQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCountryImpact>>>
 export type GetApiAdminTenantsTenantIdCountryImpactQueryError = ProblemDetails
 
+/**
+ * @summary Super Admin: fiscal-row counts for a proposed country change. Does not mutate.
+ */
 export const useGetApiAdminTenantsTenantIdCountryImpact = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCountryImpact>>, TError = ProblemDetails>(
  tenantId: string,
     params?: GetApiAdminTenantsTenantIdCountryImpactParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdCountryImpact>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -34836,6 +37253,9 @@ export const useGetApiAdminTenantsTenantIdCountryImpact = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Weekly operation-log activity report for a tenant (last 7 days).
+ */
 export const getApiAdminTenantsTenantIdActivityReportWeekly = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34875,6 +37295,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdActivityReportWeeklyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdActivityReportWeekly>>>
 export type GetApiAdminTenantsTenantIdActivityReportWeeklyQueryError = ProblemDetails
 
+/**
+ * @summary Weekly operation-log activity report for a tenant (last 7 days).
+ */
 export const useGetApiAdminTenantsTenantIdActivityReportWeekly = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdActivityReportWeekly>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdActivityReportWeekly>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34891,6 +37314,9 @@ export const useGetApiAdminTenantsTenantIdActivityReportWeekly = <TData = Awaite
 
 
 
+/**
+ * @summary Return tenant dependency counts and permanent-delete eligibility for Super Admin UI.
+ */
 export const getApiAdminTenantsTenantIdDeleteDependencies = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -34930,6 +37356,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdDeleteDependenciesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>>
 export type GetApiAdminTenantsTenantIdDeleteDependenciesQueryError = ProblemDetails
 
+/**
+ * @summary Return tenant dependency counts and permanent-delete eligibility for Super Admin UI.
+ */
 export const useGetApiAdminTenantsTenantIdDeleteDependencies = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError = ProblemDetails>(
  tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -34946,6 +37375,9 @@ export const useGetApiAdminTenantsTenantIdDeleteDependencies = <TData = Awaited<
 
 
 
+/**
+ * @summary Permanently delete a soft-deleted tenant without fiscal data (requires slug confirmation).
+ */
 export const deleteApiAdminTenantsTenantIdPermanent = (
     tenantId: string,
     hardDeleteAdminTenantRequest: HardDeleteAdminTenantRequest,
@@ -34985,7 +37417,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type DeleteApiAdminTenantsTenantIdPermanentMutationBody = HardDeleteAdminTenantRequest
     export type DeleteApiAdminTenantsTenantIdPermanentMutationError = TenantPermanentDeleteErrorResponse | ProblemDetails
 
-    export const useDeleteApiAdminTenantsTenantIdPermanent = <TError = TenantPermanentDeleteErrorResponse | ProblemDetails,
+    /**
+ * @summary Permanently delete a soft-deleted tenant without fiscal data (requires slug confirmation).
+ */
+export const useDeleteApiAdminTenantsTenantIdPermanent = <TError = TenantPermanentDeleteErrorResponse | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>, TError,{tenantId: string;data: HardDeleteAdminTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>,
@@ -34998,7 +37433,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminTenantsTenantIdHard = (
+    /**
+ * @summary Development-only shortcut: soft-delete the tenant when needed, then run the existing permanent delete flow
+using the tenant slug as confirmation.
+ */
+export const deleteApiAdminTenantsTenantIdHard = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -35034,7 +37473,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminTenantsTenantIdHardMutationError = ProblemDetails
 
-    export const useDeleteApiAdminTenantsTenantIdHard = <TError = ProblemDetails,
+    /**
+ * @summary Development-only shortcut: soft-delete the tenant when needed, then run the existing permanent delete flow
+using the tenant slug as confirmation.
+ */
+export const useDeleteApiAdminTenantsTenantIdHard = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>,
@@ -35047,7 +37490,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdRestore = (
+    /**
+ * @summary Restore a soft-deleted tenant (status=active, is_active=true).
+ */
+export const postApiAdminTenantsTenantIdRestore = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -35083,7 +37529,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdRestoreMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdRestore = <TError = ProblemDetails,
+    /**
+ * @summary Restore a soft-deleted tenant (status=active, is_active=true).
+ */
+export const usePostApiAdminTenantsTenantIdRestore = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdRestore>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdRestore>>,
@@ -35096,7 +37545,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdDecommission = (
+    /**
+ * @summary Decommission all tenant cash registers and then soft-delete the tenant.
+ */
+export const postApiAdminTenantsTenantIdDecommission = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -35132,7 +37584,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdDecommissionMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdDecommission = <TError = ProblemDetails,
+    /**
+ * @summary Decommission all tenant cash registers and then soft-delete the tenant.
+ */
+export const usePostApiAdminTenantsTenantIdDecommission = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>,
@@ -35145,7 +37600,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdImpersonate = (
+    /**
+ * @summary Issue a short-lived admin JWT scoped to the target tenant (support impersonation).
+ */
+export const postApiAdminTenantsTenantIdImpersonate = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -35181,7 +37639,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdImpersonateMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdImpersonate = <TError = ProblemDetails,
+    /**
+ * @summary Issue a short-lived admin JWT scoped to the target tenant (support impersonation).
+ */
+export const usePostApiAdminTenantsTenantIdImpersonate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdImpersonate>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdImpersonate>>,
@@ -35510,34 +37971,41 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTenantsTenantIdUsers = (
+    /**
+ * @summary List users assigned to the tenant (active memberships).
+ */
+export const getApiAdminTenantsTenantIdUsers = (
     tenantId: string,
+    params?: GetApiAdminTenantsTenantIdUsersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
 
 
-      return customInstance<TenantUserDto[]>(
-      {url: `/api/admin/tenants/${tenantId}/users`, method: 'GET', signal
+      return customInstance<TenantUserListPage>(
+      {url: `/api/admin/tenants/${tenantId}/users`, method: 'GET',
+        params, signal
     },
       options);
     }
 
 
-export const getGetApiAdminTenantsTenantIdUsersQueryKey = (tenantId: string,) => {
-    return [`/api/admin/tenants/${tenantId}/users`] as const;
+export const getGetApiAdminTenantsTenantIdUsersQueryKey = (tenantId: string,
+    params?: GetApiAdminTenantsTenantIdUsersParams,) => {
+    return [`/api/admin/tenants/${tenantId}/users`, ...(params ? [params]: [])] as const;
     }
 
 
-export const getGetApiAdminTenantsTenantIdUsersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError = ProblemDetails>(tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiAdminTenantsTenantIdUsersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError = ProblemDetails>(tenantId: string,
+    params?: GetApiAdminTenantsTenantIdUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdUsersQueryKey(tenantId);
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdUsersQueryKey(tenantId,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>> = ({ signal }) => getApiAdminTenantsTenantIdUsers(tenantId, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>> = ({ signal }) => getApiAdminTenantsTenantIdUsers(tenantId,params, requestOptions, signal);
 
 
 
@@ -35549,12 +38017,16 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTenantsTenantIdUsersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>>
 export type GetApiAdminTenantsTenantIdUsersQueryError = ProblemDetails
 
+/**
+ * @summary List users assigned to the tenant (active memberships).
+ */
 export const useGetApiAdminTenantsTenantIdUsers = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError = ProblemDetails>(
- tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ tenantId: string,
+    params?: GetApiAdminTenantsTenantIdUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiAdminTenantsTenantIdUsersQueryOptions(tenantId,options)
+  const queryOptions = getGetApiAdminTenantsTenantIdUsersQueryOptions(tenantId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -35565,6 +38037,9 @@ export const useGetApiAdminTenantsTenantIdUsers = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Create a new tenant user by email (generated password returned once; no email).
+ */
 export const postApiAdminTenantsTenantIdUsers = (
     tenantId: string,
     createTenantUserRequest: CreateTenantUserRequest,
@@ -35604,7 +38079,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdUsersMutationBody = CreateTenantUserRequest
     export type PostApiAdminTenantsTenantIdUsersMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdUsers = <TError = ProblemDetails,
+    /**
+ * @summary Create a new tenant user by email (generated password returned once; no email).
+ */
+export const usePostApiAdminTenantsTenantIdUsers = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: CreateTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>,
@@ -35617,7 +38095,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdUsersQuick = (
+    /**
+ * @summary Quick-create a tenant user (auto email + password; audit logged).
+ */
+export const postApiAdminTenantsTenantIdUsersQuick = (
     tenantId: string,
     createQuickTenantUserRequest: CreateQuickTenantUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -35656,7 +38137,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdUsersQuickMutationBody = CreateQuickTenantUserRequest
     export type PostApiAdminTenantsTenantIdUsersQuickMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdUsersQuick = <TError = ProblemDetails,
+    /**
+ * @summary Quick-create a tenant user (auto email + password; audit logged).
+ */
+export const usePostApiAdminTenantsTenantIdUsersQuick = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersQuick>>, TError,{tenantId: string;data: CreateQuickTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersQuick>>,
@@ -35669,7 +38153,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdUsersAssign = (
+    /**
+ * @summary Assign an existing platform user to the tenant.
+ */
+export const postApiAdminTenantsTenantIdUsersAssign = (
     tenantId: string,
     addAdminTenantUserRequest: AddAdminTenantUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -35708,7 +38195,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTenantsTenantIdUsersAssignMutationBody = AddAdminTenantUserRequest
     export type PostApiAdminTenantsTenantIdUsersAssignMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdUsersAssign = <TError = ProblemDetails,
+    /**
+ * @summary Assign an existing platform user to the tenant.
+ */
+export const usePostApiAdminTenantsTenantIdUsersAssign = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>,
@@ -35721,7 +38211,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiAdminTenantsTenantIdUsersUserIdRole = (
+    /**
+ * @summary Update role for a tenant user.
+ */
+export const putApiAdminTenantsTenantIdUsersUserIdRole = (
     tenantId: string,
     userId: string,
     updateTenantUserRoleRequest: UpdateTenantUserRoleRequest,
@@ -35761,7 +38254,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminTenantsTenantIdUsersUserIdRoleMutationBody = UpdateTenantUserRoleRequest
     export type PutApiAdminTenantsTenantIdUsersUserIdRoleMutationError = ProblemDetails
 
-    export const usePutApiAdminTenantsTenantIdUsersUserIdRole = <TError = ProblemDetails,
+    /**
+ * @summary Update role for a tenant user.
+ */
+export const usePutApiAdminTenantsTenantIdUsersUserIdRole = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdUsersUserIdRole>>, TError,{tenantId: string;userId: string;data: UpdateTenantUserRoleRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminTenantsTenantIdUsersUserIdRole>>,
@@ -35774,7 +38270,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdUsersUserIdResetPassword = (
+    /**
+ * @summary Generate a new password for a tenant user (shown once in the response).
+Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+ */
+export const postApiAdminTenantsTenantIdUsersUserIdResetPassword = (
     tenantId: string,
     userId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -35811,7 +38311,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTenantsTenantIdUsersUserIdResetPasswordMutationError = ProblemDetails
 
-    export const usePostApiAdminTenantsTenantIdUsersUserIdResetPassword = <TError = ProblemDetails,
+    /**
+ * @summary Generate a new password for a tenant user (shown once in the response).
+Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+ */
+export const usePostApiAdminTenantsTenantIdUsersUserIdResetPassword = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdResetPassword>>, TError,{tenantId: string;userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdResetPassword>>,
@@ -35824,7 +38328,68 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiAdminTenantsTenantIdUsersUserId = (
+    /**
+ * @summary Generate a new password for a tenant user (shown once in the response).
+Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+ */
+export const postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword = (
+    tenantId: string,
+    userId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<TenantUserPasswordResetResultDto>(
+      {url: `/api/admin/tenants/${tenantId}/users/${userId}/generate-temporary-password`, method: 'POST'
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPasswordMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>, TError,{tenantId: string;userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>, TError,{tenantId: string;userId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>, {tenantId: string;userId: string}> = (props) => {
+          const {tenantId,userId} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword(tenantId,userId,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>>
+
+    export type PostApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPasswordMutationError = ProblemDetails
+
+    /**
+ * @summary Generate a new password for a tenant user (shown once in the response).
+Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+ */
+export const usePostApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>, TError,{tenantId: string;userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPassword>>,
+        TError,
+        {tenantId: string;userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdUsersUserIdGenerateTemporaryPasswordMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Update tenant membership (role and/or owner flag).
+ */
+export const putApiAdminTenantsTenantIdUsersUserId = (
     tenantId: string,
     userId: string,
     updateAdminTenantUserRequest: UpdateAdminTenantUserRequest,
@@ -35864,7 +38429,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminTenantsTenantIdUsersUserIdMutationBody = UpdateAdminTenantUserRequest
     export type PutApiAdminTenantsTenantIdUsersUserIdMutationError = ProblemDetails
 
-    export const usePutApiAdminTenantsTenantIdUsersUserId = <TError = ProblemDetails,
+    /**
+ * @summary Update tenant membership (role and/or owner flag).
+ */
+export const usePutApiAdminTenantsTenantIdUsersUserId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdUsersUserId>>, TError,{tenantId: string;userId: string;data: UpdateAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminTenantsTenantIdUsersUserId>>,
@@ -35877,7 +38445,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminTenantsTenantIdUsersUserId = (
+    /**
+ * @summary Remove user from tenant (deactivates membership).
+ */
+export const deleteApiAdminTenantsTenantIdUsersUserId = (
     tenantId: string,
     userId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -35914,7 +38485,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminTenantsTenantIdUsersUserIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminTenantsTenantIdUsersUserId = <TError = ProblemDetails,
+    /**
+ * @summary Remove user from tenant (deactivates membership).
+ */
+export const useDeleteApiAdminTenantsTenantIdUsersUserId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdUsersUserId>>, TError,{tenantId: string;userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdUsersUserId>>,
@@ -37998,6 +40572,9 @@ export const useGetApiAdminTseAusfallBegruendungCodes = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Manual Ausfall / Wiederinbetriebnahme trigger.
+ */
 export const postApiAdminTseAusfallTrigger = (
     rksvAusfallTriggerRequest: RksvAusfallTriggerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -38036,7 +40613,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseAusfallTriggerMutationBody = RksvAusfallTriggerRequest
     export type PostApiAdminTseAusfallTriggerMutationError = ProblemDetails
 
-    export const usePostApiAdminTseAusfallTrigger = <TError = ProblemDetails,
+    /**
+ * @summary Manual Ausfall / Wiederinbetriebnahme trigger.
+ */
+export const usePostApiAdminTseAusfallTrigger = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseAusfallTrigger>>, TError,{data: RksvAusfallTriggerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseAusfallTrigger>>,
@@ -39109,7 +41689,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseComplianceReport = (
+    /**
+ * @summary Full compliance report for a tenant period.
+fromUtc inclusive, toUtc exclusive.
+ */
+export const getApiAdminTseComplianceReport = (
     params?: GetApiAdminTseComplianceReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -39149,6 +41733,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseComplianceReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseComplianceReport>>>
 export type GetApiAdminTseComplianceReportQueryError = ProblemDetails
 
+/**
+ * @summary Full compliance report for a tenant period.
+fromUtc inclusive, toUtc exclusive.
+ */
 export const useGetApiAdminTseComplianceReport = <TData = Awaited<ReturnType<typeof getApiAdminTseComplianceReport>>, TError = ProblemDetails>(
  params?: GetApiAdminTseComplianceReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseComplianceReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39165,6 +41753,9 @@ export const useGetApiAdminTseComplianceReport = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Rolling 7-day compliance status for a tenant.
+ */
 export const getApiAdminTseComplianceStatus = (
     params?: GetApiAdminTseComplianceStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -39205,6 +41796,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseComplianceStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseComplianceStatus>>>
 export type GetApiAdminTseComplianceStatusQueryError = ProblemDetails
 
+/**
+ * @summary Rolling 7-day compliance status for a tenant.
+ */
 export const useGetApiAdminTseComplianceStatus = <TData = Awaited<ReturnType<typeof getApiAdminTseComplianceStatus>>, TError = ProblemDetails>(
  params?: GetApiAdminTseComplianceStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseComplianceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39221,6 +41815,9 @@ export const useGetApiAdminTseComplianceStatus = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Audit-readiness dashboard (certificates, transactions, audit trail, score).
+ */
 export const getApiAdminTseComplianceDashboard = (
     params?: GetApiAdminTseComplianceDashboardParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -39261,6 +41858,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseComplianceDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseComplianceDashboard>>>
 export type GetApiAdminTseComplianceDashboardQueryError = ProblemDetails
 
+/**
+ * @summary Audit-readiness dashboard (certificates, transactions, audit trail, score).
+ */
 export const useGetApiAdminTseComplianceDashboard = <TData = Awaited<ReturnType<typeof getApiAdminTseComplianceDashboard>>, TError = ProblemDetails>(
  params?: GetApiAdminTseComplianceDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseComplianceDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39277,6 +41877,9 @@ export const useGetApiAdminTseComplianceDashboard = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Download compliance dashboard as JSON (diagnostic export).
+ */
 export const getApiAdminTseComplianceExport = (
     params?: GetApiAdminTseComplianceExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -39317,6 +41920,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseComplianceExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseComplianceExport>>>
 export type GetApiAdminTseComplianceExportQueryError = ProblemDetails
 
+/**
+ * @summary Download compliance dashboard as JSON (diagnostic export).
+ */
 export const useGetApiAdminTseComplianceExport = <TData = Awaited<ReturnType<typeof getApiAdminTseComplianceExport>>, TError = ProblemDetails>(
  params?: GetApiAdminTseComplianceExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseComplianceExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39799,7 +42405,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseFailoverDevices = (
+    /**
+ * @summary All TSE devices with failover / health columns (cross-tenant Super Admin).
+ */
+export const getApiAdminTseFailoverDevices = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -39838,6 +42447,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverDevicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverDevices>>>
 export type GetApiAdminTseFailoverDevicesQueryError = unknown
 
+/**
+ * @summary All TSE devices with failover / health columns (cross-tenant Super Admin).
+ */
 export const useGetApiAdminTseFailoverDevices = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverDevices>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverDevices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39854,6 +42466,9 @@ export const useGetApiAdminTseFailoverDevices = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Summary counters + currently active failover pairings.
+ */
 export const getApiAdminTseFailoverStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -39893,6 +42508,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverStatus>>>
 export type GetApiAdminTseFailoverStatusQueryError = unknown
 
+/**
+ * @summary Summary counters + currently active failover pairings.
+ */
 export const useGetApiAdminTseFailoverStatus = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39909,6 +42527,9 @@ export const useGetApiAdminTseFailoverStatus = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Recent failover audit rows (newest first).
+ */
 export const getApiAdminTseFailoverHistory = (
     params?: GetApiAdminTseFailoverHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -39949,6 +42570,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverHistory>>>
 export type GetApiAdminTseFailoverHistoryQueryError = unknown
 
+/**
+ * @summary Recent failover audit rows (newest first).
+ */
 export const useGetApiAdminTseFailoverHistory = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverHistory>>, TError = unknown>(
  params?: GetApiAdminTseFailoverHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -39965,6 +42589,9 @@ export const useGetApiAdminTseFailoverHistory = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Tenant fleet health report (live device scores + alerts + recommendations).
+ */
 export const getApiAdminTseFailoverHealthReport = (
     params?: GetApiAdminTseFailoverHealthReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40005,6 +42632,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverHealthReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthReport>>>
 export type GetApiAdminTseFailoverHealthReportQueryError = ProblemDetails
 
+/**
+ * @summary Tenant fleet health report (live device scores + alerts + recommendations).
+ */
 export const useGetApiAdminTseFailoverHealthReport = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverHealthReport>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverHealthReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40021,6 +42651,9 @@ export const useGetApiAdminTseFailoverHealthReport = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Historical health score samples for trend charts.
+ */
 export const getApiAdminTseFailoverHealthTrend = (
     params?: GetApiAdminTseFailoverHealthTrendParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40061,6 +42694,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverHealthTrendQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthTrend>>>
 export type GetApiAdminTseFailoverHealthTrendQueryError = ProblemDetails
 
+/**
+ * @summary Historical health score samples for trend charts.
+ */
 export const useGetApiAdminTseFailoverHealthTrend = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverHealthTrend>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverHealthTrendParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthTrend>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40077,6 +42713,9 @@ export const useGetApiAdminTseFailoverHealthTrend = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Probe latency / success metrics from health samples for a TSE device.
+ */
 export const getApiAdminTseFailoverPerformance = (
     params?: GetApiAdminTseFailoverPerformanceParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40117,6 +42756,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverPerformanceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverPerformance>>>
 export type GetApiAdminTseFailoverPerformanceQueryError = ProblemDetails
 
+/**
+ * @summary Probe latency / success metrics from health samples for a TSE device.
+ */
 export const useGetApiAdminTseFailoverPerformance = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverPerformance>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40133,6 +42775,9 @@ export const useGetApiAdminTseFailoverPerformance = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Evaluate recent performance anomalies (slow / high error rate) for a device.
+ */
 export const getApiAdminTseFailoverPerformanceAnomalies = (
     params?: GetApiAdminTseFailoverPerformanceAnomaliesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40173,6 +42818,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverPerformanceAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverPerformanceAnomalies>>>
 export type GetApiAdminTseFailoverPerformanceAnomaliesQueryError = ProblemDetails
 
+/**
+ * @summary Evaluate recent performance anomalies (slow / high error rate) for a device.
+ */
 export const useGetApiAdminTseFailoverPerformanceAnomalies = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverPerformanceAnomalies>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverPerformanceAnomaliesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverPerformanceAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40189,6 +42837,9 @@ export const useGetApiAdminTseFailoverPerformanceAnomalies = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Indicative TSE operating-cost report for a tenant (config-based EUR; not an invoice).
+ */
 export const getApiAdminTseFailoverCostReport = (
     params?: GetApiAdminTseFailoverCostReportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40229,6 +42880,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverCostReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverCostReport>>>
 export type GetApiAdminTseFailoverCostReportQueryError = ProblemDetails
 
+/**
+ * @summary Indicative TSE operating-cost report for a tenant (config-based EUR; not an invoice).
+ */
 export const useGetApiAdminTseFailoverCostReport = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverCostReport>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverCostReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverCostReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40245,6 +42899,9 @@ export const useGetApiAdminTseFailoverCostReport = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Cost-saving recommendations for the tenant (last 30 days lookback).
+ */
 export const getApiAdminTseFailoverCostRecommendations = (
     params?: GetApiAdminTseFailoverCostRecommendationsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40285,6 +42942,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverCostRecommendationsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverCostRecommendations>>>
 export type GetApiAdminTseFailoverCostRecommendationsQueryError = ProblemDetails
 
+/**
+ * @summary Cost-saving recommendations for the tenant (last 30 days lookback).
+ */
 export const useGetApiAdminTseFailoverCostRecommendations = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverCostRecommendations>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverCostRecommendationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverCostRecommendations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40301,6 +42961,9 @@ export const useGetApiAdminTseFailoverCostRecommendations = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary Compare recent vs prior period indicative costs and optionally publish an activity alert.
+ */
 export const getApiAdminTseFailoverCostAnomalies = (
     params?: GetApiAdminTseFailoverCostAnomaliesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40341,6 +43004,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverCostAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverCostAnomalies>>>
 export type GetApiAdminTseFailoverCostAnomaliesQueryError = ProblemDetails
 
+/**
+ * @summary Compare recent vs prior period indicative costs and optionally publish an activity alert.
+ */
 export const useGetApiAdminTseFailoverCostAnomalies = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverCostAnomalies>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverCostAnomaliesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverCostAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40357,6 +43023,9 @@ export const useGetApiAdminTseFailoverCostAnomalies = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Heuristic failure-risk prediction for a TSE device.
+ */
 export const getApiAdminTseFailoverPredictFailure = (
     params?: GetApiAdminTseFailoverPredictFailureParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40397,6 +43066,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverPredictFailureQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverPredictFailure>>>
 export type GetApiAdminTseFailoverPredictFailureQueryError = ProblemDetails
 
+/**
+ * @summary Heuristic failure-risk prediction for a TSE device.
+ */
 export const useGetApiAdminTseFailoverPredictFailure = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverPredictFailure>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverPredictFailureParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverPredictFailure>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40413,6 +43085,9 @@ export const useGetApiAdminTseFailoverPredictFailure = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Aggregated predictive risk factors for a tenant fleet.
+ */
 export const getApiAdminTseFailoverRiskFactors = (
     params?: GetApiAdminTseFailoverRiskFactorsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40453,6 +43128,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverRiskFactorsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverRiskFactors>>>
 export type GetApiAdminTseFailoverRiskFactorsQueryError = ProblemDetails
 
+/**
+ * @summary Aggregated predictive risk factors for a tenant fleet.
+ */
 export const useGetApiAdminTseFailoverRiskFactors = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverRiskFactors>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverRiskFactorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverRiskFactors>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40469,6 +43147,9 @@ export const useGetApiAdminTseFailoverRiskFactors = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Forward health-score forecast for a TSE device.
+ */
 export const getApiAdminTseFailoverHealthForecast = (
     params?: GetApiAdminTseFailoverHealthForecastParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40509,6 +43190,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseFailoverHealthForecastQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthForecast>>>
 export type GetApiAdminTseFailoverHealthForecastQueryError = ProblemDetails
 
+/**
+ * @summary Forward health-score forecast for a TSE device.
+ */
 export const useGetApiAdminTseFailoverHealthForecast = <TData = Awaited<ReturnType<typeof getApiAdminTseFailoverHealthForecast>>, TError = ProblemDetails>(
  params?: GetApiAdminTseFailoverHealthForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseFailoverHealthForecast>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40525,6 +43209,9 @@ export const useGetApiAdminTseFailoverHealthForecast = <TData = Awaited<ReturnTy
 
 
 
+/**
+ * @summary Super Admin forced failover to a linked backup.
+ */
 export const postApiAdminTseFailoverManual = (
     manualTseFailoverRequestDto: ManualTseFailoverRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -40563,7 +43250,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseFailoverManualMutationBody = ManualTseFailoverRequestDto
     export type PostApiAdminTseFailoverManualMutationError = ProblemDetails
 
-    export const usePostApiAdminTseFailoverManual = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin forced failover to a linked backup.
+ */
+export const usePostApiAdminTseFailoverManual = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseFailoverManual>>, TError,{data: ManualTseFailoverRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseFailoverManual>>,
@@ -40576,7 +43266,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTseFailoverRevert = (
+    /**
+ * @summary Revert signing role to the primary TSE device.
+ */
+export const postApiAdminTseFailoverRevert = (
     revertTseFailoverRequestDto: RevertTseFailoverRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -40614,7 +43307,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseFailoverRevertMutationBody = RevertTseFailoverRequestDto
     export type PostApiAdminTseFailoverRevertMutationError = ProblemDetails
 
-    export const usePostApiAdminTseFailoverRevert = <TError = ProblemDetails,
+    /**
+ * @summary Revert signing role to the primary TSE device.
+ */
+export const usePostApiAdminTseFailoverRevert = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseFailoverRevert>>, TError,{data: RevertTseFailoverRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseFailoverRevert>>,
@@ -40627,7 +43323,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseHealthStatus = (
+    /**
+ * @summary Overall fleet status. Default liveProbe=true runs device probes;
+set `liveProbe=false` for scrape-safe last-known status.
+ */
+export const getApiAdminTseHealthStatus = (
     params?: GetApiAdminTseHealthStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -40667,6 +43367,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseHealthStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseHealthStatus>>>
 export type GetApiAdminTseHealthStatusQueryError = unknown
 
+/**
+ * @summary Overall fleet status. Default liveProbe=true runs device probes;
+set `liveProbe=false` for scrape-safe last-known status.
+ */
 export const useGetApiAdminTseHealthStatus = <TData = Awaited<ReturnType<typeof getApiAdminTseHealthStatus>>, TError = unknown>(
  params?: GetApiAdminTseHealthStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseHealthStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40683,6 +43387,9 @@ export const useGetApiAdminTseHealthStatus = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary JSON summary gauges (no live vendor probes).
+ */
 export const getApiAdminTseHealthMetrics = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40722,6 +43429,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseHealthMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseHealthMetrics>>>
 export type GetApiAdminTseHealthMetricsQueryError = unknown
 
+/**
+ * @summary JSON summary gauges (no live vendor probes).
+ */
 export const useGetApiAdminTseHealthMetrics = <TData = Awaited<ReturnType<typeof getApiAdminTseHealthMetrics>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseHealthMetrics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -40738,6 +43448,10 @@ export const useGetApiAdminTseHealthMetrics = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Prometheus exposition for job `regkasse-tse`.
+Requires Bearer JWT with `system.critical` (configure scrape auth / network ACL).
+ */
 export const getApiAdminTseHealthMetricsPrometheus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -40777,6 +43491,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseHealthMetricsPrometheusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseHealthMetricsPrometheus>>>
 export type GetApiAdminTseHealthMetricsPrometheusQueryError = unknown
 
+/**
+ * @summary Prometheus exposition for job `regkasse-tse`.
+Requires Bearer JWT with `system.critical` (configure scrape auth / network ACL).
+ */
 export const useGetApiAdminTseHealthMetricsPrometheus = <TData = Awaited<ReturnType<typeof getApiAdminTseHealthMetricsPrometheus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseHealthMetricsPrometheus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -41609,7 +44327,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseManagement = (
+    /**
+ * @summary Fleet overview + device list for Super Admin dashboard.
+ */
+export const getApiAdminTseManagement = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -41648,6 +44369,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseManagementQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseManagement>>>
 export type GetApiAdminTseManagementQueryError = unknown
 
+/**
+ * @summary Fleet overview + device list for Super Admin dashboard.
+ */
 export const useGetApiAdminTseManagement = <TData = Awaited<ReturnType<typeof getApiAdminTseManagement>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseManagement>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -41664,6 +44388,9 @@ export const useGetApiAdminTseManagement = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @summary List all TSE device rows (cross-tenant via cash-register join).
+ */
 export const getApiAdminTseManagementDevices = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -41703,6 +44430,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseManagementDevicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseManagementDevices>>>
 export type GetApiAdminTseManagementDevicesQueryError = unknown
 
+/**
+ * @summary List all TSE device rows (cross-tenant via cash-register join).
+ */
 export const useGetApiAdminTseManagementDevices = <TData = Awaited<ReturnType<typeof getApiAdminTseManagementDevices>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseManagementDevices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -41719,6 +44449,9 @@ export const useGetApiAdminTseManagementDevices = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Manually provision TSE for a tenant (default register) or a specific cash register.
+ */
 export const postApiAdminTseManagementProvision = (
     provisionTseRequestDto: ProvisionTseRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -41757,7 +44490,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseManagementProvisionMutationBody = ProvisionTseRequestDto
     export type PostApiAdminTseManagementProvisionMutationError = ProblemDetails
 
-    export const usePostApiAdminTseManagementProvision = <TError = ProblemDetails,
+    /**
+ * @summary Manually provision TSE for a tenant (default register) or a specific cash register.
+ */
+export const usePostApiAdminTseManagementProvision = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementProvision>>, TError,{data: ProvisionTseRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementProvision>>,
@@ -41770,7 +44506,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTseManagementDevicesIdRevoke = (
+    /**
+ * @summary Soft-revoke a TSE device (deactivates; fiscal history retained).
+ */
+export const postApiAdminTseManagementDevicesIdRevoke = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -41806,7 +44545,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTseManagementDevicesIdRevokeMutationError = ProblemDetails
 
-    export const usePostApiAdminTseManagementDevicesIdRevoke = <TError = ProblemDetails,
+    /**
+ * @summary Soft-revoke a TSE device (deactivates; fiscal history retained).
+ */
+export const usePostApiAdminTseManagementDevicesIdRevoke = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdRevoke>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdRevoke>>,
@@ -41819,7 +44561,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseManagementDevicesIdCertificate = (
+    /**
+ * @summary Inspect signing-certificate lifecycle for a TSE device.
+ */
+export const getApiAdminTseManagementDevicesIdCertificate = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -41858,6 +44603,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseManagementDevicesIdCertificateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseManagementDevicesIdCertificate>>>
 export type GetApiAdminTseManagementDevicesIdCertificateQueryError = ProblemDetails
 
+/**
+ * @summary Inspect signing-certificate lifecycle for a TSE device.
+ */
 export const useGetApiAdminTseManagementDevicesIdCertificate = <TData = Awaited<ReturnType<typeof getApiAdminTseManagementDevicesIdCertificate>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseManagementDevicesIdCertificate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -41874,6 +44622,9 @@ export const useGetApiAdminTseManagementDevicesIdCertificate = <TData = Awaited<
 
 
 
+/**
+ * @summary Validate certificate status (expired / revoked / missing material).
+ */
 export const postApiAdminTseManagementDevicesIdCertificateValidate = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -41910,7 +44661,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTseManagementDevicesIdCertificateValidateMutationError = unknown
 
-    export const usePostApiAdminTseManagementDevicesIdCertificateValidate = <TError = unknown,
+    /**
+ * @summary Validate certificate status (expired / revoked / missing material).
+ */
+export const usePostApiAdminTseManagementDevicesIdCertificateValidate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateValidate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateValidate>>,
@@ -41923,7 +44677,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTseManagementDevicesIdCertificateRenew = (
+    /**
+ * @summary Attempt certificate renew/sync. Syncs from key provider when material exists;
+Soft/Demo rotates local dates; Real without material schedules vendor ops renewal.
+ */
+export const postApiAdminTseManagementDevicesIdCertificateRenew = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -41959,7 +44717,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTseManagementDevicesIdCertificateRenewMutationError = unknown
 
-    export const usePostApiAdminTseManagementDevicesIdCertificateRenew = <TError = unknown,
+    /**
+ * @summary Attempt certificate renew/sync. Syncs from key provider when material exists;
+Soft/Demo rotates local dates; Real without material schedules vendor ops renewal.
+ */
+export const usePostApiAdminTseManagementDevicesIdCertificateRenew = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateRenew>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateRenew>>,
@@ -41972,7 +44734,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTseManagementDevicesIdCertificateScheduleRenewal = (
+    /**
+ * @summary Schedule an operator certificate renewal date (UTC).
+ */
+export const postApiAdminTseManagementDevicesIdCertificateScheduleRenewal = (
     id: string,
     scheduleTseCertificateRenewalRequestDto: ScheduleTseCertificateRenewalRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -42011,7 +44776,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseManagementDevicesIdCertificateScheduleRenewalMutationBody = ScheduleTseCertificateRenewalRequestDto
     export type PostApiAdminTseManagementDevicesIdCertificateScheduleRenewalMutationError = ProblemDetails
 
-    export const usePostApiAdminTseManagementDevicesIdCertificateScheduleRenewal = <TError = ProblemDetails,
+    /**
+ * @summary Schedule an operator certificate renewal date (UTC).
+ */
+export const usePostApiAdminTseManagementDevicesIdCertificateScheduleRenewal = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateScheduleRenewal>>, TError,{id: string;data: ScheduleTseCertificateRenewalRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementDevicesIdCertificateScheduleRenewal>>,
@@ -42024,7 +44792,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTseManagementBackups = (
+    /**
+ * @summary Create an encrypted TSE DR snapshot (devices + signature chain + BelegNr sequences).
+Does not include vendor private keys.
+ */
+export const postApiAdminTseManagementBackups = (
     createTseBackupRequestDto: CreateTseBackupRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -42062,7 +44834,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseManagementBackupsMutationBody = CreateTseBackupRequestDto
     export type PostApiAdminTseManagementBackupsMutationError = ProblemDetails
 
-    export const usePostApiAdminTseManagementBackups = <TError = ProblemDetails,
+    /**
+ * @summary Create an encrypted TSE DR snapshot (devices + signature chain + BelegNr sequences).
+Does not include vendor private keys.
+ */
+export const usePostApiAdminTseManagementBackups = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementBackups>>, TError,{data: CreateTseBackupRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementBackups>>,
@@ -42075,7 +44851,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminTseManagementBackups = (
+    /**
+ * @summary List TSE DR backups (optional tenant filter).
+ */
+export const getApiAdminTseManagementBackups = (
     params?: GetApiAdminTseManagementBackupsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -42115,6 +44894,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseManagementBackupsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseManagementBackups>>>
 export type GetApiAdminTseManagementBackupsQueryError = unknown
 
+/**
+ * @summary List TSE DR backups (optional tenant filter).
+ */
 export const useGetApiAdminTseManagementBackups = <TData = Awaited<ReturnType<typeof getApiAdminTseManagementBackups>>, TError = unknown>(
  params?: GetApiAdminTseManagementBackupsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseManagementBackups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -42131,6 +44913,9 @@ export const useGetApiAdminTseManagementBackups = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Preview restore impact (warnings, chain downgrade detection).
+ */
 export const getApiAdminTseManagementBackupsIdPreview = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -42170,6 +44955,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminTseManagementBackupsIdPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTseManagementBackupsIdPreview>>>
 export type GetApiAdminTseManagementBackupsIdPreviewQueryError = ProblemDetails
 
+/**
+ * @summary Preview restore impact (warnings, chain downgrade detection).
+ */
 export const useGetApiAdminTseManagementBackupsIdPreview = <TData = Awaited<ReturnType<typeof getApiAdminTseManagementBackupsIdPreview>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTseManagementBackupsIdPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -42186,6 +44974,10 @@ export const useGetApiAdminTseManagementBackupsIdPreview = <TData = Awaited<Retu
 
 
 
+/**
+ * @summary Restore TSE device inventory + signature chain from a backup.
+Requires confirmToken = RESTORE. Chain downgrades need forceChainDowngrade.
+ */
 export const postApiAdminTseManagementBackupsIdRestore = (
     id: string,
     restoreTseBackupRequestDto: RestoreTseBackupRequestDto,
@@ -42225,7 +45017,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseManagementBackupsIdRestoreMutationBody = RestoreTseBackupRequestDto
     export type PostApiAdminTseManagementBackupsIdRestoreMutationError = ProblemDetails
 
-    export const usePostApiAdminTseManagementBackupsIdRestore = <TError = ProblemDetails,
+    /**
+ * @summary Restore TSE device inventory + signature chain from a backup.
+Requires confirmToken = RESTORE. Chain downgrades need forceChainDowngrade.
+ */
+export const usePostApiAdminTseManagementBackupsIdRestore = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseManagementBackupsIdRestore>>, TError,{id: string;data: RestoreTseBackupRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseManagementBackupsIdRestore>>,
@@ -42350,6 +45146,10 @@ export const useGetApiAdminTseOfflineQueue = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Soft-clear NonFiscalPending only (marks Failed). Hard delete is forbidden.
+confirmToken must be `SOFT_CLEAR`. SuperAdmin / system.critical.
+ */
 export const postApiAdminTseOfflineQueueSoftClear = (
     tseOfflineQueueClearRequestDto: TseOfflineQueueClearRequestDto,
     params?: PostApiAdminTseOfflineQueueSoftClearParams,
@@ -42390,7 +45190,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminTseOfflineQueueSoftClearMutationBody = TseOfflineQueueClearRequestDto
     export type PostApiAdminTseOfflineQueueSoftClearMutationError = ProblemDetails
 
-    export const usePostApiAdminTseOfflineQueueSoftClear = <TError = ProblemDetails,
+    /**
+ * @summary Soft-clear NonFiscalPending only (marks Failed). Hard delete is forbidden.
+confirmToken must be `SOFT_CLEAR`. SuperAdmin / system.critical.
+ */
+export const usePostApiAdminTseOfflineQueueSoftClear = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTseOfflineQueueSoftClear>>, TError,{data: TseOfflineQueueClearRequestDto;params?: PostApiAdminTseOfflineQueueSoftClearParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTseOfflineQueueSoftClear>>,
@@ -44753,6 +47557,9 @@ export const useGetApiAdminUsersIdActivityReport = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary Download CSV template for bulk user import.
+ */
 export const getApiAdminUsersBulkImportTemplate = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -44792,6 +47599,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersBulkImportTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>>
 export type GetApiAdminUsersBulkImportTemplateQueryError = unknown
 
+/**
+ * @summary Download CSV template for bulk user import.
+ */
 export const useGetApiAdminUsersBulkImportTemplate = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -44808,6 +47618,9 @@ export const useGetApiAdminUsersBulkImportTemplate = <TData = Awaited<ReturnType
 
 
 
+/**
+ * @summary Preview first rows of an import file without creating users.
+ */
 export const postApiAdminUsersBulkImportPreview = (
     postApiAdminUsersBulkImportPreviewBody: PostApiAdminUsersBulkImportPreviewBody,
     params?: PostApiAdminUsersBulkImportPreviewParams,
@@ -44852,7 +47665,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersBulkImportPreviewMutationBody = PostApiAdminUsersBulkImportPreviewBody
     export type PostApiAdminUsersBulkImportPreviewMutationError = unknown
 
-    export const usePostApiAdminUsersBulkImportPreview = <TError = unknown,
+    /**
+ * @summary Preview first rows of an import file without creating users.
+ */
+export const usePostApiAdminUsersBulkImportPreview = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>, TError,{data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>,
@@ -44865,7 +47681,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersBulkImport = (
+    /**
+ * @summary Start a background bulk import job (supports 1000+ rows; poll job status for progress).
+ */
+export const postApiAdminUsersBulkImport = (
     postApiAdminUsersBulkImportBody: PostApiAdminUsersBulkImportBody,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -44907,7 +47726,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersBulkImportMutationBody = PostApiAdminUsersBulkImportBody
     export type PostApiAdminUsersBulkImportMutationError = ProblemDetails
 
-    export const usePostApiAdminUsersBulkImport = <TError = ProblemDetails,
+    /**
+ * @summary Start a background bulk import job (supports 1000+ rows; poll job status for progress).
+ */
+export const usePostApiAdminUsersBulkImport = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>, TError,{data: PostApiAdminUsersBulkImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>,
@@ -44920,7 +47742,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersBulkImportJobsJobId = (
+    /**
+ * @summary Poll bulk import job progress and final result.
+ */
+export const getApiAdminUsersBulkImportJobsJobId = (
     jobId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -44959,6 +47784,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersBulkImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>>
 export type GetApiAdminUsersBulkImportJobsJobIdQueryError = ProblemDetails
 
+/**
+ * @summary Poll bulk import job progress and final result.
+ */
 export const useGetApiAdminUsersBulkImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError = ProblemDetails>(
  jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -44975,6 +47803,9 @@ export const useGetApiAdminUsersBulkImportJobsJobId = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Cancel a running bulk import job.
+ */
 export const deleteApiAdminUsersBulkImportJobsJobId = (
     jobId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -45011,7 +47842,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminUsersBulkImportJobsJobIdMutationError = ProblemDetails
 
-    export const useDeleteApiAdminUsersBulkImportJobsJobId = <TError = ProblemDetails,
+    /**
+ * @summary Cancel a running bulk import job.
+ */
+export const useDeleteApiAdminUsersBulkImportJobsJobId = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>,
@@ -45024,7 +47858,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersBulkImportResultsResultId = (
+    /**
+ * @summary Download detailed import results CSV.
+ */
+export const getApiAdminUsersBulkImportResultsResultId = (
     resultId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -45063,6 +47900,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersBulkImportResultsResultIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>>
 export type GetApiAdminUsersBulkImportResultsResultIdQueryError = ProblemDetails
 
+/**
+ * @summary Download detailed import results CSV.
+ */
 export const useGetApiAdminUsersBulkImportResultsResultId = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError = ProblemDetails>(
  resultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45079,6 +47919,13 @@ export const useGetApiAdminUsersBulkImportResultsResultId = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary List users. type = `platform` | `tenant` (alias: `scope`).
+Tenant rows include membership metadata; optional tenantId filters one mandant.
+Requires `user.view`. Non–Super Admin actors only receive users with an active membership in the
+ambient business tenant (platform operators and other mandants are omitted). `platform` and the
+cross-tenant default listing stay Super Admin only.
+ */
 export const getApiAdminUsers = (
     params?: GetApiAdminUsersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -45119,6 +47966,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsers>>>
 export type GetApiAdminUsersQueryError = ApiError
 
+/**
+ * @summary List users. type = `platform` | `tenant` (alias: `scope`).
+Tenant rows include membership metadata; optional tenantId filters one mandant.
+Requires `user.view`. Non–Super Admin actors only receive users with an active membership in the
+ambient business tenant (platform operators and other mandants are omitted). `platform` and the
+cross-tenant default listing stay Super Admin only.
+ */
 export const useGetApiAdminUsers = <TData = Awaited<ReturnType<typeof getApiAdminUsers>>, TError = ApiError>(
  params?: GetApiAdminUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45135,6 +47989,10 @@ export const useGetApiAdminUsers = <TData = Awaited<ReturnType<typeof getApiAdmi
 
 
 
+/**
+ * @summary Create a user without invitation email. Password is generated when omitted and returned once in the response.
+When KasseAPI_Final.Services.AdminTenants.AdminCreateUserRequest.TenantId is set, creates a tenant-scoped user.
+ */
 export const postApiAdminUsers = (
     adminCreateUserRequest: AdminCreateUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -45173,7 +48031,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersMutationBody = AdminCreateUserRequest
     export type PostApiAdminUsersMutationError = ApiError
 
-    export const usePostApiAdminUsers = <TError = ApiError,
+    /**
+ * @summary Create a user without invitation email. Password is generated when omitted and returned once in the response.
+When KasseAPI_Final.Services.AdminTenants.AdminCreateUserRequest.TenantId is set, creates a tenant-scoped user.
+ */
+export const usePostApiAdminUsers = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsers>>, TError,{data: AdminCreateUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsers>>,
@@ -45186,7 +48048,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersUsernameSuggestions = (
+    /**
+ * @summary Preview next auto-generated username for Quick Create (role-based prefix + number).
+ */
+export const getApiAdminUsersUsernameSuggestions = (
     params?: GetApiAdminUsersUsernameSuggestionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -45226,6 +48091,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersUsernameSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>>
 export type GetApiAdminUsersUsernameSuggestionsQueryError = ApiError
 
+/**
+ * @summary Preview next auto-generated username for Quick Create (role-based prefix + number).
+ */
 export const useGetApiAdminUsersUsernameSuggestions = <TData = Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError = ApiError>(
  params?: GetApiAdminUsersUsernameSuggestionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45242,6 +48110,9 @@ export const useGetApiAdminUsersUsernameSuggestions = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Get user by id. Returns 404 if not found.
+ */
 export const getApiAdminUsersId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -45281,6 +48152,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersId>>>
 export type GetApiAdminUsersIdQueryError = ApiError
 
+/**
+ * @summary Get user by id. Returns 404 if not found.
+ */
 export const useGetApiAdminUsersId = <TData = Awaited<ReturnType<typeof getApiAdminUsersId>>, TError = ApiError>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45297,6 +48171,9 @@ export const useGetApiAdminUsersId = <TData = Awaited<ReturnType<typeof getApiAd
 
 
 
+/**
+ * @summary Partial update. Use If-Match: "{etag}" for optimistic concurrency (ConcurrencyStamp).
+ */
 export const patchApiAdminUsersId = (
     id: string,
     adminUsersControllerAdminPatchUserRequest: AdminUsersControllerAdminPatchUserRequest,
@@ -45336,7 +48213,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminUsersIdMutationBody = AdminUsersControllerAdminPatchUserRequest
     export type PatchApiAdminUsersIdMutationError = ApiError
 
-    export const usePatchApiAdminUsersId = <TError = ApiError,
+    /**
+ * @summary Partial update. Use If-Match: "{etag}" for optimistic concurrency (ConcurrencyStamp).
+ */
+export const usePatchApiAdminUsersId = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminUsersId>>, TError,{id: string;data: AdminUsersControllerAdminPatchUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminUsersId>>,
@@ -45349,7 +48229,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersIdTenants = (
+    /**
+ * @summary Active tenant memberships for a user. Requires `user.view`.
+Non–Super Admin actors only see memberships in their ambient tenant (404 when user is out of scope).
+ */
+export const getApiAdminUsersIdTenants = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -45388,6 +48272,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersIdTenantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdTenants>>>
 export type GetApiAdminUsersIdTenantsQueryError = ApiError
 
+/**
+ * @summary Active tenant memberships for a user. Requires `user.view`.
+Non–Super Admin actors only see memberships in their ambient tenant (404 when user is out of scope).
+ */
 export const useGetApiAdminUsersIdTenants = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdTenants>>, TError = ApiError>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdTenants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45404,6 +48292,9 @@ export const useGetApiAdminUsersIdTenants = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Replace active business-tenant memberships for a user. Super-admin only; not for platform operators.
+ */
 export const putApiAdminUsersIdTenants = (
     id: string,
     adminUsersControllerUpdateUserTenantsRequest: AdminUsersControllerUpdateUserTenantsRequest,
@@ -45443,7 +48334,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminUsersIdTenantsMutationBody = AdminUsersControllerUpdateUserTenantsRequest
     export type PutApiAdminUsersIdTenantsMutationError = ApiError
 
-    export const usePutApiAdminUsersIdTenants = <TError = ApiError,
+    /**
+ * @summary Replace active business-tenant memberships for a user. Super-admin only; not for platform operators.
+ */
+export const usePutApiAdminUsersIdTenants = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminUsersIdTenants>>, TError,{id: string;data: AdminUsersControllerUpdateUserTenantsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminUsersIdTenants>>,
@@ -45456,7 +48350,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersIdDeactivate = (
+    /**
+ * @summary Deactivate user. Reason required for audit. Invalidates sessions.
+ */
+export const postApiAdminUsersIdDeactivate = (
     id: string,
     adminUsersControllerAdminDeactivateRequest: AdminUsersControllerAdminDeactivateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -45495,7 +48392,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersIdDeactivateMutationBody = AdminUsersControllerAdminDeactivateRequest
     export type PostApiAdminUsersIdDeactivateMutationError = ApiError
 
-    export const usePostApiAdminUsersIdDeactivate = <TError = ApiError,
+    /**
+ * @summary Deactivate user. Reason required for audit. Invalidates sessions.
+ */
+export const usePostApiAdminUsersIdDeactivate = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdDeactivate>>, TError,{id: string;data: AdminUsersControllerAdminDeactivateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersIdDeactivate>>,
@@ -45508,7 +48408,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersIdReactivate = (
+    /**
+ * @summary Reactivate user. Optional reason. Writes audit event.
+ */
+export const postApiAdminUsersIdReactivate = (
     id: string,
     adminUsersControllerAdminReactivateRequest: AdminUsersControllerAdminReactivateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -45547,7 +48450,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersIdReactivateMutationBody = AdminUsersControllerAdminReactivateRequest
     export type PostApiAdminUsersIdReactivateMutationError = ApiError
 
-    export const usePostApiAdminUsersIdReactivate = <TError = ApiError,
+    /**
+ * @summary Reactivate user. Optional reason. Writes audit event.
+ */
+export const usePostApiAdminUsersIdReactivate = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdReactivate>>, TError,{id: string;data: AdminUsersControllerAdminReactivateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersIdReactivate>>,
@@ -45560,7 +48466,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersIdUsernameHistory = (
+    /**
+ * @summary Username change history for compliance and support (newest first).
+ */
+export const getApiAdminUsersIdUsernameHistory = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -45599,6 +48508,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersIdUsernameHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>>
 export type GetApiAdminUsersIdUsernameHistoryQueryError = ApiError
 
+/**
+ * @summary Username change history for compliance and support (newest first).
+ */
 export const useGetApiAdminUsersIdUsernameHistory = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError = ApiError>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -45615,6 +48527,9 @@ export const useGetApiAdminUsersIdUsernameHistory = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Change login username. Audited; invalidates active sessions.
+ */
 export const patchApiAdminUsersIdUsername = (
     id: string,
     updateUsernameRequest: UpdateUsernameRequest,
@@ -45654,7 +48569,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PatchApiAdminUsersIdUsernameMutationBody = UpdateUsernameRequest
     export type PatchApiAdminUsersIdUsernameMutationError = ApiError
 
-    export const usePatchApiAdminUsersIdUsername = <TError = ApiError,
+    /**
+ * @summary Change login username. Audited; invalidates active sessions.
+ */
+export const usePatchApiAdminUsersIdUsername = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>, TError,{id: string;data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>,
@@ -45667,7 +48585,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersIdForcePasswordReset = (
+    /**
+ * @summary Force password reset (admin). User must change password at next login can be set. Invalidates sessions.
+ */
+export const postApiAdminUsersIdForcePasswordReset = (
     id: string,
     adminUsersControllerAdminForcePasswordResetRequest: AdminUsersControllerAdminForcePasswordResetRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -45706,7 +48627,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminUsersIdForcePasswordResetMutationBody = AdminUsersControllerAdminForcePasswordResetRequest
     export type PostApiAdminUsersIdForcePasswordResetMutationError = ApiError
 
-    export const usePostApiAdminUsersIdForcePasswordReset = <TError = ApiError,
+    /**
+ * @summary Force password reset (admin). User must change password at next login can be set. Invalidates sessions.
+ */
+export const usePostApiAdminUsersIdForcePasswordReset = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdForcePasswordReset>>, TError,{id: string;data: AdminUsersControllerAdminForcePasswordResetRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersIdForcePasswordReset>>,
@@ -45719,7 +48643,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersIdResetPassword = (
+    /**
+ * @summary Generates a secure temporary password for a tenant user. Manager: own-tenant only (JWT tenant context).
+Password is returned once; user must change it on next login.
+ */
+export const postApiAdminUsersIdResetPassword = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -45755,7 +48683,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminUsersIdResetPasswordMutationError = ApiError
 
-    export const usePostApiAdminUsersIdResetPassword = <TError = ApiError,
+    /**
+ * @summary Generates a secure temporary password for a tenant user. Manager: own-tenant only (JWT tenant context).
+Password is returned once; user must change it on next login.
+ */
+export const usePostApiAdminUsersIdResetPassword = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>,
@@ -45768,7 +48700,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminUsersIdGenerateTemporaryPassword = (
+    /**
+ * @summary Generates a new temporary password, stores only the hash, and returns the password once for Super Admin handoff.
+Intended for controlled operator recovery; existing password hashes are never exposed.
+ */
+export const postApiAdminUsersIdGenerateTemporaryPassword = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -45804,7 +48740,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminUsersIdGenerateTemporaryPasswordMutationError = ApiError
 
-    export const usePostApiAdminUsersIdGenerateTemporaryPassword = <TError = ApiError,
+    /**
+ * @summary Generates a new temporary password, stores only the hash, and returns the password once for Super Admin handoff.
+Intended for controlled operator recovery; existing password hashes are never exposed.
+ */
+export const usePostApiAdminUsersIdGenerateTemporaryPassword = <TError = ApiError,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdGenerateTemporaryPassword>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminUsersIdGenerateTemporaryPassword>>,
@@ -45817,7 +48757,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersIdActivity = (
+    /**
+ * @summary Get audit activity for the user (paginated).
+ */
+export const getApiAdminUsersIdActivity = (
     id: string,
     params?: GetApiAdminUsersIdActivityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -45860,6 +48803,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersIdActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdActivity>>>
 export type GetApiAdminUsersIdActivityQueryError = ApiError
 
+/**
+ * @summary Get audit activity for the user (paginated).
+ */
 export const useGetApiAdminUsersIdActivity = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdActivity>>, TError = ApiError>(
  id: string,
     params?: GetApiAdminUsersIdActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdActivity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -45877,6 +48823,10 @@ export const useGetApiAdminUsersIdActivity = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Effective permission strings for a user (roles + overrides). Same source as JWT / GET /api/Auth/me.
+Self-service: any authenticated user may read their own list. SuperAdmin may read any user (tenant-scoped 404).
+ */
 export const getApiAdminUsersIdPermissions = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -45916,6 +48866,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminUsersIdPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdPermissions>>>
 export type GetApiAdminUsersIdPermissionsQueryError = ProblemDetails
 
+/**
+ * @summary Effective permission strings for a user (roles + overrides). Same source as JWT / GET /api/Auth/me.
+Self-service: any authenticated user may read their own list. SuperAdmin may read any user (tenant-scoped 404).
+ */
 export const useGetApiAdminUsersIdPermissions = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdPermissions>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46408,6 +49362,9 @@ export const useGetApiAdminTenantsByProfile = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Paged voucher list (masked code only).
+ */
 export const getApiAdminVouchers = (
     params?: GetApiAdminVouchersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -46448,6 +49405,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminVouchersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchers>>>
 export type GetApiAdminVouchersQueryError = unknown
 
+/**
+ * @summary Paged voucher list (masked code only).
+ */
 export const useGetApiAdminVouchers = <TData = Awaited<ReturnType<typeof getApiAdminVouchers>>, TError = unknown>(
  params?: GetApiAdminVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46464,6 +49424,9 @@ export const useGetApiAdminVouchers = <TData = Awaited<ReturnType<typeof getApiA
 
 
 
+/**
+ * @summary Issue a new voucher. Plaintext code is returned once in the response body.
+ */
 export const postApiAdminVouchers = (
     createAdminVoucherRequest: CreateAdminVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -46502,7 +49465,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminVouchersMutationBody = CreateAdminVoucherRequest
     export type PostApiAdminVouchersMutationError = unknown
 
-    export const usePostApiAdminVouchers = <TError = unknown,
+    /**
+ * @summary Issue a new voucher. Plaintext code is returned once in the response body.
+ */
+export const usePostApiAdminVouchers = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchers>>, TError,{data: CreateAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminVouchers>>,
@@ -46515,7 +49481,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminVouchersExport = (
+    /**
+ * @summary Export vouchers as JSON or CSV. Filename: `voucher_{tenantSlug}_{stamp}.{ext}`.
+Codes are redacted (masked hint only; no plaintext / code hash).
+ */
+export const getApiAdminVouchersExport = (
     params?: GetApiAdminVouchersExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -46556,6 +49526,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminVouchersExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchersExport>>>
 export type GetApiAdminVouchersExportQueryError = ProblemDetails
 
+/**
+ * @summary Export vouchers as JSON or CSV. Filename: `voucher_{tenantSlug}_{stamp}.{ext}`.
+Codes are redacted (masked hint only; no plaintext / code hash).
+ */
 export const useGetApiAdminVouchersExport = <TData = Awaited<ReturnType<typeof getApiAdminVouchersExport>>, TError = ProblemDetails>(
  params?: GetApiAdminVouchersExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46572,6 +49546,9 @@ export const useGetApiAdminVouchersExport = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Voucher metadata (no plaintext code).
+ */
 export const getApiAdminVouchersId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -46611,6 +49588,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminVouchersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchersId>>>
 export type GetApiAdminVouchersIdQueryError = unknown
 
+/**
+ * @summary Voucher metadata (no plaintext code).
+ */
 export const useGetApiAdminVouchersId = <TData = Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46627,6 +49607,9 @@ export const useGetApiAdminVouchersId = <TData = Awaited<ReturnType<typeof getAp
 
 
 
+/**
+ * @summary Append-only ledger lines (audit).
+ */
 export const getApiAdminVouchersIdLedger = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -46666,6 +49649,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminVouchersIdLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>>
 export type GetApiAdminVouchersIdLedgerQueryError = unknown
 
+/**
+ * @summary Append-only ledger lines (audit).
+ */
 export const useGetApiAdminVouchersIdLedger = <TData = Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46682,6 +49668,9 @@ export const useGetApiAdminVouchersIdLedger = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Check whether a customer-provided code belongs to this voucher (hash comparison). Full codes are not stored server-side.
+ */
 export const postApiAdminVouchersIdVerifyCode = (
     id: string,
     verifyAdminVoucherCodeRequest: VerifyAdminVoucherCodeRequest,
@@ -46721,7 +49710,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminVouchersIdVerifyCodeMutationBody = VerifyAdminVoucherCodeRequest
     export type PostApiAdminVouchersIdVerifyCodeMutationError = unknown
 
-    export const usePostApiAdminVouchersIdVerifyCode = <TError = unknown,
+    /**
+ * @summary Check whether a customer-provided code belongs to this voucher (hash comparison). Full codes are not stored server-side.
+ */
+export const usePostApiAdminVouchersIdVerifyCode = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>, TError,{id: string;data: VerifyAdminVoucherCodeRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>,
@@ -46734,7 +49726,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminVouchersIdCancel = (
+    /**
+ * @summary Cancel a voucher with a mandatory reason; writes a Cancel ledger line.
+ */
+export const postApiAdminVouchersIdCancel = (
     id: string,
     cancelAdminVoucherRequest: CancelAdminVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -46773,7 +49768,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminVouchersIdCancelMutationBody = CancelAdminVoucherRequest
     export type PostApiAdminVouchersIdCancelMutationError = unknown
 
-    export const usePostApiAdminVouchersIdCancel = <TError = unknown,
+    /**
+ * @summary Cancel a voucher with a mandatory reason; writes a Cancel ledger line.
+ */
+export const usePostApiAdminVouchersIdCancel = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>, TError,{id: string;data: CancelAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>,
@@ -46841,6 +49839,9 @@ export const useGetApiAdminWebsiteTemplates = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Digital service list prices (website / app tiers) for FA portal and Super Admin.
+ */
 export const getApiAdminWebsitePricing = (
     params?: GetApiAdminWebsitePricingParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -46881,6 +49882,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminWebsitePricingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminWebsitePricing>>>
 export type GetApiAdminWebsitePricingQueryError = unknown
 
+/**
+ * @summary Digital service list prices (website / app tiers) for FA portal and Super Admin.
+ */
 export const useGetApiAdminWebsitePricing = <TData = Awaited<ReturnType<typeof getApiAdminWebsitePricing>>, TError = unknown>(
  params?: GetApiAdminWebsitePricingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminWebsitePricing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46897,6 +49901,9 @@ export const useGetApiAdminWebsitePricing = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary Mandanten portal: active digital subscriptions for ambient (or Super Admin requested) tenant.
+ */
 export const getApiAdminWebsiteMyServices = (
     params?: GetApiAdminWebsiteMyServicesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -46937,6 +49944,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminWebsiteMyServicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminWebsiteMyServices>>>
 export type GetApiAdminWebsiteMyServicesQueryError = ProblemDetails
 
+/**
+ * @summary Mandanten portal: active digital subscriptions for ambient (or Super Admin requested) tenant.
+ */
 export const useGetApiAdminWebsiteMyServices = <TData = Awaited<ReturnType<typeof getApiAdminWebsiteMyServices>>, TError = ProblemDetails>(
  params?: GetApiAdminWebsiteMyServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminWebsiteMyServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -46953,6 +49963,9 @@ export const useGetApiAdminWebsiteMyServices = <TData = Awaited<ReturnType<typeo
 
 
 
+/**
+ * @summary Re-publish website + PWA from current catalog (menu sync).
+ */
 export const postApiAdminWebsiteMenuSync = (
     params?: PostApiAdminWebsiteMenuSyncParams,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -46990,7 +50003,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminWebsiteMenuSyncMutationError = MenuSyncResponseDto
 
-    export const usePostApiAdminWebsiteMenuSync = <TError = MenuSyncResponseDto,
+    /**
+ * @summary Re-publish website + PWA from current catalog (menu sync).
+ */
+export const usePostApiAdminWebsiteMenuSync = <TError = MenuSyncResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminWebsiteMenuSync>>, TError,{params?: PostApiAdminWebsiteMenuSyncParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminWebsiteMenuSync>>,
@@ -47156,7 +50172,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminWebsiteMobilePackage = (
+    /**
+ * @summary Download a tenant app ZIP (PWA files or native Expo source) plus INSTRUCTIONS.txt.
+ */
+export const postApiAdminWebsiteMobilePackage = (
     generateMobileAppRequestDto: GenerateMobileAppRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -47195,7 +50214,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminWebsiteMobilePackageMutationBody = GenerateMobileAppRequestDto
     export type PostApiAdminWebsiteMobilePackageMutationError = ProblemDetails
 
-    export const usePostApiAdminWebsiteMobilePackage = <TError = ProblemDetails,
+    /**
+ * @summary Download a tenant app ZIP (PWA files or native Expo source) plus INSTRUCTIONS.txt.
+ */
+export const usePostApiAdminWebsiteMobilePackage = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminWebsiteMobilePackage>>, TError,{data: GenerateMobileAppRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminWebsiteMobilePackage>>,
@@ -47313,6 +50335,9 @@ export const useGetApiAdminOnlineOrderIntegrationsWoltCallback = <TData = Awaite
 
 
 
+/**
+ * @summary Customer / mandant KPI snapshot for the Super Admin dashboard.
+ */
 export const getApiAdminAnalyticsCustomers = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -47352,6 +50377,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAnalyticsCustomersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAnalyticsCustomers>>>
 export type GetApiAdminAnalyticsCustomersQueryError = unknown
 
+/**
+ * @summary Customer / mandant KPI snapshot for the Super Admin dashboard.
+ */
 export const useGetApiAdminAnalyticsCustomers = <TData = Awaited<ReturnType<typeof getApiAdminAnalyticsCustomers>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAnalyticsCustomers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -47368,6 +50396,9 @@ export const useGetApiAdminAnalyticsCustomers = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary Fleet TSE usage (registers, signatures). Diagnostic only — not DEP evidence.
+ */
 export const getApiAdminAnalyticsTse = (
     params?: GetApiAdminAnalyticsTseParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -47408,6 +50439,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAnalyticsTseQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAnalyticsTse>>>
 export type GetApiAdminAnalyticsTseQueryError = ProblemDetails
 
+/**
+ * @summary Fleet TSE usage (registers, signatures). Diagnostic only — not DEP evidence.
+ */
 export const useGetApiAdminAnalyticsTse = <TData = Awaited<ReturnType<typeof getApiAdminAnalyticsTse>>, TError = ProblemDetails>(
  params?: GetApiAdminAnalyticsTseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAnalyticsTse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -47424,6 +50458,9 @@ export const useGetApiAdminAnalyticsTse = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Cross-tenant POS payment volume (fiscal GMV). Not license MRR.
+ */
 export const getApiAdminAnalyticsPaymentVolume = (
     params?: GetApiAdminAnalyticsPaymentVolumeParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -47464,6 +50501,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminAnalyticsPaymentVolumeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAnalyticsPaymentVolume>>>
 export type GetApiAdminAnalyticsPaymentVolumeQueryError = ProblemDetails
 
+/**
+ * @summary Cross-tenant POS payment volume (fiscal GMV). Not license MRR.
+ */
 export const useGetApiAdminAnalyticsPaymentVolume = <TData = Awaited<ReturnType<typeof getApiAdminAnalyticsPaymentVolume>>, TError = ProblemDetails>(
  params?: GetApiAdminAnalyticsPaymentVolumeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAnalyticsPaymentVolume>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48004,7 +51044,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCategories = (
+    /**
+ * @summary Lists product categories for the current tenant.
+ */
+export const getApiAdminCategories = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48043,6 +51086,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCategories>>>
 export type GetApiAdminCategoriesQueryError = unknown
 
+/**
+ * @summary Lists product categories for the current tenant.
+ */
 export const useGetApiAdminCategories = <TData = Awaited<ReturnType<typeof getApiAdminCategories>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48110,7 +51156,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminCategoriesId = (
+    /**
+ * @summary Returns one product category by id. Unknown ids respond as not found.
+ */
+export const getApiAdminCategoriesId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48149,6 +51198,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminCategoriesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCategoriesId>>>
 export type GetApiAdminCategoriesIdQueryError = unknown
 
+/**
+ * @summary Returns one product category by id. Unknown ids respond as not found.
+ */
 export const useGetApiAdminCategoriesId = <TData = Awaited<ReturnType<typeof getApiAdminCategoriesId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCategoriesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48426,7 +51478,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCommunicationBulkEmailPreview = (
+    /**
+ * @summary Preview how many Manager recipients match the filters (no send).
+ */
+export const postApiAdminCommunicationBulkEmailPreview = (
     bulkEmailPreviewRequest: BulkEmailPreviewRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -48464,7 +51519,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCommunicationBulkEmailPreviewMutationBody = BulkEmailPreviewRequest
     export type PostApiAdminCommunicationBulkEmailPreviewMutationError = unknown
 
-    export const usePostApiAdminCommunicationBulkEmailPreview = <TError = unknown,
+    /**
+ * @summary Preview how many Manager recipients match the filters (no send).
+ */
+export const usePostApiAdminCommunicationBulkEmailPreview = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCommunicationBulkEmailPreview>>, TError,{data: BulkEmailPreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCommunicationBulkEmailPreview>>,
@@ -48477,7 +51535,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCommunicationBulkEmail = (
+    /**
+ * @summary Send HTML announcement emails to Manager admins of selected (or filtered) tenants.
+ */
+export const postApiAdminCommunicationBulkEmail = (
     bulkEmailRequest: BulkEmailRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -48515,7 +51576,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminCommunicationBulkEmailMutationBody = BulkEmailRequest
     export type PostApiAdminCommunicationBulkEmailMutationError = ProblemDetails
 
-    export const usePostApiAdminCommunicationBulkEmail = <TError = ProblemDetails,
+    /**
+ * @summary Send HTML announcement emails to Manager admins of selected (or filtered) tenants.
+ */
+export const usePostApiAdminCommunicationBulkEmail = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCommunicationBulkEmail>>, TError,{data: BulkEmailRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminCommunicationBulkEmail>>,
@@ -48528,7 +51592,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminDashboardWidgets = (
+    /**
+ * @summary Available widgets for the current user (filtered by granted permissions).
+ */
+export const getApiAdminDashboardWidgets = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48567,6 +51634,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDashboardWidgetsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>>
 export type GetApiAdminDashboardWidgetsQueryError = unknown
 
+/**
+ * @summary Available widgets for the current user (filtered by granted permissions).
+ */
 export const useGetApiAdminDashboardWidgets = <TData = Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48583,6 +51653,9 @@ export const useGetApiAdminDashboardWidgets = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Saved layout for the current user and effective tenant; defaults when none stored.
+ */
 export const getApiAdminDashboardPreferences = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -48622,6 +51695,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminDashboardPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>>
 export type GetApiAdminDashboardPreferencesQueryError = unknown
 
+/**
+ * @summary Saved layout for the current user and effective tenant; defaults when none stored.
+ */
 export const useGetApiAdminDashboardPreferences = <TData = Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48638,6 +51714,9 @@ export const useGetApiAdminDashboardPreferences = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Persist widget order, visibility, and settings for the current user and tenant.
+ */
 export const postApiAdminDashboardPreferences = (
     saveDashboardPreferencesRequestDto: SaveDashboardPreferencesRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -48676,7 +51755,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminDashboardPreferencesMutationBody = SaveDashboardPreferencesRequestDto
     export type PostApiAdminDashboardPreferencesMutationError = unknown
 
-    export const usePostApiAdminDashboardPreferences = <TError = unknown,
+    /**
+ * @summary Persist widget order, visibility, and settings for the current user and tenant.
+ */
+export const usePostApiAdminDashboardPreferences = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>, TError,{data: SaveDashboardPreferencesRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>,
@@ -48738,7 +51820,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFinanzonlineOutboxWorkerSettings = (
+    /**
+ * @summary Effective outbox worker flag (config + Super Admin overlay). Process-wide, not tenant-scoped.
+ */
+export const getApiAdminFinanzonlineOutboxWorkerSettings = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48777,6 +51862,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFinanzonlineOutboxWorkerSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxWorkerSettings>>>
 export type GetApiAdminFinanzonlineOutboxWorkerSettingsQueryError = unknown
 
+/**
+ * @summary Effective outbox worker flag (config + Super Admin overlay). Process-wide, not tenant-scoped.
+ */
 export const useGetApiAdminFinanzonlineOutboxWorkerSettings = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxWorkerSettings>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxWorkerSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48793,6 +51881,10 @@ export const useGetApiAdminFinanzonlineOutboxWorkerSettings = <TData = Awaited<R
 
 
 
+/**
+ * @summary Super Admin overlay for `FinanzOnlineOutbox` worker options (enabled, poll, retry, timeout).
+Does not rewrite appsettings. Production disable requires `confirmProductionDisable`.
+ */
 export const putApiAdminFinanzonlineOutboxWorkerSettings = (
     updateFinanzOnlineOutboxWorkerRequest: UpdateFinanzOnlineOutboxWorkerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -48831,7 +51923,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiAdminFinanzonlineOutboxWorkerSettingsMutationBody = UpdateFinanzOnlineOutboxWorkerRequest
     export type PutApiAdminFinanzonlineOutboxWorkerSettingsMutationError = ProblemDetails
 
-    export const usePutApiAdminFinanzonlineOutboxWorkerSettings = <TError = ProblemDetails,
+    /**
+ * @summary Super Admin overlay for `FinanzOnlineOutbox` worker options (enabled, poll, retry, timeout).
+Does not rewrite appsettings. Production disable requires `confirmProductionDisable`.
+ */
+export const usePutApiAdminFinanzonlineOutboxWorkerSettings = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminFinanzonlineOutboxWorkerSettings>>, TError,{data: UpdateFinanzOnlineOutboxWorkerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiAdminFinanzonlineOutboxWorkerSettings>>,
@@ -48844,7 +51940,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFinanzonlineOutboxRuntimeSettings = (
+    /**
+ * @summary Optional FinanzOnline runtime flags (simulation, real TEST SOAP, retry job). Super Admin overlay.
+ */
+export const getApiAdminFinanzonlineOutboxRuntimeSettings = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48883,6 +51982,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFinanzonlineOutboxRuntimeSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxRuntimeSettings>>>
 export type GetApiAdminFinanzonlineOutboxRuntimeSettingsQueryError = unknown
 
+/**
+ * @summary Optional FinanzOnline runtime flags (simulation, real TEST SOAP, retry job). Super Admin overlay.
+ */
 export const useGetApiAdminFinanzonlineOutboxRuntimeSettings = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxRuntimeSettings>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxRuntimeSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -48950,7 +52052,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFinanzonlineOutbox = (
+    /**
+ * @summary GET: List outbox messages (SOAP pipeline). Filters: `bucket` (alias groups) or `status` (exact CSV);
+`mode` (TEST/PROD); `correlationId` (exact). No payload XML, credentials, or session ids.
+ */
+export const getApiAdminFinanzonlineOutbox = (
     params?: GetApiAdminFinanzonlineOutboxParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -48990,6 +52096,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFinanzonlineOutboxQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>>
 export type GetApiAdminFinanzonlineOutboxQueryError = unknown
 
+/**
+ * @summary GET: List outbox messages (SOAP pipeline). Filters: `bucket` (alias groups) or `status` (exact CSV);
+`mode` (TEST/PROD); `correlationId` (exact). No payload XML, credentials, or session ids.
+ */
 export const useGetApiAdminFinanzonlineOutbox = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError = unknown>(
  params?: GetApiAdminFinanzonlineOutboxParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49006,6 +52116,9 @@ export const useGetApiAdminFinanzonlineOutbox = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * @summary GET: Single outbox row by id (redacted; no raw payload).
+ */
 export const getApiAdminFinanzonlineOutboxId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -49045,6 +52158,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFinanzonlineOutboxIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>>
 export type GetApiAdminFinanzonlineOutboxIdQueryError = unknown
 
+/**
+ * @summary GET: Single outbox row by id (redacted; no raw payload).
+ */
 export const useGetApiAdminFinanzonlineOutboxId = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49061,6 +52177,10 @@ export const useGetApiAdminFinanzonlineOutboxId = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * @summary Reset one row to Pending and wake the outbox worker. Does not submit SOAP itself.
+ProtocolSuccess and AwaitingProtocol stay rejected so an already-sent row is not submitted again.
+ */
 export const postApiAdminFinanzonlineOutboxIdRetry = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -49097,7 +52217,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminFinanzonlineOutboxIdRetryMutationError = unknown
 
-    export const usePostApiAdminFinanzonlineOutboxIdRetry = <TError = unknown,
+    /**
+ * @summary Reset one row to Pending and wake the outbox worker. Does not submit SOAP itself.
+ProtocolSuccess and AwaitingProtocol stay rejected so an already-sent row is not submitted again.
+ */
+export const usePostApiAdminFinanzonlineOutboxIdRetry = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>,
@@ -49110,7 +52234,136 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminFinanzonlineOutboxRetryFailed = (
+    /**
+ * @summary Pending count, failures in the last 24 hours, the last protocol success, and the five newest error codes.
+Messages are redacted. Super Admin sees every mandant. Other callers see the ambient tenant only.
+ */
+export const getApiAdminFinanzonlineOutboxHealth = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<FinanzOnlineOutboxHealthDto>(
+      {url: `/api/admin/finanzonline-outbox/health`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminFinanzonlineOutboxHealthQueryKey = () => {
+    return [`/api/admin/finanzonline-outbox/health`] as const;
+    }
+
+
+export const getGetApiAdminFinanzonlineOutboxHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFinanzonlineOutboxHealthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>> = ({ signal }) => getApiAdminFinanzonlineOutboxHealth(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFinanzonlineOutboxHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>>
+export type GetApiAdminFinanzonlineOutboxHealthQueryError = unknown
+
+/**
+ * @summary Pending count, failures in the last 24 hours, the last protocol success, and the five newest error codes.
+Messages are redacted. Super Admin sees every mandant. Other callers see the ambient tenant only.
+ */
+export const useGetApiAdminFinanzonlineOutboxHealth = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFinanzonlineOutboxHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Pending count, failures in the last 24 hours, and the last protocol success.
+Super Admin sees every mandant. Other callers see the ambient tenant only.
+ */
+export const getApiAdminFinanzonlineOutboxSummary = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<FinanzOnlineOutboxSummaryDto>(
+      {url: `/api/admin/finanzonline-outbox/summary`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminFinanzonlineOutboxSummaryQueryKey = () => {
+    return [`/api/admin/finanzonline-outbox/summary`] as const;
+    }
+
+
+export const getGetApiAdminFinanzonlineOutboxSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFinanzonlineOutboxSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>> = ({ signal }) => getApiAdminFinanzonlineOutboxSummary(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFinanzonlineOutboxSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>>
+export type GetApiAdminFinanzonlineOutboxSummaryQueryError = unknown
+
+/**
+ * @summary Pending count, failures in the last 24 hours, and the last protocol success.
+Super Admin sees every mandant. Other callers see the ambient tenant only.
+ */
+export const useGetApiAdminFinanzonlineOutboxSummary = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFinanzonlineOutboxSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Reset matching failed rows to Pending and wake the worker once.
+ */
+export const postApiAdminFinanzonlineOutboxRetryFailed = (
     finanzOnlineOutboxRetryFailedRequest: FinanzOnlineOutboxRetryFailedRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -49148,7 +52401,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFinanzonlineOutboxRetryFailedMutationBody = FinanzOnlineOutboxRetryFailedRequest
     export type PostApiAdminFinanzonlineOutboxRetryFailedMutationError = unknown
 
-    export const usePostApiAdminFinanzonlineOutboxRetryFailed = <TError = unknown,
+    /**
+ * @summary Reset matching failed rows to Pending and wake the worker once.
+ */
+export const usePostApiAdminFinanzonlineOutboxRetryFailed = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>, TError,{data: FinanzOnlineOutboxRetryFailedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>,
@@ -49161,7 +52417,67 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminFinanzonlineOutboxIdMarkResolved = (
+    /**
+ * @summary Reset every failed outbox row to Pending and wake the worker once. Super Admin only.
+Does not submit SOAP itself.
+ */
+export const postApiAdminFinanzonlineOutboxRetryAllFailed = (
+
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/finanzonline-outbox/retry-all-failed`, method: 'POST'
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminFinanzonlineOutboxRetryAllFailedMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>, void> = () => {
+
+
+          return  postApiAdminFinanzonlineOutboxRetryAllFailed(requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminFinanzonlineOutboxRetryAllFailedMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>>
+
+    export type PostApiAdminFinanzonlineOutboxRetryAllFailedMutationError = unknown
+
+    /**
+ * @summary Reset every failed outbox row to Pending and wake the worker once. Super Admin only.
+Does not submit SOAP itself.
+ */
+export const usePostApiAdminFinanzonlineOutboxRetryAllFailed = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryAllFailed>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminFinanzonlineOutboxRetryAllFailedMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Close a row without another FinanzOnline submit. Super Admin only.
+ */
+export const postApiAdminFinanzonlineOutboxIdMarkResolved = (
     id: string,
     finanzOnlineOutboxMarkResolvedRequest: FinanzOnlineOutboxMarkResolvedRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -49200,7 +52516,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFinanzonlineOutboxIdMarkResolvedMutationBody = FinanzOnlineOutboxMarkResolvedRequest
     export type PostApiAdminFinanzonlineOutboxIdMarkResolvedMutationError = unknown
 
-    export const usePostApiAdminFinanzonlineOutboxIdMarkResolved = <TError = unknown,
+    /**
+ * @summary Close a row without another FinanzOnline submit. Super Admin only.
+ */
+export const usePostApiAdminFinanzonlineOutboxIdMarkResolved = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>, TError,{id: string;data: FinanzOnlineOutboxMarkResolvedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>,
@@ -49213,7 +52532,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFinanzonlineReadiness = (
+    /**
+ * @summary GET: Configuration readiness plus outbox row counts by status (observability).
+ */
+export const getApiAdminFinanzonlineReadiness = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -49252,6 +52574,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFinanzonlineReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>>
 export type GetApiAdminFinanzonlineReadinessQueryError = unknown
 
+/**
+ * @summary GET: Configuration readiness plus outbox row counts by status (observability).
+ */
 export const useGetApiAdminFinanzonlineReadiness = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49270,6 +52595,7 @@ export const useGetApiAdminFinanzonlineReadiness = <TData = Awaited<ReturnType<t
 
 /**
  * @deprecated
+ * @summary GET: FinanzOnline submit metrics (finanzonline_submit_total, finanzonline_submit_failed_total by FailureKind). Counters reset on app restart.
  */
 export const getApiAdminFinanzonlineReconciliationMetrics = (
 
@@ -49312,6 +52638,7 @@ export type GetApiAdminFinanzonlineReconciliationMetricsQueryError = unknown
 
 /**
  * @deprecated
+ * @summary GET: FinanzOnline submit metrics (finanzonline_submit_total, finanzonline_submit_failed_total by FailureKind). Counters reset on app restart.
  */
 export const useGetApiAdminFinanzonlineReconciliationMetrics = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineReconciliationMetrics>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReconciliationMetrics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -49331,6 +52658,7 @@ export const useGetApiAdminFinanzonlineReconciliationMetrics = <TData = Awaited<
 
 /**
  * @deprecated
+ * @summary GET: List payments that need reconciliation (Pending, Failed, NeedsReconciliation). Optional filters.
  */
 export const getApiAdminFinanzonlineReconciliation = (
     params?: GetApiAdminFinanzonlineReconciliationParams,
@@ -49374,6 +52702,7 @@ export type GetApiAdminFinanzonlineReconciliationQueryError = unknown
 
 /**
  * @deprecated
+ * @summary GET: List payments that need reconciliation (Pending, Failed, NeedsReconciliation). Optional filters.
  */
 export const useGetApiAdminFinanzonlineReconciliation = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineReconciliation>>, TError = unknown>(
  params?: GetApiAdminFinanzonlineReconciliationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReconciliation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -49393,6 +52722,7 @@ export const useGetApiAdminFinanzonlineReconciliation = <TData = Awaited<ReturnT
 
 /**
  * @deprecated
+ * @summary POST: Retry FinanzOnline submit for one payment. Idempotent if already Submitted.
  */
 export const postApiAdminFinanzonlineReconciliationRetryPaymentId = (
     paymentId: string,
@@ -49432,6 +52762,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     /**
  * @deprecated
+ * @summary POST: Retry FinanzOnline submit for one payment. Idempotent if already Submitted.
  */
 export const usePostApiAdminFinanzonlineReconciliationRetryPaymentId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineReconciliationRetryPaymentId>>, TError,{paymentId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -49446,7 +52777,10 @@ export const usePostApiAdminFinanzonlineReconciliationRetryPaymentId = <TError =
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFiscalExportDisclaimer = (
+    /**
+ * @summary RKSV § 8 disclaimer texts for fiscal export (German + English). No acknowledgment header required.
+ */
+export const getApiAdminFiscalExportDisclaimer = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -49485,6 +52819,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiscalExportDisclaimerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiscalExportDisclaimer>>>
 export type GetApiAdminFiscalExportDisclaimerQueryError = unknown
 
+/**
+ * @summary RKSV § 8 disclaimer texts for fiscal export (German + English). No acknowledgment header required.
+ */
 export const useGetApiAdminFiscalExportDisclaimer = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExportDisclaimer>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExportDisclaimer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49501,6 +52838,9 @@ export const useGetApiAdminFiscalExportDisclaimer = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Starts a fiscal export job. JSON format returns envelope inline (same as GET). jsonDownload/pdf create a ticket; use GET download/{exportId}.
+ */
 export const postApiAdminFiscalExportGenerate = (
     fiscalExportGenerateRequestDto: FiscalExportGenerateRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -49539,7 +52879,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminFiscalExportGenerateMutationBody = FiscalExportGenerateRequestDto
     export type PostApiAdminFiscalExportGenerateMutationError = FiscalExportDisclaimerRequiredResponseDto
 
-    export const usePostApiAdminFiscalExportGenerate = <TError = FiscalExportDisclaimerRequiredResponseDto,
+    /**
+ * @summary Starts a fiscal export job. JSON format returns envelope inline (same as GET). jsonDownload/pdf create a ticket; use GET download/{exportId}.
+ */
+export const usePostApiAdminFiscalExportGenerate = <TError = FiscalExportDisclaimerRequiredResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFiscalExportGenerate>>, TError,{data: FiscalExportGenerateRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminFiscalExportGenerate>>,
@@ -49552,7 +52895,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminFiscalExport = (
+    /**
+ * @summary Export fiscal package for one cash register and UTC time range (synchronous preview or direct file download).
+ */
+export const getApiAdminFiscalExport = (
     params?: GetApiAdminFiscalExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -49592,6 +52938,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiscalExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiscalExport>>>
 export type GetApiAdminFiscalExportQueryError = FiscalExportDisclaimerRequiredResponseDto
 
+/**
+ * @summary Export fiscal package for one cash register and UTC time range (synchronous preview or direct file download).
+ */
 export const useGetApiAdminFiscalExport = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError = FiscalExportDisclaimerRequiredResponseDto>(
  params?: GetApiAdminFiscalExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49608,6 +52957,9 @@ export const useGetApiAdminFiscalExport = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * @summary Downloads a deferred export created via POST generate (single use).
+ */
 export const getApiAdminFiscalExportDownloadExportId = (
     exportId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -49648,6 +53000,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminFiscalExportDownloadExportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiscalExportDownloadExportId>>>
 export type GetApiAdminFiscalExportDownloadExportIdQueryError = FiscalExportDisclaimerRequiredResponseDto
 
+/**
+ * @summary Downloads a deferred export created via POST generate (single use).
+ */
 export const useGetApiAdminFiscalExportDownloadExportId = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExportDownloadExportId>>, TError = FiscalExportDisclaimerRequiredResponseDto>(
  exportId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExportDownloadExportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49664,6 +53019,9 @@ export const useGetApiAdminFiscalExportDownloadExportId = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary GET: Run integrity checks and return report (sequence issues, orphan refunds, payment without invoice).
+ */
 export const getApiAdminIntegrity = (
     params?: GetApiAdminIntegrityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -49704,6 +53062,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminIntegrityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminIntegrity>>>
 export type GetApiAdminIntegrityQueryError = unknown
 
+/**
+ * @summary GET: Run integrity checks and return report (sequence issues, orphan refunds, payment without invoice).
+ */
 export const useGetApiAdminIntegrity = <TData = Awaited<ReturnType<typeof getApiAdminIntegrity>>, TError = unknown>(
  params?: GetApiAdminIntegrityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminIntegrity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49720,6 +53081,9 @@ export const useGetApiAdminIntegrity = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary POST: Create a legal hold for the given date range.
+ */
 export const postApiAdminLegalHold = (
     createLegalHoldRequest: CreateLegalHoldRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -49758,7 +53122,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLegalHoldMutationBody = CreateLegalHoldRequest
     export type PostApiAdminLegalHoldMutationError = unknown
 
-    export const usePostApiAdminLegalHold = <TError = unknown,
+    /**
+ * @summary POST: Create a legal hold for the given date range.
+ */
+export const usePostApiAdminLegalHold = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLegalHold>>, TError,{data: CreateLegalHoldRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLegalHold>>,
@@ -49771,7 +53138,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLegalHold = (
+    /**
+ * @summary GET: List legal holds (active only by default).
+ */
+export const getApiAdminLegalHold = (
     params?: GetApiAdminLegalHoldParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -49811,6 +53181,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLegalHoldQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLegalHold>>>
 export type GetApiAdminLegalHoldQueryError = unknown
 
+/**
+ * @summary GET: List legal holds (active only by default).
+ */
 export const useGetApiAdminLegalHold = <TData = Awaited<ReturnType<typeof getApiAdminLegalHold>>, TError = unknown>(
  params?: GetApiAdminLegalHoldParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLegalHold>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49827,6 +53200,9 @@ export const useGetApiAdminLegalHold = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary GET: Get a single legal hold by id.
+ */
 export const getApiAdminLegalHoldId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -49866,6 +53242,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLegalHoldIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLegalHoldId>>>
 export type GetApiAdminLegalHoldIdQueryError = unknown
 
+/**
+ * @summary GET: Get a single legal hold by id.
+ */
 export const useGetApiAdminLegalHoldId = <TData = Awaited<ReturnType<typeof getApiAdminLegalHoldId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLegalHoldId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49882,6 +53261,9 @@ export const useGetApiAdminLegalHoldId = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary DELETE: Lift (deactivate) a legal hold.
+ */
 export const deleteApiAdminLegalHoldId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -49918,7 +53300,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminLegalHoldIdMutationError = unknown
 
-    export const useDeleteApiAdminLegalHoldId = <TError = unknown,
+    /**
+ * @summary DELETE: Lift (deactivate) a legal hold.
+ */
+export const useDeleteApiAdminLegalHoldId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminLegalHoldId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminLegalHoldId>>,
@@ -49931,7 +53316,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicenseTest = (
+    /**
+ * @summary Current tenant (optional) and deployment license snapshot.
+ */
+export const getApiAdminLicenseTest = (
     params?: GetApiAdminLicenseTestParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -49971,6 +53359,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminLicenseTestQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseTest>>>
 export type GetApiAdminLicenseTestQueryError = ProblemDetails
 
+/**
+ * @summary Current tenant (optional) and deployment license snapshot.
+ */
 export const useGetApiAdminLicenseTest = <TData = Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError = ProblemDetails>(
  params?: GetApiAdminLicenseTestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -49987,6 +53378,9 @@ export const useGetApiAdminLicenseTest = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Unified tenant license update for the dev test panel.
+ */
 export const postApiAdminLicenseTestUpdate = (
     licenseTestRequest: LicenseTestRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -50025,7 +53419,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseTestUpdateMutationBody = LicenseTestRequest
     export type PostApiAdminLicenseTestUpdateMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseTestUpdate = <TError = ProblemDetails,
+    /**
+ * @summary Unified tenant license update for the dev test panel.
+ */
+export const usePostApiAdminLicenseTestUpdate = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>, TError,{data: LicenseTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>,
@@ -50038,7 +53435,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseTestTenant = (
+    /**
+ * @summary Adjust mandant (tenant row) license expiry or toggle active/expired.
+ */
+export const postApiAdminLicenseTestTenant = (
     licenseTestTenantRequest: LicenseTestTenantRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -50076,7 +53476,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseTestTenantMutationBody = LicenseTestTenantRequest
     export type PostApiAdminLicenseTestTenantMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseTestTenant = <TError = ProblemDetails,
+    /**
+ * @summary Adjust mandant (tenant row) license expiry or toggle active/expired.
+ */
+export const usePostApiAdminLicenseTestTenant = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>, TError,{data: LicenseTestTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>,
@@ -50089,7 +53492,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseTestDeployment = (
+    /**
+ * @summary Adjust deployment (on-premise) license expiry or toggle active/expired.
+ */
+export const postApiAdminLicenseTestDeployment = (
     licenseTestSetExpiryRequest: LicenseTestSetExpiryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -50127,7 +53533,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseTestDeploymentMutationBody = LicenseTestSetExpiryRequest
     export type PostApiAdminLicenseTestDeploymentMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseTestDeployment = <TError = ProblemDetails,
+    /**
+ * @summary Adjust deployment (on-premise) license expiry or toggle active/expired.
+ */
+export const usePostApiAdminLicenseTestDeployment = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>, TError,{data: LicenseTestSetExpiryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>,
@@ -50140,7 +53549,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseTestScenario = (
+    /**
+ * @summary Apply a preset scenario (1 / 7 / 30 days or expired) to tenant, deployment, or both.
+ */
+export const postApiAdminLicenseTestScenario = (
     licenseTestScenarioRequest: LicenseTestScenarioRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -50178,7 +53590,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminLicenseTestScenarioMutationBody = LicenseTestScenarioRequest
     export type PostApiAdminLicenseTestScenarioMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseTestScenario = <TError = ProblemDetails,
+    /**
+ * @summary Apply a preset scenario (1 / 7 / 30 days or expired) to tenant, deployment, or both.
+ */
+export const usePostApiAdminLicenseTestScenario = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>, TError,{data: LicenseTestScenarioRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>,
@@ -50191,7 +53606,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminLicenseTestRefresh = (
+    /**
+ * @summary Re-read license state from DB and disk without mutating expiry.
+ */
+export const postApiAdminLicenseTestRefresh = (
     params?: PostApiAdminLicenseTestRefreshParams,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -50228,7 +53646,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminLicenseTestRefreshMutationError = ProblemDetails
 
-    export const usePostApiAdminLicenseTestRefresh = <TError = ProblemDetails,
+    /**
+ * @summary Re-read license state from DB and disk without mutating expiry.
+ */
+export const usePostApiAdminLicenseTestRefresh = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>, TError,{params?: PostApiAdminLicenseTestRefreshParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>,
@@ -50241,7 +53662,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminMaintenanceStatus = (
+    /**
+ * @summary Alias under admin prefix for FA clients.
+ */
+export const getApiAdminMaintenanceStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -50280,6 +53704,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminMaintenanceStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMaintenanceStatus>>>
 export type GetApiAdminMaintenanceStatusQueryError = unknown
 
+/**
+ * @summary Alias under admin prefix for FA clients.
+ */
 export const useGetApiAdminMaintenanceStatus = <TData = Awaited<ReturnType<typeof getApiAdminMaintenanceStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMaintenanceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -50451,6 +53878,10 @@ export const useGetApiAdminMetrics = <TData = Awaited<ReturnType<typeof getApiAd
 
 
 
+/**
+ * @summary GET: Coverage summary for replayed offline intents in a UTC window.
+Optional cashRegisterId filters to one register; otherwise aggregates over all registers with samples in range.
+ */
 export const getApiAdminOfflineIntentCoverage = (
     params?: GetApiAdminOfflineIntentCoverageParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -50491,6 +53922,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflineIntentCoverageQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverage>>>
 export type GetApiAdminOfflineIntentCoverageQueryError = unknown
 
+/**
+ * @summary GET: Coverage summary for replayed offline intents in a UTC window.
+Optional cashRegisterId filters to one register; otherwise aggregates over all registers with samples in range.
+ */
 export const useGetApiAdminOfflineIntentCoverage = <TData = Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverage>>, TError = unknown>(
  params?: GetApiAdminOfflineIntentCoverageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -50507,6 +53942,9 @@ export const useGetApiAdminOfflineIntentCoverage = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary GET: Top N riskiest registers by coverage risk score (DeviceId missing rate + Sequence missing rate) in the given UTC window.
+ */
 export const getApiAdminOfflineIntentCoverageTopRisk = (
     params?: GetApiAdminOfflineIntentCoverageTopRiskParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -50547,6 +53985,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflineIntentCoverageTopRiskQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverageTopRisk>>>
 export type GetApiAdminOfflineIntentCoverageTopRiskQueryError = unknown
 
+/**
+ * @summary GET: Top N riskiest registers by coverage risk score (DeviceId missing rate + Sequence missing rate) in the given UTC window.
+ */
 export const useGetApiAdminOfflineIntentCoverageTopRisk = <TData = Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverageTopRisk>>, TError = unknown>(
  params?: GetApiAdminOfflineIntentCoverageTopRiskParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineIntentCoverageTopRisk>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -50563,6 +54004,9 @@ export const useGetApiAdminOfflineIntentCoverageTopRisk = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary GET: Quick risk check — sample recent rows and return LegacyDataQualityRiskHigh and mismatch ratio for ops/UI.
+ */
 export const getApiAdminOfflinePayloadHashRisk = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -50602,6 +54046,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflinePayloadHashRiskQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashRisk>>>
 export type GetApiAdminOfflinePayloadHashRiskQueryError = unknown
 
+/**
+ * @summary GET: Quick risk check — sample recent rows and return LegacyDataQualityRiskHigh and mismatch ratio for ops/UI.
+ */
 export const useGetApiAdminOfflinePayloadHashRisk = <TData = Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashRisk>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashRisk>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -50618,6 +54065,9 @@ export const useGetApiAdminOfflinePayloadHashRisk = <TData = Awaited<ReturnType<
 
 
 
+/**
+ * @summary Scan recent offline rows: count where stored payload_hash != runtime canonical hash.
+ */
 export const postApiAdminOfflinePayloadHashAnalyze = (
     offlinePayloadHashMaintenanceControllerAnalyzeRequest: OfflinePayloadHashMaintenanceControllerAnalyzeRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -50656,7 +54106,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminOfflinePayloadHashAnalyzeMutationBody = OfflinePayloadHashMaintenanceControllerAnalyzeRequest
     export type PostApiAdminOfflinePayloadHashAnalyzeMutationError = unknown
 
-    export const usePostApiAdminOfflinePayloadHashAnalyze = <TError = unknown,
+    /**
+ * @summary Scan recent offline rows: count where stored payload_hash != runtime canonical hash.
+ */
+export const usePostApiAdminOfflinePayloadHashAnalyze = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflinePayloadHashAnalyze>>, TError,{data: OfflinePayloadHashMaintenanceControllerAnalyzeRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOfflinePayloadHashAnalyze>>,
@@ -50669,7 +54122,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminOfflinePayloadHashExport = (
+    /**
+ * @summary GET: Export analyze result as CSV (conflicts + repairable). Read-only; same filters as analyze (maxRows, cashRegisterId).
+ */
+export const getApiAdminOfflinePayloadHashExport = (
     params?: GetApiAdminOfflinePayloadHashExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -50709,6 +54165,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminOfflinePayloadHashExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashExport>>>
 export type GetApiAdminOfflinePayloadHashExportQueryError = unknown
 
+/**
+ * @summary GET: Export analyze result as CSV (conflicts + repairable). Read-only; same filters as analyze (maxRows, cashRegisterId).
+ */
 export const useGetApiAdminOfflinePayloadHashExport = <TData = Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashExport>>, TError = unknown>(
  params?: GetApiAdminOfflinePayloadHashExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflinePayloadHashExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -50725,6 +54184,10 @@ export const useGetApiAdminOfflinePayloadHashExport = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Align payload_hash to runtime canonical value where unique (CashRegisterId, payload_hash) allows.
+Use DryRun first; set DryRun=false only after review (requires system.critical).
+ */
 export const postApiAdminOfflinePayloadHashRepair = (
     offlinePayloadHashMaintenanceControllerRepairRequest: OfflinePayloadHashMaintenanceControllerRepairRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -50763,7 +54226,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAdminOfflinePayloadHashRepairMutationBody = OfflinePayloadHashMaintenanceControllerRepairRequest
     export type PostApiAdminOfflinePayloadHashRepairMutationError = unknown
 
-    export const usePostApiAdminOfflinePayloadHashRepair = <TError = unknown,
+    /**
+ * @summary Align payload_hash to runtime canonical value where unique (CashRegisterId, payload_hash) allows.
+Use DryRun first; set DryRun=false only after review (requires system.critical).
+ */
+export const usePostApiAdminOfflinePayloadHashRepair = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflinePayloadHashRepair>>, TError,{data: OfflinePayloadHashMaintenanceControllerRepairRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminOfflinePayloadHashRepair>>,
@@ -51039,7 +54506,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminReplayBatchCorrelationId = (
+    /**
+ * @summary GET: Batch detail by correlation ID (Guid with or without dashes). Returns item counts, success/fail/duplicate summary, payments with receipt links, and audit correlation for log trace.
+ */
+export const getApiAdminReplayBatchCorrelationId = (
     correlationId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -51078,6 +54548,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReplayBatchCorrelationIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReplayBatchCorrelationId>>>
 export type GetApiAdminReplayBatchCorrelationIdQueryError = unknown
 
+/**
+ * @summary GET: Batch detail by correlation ID (Guid with or without dashes). Returns item counts, success/fail/duplicate summary, payments with receipt links, and audit correlation for log trace.
+ */
 export const useGetApiAdminReplayBatchCorrelationId = <TData = Awaited<ReturnType<typeof getApiAdminReplayBatchCorrelationId>>, TError = unknown>(
  correlationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReplayBatchCorrelationId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -51094,6 +54567,9 @@ export const useGetApiAdminReplayBatchCorrelationId = <TData = Awaited<ReturnTyp
 
 
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const getApiAdminReportsPdfReportTypeReportId = (
     reportType: string,
     reportId: string,
@@ -51141,6 +54617,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsPdfReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>>
 export type GetApiAdminReportsPdfReportTypeReportIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const useGetApiAdminReportsPdfReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,
@@ -51159,6 +54638,9 @@ export const useGetApiAdminReportsPdfReportTypeReportId = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const getApiAdminReportPdfsReportTypeReportId = (
     reportType: string,
     reportId: string,
@@ -51206,6 +54688,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>>
 export type GetApiAdminReportPdfsReportTypeReportIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const useGetApiAdminReportPdfsReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,
@@ -51224,6 +54709,9 @@ export const useGetApiAdminReportPdfsReportTypeReportId = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const getApiAdminReportsReportTypeReportIdPdf = (
     reportType: string,
     reportId: string,
@@ -51271,6 +54759,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsReportTypeReportIdPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>>
 export type GetApiAdminReportsReportTypeReportIdPdfQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const useGetApiAdminReportsReportTypeReportIdPdf = <TData = Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,
@@ -51289,6 +54780,9 @@ export const useGetApiAdminReportsReportTypeReportIdPdf = <TData = Awaited<Retur
 
 
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const getApiAdminReportsPdfDownloadReportTypeReportId = (
     reportType: string,
     reportId: string,
@@ -51336,6 +54830,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportsPdfDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>>
 export type GetApiAdminReportsPdfDownloadReportTypeReportIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const useGetApiAdminReportsPdfDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,
@@ -51354,6 +54851,9 @@ export const useGetApiAdminReportsPdfDownloadReportTypeReportId = <TData = Await
 
 
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const getApiAdminReportPdfsDownloadReportTypeReportId = (
     reportType: string,
     reportId: string,
@@ -51401,6 +54901,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>>
 export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryError = ProblemDetails
 
+/**
+ * @summary Download a stored RKSV report PDF by type and source entity id.
+ */
 export const useGetApiAdminReportPdfsDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,

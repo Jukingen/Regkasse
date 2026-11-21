@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Paid-package mix on the current active license sale (latest ValidUntilUtc per tenant).
+ */
 export interface PlanDistributionDto {
   business?: number;
   plus?: number;

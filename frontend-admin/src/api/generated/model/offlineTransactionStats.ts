@@ -7,6 +7,9 @@
  */
 import type { OfflineRegisterQueueSummary } from './offlineRegisterQueueSummary';
 
+/**
+ * Legacy TSE intent queue statistics (internal monitoring detail).
+ */
 export interface OfflineTransactionStats {
   /** @nullable */
   byRegister?: OfflineRegisterQueueSummary[] | null;

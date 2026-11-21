@@ -13,6 +13,9 @@ pageSize?: number;
 tenantId?: string;
 status?: string;
 licensePlan?: string;
+/**
+ * Mandanten SaaS package tier on `license_sales.license_type`.
+ */
 licenseType?: LicenseType;
 minDurationDays?: number;
 fromDate?: string;

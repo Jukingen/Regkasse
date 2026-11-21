@@ -8,6 +8,9 @@
 
 export interface CreateJahresbelegClosingRequest {
   cashRegisterId?: string;
-  /** @nullable */
+  /**
+   * When omitted, uses the current Vienna calendar year.
+   * @nullable
+   */
   year?: number | null;
 }

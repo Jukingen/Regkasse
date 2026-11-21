@@ -7,6 +7,10 @@
  */
 import type { ReplayOfflineTransactionItem } from './replayOfflineTransactionItem';
 
+/**
+ * Replay request for controlled offline intents.
+Payload is the original CreatePaymentRequest JSON as sent by the mobile POS.
+ */
 export interface ReplayOfflineTransactionsRequest {
   transactions: ReplayOfflineTransactionItem[];
 }

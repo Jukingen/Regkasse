@@ -6,12 +6,18 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Per-register TSE health snapshot for admin FA.
+ */
 export interface CashRegisterTseHealthDto {
   /** @nullable */
   lastCheckUtc?: string | null;
   /** @nullable */
   message?: string | null;
   offlineQueueCount?: number;
-  /** @nullable */
+  /**
+   * healthy | degraded | offline | notConfigured
+   * @nullable
+   */
   status?: string | null;
 }

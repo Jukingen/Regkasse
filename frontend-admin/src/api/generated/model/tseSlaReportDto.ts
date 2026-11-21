@@ -7,6 +7,9 @@
  */
 import type { TseSlaViolationDto } from './tseSlaViolationDto';
 
+/**
+ * Period SLA report for a tenant's TSE fleet (operational; not a fiscal certificate).
+ */
 export interface TseSlaReportDto {
   averageResponseTime?: number;
   /** @nullable */

@@ -7,8 +7,15 @@
  */
 import type { CreateNewAddOnProductRequest } from './createNewAddOnProductRequest';
 
+/**
+ * Faz 1: Gruba product ekleme. ProductId (mevcut product) veya CreateNewAddOnProduct (yeni Zusatzprodukt) – en az biri dolu olmalı.
+JSON: productId (optional), createNewAddOnProduct (optional).
+ */
 export interface AddProductToGroupRequest {
   createNewAddOnProduct?: CreateNewAddOnProductRequest;
-  /** @nullable */
+  /**
+   * Mevcut product (IsSellableAddOn veya uygun kategori). ProductId verilirse createNewAddOnProduct verilmez.
+   * @nullable
+   */
   productId?: string | null;
 }

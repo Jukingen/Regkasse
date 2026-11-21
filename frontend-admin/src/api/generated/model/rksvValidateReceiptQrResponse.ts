@@ -7,6 +7,9 @@
  */
 import type { RksvValidateReceiptQrParsedDto } from './rksvValidateReceiptQrParsedDto';
 
+/**
+ * Format-only validation outcome for RKSV receipt QR payloads.
+ */
 export interface RksvValidateReceiptQrResponse {
   /** @nullable */
   errors?: string[] | null;

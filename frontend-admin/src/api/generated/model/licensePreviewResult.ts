@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Read-only preview of a REGK license key before extend confirmation.
+ */
 export interface LicensePreviewResult {
   /** @nullable */
   durationDays?: number | null;

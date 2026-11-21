@@ -6,9 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * VAT bucket totals for RKSV daily closing reports (20% / 10% / 0%).
+ */
 export interface DailyClosingTaxBreakdownDto {
   grossAt0?: number;
   grossAt10?: number;
+  /** Optional 13% special-rate bucket when present in fiscal data. */
   grossAt13?: number;
   grossAt20?: number;
   taxAt10?: number;

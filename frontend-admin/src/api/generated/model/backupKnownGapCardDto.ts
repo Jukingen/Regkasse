@@ -6,13 +6,21 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One catalog gap plus the tenant acknowledgement and the current check.
+`displayColor` is `green`, `amber`, or `red`.
+Acceptance of an open gap yields amber. It does not yield green.
+ */
 export interface BackupKnownGapCardDto {
   accepted?: boolean;
   /** @nullable */
   acceptedAtUtc?: string | null;
   /** @nullable */
   acceptedBy?: string | null;
-  /** @nullable */
+  /**
+   * `green` when the check is clear, `amber` when accepted, `red` when open and not accepted.
+   * @nullable
+   */
   displayColor?: string | null;
   /** @nullable */
   id?: string | null;

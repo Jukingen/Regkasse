@@ -8,9 +8,15 @@
 import type { FinanzOnlineReconciliationItemDto } from './finanzOnlineReconciliationItemDto';
 
 export interface FinanzOnlineReconciliationListResponse {
-  /** @nullable */
+  /**
+   * Non-production: active `FinanzOnline:Simulation:Developer` profile when not None (see KasseAPI_Final.Services.FinanzOnlineIntegration.FinanzOnlineSimulationDeveloperUi).
+   * @nullable
+   */
   finanzOnlineDeveloperSimulationProfile?: string | null;
-  /** @nullable */
+  /**
+   * True when any FinanzOnline transport layer uses simulation (session, rkdb, or transmission query).
+   * @nullable
+   */
   finanzOnlineTransportSimulationActive?: boolean | null;
   /** @nullable */
   items?: FinanzOnlineReconciliationItemDto[] | null;

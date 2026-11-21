@@ -7,6 +7,9 @@
  */
 import type { OnlineOrderStatusChangeDto } from './onlineOrderStatusChangeDto';
 
+/**
+ * Public customer-facing order status (limited PII).
+ */
 export interface PublicOnlineOrderStatusDto {
   /** @nullable */
   acceptedAt?: string | null;
@@ -15,7 +18,10 @@ export interface PublicOnlineOrderStatusDto {
   createdAt?: string;
   /** @nullable */
   currency?: string | null;
-  /** @nullable */
+  /**
+   * Masked customer name (e.g. "Max M.").
+   * @nullable
+   */
   customerDisplayName?: string | null;
   /** @nullable */
   orderNumber: string | null;

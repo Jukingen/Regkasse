@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Canonical HTTP 409 body for KasseAPI_Final.Services.Limits.LimitExceededException.
+ */
 export interface LimitErrorDto {
   canForce?: boolean;
   /** @nullable */

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One-time provisioning details returned when a tenant is created.
+ */
 export interface TenantProvisioningDto {
   /** @nullable */
   adminEmail?: string | null;

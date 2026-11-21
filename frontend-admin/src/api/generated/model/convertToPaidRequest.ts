@@ -7,7 +7,10 @@
  */
 
 export interface ConvertToPaidRequest {
-  /** @nullable */
+  /**
+   * When true (default), append remaining trial days onto the license end date.
+   * @nullable
+   */
   addRemainingTrialDays?: boolean | null;
   licenseSaleId?: string;
   /** @nullable */

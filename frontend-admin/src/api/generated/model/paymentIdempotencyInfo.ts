@@ -6,8 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Idempotency semantics for payment operations.
+ */
 export interface PaymentIdempotencyInfo {
-  /** @nullable */
+  /**
+   * Normalized key echoed when present on the request (optional).
+   * @nullable
+   */
   key?: string | null;
+  /** True when this response replays a prior committed payment for the same idempotency key. */
   replay?: boolean;
 }

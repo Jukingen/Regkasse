@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin payload to patch a mandant's operational caps. Omitted fields keep current values.
+ */
 export interface UpdateTenantLimitsRequest {
   /**
    * @minimum 0.01

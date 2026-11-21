@@ -13,7 +13,10 @@ export interface BackupChecksumArtifactResultDto {
   computedChecksum?: string | null;
   /** @nullable */
   detail?: string | null;
-  /** @nullable */
+  /**
+   * passed | failed | missing_hash | missing_file
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   storedChecksum?: string | null;

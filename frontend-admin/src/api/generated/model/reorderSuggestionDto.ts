@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Nachbestell-Vorschlag: aktueller Bestand vs. Mindest-/Meldebestand.
+ */
 export interface ReorderSuggestionDto {
   currentStock?: number;
   inventoryId?: string;
@@ -17,5 +20,6 @@ export interface ReorderSuggestionDto {
   productName?: string | null;
   /** @nullable */
   reorderPoint?: number | null;
+  /** Heuristic: max(0, reorderPoint - current) veya minStock - current. */
   suggestedOrderQuantity?: number;
 }

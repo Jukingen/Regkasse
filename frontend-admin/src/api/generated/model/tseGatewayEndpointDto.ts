@@ -15,12 +15,16 @@ export interface TseGatewayEndpointDto {
   id?: string;
   /** @nullable */
   lastCheckedAt?: string | null;
+  /** 0–100 relative load from recent request share. */
   load?: number;
   /** @nullable */
   provider?: string | null;
   requests?: number;
   sortOrder?: number;
-  /** @nullable */
+  /**
+   * healthy | unhealthy | unknown
+   * @nullable
+   */
   status?: string | null;
   successCount?: number;
   weight?: number;

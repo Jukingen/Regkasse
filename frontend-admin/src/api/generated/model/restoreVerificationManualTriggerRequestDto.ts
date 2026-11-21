@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /trigger isteği gövdesi (tamamı isteğe bağlı).
+ */
 export interface RestoreVerificationManualTriggerRequestDto {
   /**
    * @minLength 0

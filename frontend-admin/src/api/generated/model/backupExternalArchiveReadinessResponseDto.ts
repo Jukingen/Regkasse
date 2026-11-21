@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Harici arşiv: arka uç türü, zorlama düzeyi, sınırlamalar (İngilizce notlar).
+ */
 export interface BackupExternalArchiveReadinessResponseDto {
   applicationEnforcesStorageImmutability?: boolean;
   /** @nullable */

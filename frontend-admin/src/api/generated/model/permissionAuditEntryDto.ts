@@ -7,7 +7,10 @@
  */
 
 export interface PermissionAuditEntryDto {
-  /** @nullable */
+  /**
+   * created | updated | deleted | reverted
+   * @nullable
+   */
   action?: string | null;
   /** @nullable */
   actorEmail?: string | null;

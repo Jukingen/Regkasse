@@ -85,6 +85,9 @@ export const useGetApiUserSessions = <TData = Awaited<ReturnType<typeof getApiUs
 
 
 
+/**
+ * @summary Sketch-aligned DTO shape (device name / browser / OS / last active).
+ */
 export const getApiUserSessionsDevices = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -124,6 +127,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiUserSessionsDevicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserSessionsDevices>>>
 export type GetApiUserSessionsDevicesQueryError = unknown
 
+/**
+ * @summary Sketch-aligned DTO shape (device name / browser / OS / last active).
+ */
 export const useGetApiUserSessionsDevices = <TData = Awaited<ReturnType<typeof getApiUserSessionsDevices>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionsDevices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -142,7 +148,8 @@ export const useGetApiUserSessionsDevices = <TData = Awaited<ReturnType<typeof g
 
 /**
  * Returns platform concurrent-session limits from `SessionPolicy` configuration (`maxConcurrentSessions`, `sessionTimeoutMinutes`, `allowMultipleDevices`) plus tenant idle-timeout overrides when available (`warningBeforeTimeoutMinutes`, `keepCartAfterTimeout`, `idleTimeoutEnabled`). Requires authenticated JWT.
- * @summary Get session policy
+ * @summary Returns the effective session policy for the current user:
+concurrent-session limits from `SessionPolicy` configuration, plus tenant idle-timeout settings when available.
  */
 export const getApiUserSessionPolicy = (
 
@@ -184,7 +191,8 @@ export type GetApiUserSessionPolicyQueryResult = NonNullable<Awaited<ReturnType<
 export type GetApiUserSessionPolicyQueryError = ProblemDetails
 
 /**
- * @summary Get session policy
+ * @summary Returns the effective session policy for the current user:
+concurrent-session limits from `SessionPolicy` configuration, plus tenant idle-timeout settings when available.
  */
 export const useGetApiUserSessionPolicy = <TData = Awaited<ReturnType<typeof getApiUserSessionPolicy>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
