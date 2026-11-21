@@ -14,6 +14,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  // One worker. Several admin specs failed together when Next dev dropped
+  // connections under parallel load (storno, refund, voucher, audit, Fiskaly).
   workers: 1,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   timeout: 60_000,
@@ -34,10 +36,14 @@ export default defineConfig({
   webServer: process.env.E2E_SKIP_WEBSERVER
     ? undefined
     : {
-        command: process.env.E2E_WEB_SERVER_COMMAND ?? 'npm run start',
+        // Production server. `next dev` hot-reloads mid-suite and resets
+        // in-flight pages, which showed up as connection drops.
+        // A server already on this port is not reused: that process is often
+        // `next dev`. Set E2E_REUSE_SERVER=1 only for a production server you started.
+        command: process.env.E2E_WEB_SERVER_COMMAND ?? 'node ./scripts/e2e-web-server.mjs',
         url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 180_000,
+        reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
+        timeout: 720_000,
         env: {
           ...process.env,
           PORT: String(PORT),

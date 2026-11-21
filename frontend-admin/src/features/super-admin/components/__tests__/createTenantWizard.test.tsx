@@ -3,10 +3,10 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CountryProfileSummaryDto } from '@/api/generated/model';
 import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
@@ -101,12 +101,18 @@ describe('buildDemoTenantDefaults', () => {
 
 describe('CreateTenantWizard seedDemo', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.clearAllMocks();
     mockCheckSlug.mockImplementation(async (slug: string) => ({
       normalizedSlug: slug,
       isValid: true,
       available: true,
     }));
+  });
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('prefills Austria, a 14-day trial, and sends seedDemo true', async () => {
@@ -155,6 +161,10 @@ describe('CreateTenantWizard seedDemo', () => {
     });
     expect(String(mockCreateAdminTenant.mock.calls[0][0].name)).toMatch(/^Demo \d{4}-\d{2}-\d{2}$/);
 
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+    });
+
     expect(
       await screen.findByText('46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.')
     ).toBeInTheDocument();
@@ -194,5 +204,9 @@ describe('CreateTenantWizard seedDemo', () => {
 
     await waitFor(() => expect(mockCreateAdminTenant).toHaveBeenCalled());
     expect(mockCreateAdminTenant.mock.calls[0][0].seedDemo).toBe(false);
+
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+    });
   });
 });

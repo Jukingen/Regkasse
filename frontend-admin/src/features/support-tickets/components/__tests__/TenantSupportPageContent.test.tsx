@@ -63,7 +63,7 @@ beforeAll(() => {
   });
 });
 
-describe('TenantSupportPageContent', () => {
+describe.sequential('TenantSupportPageContent', () => {
   it('renders empty state and opens the create ticket modal', async () => {
     fetchMySupportTickets.mockResolvedValue({ items: [], totalCount: 0, openCount: 0 });
 
