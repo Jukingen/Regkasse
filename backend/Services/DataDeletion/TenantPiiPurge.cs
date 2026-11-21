@@ -83,6 +83,12 @@ internal static class TenantPiiPurge
             .ConfigureAwait(false);
         counts["appointments_anonymized"] = await ClearAppointmentNotesAsync(db, tenantId, ct)
             .ConfigureAwait(false);
+        counts["carts_anonymized"] = await AnonymizeCartsAsync(db, tenantId, customerIds, ct)
+            .ConfigureAwait(false);
+        counts["table_orders_anonymized"] = await AnonymizeTableOrdersAsync(db, tenantId, customerIds, ct)
+            .ConfigureAwait(false);
+        counts["kitchen_orders_anonymized"] = await AnonymizeKitchenNotesAsync(db, tenantId, ct)
+            .ConfigureAwait(false);
         counts["vouchers_anonymized"] = await AnonymizeVouchersAsync(db, tenantId, ct)
             .ConfigureAwait(false);
         counts["demo_requests_anonymized"] = await AnonymizeDemoRequestsAsync(db, emails, ct)
@@ -431,6 +437,168 @@ internal static class TenantPiiPurge
         }
 
         return rows.Count;
+    }
+
+    /// <summary>
+    /// Carts and table orders have no tenant or cash-register column. A row belongs to the tenant
+    /// when its customer does, when a line's product does, or when its user is a member of this
+    /// tenant and of no other tenant. A shared user keeps carts that are not tied to this tenant's customers.
+    /// </summary>
+    private static async Task<HashSet<string>> TenantCartIdsAsync(
+        AppDbContext db,
+        Guid tenantId,
+        List<Guid> customerIds,
+        CancellationToken ct)
+    {
+        var soleUserIds = await SoleMemberUserIdsAsync(db, tenantId, ct).ConfigureAwait(false);
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+
+        var linked = await db.Carts.AsNoTracking()
+            .Where(c => (c.CustomerId != null && customerIds.Contains(c.CustomerId.Value))
+                        || soleUserIds.Contains(c.UserId))
+            .Select(c => c.CartId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var id in linked)
+            ids.Add(id);
+
+        var productIds = await db.Products.AsNoTracking().IgnoreQueryFilters()
+            .Where(p => p.TenantId == tenantId)
+            .Select(p => p.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (productIds.Count == 0)
+            return ids;
+
+        var fromItems = await db.CartItems.AsNoTracking()
+            .Where(i => productIds.Contains(i.ProductId))
+            .Select(i => i.CartId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var id in fromItems)
+            ids.Add(id);
+        return ids;
+    }
+
+    private static async Task<HashSet<string>> SoleMemberUserIdsAsync(
+        AppDbContext db,
+        Guid tenantId,
+        CancellationToken ct)
+    {
+        var memberIds = await db.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters()
+            .Where(m => m.TenantId == tenantId)
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (memberIds.Count == 0)
+            return new HashSet<string>(StringComparer.Ordinal);
+
+        var sharedIds = await db.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters()
+            .Where(m => memberIds.Contains(m.UserId) && m.TenantId != tenantId && m.IsActive)
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var shared = sharedIds.ToHashSet(StringComparer.Ordinal);
+        return memberIds.Where(id => !shared.Contains(id)).ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static async Task<int> AnonymizeCartsAsync(
+        AppDbContext db,
+        Guid tenantId,
+        List<Guid> customerIds,
+        CancellationToken ct)
+    {
+        var cartIds = await TenantCartIdsAsync(db, tenantId, customerIds, ct).ConfigureAwait(false);
+        if (cartIds.Count == 0)
+            return 0;
+
+        var carts = await db.Carts
+            .Where(c => cartIds.Contains(c.CartId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var cart in carts)
+        {
+            cart.WaiterName = AnonymousName;
+            cart.Notes = null;
+            cart.CustomerId = null;
+        }
+
+        var items = await db.CartItems
+            .Where(i => cartIds.Contains(i.CartId) && i.Notes != null)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var item in items)
+            item.Notes = null;
+
+        return carts.Count;
+    }
+
+    private static async Task<int> AnonymizeTableOrdersAsync(
+        AppDbContext db,
+        Guid tenantId,
+        List<Guid> customerIds,
+        CancellationToken ct)
+    {
+        var soleUserIds = await SoleMemberUserIdsAsync(db, tenantId, ct).ConfigureAwait(false);
+        var cartIds = await TenantCartIdsAsync(db, tenantId, customerIds, ct).ConfigureAwait(false);
+        var orders = await db.TableOrders
+            .Where(o => (o.CustomerId != null && customerIds.Contains(o.CustomerId.Value))
+                        || soleUserIds.Contains(o.UserId)
+                        || (o.CartId != null && cartIds.Contains(o.CartId)))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (orders.Count == 0)
+            return 0;
+
+        foreach (var order in orders)
+        {
+            order.CustomerName = AnonymousName;
+            order.CustomerPhone = null;
+            order.WaiterName = AnonymousName;
+            order.Notes = null;
+            order.CustomerId = null;
+        }
+
+        var orderIds = orders.Select(o => o.TableOrderId).ToList();
+        var items = await db.TableOrderItems
+            .Where(i => orderIds.Contains(i.TableOrderId) && i.Notes != null)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var item in items)
+            item.Notes = null;
+
+        return orders.Count;
+    }
+
+    private static async Task<int> AnonymizeKitchenNotesAsync(
+        AppDbContext db,
+        Guid tenantId,
+        CancellationToken ct)
+    {
+        var orders = await db.KitchenOrders.IgnoreQueryFilters()
+            .Where(o => o.TenantId == tenantId && o.Notes != null)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var order in orders)
+            order.Notes = null;
+
+        var orderIds = await db.KitchenOrders.AsNoTracking().IgnoreQueryFilters()
+            .Where(o => o.TenantId == tenantId)
+            .Select(o => o.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var items = orderIds.Count == 0
+            ? new List<KitchenOrderItem>()
+            : await db.KitchenOrderItems
+                .Where(i => orderIds.Contains(i.KitchenOrderId) && i.Notes != null)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+        foreach (var item in items)
+            item.Notes = null;
+
+        return orders.Count + items.Count;
     }
 
     private static async Task<int> ClearAppointmentNotesAsync(AppDbContext db, Guid tenantId, CancellationToken ct)

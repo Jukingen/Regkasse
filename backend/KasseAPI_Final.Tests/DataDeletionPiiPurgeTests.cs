@@ -24,6 +24,7 @@ public sealed class DataDeletionPiiPurgeTests
         var otherTenantId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
         var registerId = Guid.NewGuid();
+        var otherRegisterId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();
         var userId = "user-purge-1";
         var keptUserId = "user-other-tenant";
@@ -56,19 +57,33 @@ public sealed class DataDeletionPiiPurgeTests
             CreatedAt = DateTime.UtcNow,
         });
 
-        db.CashRegisters.Add(new CashRegister
-        {
-            Id = registerId,
-            TenantId = tenantId,
-            RegisterNumber = "K1",
-            Location = "Bar",
-            StartingBalance = 0,
-            CurrentBalance = 0,
-            LastBalanceUpdate = DateTime.UtcNow,
-            Status = RegisterStatus.Open,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-        });
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = registerId,
+                TenantId = tenantId,
+                RegisterNumber = "K1",
+                Location = "Bar",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Open,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new CashRegister
+            {
+                Id = otherRegisterId,
+                TenantId = otherTenantId,
+                RegisterNumber = "K2",
+                Location = "Bar",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Open,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
 
         db.PaymentDetails.Add(new PaymentDetails
         {
@@ -270,6 +285,121 @@ public sealed class DataDeletionPiiPurgeTests
             UpdatedAtUtc = DateTime.UtcNow,
         });
 
+        db.Carts.AddRange(
+            new Cart
+            {
+                CartId = "cart-purge",
+                UserId = userId,
+                CustomerId = customerId,
+                WaiterName = "Max Mustermann",
+                Notes = "ring Max at max@test.at",
+                TableNumber = 4,
+                Status = CartStatus.Active,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Cart
+            {
+                CartId = "cart-other",
+                UserId = keptUserId,
+                WaiterName = "Erika Other",
+                Notes = "keep erika",
+                TableNumber = 8,
+                Status = CartStatus.Active,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow,
+            });
+        db.CartItems.Add(new CartItem
+        {
+            CartId = "cart-purge",
+            ProductId = Guid.NewGuid(),
+            Quantity = 1,
+            UnitPrice = 3m,
+            Notes = "no onion for Max",
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        db.TableOrders.AddRange(
+            new TableOrder
+            {
+                TableOrderId = "to-purge",
+                TableNumber = 4,
+                UserId = userId,
+                CustomerId = customerId,
+                CustomerName = "Max Mustermann",
+                CustomerPhone = "+436641112233",
+                WaiterName = "Max Mustermann",
+                Notes = "birthday Max",
+                Status = TableOrderStatus.Active,
+                Subtotal = 10m,
+                TaxAmount = 2m,
+                TotalAmount = 12m,
+                OrderStartTime = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new TableOrder
+            {
+                TableOrderId = "to-other",
+                TableNumber = 8,
+                UserId = keptUserId,
+                CustomerName = "Erika Other",
+                CustomerPhone = "+436649998877",
+                WaiterName = "Erika Other",
+                Notes = "keep erika",
+                Status = TableOrderStatus.Active,
+                Subtotal = 5m,
+                TaxAmount = 1m,
+                TotalAmount = 6m,
+                OrderStartTime = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+            });
+        db.TableOrderItems.Add(new TableOrderItem
+        {
+            TableOrderId = "to-purge",
+            ProductId = Guid.NewGuid(),
+            ProductName = "Kaffee",
+            Quantity = 1,
+            UnitPrice = 3m,
+            TotalPrice = 3m,
+            TaxType = 1,
+            Notes = "for Max",
+            Status = ItemStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var kitchenId = Guid.NewGuid();
+        var otherKitchenId = Guid.NewGuid();
+        db.KitchenOrders.AddRange(
+            new KitchenOrder
+            {
+                Id = kitchenId,
+                TenantId = tenantId,
+                CashRegisterId = registerId,
+                CreatedByUserId = userId,
+                Notes = "Max allergy",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+            },
+            new KitchenOrder
+            {
+                Id = otherKitchenId,
+                TenantId = otherTenantId,
+                CashRegisterId = otherRegisterId,
+                CreatedByUserId = keptUserId,
+                Notes = "Erika allergy",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+            });
+        db.KitchenOrderItems.Add(new KitchenOrderItem
+        {
+            KitchenOrderId = kitchenId,
+            ProductName = "Kaffee",
+            Quantity = 1,
+            Notes = "for Max",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+        });
+
         db.Users.AddRange(
             new ApplicationUser
             {
@@ -392,6 +522,35 @@ public sealed class DataDeletionPiiPurgeTests
         var kept = await db.Users.SingleAsync(u => u.Id == keptUserId);
         Assert.Equal("erika@other.at", kept.Email);
         Assert.Equal("Erika", kept.FirstName);
+
+        var cart = await db.Carts.SingleAsync(c => c.CartId == "cart-purge");
+        Assert.Equal(TenantPiiPurge.AnonymousName, cart.WaiterName);
+        Assert.Null(cart.Notes);
+        Assert.Null(cart.CustomerId);
+        Assert.Null((await db.CartItems.SingleAsync(i => i.CartId == "cart-purge")).Notes);
+        var otherCart = await db.Carts.SingleAsync(c => c.CartId == "cart-other");
+        Assert.Equal("Erika Other", otherCart.WaiterName);
+        Assert.Equal("keep erika", otherCart.Notes);
+
+        var tableOrder = await db.TableOrders.SingleAsync(o => o.TableOrderId == "to-purge");
+        Assert.Equal(12m, tableOrder.TotalAmount);
+        Assert.Equal(TenantPiiPurge.AnonymousName, tableOrder.CustomerName);
+        Assert.Null(tableOrder.CustomerPhone);
+        Assert.Equal(TenantPiiPurge.AnonymousName, tableOrder.WaiterName);
+        Assert.Null(tableOrder.Notes);
+        Assert.Null(tableOrder.CustomerId);
+        Assert.Equal("Kaffee", (await db.TableOrderItems.SingleAsync(i => i.TableOrderId == "to-purge")).ProductName);
+        Assert.Null((await db.TableOrderItems.SingleAsync(i => i.TableOrderId == "to-purge")).Notes);
+        var otherTable = await db.TableOrders.SingleAsync(o => o.TableOrderId == "to-other");
+        Assert.Equal("Erika Other", otherTable.CustomerName);
+        Assert.Equal("keep erika", otherTable.Notes);
+        Assert.Equal(6m, otherTable.TotalAmount);
+
+        var kitchen = await db.KitchenOrders.IgnoreQueryFilters().SingleAsync(o => o.Id == kitchenId);
+        Assert.Null(kitchen.Notes);
+        Assert.Null((await db.KitchenOrderItems.SingleAsync(i => i.KitchenOrderId == kitchenId)).Notes);
+        var otherKitchen = await db.KitchenOrders.IgnoreQueryFilters().SingleAsync(o => o.Id == otherKitchenId);
+        Assert.Equal("Erika allergy", otherKitchen.Notes);
 
         var otherCustomer = await db.Customers.IgnoreQueryFilters().SingleAsync(c => c.TenantId == otherTenantId);
         Assert.Equal("erika@other.at", otherCustomer.Email);
