@@ -3,10 +3,10 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CountryProfileSummaryDto } from '@/api/generated/model';
 import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
@@ -129,6 +129,7 @@ beforeAll(() => {
 
 describe('CreateTenantWizard country step', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.clearAllMocks();
     mockCheckSlug.mockImplementation(async (slug: string) => ({
       normalizedSlug: slug,
@@ -144,6 +145,11 @@ describe('CreateTenantWizard country step', () => {
       isActive: true,
       createdAt: new Date().toISOString(),
     });
+  });
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('renders country and VAT regime fields with a two-step indicator', async () => {
@@ -263,6 +269,10 @@ describe('CreateTenantWizard country step', () => {
       expect(body.countryCode).toBe('AT');
       expect(body.vatRegime).toBe('AT_RKSV_STANDARD');
       expect(body.name).toBe('Cafe Muster');
+
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
     }
   );
 });
