@@ -7,7 +7,16 @@
  */
 
 export type GetApiAdminOfflineIntentCoverageParams = {
+/**
+ * Inclusive start (UTC). Default: 24h ago.
+ */
 fromUtc?: string;
+/**
+ * Inclusive end (UTC). Default: now.
+ */
 toUtc?: string;
+/**
+ * Optional: restrict to one cash register.
+ */
 cashRegisterId?: string;
 };

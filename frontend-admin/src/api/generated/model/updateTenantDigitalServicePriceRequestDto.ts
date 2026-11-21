@@ -7,7 +7,10 @@
  */
 
 export interface UpdateTenantDigitalServicePriceRequestDto {
-  /** @nullable */
+  /**
+   * Null clears the override (catalog list price applies).
+   * @nullable
+   */
   customPrice?: number | null;
   /** @nullable */
   serviceType?: string | null;

@@ -8,8 +8,13 @@
 import type { TaxGroupType } from './taxGroupType';
 import type { Tenant } from './tenant';
 
+/**
+ * Tenant-scoped VAT / MwSt tax group catalog (Austrian rates including 4.9% and 13%).
+Complements legacy product KasseAPI_Final.Models.TaxType / KasseAPI_Final.Models.TaxTypes ints; products may later reference this catalog.
+ */
 export interface TaxGroup {
   /**
+   * Austrian MwSt letter code when applicable (A–E).
    * @maxLength 8
    * @nullable
    */
@@ -39,6 +44,7 @@ export interface TaxGroup {
   id?: string;
   isActive?: boolean;
   isDefault?: boolean;
+  /** When true, group cannot be deleted by tenant admins (system Austrian presets). */
   isSystem?: boolean;
   /**
    * @minLength 1
@@ -46,14 +52,19 @@ export interface TaxGroup {
    */
   name: string;
   /**
+   * VAT rate percent (e.g. 0, 4.9, 10, 13, 20). Calculation uses fraction = Rate/100.
    * @minimum 0
    * @maximum 100
    */
   rate?: number;
-  /** @nullable */
+  /**
+   * When a rate is replaced historically, points at the successor tax group.
+   * @nullable
+   */
   replacedBy?: string | null;
   replacedByGroup?: TaxGroup;
   tenant?: Tenant;
+  /** FK to KasseAPI_Final.Models.Tenant. */
   tenantId?: string;
   /** @nullable */
   updatedAt?: string | null;

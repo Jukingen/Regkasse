@@ -7,6 +7,9 @@
  */
 import type { HealthProbeEntryDtoData } from './healthProbeEntryDtoData';
 
+/**
+ * Per-check entry inside a health probe response.
+ */
 export interface HealthProbeEntryDto {
   /** @nullable */
   data?: HealthProbeEntryDtoData;

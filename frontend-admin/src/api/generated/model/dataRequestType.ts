@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * GDPR customer data access request kinds.
+ */
 export type DataRequestType = typeof DataRequestType[keyof typeof DataRequestType];
 
 

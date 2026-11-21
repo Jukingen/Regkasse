@@ -7,22 +7,44 @@
  */
 
 export interface RksvReminderMonatsbelegDto {
-  /** @nullable */
+  /**
+   * `Strict` | `GracePeriod` | `WarningOnly`.
+   * @nullable
+   */
   blockingMode?: string | null;
+  /** True when POS may continue sales after an explicit cashier warning acknowledgment. */
   canContinueWithWarning?: boolean;
+  /** Monatsbeleg present for current Vienna month (policy includes December Jahresbeleg substitute when configured). */
   currentMonthExists?: boolean;
+  /** No current-month Monatsbeleg and Vienna calendar day > 7 (grace elapsed). */
   currentMonthOverdue?: boolean;
-  /** @nullable */
+  /**
+   * Days until end of current Vienna month when relevant; null when not applicable.
+   * @nullable
+   */
   daysUntilDeadline?: number | null;
   isRequired: boolean;
+  /** Monatsbeleg present for the immediately preceding Vienna calendar month. */
   lastMonthExists?: boolean;
+  /** Previous Vienna month has no Monatsbeleg (within obligation window). */
   lastMonthMissing?: boolean;
+  /** True when POS shift open / payment must be blocked for this register. */
   salesBlocked?: boolean;
-  /** @nullable */
+  /**
+   * ok | upcoming | overdue
+   * @nullable
+   */
   status: string | null;
+  /** Vienna calendar day of month used for the grace window (1–31). */
   viennaDayOfMonth?: number;
-  /** @nullable */
+  /**
+   * none | yellow | red
+   * @nullable
+   */
   warningLevel?: string | null;
-  /** @nullable */
+  /**
+   * German operator hint; null when nothing specific.
+   * @nullable
+   */
   warningMessageDe?: string | null;
 }

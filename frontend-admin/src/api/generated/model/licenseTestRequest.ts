@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Unified dev-only tenant license update (`POST /api/admin/license/test/update`).
+ */
 export interface LicenseTestRequest {
   tenantId: string;
-  /** @nullable */
+  /**
+   * Maps to `tenants.license_valid_until_utc` (UTC).
+   * @nullable
+   */
   validUntil?: string | null;
 }

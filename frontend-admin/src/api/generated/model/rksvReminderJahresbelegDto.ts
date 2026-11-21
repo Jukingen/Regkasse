@@ -7,16 +7,32 @@
  */
 
 export interface RksvReminderJahresbelegDto {
-  /** @nullable */
+  /**
+   * Typically days until 31.12. of the obligation year in December; null if not in window or satisfied.
+   * @nullable
+   */
   daysUntilDeadline?: number | null;
-  /** @nullable */
+  /**
+   * Days until 15 February of the year after the Jahresbeleg year; null when not applicable.
+   * @nullable
+   */
   fonDaysUntilDeadline?: number | null;
+  /** True when prior-year Jahresbeleg exists but FinanzOnline Belegcheck is not verified. */
   fonRequired?: boolean;
-  /** @nullable */
+  /**
+   * ok | upcoming | overdue for the 15 February FON deadline.
+   * @nullable
+   */
   fonStatus?: string | null;
-  /** @nullable */
+  /**
+   * Stored FON submission status when a Jahresbeleg payment exists.
+   * @nullable
+   */
   fonSubmissionStatus?: string | null;
   isRequired: boolean;
-  /** @nullable */
+  /**
+   * ok | upcoming | overdue
+   * @nullable
+   */
   status: string | null;
 }

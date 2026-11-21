@@ -10,5 +10,7 @@ export interface SetTenantExtensionRequest {
   enabled?: boolean;
   /** @nullable */
   name?: string | null;
+  /** Optional. Only extensions that declare an options schema accept this object.
+Omitted leaves stored options unchanged. */
   options?: unknown;
 }

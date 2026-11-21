@@ -14,6 +14,7 @@ export interface TrendDataPoint {
   totalAmount?: number;
   transactionCount?: number;
   /**
+   * ISO week when KasseAPI_Final.Models.DTOs.TrendPeriod.Weekly; prefer KasseAPI_Final.Models.DTOs.TrendDataPoint.Label / KasseAPI_Final.Models.DTOs.TrendDataPoint.Date in clients.
    * @deprecated
    * @nullable
    */

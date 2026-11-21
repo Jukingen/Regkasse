@@ -13,6 +13,7 @@ export interface TseAnomalyResultDto {
   detectedAt?: string;
   /** @nullable */
   deviceId?: string | null;
+  /** Always true — statistical baseline detector, not a certified ML model. */
   diagnosticOnly?: boolean;
   /** @nullable */
   overallSeverity?: string | null;

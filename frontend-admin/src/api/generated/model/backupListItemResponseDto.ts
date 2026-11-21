@@ -8,15 +8,27 @@
 import type { BackupRunStatus } from './backupRunStatus';
 import type { BackupStrategyKind } from './backupStrategyKind';
 
+/**
+ * Compact backup file row for admin list UI (logical dump artifacts only).
+ */
 export interface BackupListItemResponseDto {
   artifactId?: string;
   backupRunId?: string;
   createdAt?: string;
-  /** @nullable */
+  /**
+   * Relative admin download path; requires `backup.manage` (tenant-scoped) or `settings.manage`.
+   * @nullable
+   */
   downloadUrl?: string | null;
-  /** @nullable */
+  /**
+   * English human-readable duration (e.g. "2m 30s").
+   * @nullable
+   */
   durationFormatted?: string | null;
-  /** @nullable */
+  /**
+   * Run duration in seconds when started/completed timestamps are present.
+   * @nullable
+   */
   durationSeconds?: number | null;
   /** @nullable */
   fileName?: string | null;
@@ -25,7 +37,10 @@ export interface BackupListItemResponseDto {
   isFake?: boolean;
   /** @nullable */
   manifestArtifactId?: string | null;
-  /** @nullable */
+  /**
+   * Sibling verification manifest for the same backup run.
+   * @nullable
+   */
   manifestDownloadUrl?: string | null;
   /** @nullable */
   manifestFileName?: string | null;

@@ -14,16 +14,31 @@ import type { OperationalReportMetaDto } from './operationalReportMetaDto';
 import type { StaffPerformanceReliabilityDto } from './staffPerformanceReliabilityDto';
 import type { StaffPerformanceTotalsDto } from './staffPerformanceTotalsDto';
 
+/**
+ * Personal-/Kassenleistung aus `payment_details` — keine Audit-Doppelzählung.
+ */
 export interface StaffPerformanceReportDto {
-  /** @nullable */
+  /**
+   * Österreichischer Kalendertag — aggregiert über alle im Filter enthaltenen Kasiyer.
+   * @nullable
+   */
   aggregateByLocalDay?: StaffPerformanceLocalDayAggregateDto[] | null;
   /** @nullable */
   anomalies?: StaffPerformanceAnomalyDto[] | null;
-  /** @nullable */
+  /**
+   * Optional: Kalendertag × Kasiyer (kann viele Zeilen erzeugen).
+   * @nullable
+   */
   byLocalDayAndStaff?: StaffPerformanceLocalDayStaffDto[] | null;
-  /** @nullable */
+  /**
+   * Pro Kasiyer (KasseAPI_Final.Models.PaymentDetails.CashierId = Application User Id).
+   * @nullable
+   */
   byStaff?: StaffPerformanceStaffRowDto[] | null;
-  /** @nullable */
+  /**
+   * Zahlungsart × Kasiyer (nur Verkaufszeilen).
+   * @nullable
+   */
   byStaffAndPaymentMethod?: StaffPerformanceStaffMethodSliceDto[] | null;
   meta?: OperationalReportMetaDto;
   reliability?: StaffPerformanceReliabilityDto;

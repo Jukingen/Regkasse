@@ -24,6 +24,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Validates receipt QR payload structure emitted by this API (format only).
+ */
 export const postApiRksvValidateReceipt = (
     rksvValidateReceiptQrRequest: RksvValidateReceiptQrRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -62,7 +65,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvValidateReceiptMutationBody = RksvValidateReceiptQrRequest
     export type PostApiRksvValidateReceiptMutationError = ProblemDetails
 
-    export const usePostApiRksvValidateReceipt = <TError = ProblemDetails,
+    /**
+ * @summary Validates receipt QR payload structure emitted by this API (format only).
+ */
+export const usePostApiRksvValidateReceipt = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvValidateReceipt>>, TError,{data: RksvValidateReceiptQrRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvValidateReceipt>>,

@@ -9,6 +9,9 @@ import type { TseFeatureUsageReportDtoFeatureAdoptionRate } from './tseFeatureUs
 import type { TseFeatureUsageReportDtoFeatureUsage } from './tseFeatureUsageReportDtoFeatureUsage';
 import type { TseFeatureHeatmapCellDto } from './tseFeatureHeatmapCellDto';
 
+/**
+ * Fleet or tenant feature-usage heatmap aggregates.
+ */
 export interface TseFeatureUsageReportDto {
   diagnosticOnly?: boolean;
   /** @nullable */

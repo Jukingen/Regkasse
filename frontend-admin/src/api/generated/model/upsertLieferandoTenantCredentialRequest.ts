@@ -7,12 +7,24 @@
  */
 
 export interface UpsertLieferandoTenantCredentialRequest {
-  /** @nullable */
+  /**
+   * JET brand identifier. Stored as `chain_id`.
+   * @nullable
+   */
   chainId?: string | null;
-  /** @nullable */
+  /**
+   * API key JET sends in `Authorization`. Stored as `client_id`.
+   * @nullable
+   */
   clientId?: string | null;
-  /** @nullable */
+  /**
+   * Optional HMAC secret for `X-JET-Connect-Hash`. Stored as `client_secret`.
+   * @nullable
+   */
   clientSecret?: string | null;
-  /** @nullable */
+  /**
+   * Outbound `X-Flyt-API-Key`. Stored as `webhook_token`.
+   * @nullable
+   */
   webhookToken?: string | null;
 }

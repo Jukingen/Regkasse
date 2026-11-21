@@ -10,9 +10,14 @@ export interface TagesabschlussCanCloseResponse {
   canClose: boolean;
   canCloseMonthly: boolean;
   canCloseYearly: boolean;
-  /** @nullable */
+  /**
+   * Vienna business day evaluated by this readiness check.
+   * @nullable
+   */
   closingDate?: string | null;
+  /** True when KasseAPI_Final.Controllers.TagesabschlussCanCloseResponse.closingDate is a past Vienna calendar day. */
   isBackdated: boolean;
+  /** True when closing is allowed and the day has no fiscal invoices (empty Tagesabschluss). */
   isEmptyDay: boolean;
   /** @nullable */
   lastClosingDate?: string | null;
@@ -29,5 +34,6 @@ export interface TagesabschlussCanCloseResponse {
   /** @nullable */
   message?: string | null;
   paymentsWithoutInvoiceCount: number;
+  /** Paid fiscal invoices for the evaluated Vienna day (special receipts excluded). */
   transactionCount: number;
 }

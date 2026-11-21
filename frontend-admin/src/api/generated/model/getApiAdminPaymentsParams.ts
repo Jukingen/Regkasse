@@ -24,7 +24,13 @@ Page?: number;
 PageSize?: number;
 SortBy?: string;
 SortDirection?: string;
+/**
+ * Opaque keyset cursor from a prior page's KasseAPI_Final.Models.DTOs.PaymentListResponse.NextCursor.
+ */
 AfterCursor?: string;
+/**
+ * When false, skips the expensive COUNT query (deep keyset pages).
+ */
 IncludeTotalCount?: boolean;
 method?: string;
 status?: string;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Payload for `GET /api/admin/license/renewal-info/{licenseKey}`.
+ */
 export interface LicenseRenewalInfoResponse {
   originalExpiryAtUtc?: string;
   /** @nullable */

@@ -6,9 +6,16 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Optional POS feature flags from `GET /api/license/features` plus enabled license feature ids.
+ */
 export interface LicenseFeaturesDto {
   allowOffline?: boolean;
-  /** @nullable */
+  /**
+   * Enabled KasseAPI_Final.Models.LicenseFeatureIds for this deployment (trial = full bundle).
+   * @nullable
+   */
   enabledLicenseFeatures?: string[] | null;
+  /** Maximum concurrent cashiers; `-1` means unlimited. */
   maxCashiers?: number;
 }

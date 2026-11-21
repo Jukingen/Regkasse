@@ -23,6 +23,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Issue a stored-value voucher. No RKSV/TSE signing (issuance excluded from DEP). Plain code is returned once only — not logged server-side.
+ */
 export const postApiVouchersIssue = (
     issueVoucherRequest: IssueVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -61,7 +64,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiVouchersIssueMutationBody = IssueVoucherRequest
     export type PostApiVouchersIssueMutationError = unknown
 
-    export const usePostApiVouchersIssue = <TError = unknown,
+    /**
+ * @summary Issue a stored-value voucher. No RKSV/TSE signing (issuance excluded from DEP). Plain code is returned once only — not logged server-side.
+ */
+export const usePostApiVouchersIssue = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiVouchersIssue>>, TError,{data: IssueVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiVouchersIssue>>,

@@ -7,7 +7,10 @@
  */
 
 export interface AddCartItemRequest {
-  /** @nullable */
+  /**
+   * İsteğe bağlı: kasa kapsamlı fiyat kuralları için POS kasa kimliği.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   /** @nullable */
   notes?: string | null;

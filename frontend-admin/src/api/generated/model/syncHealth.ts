@@ -10,6 +10,7 @@ export interface SyncHealth {
   avgSyncTimeMs?: number;
   failedAttempts?: number;
   isHealthy?: boolean;
+  /** Successful sync percentage (0–100). */
   successRate?: number;
   totalAttempts?: number;
 }

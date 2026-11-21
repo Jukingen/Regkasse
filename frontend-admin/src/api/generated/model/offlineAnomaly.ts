@@ -7,11 +7,17 @@
  */
 
 export interface OfflineAnomaly {
-  /** @nullable */
+  /**
+   * e.g. too_many_pending, old_pending, sync_failure
+   * @nullable
+   */
   code?: string | null;
   detectedAt?: string;
   /** @nullable */
   message?: string | null;
-  /** @nullable */
+  /**
+   * info | warning | critical
+   * @nullable
+   */
   severity?: string | null;
 }

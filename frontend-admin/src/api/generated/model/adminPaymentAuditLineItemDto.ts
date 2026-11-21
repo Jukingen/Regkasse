@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Line-level fiscal comparison for storno/refund audit (parsed from payment_details.payment_items JSON).
+ */
 export interface AdminPaymentAuditLineItemDto {
   /** @nullable */
   productName?: string | null;

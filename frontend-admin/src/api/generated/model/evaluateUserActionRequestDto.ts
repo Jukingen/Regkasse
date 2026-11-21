@@ -30,6 +30,7 @@ export interface EvaluateUserActionRequestDto {
   isFirstTime?: boolean;
   isKnownIp?: boolean;
   isRapidSuccession?: boolean;
+  /** When true (default), persist the score when level is Medium or above. */
   persistIfElevated?: boolean;
   /** @nullable */
   timestamp?: string | null;

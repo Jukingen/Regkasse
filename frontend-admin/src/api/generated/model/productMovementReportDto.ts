@@ -13,7 +13,10 @@ import type { InventoryMovementLineDto } from './inventoryMovementLineDto';
 
 export interface ProductMovementReportDto {
   daysOfInventoryOnHand?: number;
-  /** @nullable */
+  /**
+   * Legacy flat list (same as quantity leaders).
+   * @nullable
+   */
   lines?: ProductMovementLineDto[] | null;
   meta?: OperationalReportMetaDto;
   periodEndLocal?: string;

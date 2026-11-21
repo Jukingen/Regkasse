@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * User DTO for list and detail. Detail (GET {id}) includes all fields required by the edit form.
+ */
 export interface UserInfo {
   createdAt?: string;
   /** @nullable */
@@ -23,7 +26,10 @@ export interface UserInfo {
   lastName?: string | null;
   /** @nullable */
   notes?: string | null;
-  /** @nullable */
+  /**
+   * Role name for display and form select (e.g. SuperAdmin, Manager).
+   * @nullable
+   */
   role?: string | null;
   /** @nullable */
   taxNumber?: string | null;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin FA: update development-mode singleton (no server-only response fields).
+ */
 export interface DevelopmentModeSettingsPutRequestDto {
   bypassLicense?: boolean;
   bypassNtpCheck?: boolean;

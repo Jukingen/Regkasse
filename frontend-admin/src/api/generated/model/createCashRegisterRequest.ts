@@ -6,17 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/CashRegister — create a closed register row for the effective or selected tenant.
+ */
 export interface CreateCashRegisterRequest {
   /**
+   * Human-readable location label (e.g. Hauptkasse, Theke).
    * @minLength 1
    * @maxLength 100
    */
   location: string;
   /**
+   * Register number unique within the tenant (e.g. KASSE-001).
    * @minLength 1
    * @maxLength 20
    */
   registerNumber: string;
-  /** @nullable */
+  /**
+   * Optional target tenant; only SuperAdmin may set this. Managers use the current tenant context.
+   * @nullable
+   */
   tenantId?: string | null;
 }

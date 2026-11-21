@@ -7,7 +7,11 @@
  */
 
 export interface BackupExecutionModePutRequestDto {
+  /** Üretim benzeri ortamda SimulatedFake için zorunlu açık onay. */
   confirmSimulatedOnlyOperationalRiskInProduction?: boolean;
-  /** @nullable */
+  /**
+   * UseConfigurationDefault (inherit), Fake, RealPgDump — veya iç enum adları / takma adlar (bkz. `BackupExecutionModeApiMapper.TryParseAdminMode`).
+   * @nullable
+   */
   mode?: string | null;
 }

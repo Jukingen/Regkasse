@@ -7,6 +7,7 @@
  */
 
 export interface TseFunnelStepDto {
+  /** Conversion vs first funnel step (0–100). */
   conversionPercent?: number;
   count?: number;
   /** @nullable */

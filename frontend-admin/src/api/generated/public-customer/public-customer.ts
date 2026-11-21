@@ -25,6 +25,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Customer dashboard by tenant slug, full phone number, and order number.
+Returns 404 when unknown (no enumeration).
+ */
 export const getApiPublicCustomerDashboard = (
     params?: GetApiPublicCustomerDashboardParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -44,7 +48,7 @@ export const getGetApiPublicCustomerDashboardQueryKey = (params?: GetApiPublicCu
     }
 
 
-export const getGetApiPublicCustomerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails | void>(params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiPublicCustomerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails>(params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -63,9 +67,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiPublicCustomerDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>>
-export type GetApiPublicCustomerDashboardQueryError = ProblemDetails | void
+export type GetApiPublicCustomerDashboardQueryError = ProblemDetails
 
-export const useGetApiPublicCustomerDashboard = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails | void>(
+/**
+ * @summary Customer dashboard by tenant slug, full phone number, and order number.
+Returns 404 when unknown (no enumeration).
+ */
+export const useGetApiPublicCustomerDashboard = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails>(
  params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {

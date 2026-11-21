@@ -7,6 +7,9 @@
  */
 import type { RestoreComplianceCheckItemDto } from './restoreComplianceCheckItemDto';
 
+/**
+ * Pre-restore RKSV compliance check response.
+ */
 export interface RestoreComplianceCheckResponseDto {
   /** @nullable */
   backupRunId?: string | null;

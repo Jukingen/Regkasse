@@ -19,12 +19,19 @@ export interface RksvAusfallTriggerRequest {
   deviceId?: string | null;
   /** @nullable */
   endeUtc?: string | null;
+  /** When true, enqueue immediately (requires finanzonline.submit). Otherwise Suggested/PendingApproval. */
   enqueueImmediately?: boolean;
-  /** @nullable */
+  /**
+   * SCU or Kasse.
+   * @nullable
+   */
   episodeType?: string | null;
   /** @nullable */
   kassenId?: string | null;
-  /** @nullable */
+  /**
+   * Ausfall or Wiederinbetriebnahme.
+   * @nullable
+   */
   operationKind?: string | null;
   /** @nullable */
   operatorNote?: string | null;

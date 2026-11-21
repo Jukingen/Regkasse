@@ -8,6 +8,10 @@
 import type { Product } from './product';
 import type { Tenant } from './tenant';
 
+/**
+ * Color/size (or similar) variant of a catalog product. Metadata only:
+not part of RKSV receipt content, TSE payloads, or DEP export.
+ */
 export interface ProductVariant {
   createdAtUtc?: string;
   id?: string;

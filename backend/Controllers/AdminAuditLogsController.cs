@@ -38,9 +38,35 @@ public sealed class AdminAuditLogsController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>GET api/admin/audit-logs/export?format=csv|xlsx. Streams the filtered rows.</summary>
+    /// <summary>
+    /// Streams the filtered audit log as a CSV or XLSX attachment.
+    /// Filters match the activity list. Requires permission <c>audit.view</c>.
+    /// </summary>
+    /// <param name="format"><c>csv</c> (default) or <c>xlsx</c>.</param>
+    /// <param name="startDate">Inclusive lower bound on the audit timestamp.</param>
+    /// <param name="endDate">Inclusive calendar end date. The query uses a half-open upper bound.</param>
+    /// <param name="userId">Actor user id.</param>
+    /// <param name="targetUserId">User id stored as the entity name or in metadata.</param>
+    /// <param name="userRole">Actor role at the time of the event.</param>
+    /// <param name="action">Exact action code.</param>
+    /// <param name="entityType">Exact entity type.</param>
+    /// <param name="entityId">Entity id.</param>
+    /// <param name="ipAddress">Client IP address.</param>
+    /// <param name="status">Exact audit status.</param>
+    /// <param name="statusOutcome"><c>success</c> or <c>failure</c>. Ignored when <paramref name="status"/> is set.</param>
+    /// <param name="hasChanges">When true, only rows that stored old, new, or diff values.</param>
+    /// <param name="search">Full-text search over action, entity type, description, and actor email.</param>
+    /// <param name="page">1-based page. Omit with <paramref name="pageSize"/> to export the filtered set.</param>
+    /// <param name="pageSize">Page size. Omit with <paramref name="page"/> to export the filtered set.</param>
+    /// <response code="200">CSV (<c>text/csv</c>) or XLSX attachment.</response>
+    /// <response code="400">Format is not csv or xlsx, or the export exceeds the row cap.</response>
+    /// <response code="500">Export failed before the response stream started.</response>
     [HttpGet("export")]
     [HasPermission(AppPermissions.AuditView)]
+    [Produces("text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task Export(
         [FromQuery] string format = "csv",
         [FromQuery] DateTime? startDate = null,

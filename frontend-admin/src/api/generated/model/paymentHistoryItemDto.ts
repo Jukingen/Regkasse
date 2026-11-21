@@ -7,8 +7,14 @@
  */
 import type { AvailableAction } from './availableAction';
 
+/**
+ * POS last-24h payment history row with backend-controlled reversal actions.
+ */
 export interface PaymentHistoryItemDto {
-  /** @nullable */
+  /**
+   * Backend-decided actions (storno / refund / view_only) with i18n label keys.
+   * @nullable
+   */
   availableActions?: AvailableAction[] | null;
   createdAt?: string;
   /** @nullable */

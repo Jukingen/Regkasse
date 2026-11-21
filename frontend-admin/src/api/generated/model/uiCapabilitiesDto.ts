@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS/Admin login capability per role. For Role Capability Matrix UI only; does not change authorization.
+ */
 export interface UiCapabilitiesDto {
   adminLogin?: boolean;
   posLogin?: boolean;

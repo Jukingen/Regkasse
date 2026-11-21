@@ -9,6 +9,7 @@
 export interface PosStatusSettingsSnapshotDto {
   /** @nullable */
   cashRegisterId?: string | null;
+  /** Opaque revision token (KasseAPI_Final.Models.UserSettings.UpdatedAt UTC ticks). */
   settingsVersion?: number;
   updatedAtUtc?: string;
 }

@@ -9,12 +9,20 @@ import type { PayloadHashConflictGroup } from './payloadHashConflictGroup';
 import type { PayloadHashRepairableItem } from './payloadHashRepairableItem';
 
 export interface OfflinePayloadHashAnalyzeResult {
-  /** @nullable */
+  /**
+   * Conflict groups for triage (read-only); grouped by (CashRegisterId, CanonicalHash).
+   * @nullable
+   */
   conflictGroups?: PayloadHashConflictGroup[] | null;
+  /** True when MismatchRatioPercent exceeds configured threshold; indicates legacy data quality risk. */
   legacyDataQualityRiskHigh?: boolean;
+  /** Mismatch ratio as percent (100.0 * RuntimeMismatchCount / Scanned when Scanned > 0). */
   mismatchRatioPercent?: number;
   nullOrEmptyPayloadHash?: number;
-  /** @nullable */
+  /**
+   * Rows that can be repaired with no conflict (one per (Register, Canonical) slot).
+   * @nullable
+   */
   repairableItems?: PayloadHashRepairableItem[] | null;
   repairableNoConflictCount?: number;
   runtimeMismatchCount?: number;
@@ -22,6 +30,9 @@ export interface OfflinePayloadHashAnalyzeResult {
   sampleMismatchIds?: string[] | null;
   scanned?: number;
   skippedWouldConflictCount?: number;
-  /** @nullable */
+  /**
+   * Set when LegacyDataQualityRiskHigh is true; message for ops/UI.
+   * @nullable
+   */
   warningMessage?: string | null;
 }

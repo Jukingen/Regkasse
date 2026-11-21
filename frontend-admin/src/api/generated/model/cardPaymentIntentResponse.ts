@@ -29,6 +29,9 @@ export interface CardPaymentIntentResponse {
   paymentDetailsId?: string | null;
   /** @nullable */
   status?: string | null;
-  /** @nullable */
+  /**
+   * Gateway charge id when confirmed; on create equals KasseAPI_Final.DTOs.CardPaymentIntentResponse.Id for spec clients.
+   * @nullable
+   */
   transactionId?: string | null;
 }

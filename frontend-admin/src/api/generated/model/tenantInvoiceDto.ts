@@ -6,25 +6,39 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Mandanten-Admin self-service license invoice (mapped from `license_sales`).
+ */
 export interface TenantInvoiceDto {
   amountGross?: number;
   amountNet?: number;
   /** @nullable */
   currency?: string | null;
-  /** @nullable */
+  /**
+   * Relative API path for PDF download.
+   * @nullable
+   */
   downloadUrl?: string | null;
   id?: string;
+  /** Alias of KasseAPI_Final.Services.Billing.TenantInvoiceDto.IssuedAt for existing FA clients. */
   invoiceDateUtc?: string;
   /** @nullable */
   invoiceNumber?: string | null;
+  /** Sale timestamp (UTC). Same instant as KasseAPI_Final.Services.Billing.TenantInvoiceDto.InvoiceDateUtc. */
   issuedAt?: string;
   /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   licensePlan?: string | null;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.Services.Billing.TenantInvoiceDto.DownloadUrl for existing FA clients.
+   * @nullable
+   */
   pdfUrl?: string | null;
-  /** @nullable */
+  /**
+   * `paid`, `unpaid`, `overdue`, `cancelled`, or `refunded`.
+   * @nullable
+   */
   status?: string | null;
   vatAmount?: number;
 }

@@ -12,6 +12,9 @@ import type { TagesberichtPaymentMethodBreakdownDto } from './tagesberichtPaymen
 import type { MonatsberichtRawPaymentRollupDto } from './monatsberichtRawPaymentRollupDto';
 import type { TagesberichtTaxBreakdownDto } from './tagesberichtTaxBreakdownDto';
 
+/**
+ * Aylık özet: bağlı günlük raporlar + toplamlar + ham ödeme doğrulaması.
+ */
 export interface MonatsberichtSummaryDto {
   adjustment?: MonatsberichtAdjustmentDto;
   aggregationFromDaily?: MonatsberichtAggregationFromDailyDto;

@@ -8,6 +8,7 @@
 
 export interface AssignItemRequest {
   /**
+   * Empty clears assignment (item returns to open pool).
    * @maxLength 200
    * @nullable
    */

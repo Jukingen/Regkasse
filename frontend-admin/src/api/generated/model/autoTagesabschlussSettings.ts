@@ -6,9 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Per-tenant automatic Tagesabschluss fallback stored as JSON on KasseAPI_Final.Models.CompanySettings.
+Hosted worker closes the previous Vienna business day after the configured local time
+when the cashier did not close and the day has fiscal transactions.
+ */
 export interface AutoTagesabschlussSettings {
   enabled?: boolean;
   /**
+   * Europe/Vienna hour (0–23) after which yesterday is auto-closed. Default 03:00.
    * @minimum 0
    * @maximum 23
    */
@@ -19,9 +25,12 @@ export interface AutoTagesabschlussSettings {
    */
   minuteVienna?: number;
   /**
+   * KasseAPI_Final.Models.AutoTagesabschlussOpenOrdersPolicies:
+            Block, NotifyAndContinue, or ForceWithWarning (default).
    * @maxLength 32
    * @nullable
    */
   openOrdersPolicy?: string | null;
+  /** When true, POS should prompt "Kasse zählen" before the fallback fires. */
   promptCashCount?: boolean;
 }

@@ -7,10 +7,20 @@
  */
 import type { BenefitEligibilityPreviewItemRequest } from './benefitEligibilityPreviewItemRequest';
 
+/**
+ * Request for POS benefit eligibility preview. Distinct from assignment summary (GET benefit-summary).
+Cart-like input: product and quantity only; prices and categories are resolved server-side.
+ */
 export interface BenefitEligibilityPreviewRequest {
-  /** @nullable */
+  /**
+   * Optional: kasa kapsamlı fiyat kuralları için POS kasa kimliği.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   customerId: string;
-  /** @nullable */
+  /**
+   * Cart line items: product and quantity. Tax/category resolved from product.
+   * @nullable
+   */
   items?: BenefitEligibilityPreviewItemRequest[] | null;
 }

@@ -9,6 +9,7 @@
 export interface PrintRoutingDeviceOption {
   /** @nullable */
   id?: string | null;
+  /** Stub-Gerät ohne echtes Druck-Routing. */
   isSimulated?: boolean;
   /** @nullable */
   kind?: string | null;

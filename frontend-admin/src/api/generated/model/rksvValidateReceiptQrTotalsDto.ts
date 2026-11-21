@@ -7,8 +7,14 @@
  */
 
 export interface RksvValidateReceiptQrTotalsDto {
-  /** @nullable */
+  /**
+   * First gross amount segment (matches `TotalAmount` in QR builder).
+   * @nullable
+   */
   grossTotal?: string | null;
-  /** @nullable */
+  /**
+   * Second amount segment (currently fixed `0.00` in builders).
+   * @nullable
+   */
   secondAmount?: string | null;
 }

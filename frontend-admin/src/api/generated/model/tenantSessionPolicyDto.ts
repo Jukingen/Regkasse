@@ -6,11 +6,19 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Effective session policy for `GET /api/user/session-policy` and Auth `/me`.
+Concurrent-session limits come from `SessionPolicy` configuration;
+idle-timeout fields may be overridden per tenant via `SystemSettings`.
+ */
 export interface TenantSessionPolicyDto {
+  /** When false, additional devices should be rejected once the concurrent limit is reached. */
   allowMultipleDevices?: boolean;
   idleTimeoutEnabled?: boolean;
   keepCartAfterTimeout?: boolean;
+  /** Maximum concurrent active sessions per user (from `SessionPolicy:MaxConcurrentSessions`). */
   maxConcurrentSessions?: number;
+  /** Idle / inactivity timeout in minutes. */
   sessionTimeoutMinutes?: number;
   warningBeforeTimeoutMinutes?: number;
 }

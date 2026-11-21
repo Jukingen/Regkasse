@@ -7,6 +7,9 @@
  */
 import type { TseDeviceFleetItemDto } from './tseDeviceFleetItemDto';
 
+/**
+ * Super Admin TSE fleet dashboard overview.
+ */
 export interface TseFleetOverviewDto {
   activeDevices?: number;
   degradedDevices?: number;
@@ -14,6 +17,7 @@ export interface TseFleetOverviewDto {
   devices?: TseDeviceFleetItemDto[] | null;
   expiredCertificateDevices?: number;
   inactiveDevices?: number;
+  /** Process-wide probe health score 0–100 from `ITseHealthMonitor`. */
   processHealthScore?: number;
   /** @nullable */
   processHealthStatus?: string | null;

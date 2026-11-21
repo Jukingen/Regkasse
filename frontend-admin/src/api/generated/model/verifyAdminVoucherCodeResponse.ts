@@ -7,5 +7,6 @@
  */
 
 export interface VerifyAdminVoucherCodeResponse {
+  /** True when normalized code hash equals this voucher's stored hash. */
   matches?: boolean;
 }

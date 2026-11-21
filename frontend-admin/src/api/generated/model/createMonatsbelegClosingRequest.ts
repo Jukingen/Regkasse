@@ -8,8 +8,14 @@
 
 export interface CreateMonatsbelegClosingRequest {
   cashRegisterId?: string;
-  /** @nullable */
+  /**
+   * When omitted, uses the current Vienna calendar month (1–12).
+   * @nullable
+   */
   month?: number | null;
-  /** @nullable */
+  /**
+   * When omitted, uses the current Vienna calendar month.
+   * @nullable
+   */
   year?: number | null;
 }

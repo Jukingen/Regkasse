@@ -7,6 +7,9 @@
  */
 import type { TaxGroupSummary } from './taxGroupSummary';
 
+/**
+ * Period MwSt / VAT report for a tenant (analytics + export).
+ */
 export interface TaxReport {
   periodEnd?: string;
   periodStart?: string;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS Belegliste cancel body. Reason is optional; backend applies a default when empty.
+ */
 export interface PosReceiptCancelRequest {
   /**
    * @maxLength 500

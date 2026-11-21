@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Add modifier to a group. Legacy; yeni akış AddProductToGroupRequest kullanır.
+Phase 2: Creation frozen; endpoint returns 410. Do not use for new code. Remove after cart simplification.
+ */
 export interface CreateModifierRequest {
   /**
    * @minLength 1

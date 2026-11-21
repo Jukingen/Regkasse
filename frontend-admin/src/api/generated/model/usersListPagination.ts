@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Sayfa bilgisi (server-side pagination).
+ */
 export interface UsersListPagination {
   page?: number;
   pageSize?: number;

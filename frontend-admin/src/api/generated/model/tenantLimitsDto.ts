@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin FA projection of KasseAPI_Final.Models.TenantLimits.
+ */
 export interface TenantLimitsDto {
   createdAt?: string;
   dailyMaxRevenue?: number;

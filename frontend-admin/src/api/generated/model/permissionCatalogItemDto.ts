@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Response item for GET /api/UserManagement/roles/permissions-catalog.
+ */
 export interface PermissionCatalogItemDto {
   /** @nullable */
   action?: string | null;

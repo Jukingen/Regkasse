@@ -9,16 +9,27 @@
 export interface RksvDataStatus {
   auditLogsCount?: number;
   dailyClosingsCount?: number;
+  /** True when any RKSV payment is still within the 7-year window. */
   isUnderRetentionObligation?: boolean;
   /** @nullable */
   oldestPaymentDate?: string | null;
   /** @nullable */
   oldestReceiptDate?: string | null;
+  /** Total fiscal payment rows for the tenant. */
   paymentDetailsCount?: number;
+  /** Payments older than the 7-year cutoff (past minimum retention; not auto-deleted). */
   paymentDetailsPastRetentionCount?: number;
   receiptsCount?: number;
-  /** @nullable */
+  /**
+   * Legal retention end for the oldest payment (KasseAPI_Final.Services.DataRetention.RksvDataStatus.OldestPaymentDate + retention years).
+Null when there is no payment history.
+   * @nullable
+   */
   retentionUntil?: string | null;
-  /** @nullable */
+  /**
+   * Informational day after KasseAPI_Final.Services.DataRetention.RksvDataStatus.RetentionUntil. Fiscal RKSV rows are retained by policy
+and are not purged by customer-data deletion.
+   * @nullable
+   */
   willBeDeletedOn?: string | null;
 }

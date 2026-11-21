@@ -7,10 +7,14 @@
  */
 
 export interface SetFeatureFlagRequest {
+  /** When true, remove override instead of setting a value. */
   clearOverride?: boolean;
   enabled?: boolean;
   /** @nullable */
   name?: string | null;
-  /** @nullable */
+  /**
+   * Optional mandant id; omit for global override.
+   * @nullable
+   */
   tenantId?: string | null;
 }

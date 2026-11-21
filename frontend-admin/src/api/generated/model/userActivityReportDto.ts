@@ -10,6 +10,9 @@ import type { UserActivityTimelineItemDto } from './userActivityTimelineItemDto'
 import type { UserActivityDailyCountDto } from './userActivityDailyCountDto';
 import type { UserActivityRankingDto } from './userActivityRankingDto';
 
+/**
+ * Compliance-oriented activity summary for a single user (RKSV audit trail).
+ */
 export interface UserActivityReportDto {
   actionsPerformed?: UserActivityActionSummaryDto;
   activeSessions?: number;
@@ -35,6 +38,7 @@ export interface UserActivityReportDto {
   toDateUtc?: string;
   /** @nullable */
   topActiveUsers?: UserActivityRankingDto[] | null;
+  /** All audit events by this user in the selected period. */
   totalActions?: number;
   totalLogins?: number;
   /** @nullable */

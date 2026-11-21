@@ -12,7 +12,10 @@ export interface BackupChainItemDto {
   coveredByWal?: boolean;
   /** @nullable */
   incrementalSinceUtc?: string | null;
-  /** @nullable */
+  /**
+   * `full`, `incremental`, or `system`.
+   * @nullable
+   */
   packageKind?: string | null;
   /** @nullable */
   parentRunId?: string | null;

@@ -6,9 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One license layer in KasseAPI_Final.Models.LicensePublicStatusDto (system host or mandant).
+ */
 export interface LicenseLayerPublicStatusDto {
   isActive?: boolean;
-  /** @nullable */
+  /**
+   * `active`, `grace`, `expired`, or `locked` (tenant past grace).
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   validUntil?: string | null;

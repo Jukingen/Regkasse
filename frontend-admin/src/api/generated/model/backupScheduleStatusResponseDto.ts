@@ -8,7 +8,10 @@
 import type { BackupScheduleLatestRunSummaryDto } from './backupScheduleLatestRunSummaryDto';
 
 export interface BackupScheduleStatusResponseDto {
-  /** @nullable */
+  /**
+   * Live projection from cron (may differ briefly from StoredNextRunAtUtc).
+   * @nullable
+   */
   computedNextRunAtUtc?: string | null;
   databaseAutomationEnabled?: boolean;
   latestScheduledBackupRun?: BackupScheduleLatestRunSummaryDto;

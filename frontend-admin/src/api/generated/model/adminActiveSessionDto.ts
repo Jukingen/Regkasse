@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Auth session row for Super Admin (all tenants) and Manager (own tenant).
+ */
 export interface AdminActiveSessionDto {
   /** @nullable */
   browser?: string | null;
@@ -30,7 +33,10 @@ export interface AdminActiveSessionDto {
   lastActivityAtUtc?: string;
   /** @nullable */
   os?: string | null;
-  /** @nullable */
+  /**
+   * Human-readable platform, e.g. `POS (Android)`, `POS (iOS)`, `POS (Web)`, `Admin`.
+   * @nullable
+   */
   platformLabel?: string | null;
   /** @nullable */
   role?: string | null;

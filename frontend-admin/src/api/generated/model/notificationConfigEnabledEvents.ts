@@ -7,6 +7,7 @@
  */
 
 /**
+ * When empty, all event types are enabled.
  * @nullable
  */
 export type NotificationConfigEnabledEvents = {
@@ -42,7 +43,9 @@ export type NotificationConfigEnabledEvents = {
   EinvoiceSubmissionRetry?: boolean;
   EinvoiceSubmitted?: boolean;
   EinvoiceValidated?: boolean;
+  FinanzOnlineOutboxFailureSpike?: boolean;
   FinanzOnlineSubmissionFailed?: boolean;
+  JahresbelegDeadlineReminder?: boolean;
   JahresbelegFonReminder?: boolean;
   KsDeTxFinished?: boolean;
   LicenseExpired?: boolean;
@@ -58,6 +61,7 @@ export type NotificationConfigEnabledEvents = {
   MonatsbelegCreated?: boolean;
   MonatsbelegManagerContacted?: boolean;
   MonatsbelegMissingReminder?: boolean;
+  MonatsbelegReissued?: boolean;
   OfflineOrdersBacklogGrowing?: boolean;
   OfflineOrdersExpiringSoon?: boolean;
   OfflineQueueApproachingLimit?: boolean;

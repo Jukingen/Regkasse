@@ -11,9 +11,15 @@ export interface BackupRetentionReadinessResponseDto {
   artifactRetentionDays?: number | null;
   automatedDeletionImplemented?: boolean;
   deletionRequestedByConfiguration?: boolean;
-  /** @nullable */
+  /**
+   * Örn. disabled, report_only_no_automated_enforcement, execution_planned_pending_implementation.
+   * @nullable
+   */
   executableStatus?: string | null;
-  /** @nullable */
+  /**
+   * Disabled, ReportOnly, or ExecutionPlanned.
+   * @nullable
+   */
   mode?: string | null;
   /** @nullable */
   operatorNotes?: string[] | null;

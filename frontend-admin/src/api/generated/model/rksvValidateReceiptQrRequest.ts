@@ -6,7 +6,13 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Request body for RKSV receipt QR format validation (no crypto, no external calls).
+ */
 export interface RksvValidateReceiptQrRequest {
-  /** @minLength 1 */
+  /**
+   * Raw QR string as printed or returned by payment/receipt APIs.
+   * @minLength 1
+   */
   qrPayload: string;
 }

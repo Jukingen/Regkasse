@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS card payment intent creation (spec-aligned).
+ */
 export interface CardPaymentRequest {
   amount?: number;
   cashRegisterId?: string;

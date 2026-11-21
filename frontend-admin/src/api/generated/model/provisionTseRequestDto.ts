@@ -7,8 +7,14 @@
  */
 
 export interface ProvisionTseRequestDto {
-  /** @nullable */
+  /**
+   * When set, takes precedence over KasseAPI_Final.DTOs.ProvisionTseRequestDto.TenantId.
+   * @nullable
+   */
   cashRegisterId?: string | null;
-  /** @nullable */
+  /**
+   * Provision for the tenant's default cash register.
+   * @nullable
+   */
   tenantId?: string | null;
 }

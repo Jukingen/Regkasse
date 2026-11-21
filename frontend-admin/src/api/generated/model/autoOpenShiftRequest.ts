@@ -7,6 +7,10 @@
  */
 
 export interface AutoOpenShiftRequest {
-  /** @nullable */
+  /**
+   * Optional register id. When omitted or empty, auto-open resolves
+KasseAPI_Final.Models.UserSettings.CashRegisterId for the caller.
+   * @nullable
+   */
   cashRegisterId?: string | null;
 }

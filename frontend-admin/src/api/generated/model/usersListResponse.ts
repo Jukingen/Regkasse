@@ -8,6 +8,9 @@
 import type { UserInfo } from './userInfo';
 import type { UsersListPagination } from './usersListPagination';
 
+/**
+ * Sayfalanmış kullanıcı listesi yanıtı (GET /api/UserManagement).
+ */
 export interface UsersListResponse {
   /** @nullable */
   items?: UserInfo[] | null;

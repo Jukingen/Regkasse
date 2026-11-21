@@ -9,19 +9,34 @@ import type { PermissionGroupDto } from './permissionGroupDto';
 import type { UiCapabilitiesDto } from './uiCapabilitiesDto';
 
 export interface RoleWithPermissionsDto {
+  /** True only for custom roles with no assigned users. Frontend uses this to enable/disable delete. */
   canDelete?: boolean;
+  /** False for any system role (matrix-only). True for custom roles only. */
   canEditPermissions?: boolean;
-  /** @nullable */
+  /**
+   * Optional description; mainly for canonical roles.
+   * @nullable
+   */
   description?: string | null;
-  /** @nullable */
+  /**
+   * Optional display label; canonical roles have fixed labels, custom uses RoleName.
+   * @nullable
+   */
   displayName?: string | null;
+  /** Same as IsSystemRole for this API: system roles are immutable and not permission-editable at runtime. */
   isImmutable?: boolean;
   isSystemRole?: boolean;
-  /** @nullable */
+  /**
+   * Permissions grouped by catalog group (groupKey slug). For Role Capability Matrix UI.
+   * @nullable
+   */
   permissionGroups?: PermissionGroupDto[] | null;
   /** @nullable */
   permissions?: string[] | null;
-  /** @nullable */
+  /**
+   * Stable identifier for clients; same as RoleName when Identity Name is the key.
+   * @nullable
+   */
   roleKey?: string | null;
   /** @nullable */
   roleName?: string | null;

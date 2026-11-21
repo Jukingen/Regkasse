@@ -7,14 +7,28 @@
  */
 import type { BackupScheduleFrequency } from './backupScheduleFrequency';
 
+/**
+ * Structured schedule fields for admin PUT/GET (persisted as UTC cron on per-tenant KasseAPI_Final.Models.Backup.BackupScheduleConfiguration).
+ */
 export interface BackupScheduleConfigurationDto {
-  /** @nullable */
+  /**
+   * Five-field UTC cron when KasseAPI_Final.DTOs.BackupScheduleConfigurationDto.Frequency is Custom.
+   * @nullable
+   */
   customCron?: string | null;
-  /** @nullable */
+  /**
+   * Day of month (1–31) when KasseAPI_Final.DTOs.BackupScheduleConfigurationDto.Frequency is Monthly.
+   * @nullable
+   */
   dayOfMonth?: number | null;
-  /** @nullable */
+  /**
+   * Cron day-of-week (0=Sunday … 6=Saturday) when KasseAPI_Final.DTOs.BackupScheduleConfigurationDto.Frequency is Weekly.
+   * @nullable
+   */
   dayOfWeek?: number | null;
   frequency?: BackupScheduleFrequency;
+  /** UTC hour (0–23). */
   hourUtc?: number;
+  /** UTC minute (0–59). */
   minuteUtc?: number;
 }

@@ -6,6 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * VAT regime a tenant is invoiced and reported under. Independent from the operating
+KasseAPI_Final.Models.CompanySettings.Country: an Austrian mandant may still invoice under
+KasseAPI_Final.Models.VatRegime.EU_REVERSE_CHARGE.
+
+Persisted as the member name (`company_settings.vat_regime`, `varchar(32)`), so renaming
+a member is a breaking schema change — add a new member instead.
+ */
 export type VatRegime = typeof VatRegime[keyof typeof VatRegime];
 
 

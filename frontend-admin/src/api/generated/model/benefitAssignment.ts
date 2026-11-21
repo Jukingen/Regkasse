@@ -8,6 +8,10 @@
 import type { BenefitDefinition } from './benefitDefinition';
 import type { Customer } from './customer';
 
+/**
+ * Assigns a benefit definition to a customer. Minimal persistence for future wiring; not yet used by PaymentService.
+Extensible later for segment/group assignment (e.g. nullable CustomerId + SegmentId).
+ */
 export interface BenefitAssignment {
   benefitDefinition?: BenefitDefinition;
   benefitDefinitionId: string;

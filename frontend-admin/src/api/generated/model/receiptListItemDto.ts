@@ -6,36 +6,70 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * List item DTO for admin receipts list (paginated).
+ */
 export interface ReceiptListItemDto {
   /** @nullable */
   cashierId?: string | null;
+  /** Authoritative register FK (same as receipt / payment `CashRegisterId`). */
   cashRegisterEntityId?: string;
-  /** @nullable */
+  /**
+   * Legacy list field: KasseAPI_Final.DTOs.ReceiptListItemDto.CashRegisterEntityId as string (UUID). Prefer KasseAPI_Final.DTOs.ReceiptListItemDto.CashRegisterEntityId for typing.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   createdAt?: string;
   grandTotal?: number;
+  /** True when a persisted RKSV receipt PDF exists for download. */
   hasStoredPdf?: boolean;
-  /** @nullable */
+  /**
+   * Canonical end date of the RKSV period covered by this receipt.
+   * @nullable
+   */
   intendedPeriodDate?: string | null;
+  /** True when this Sonderbeleg was created nachträglich / past its legal deadline. */
   isLateCreated?: boolean;
   issuedAt?: string;
-  /** @nullable */
+  /**
+   * Operator reason when KasseAPI_Final.DTOs.ReceiptListItemDto.IsLateCreated is true.
+   * @nullable
+   */
   lateCreationReason?: string | null;
+  /** Zugehörige Zahlung — für Nachdruck-Flow (by-payment) ohne Extra-Lookup. */
   paymentId?: string;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
-  /** @nullable */
+  /**
+   * Human-facing register number from `CashRegisters.RegisterNumber` (not the FK).
+   * @nullable
+   */
   registerDisplayNumber?: string | null;
-  /** @nullable */
+  /**
+   * FinanzOnline/BMF submission lifecycle for Startbeleg/Jahresbeleg; null when no tracking row.
+   * @nullable
+   */
   rksvFinanzOnlineSubmissionStatus?: string | null;
-  /** @nullable */
+  /**
+   * RKSV Sonderbeleg marker for list UI (e.g. Nullbeleg).
+   * @nullable
+   */
   rksvSpecialReceiptKind?: string | null;
-  /** @nullable */
+  /**
+   * Vienna calendar month 1–12 when applicable.
+   * @nullable
+   */
   rksvSpecialReceiptMonth?: number | null;
-  /** @nullable */
+  /**
+   * Vienna calendar year when KasseAPI_Final.DTOs.ReceiptListItemDto.RksvSpecialReceiptKind is set (Monatsbeleg guard).
+   * @nullable
+   */
   rksvSpecialReceiptYear?: number | null;
-  /** @nullable */
+  /**
+   * POS Belegliste status: `Paid`, `Storno`, `Refund`, or RKSV Sonderbeleg kind.
+   * @nullable
+   */
   status?: string | null;
   subTotal?: number;
   taxTotal?: number;

@@ -19,7 +19,10 @@ export interface DownloadHistorySlowExportDto {
   /** @nullable */
   fileType?: string | null;
   id?: string;
-  /** @nullable */
+  /**
+   * `duration` when DurationMs known; otherwise `size` proxy.
+   * @nullable
+   */
   rankBy?: string | null;
   /** @nullable */
   sourceKind?: string | null;

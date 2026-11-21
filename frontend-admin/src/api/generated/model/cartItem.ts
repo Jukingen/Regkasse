@@ -9,7 +9,10 @@ import type { Cart } from './cart';
 import type { CartItemModifier } from './cartItemModifier';
 
 export interface CartItem {
-  /** @nullable */
+  /**
+   * Ödeme anındaki fiyatı hangi kuralın ürettiği (denetim / rapor). Yoksa katalog fiyatı.
+   * @nullable
+   */
   appliedPricingRuleId?: string | null;
   cart?: Cart;
   /**
@@ -25,7 +28,10 @@ export interface CartItem {
   createdBy?: string | null;
   id?: string;
   isActive?: boolean;
-  /** @nullable */
+  /**
+   * Phase 2 deprecated: Legacy embedded modifiers. Read-only for compatibility; new add-ons are separate cart lines (product-only). Do not write new CartItemModifier from add-item for sellable add-on products.
+   * @nullable
+   */
   modifiers?: CartItemModifier[] | null;
   /**
    * @maxLength 500

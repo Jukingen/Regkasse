@@ -33,6 +33,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Tenant register inventory with TSE/offline/sync telemetry (admin FA).
+ */
 export const getApiCashRegisterEnhanced = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -72,6 +75,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCashRegisterEnhancedQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>>
 export type GetApiCashRegisterEnhancedQueryError = unknown
 
+/**
+ * @summary Tenant register inventory with TSE/offline/sync telemetry (admin FA).
+ */
 export const useGetApiCashRegisterEnhanced = <TData = Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -88,6 +94,9 @@ export const useGetApiCashRegisterEnhanced = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @summary Full register inventory (open and closed). Not filtered for POS assignment.
+ */
 export const getApiCashRegister = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -127,6 +136,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCashRegisterQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCashRegister>>>
 export type GetApiCashRegisterQueryError = unknown
 
+/**
+ * @summary Full register inventory (open and closed). Not filtered for POS assignment.
+ */
 export const useGetApiCashRegister = <TData = Awaited<ReturnType<typeof getApiCashRegister>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegister>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -143,6 +155,10 @@ export const useGetApiCashRegister = <TData = Awaited<ReturnType<typeof getApiCa
 
 
 
+/**
+ * @summary Creates a new cash register row for the effective tenant (Closed, no shift transaction).
+Requires KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage — SuperAdmin and Manager only.
+ */
 export const postApiCashRegister = (
     createCashRegisterRequest: CreateCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -181,7 +197,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCashRegisterMutationBody = CreateCashRegisterRequest
     export type PostApiCashRegisterMutationError = unknown
 
-    export const usePostApiCashRegister = <TError = unknown,
+    /**
+ * @summary Creates a new cash register row for the effective tenant (Closed, no shift transaction).
+Requires KasseAPI_Final.Authorization.AppPermissions.CashRegisterManage — SuperAdmin and Manager only.
+ */
+export const usePostApiCashRegister = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCashRegister>>,
@@ -194,7 +214,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCashRegisterByTenant = (
+    /**
+ * @summary Active registers for the selected mandant; default register is listed first.
+ */
+export const getApiCashRegisterByTenant = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -233,6 +256,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCashRegisterByTenantQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>>
 export type GetApiCashRegisterByTenantQueryError = ProblemDetails
 
+/**
+ * @summary Active registers for the selected mandant; default register is listed first.
+ */
 export const useGetApiCashRegisterByTenant = <TData = Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -304,6 +330,9 @@ export const useGetApiCashRegisterId = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Opens a cash register shift so POS payments can be taken.
+ */
 export const postApiCashRegisterIdOpen = (
     id: string,
     openCashRegisterModel: OpenCashRegisterModel,
@@ -343,7 +372,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCashRegisterIdOpenMutationBody = OpenCashRegisterModel
     export type PostApiCashRegisterIdOpenMutationError = unknown
 
-    export const usePostApiCashRegisterIdOpen = <TError = unknown,
+    /**
+ * @summary Opens a cash register shift so POS payments can be taken.
+ */
+export const usePostApiCashRegisterIdOpen = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegisterIdOpen>>, TError,{id: string;data: OpenCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCashRegisterIdOpen>>,
@@ -356,7 +388,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCashRegisterIdClose = (
+    /**
+ * @summary Closes the open shift on a cash register.
+ */
+export const postApiCashRegisterIdClose = (
     id: string,
     closeCashRegisterModel: CloseCashRegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -395,7 +430,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCashRegisterIdCloseMutationBody = CloseCashRegisterModel
     export type PostApiCashRegisterIdCloseMutationError = unknown
 
-    export const usePostApiCashRegisterIdClose = <TError = unknown,
+    /**
+ * @summary Closes the open shift on a cash register.
+ */
+export const usePostApiCashRegisterIdClose = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegisterIdClose>>, TError,{id: string;data: CloseCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCashRegisterIdClose>>,

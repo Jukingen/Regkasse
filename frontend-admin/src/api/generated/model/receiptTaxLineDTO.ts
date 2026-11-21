@@ -6,11 +6,16 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * VAT dökümü satırı (vergi oranına göre gruplanmış).
+ */
 export interface ReceiptTaxLineDTO {
   grossAmount?: number;
   netAmount?: number;
+  /** Vergi oranı yüzde (10, 20). */
   rate?: number;
   taxAmount?: number;
   taxType?: number;
+  /** Vergi oranı kesir (0.10, 0.20). */
   vatRate?: number;
 }

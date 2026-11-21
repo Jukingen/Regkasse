@@ -38,6 +38,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Paged invoice list for the ambient tenant, with optional date and status filters.
+ */
 export const getApiInvoiceList = (
     params?: GetApiInvoiceListParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -78,6 +81,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiInvoiceListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInvoiceList>>>
 export type GetApiInvoiceListQueryError = unknown
 
+/**
+ * @summary Paged invoice list for the ambient tenant, with optional date and status filters.
+ */
 export const useGetApiInvoiceList = <TData = Awaited<ReturnType<typeof getApiInvoiceList>>, TError = unknown>(
  params?: GetApiInvoiceListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

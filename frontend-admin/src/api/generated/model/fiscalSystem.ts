@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Cash-register fiscal module that applies to a country. Only KasseAPI_Final.Models.Countries.FiscalSystem.RKSV_AT is implemented;
+the others name a planned module so a profile can declare intent without enabling anything.
+ */
 export type FiscalSystem = typeof FiscalSystem[keyof typeof FiscalSystem];
 
 

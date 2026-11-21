@@ -15,7 +15,10 @@ export interface TseLogEntryDto {
   /** @nullable */
   deviceLabel?: string | null;
   id?: string;
-  /** @nullable */
+  /**
+   * Error | Warning | Info
+   * @nullable
+   */
   level?: string | null;
   /** @nullable */
   message?: string | null;

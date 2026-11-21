@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Result of mandant vs deployment license (`issued_licenses`) consistency check.
+ */
 export interface TenantLicenseConsistencyDto {
   canIssueDeploymentLicense?: boolean;
   isConsistent?: boolean;

@@ -12,18 +12,29 @@ export interface DepExportHistoryResponse {
   archiveChecksum?: string | null;
   /** @nullable */
   archivedAt?: string | null;
+  /** True when the caller may soft-delete this recent-export entry. */
   canDelete?: boolean;
   cashRegisterId?: string;
+  /** Successful download count. */
   downloadCount?: number;
-  /** @nullable */
+  /**
+   * Last successful download timestamp.
+   * @nullable
+   */
   downloadedAt?: string | null;
   /** @nullable */
   downloadTokenExpiresAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Relative download path when KasseAPI_Final.DTOs.DepExportHistoryResponse.HasStoredFile is true.
+   * @nullable
+   */
   downloadUrl?: string | null;
   /** @nullable */
   errorMessage?: string | null;
-  /** @nullable */
+  /**
+   * When the hot download copy expires (typically ExportedAt + 7 days).
+   * @nullable
+   */
   expiresAt?: string | null;
   exportedAt?: string;
   /** @nullable */
@@ -33,14 +44,18 @@ export interface DepExportHistoryResponse {
   fileSizeBytes?: number;
   fromUtc?: string;
   groupCount?: number;
+  /** True when a non-expired download token is currently issued (token value is not returned). */
   hasActiveDownloadToken?: boolean;
   hasArchiveFile?: boolean;
   hasStoredFile?: boolean;
   id?: string;
   includeDailyClosings?: boolean;
   includeSpecialReceipts?: boolean;
+  /** True when the export was created in RKSV/TSE simulation mode. */
   isSimulated?: boolean;
+  /** Pre-F5 JWS count; Prüftool-compatible when 0. */
   legacyJwsCount?: number;
+  /** True when KasseAPI_Final.DTOs.DepExportHistoryResponse.LegacyJwsCount is 0. */
   prueftoolCompatible?: boolean;
   /** @nullable */
   purgedAt?: string | null;
@@ -51,7 +66,10 @@ export interface DepExportHistoryResponse {
   /** @nullable */
   scheduleId?: string | null;
   signatureCount?: number;
-  /** @nullable */
+  /**
+   * Operator note when KasseAPI_Final.DTOs.DepExportHistoryResponse.IsSimulated.
+   * @nullable
+   */
   simulationNote?: string | null;
   status?: DepExportStatus;
   toUtc?: string;

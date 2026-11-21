@@ -19,17 +19,28 @@ export interface BackupArtifactResponseDto {
   contentHashSha256?: string | null;
   /** @nullable */
   createdAt?: string | null;
-  /** @nullable */
+  /**
+   * Redacted external key after successful archive copy (e.g. archive/runId/file).
+   * @nullable
+   */
   externalRedactedLocator?: string | null;
-  /** @nullable */
+  /**
+   * English human-readable size (e.g. "12.5 MB").
+   * @nullable
+   */
   formattedSize?: string | null;
   id?: string;
+  /** When KasseAPI_Final.DTOs.BackupDownloadEnrichment was applied for this response: true if a file exists at the resolved path (same check as download).
+Otherwise false (unknown / not computed — e.g. history list without enrichment). */
   isFilePresentForDownload?: boolean;
   legalHoldProtected?: boolean;
   lifecycleState?: BackupArtifactLifecycleState;
   /** @nullable */
   movedToColdAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * UI-safe staging locator (no host path).
+   * @nullable
+   */
   storageLocator?: string | null;
   storageTier?: BackupStorageTier;
 }

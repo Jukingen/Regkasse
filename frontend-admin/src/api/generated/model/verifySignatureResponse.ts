@@ -7,6 +7,9 @@
  */
 import type { SignatureDiagnosticStep } from './signatureDiagnosticStep';
 
+/**
+ * JWS doğrulama yanıtı - Checklist 1–5 adımları.
+ */
 export interface VerifySignatureResponse {
   /** @nullable */
   steps?: SignatureDiagnosticStep[] | null;

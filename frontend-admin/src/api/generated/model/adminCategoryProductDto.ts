@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Flat response DTO for admin category products endpoint.
+Prevents recursive navigation serialization cycles.
+ */
 export interface AdminCategoryProductDto {
   /** @nullable */
   barcode?: string | null;

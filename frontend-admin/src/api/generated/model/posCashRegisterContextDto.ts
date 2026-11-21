@@ -6,25 +6,41 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * JSON contract for POS cash-register readiness (POST /api/pos/cash-register/ensure-ready).
+ */
 export interface PosCashRegisterContextDto {
   autoOpened?: boolean;
-  /** @nullable */
+  /**
+   * Register id the readiness pipeline attached to this response (resolved from preference and/or sole-register rules).
+   * @nullable
+   */
   effectiveRegisterId?: string | null;
   /** @nullable */
   messageCode?: string | null;
-  /** @nullable */
+  /**
+   * `Strict` | `GracePeriod` | `WarningOnly`.
+   * @nullable
+   */
   monatsbelegBlockingMode?: string | null;
   monatsbelegCanContinueWithWarning?: boolean;
   monatsbelegSalesBlocked?: boolean;
   /** @nullable */
   monatsbelegViennaDayOfMonth?: number | null;
-  /** @nullable */
+  /**
+   * none | yellow | red
+   * @nullable
+   */
   monatsbelegWarningLevel?: string | null;
   /** @nullable */
   monatsbelegWarningMessageDe?: string | null;
   /** @nullable */
   nextAction?: string | null;
-  /** @nullable */
+  /**
+   * Persisted user preference from `UserSettings.CashRegisterId` when it is a non-empty GUID string; otherwise null.
+Does not imply the register is operable for payment (see KasseAPI_Final.Services.PosCashRegisterContextDto.EffectiveRegisterId, `nextAction`, `messageCode`).
+   * @nullable
+   */
   preferredRegisterId?: string | null;
   /** @nullable */
   registerStatus?: string | null;

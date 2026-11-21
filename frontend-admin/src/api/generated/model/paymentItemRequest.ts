@@ -8,20 +8,31 @@
 import type { PaymentItemModifierRequest } from './paymentItemModifierRequest';
 import type { TaxType } from './taxType';
 
+/**
+ * Ödeme kalemi request'i. Primary: productId, quantity, taxType (one line per product). Legacy: ModifierIds/Modifiers for old carts only.
+ */
 export interface PaymentItemRequest {
   /**
+   * Optional IMEI for a single IMEI-tracked unit. Not part of the RKSV payload.
+Required when the catalog product has `imeiTracked=true` and quantity is 1.
    * @maxLength 20
    * @nullable
    */
   imei?: string | null;
-  /** @nullable */
+  /**
+   * Optional IMEI list when an IMEI-tracked line has quantity > 1.
+Count must match KasseAPI_Final.DTOs.PaymentItemRequest.Quantity. Not part of the RKSV payload.
+   * @nullable
+   */
   imeis?: string[] | null;
   /**
+   * Phase 2 legacy: Add-ons should be separate PaymentItem lines. Kept for read/write compatibility with old clients.
    * @deprecated
    * @nullable
    */
   modifierIds?: string[] | null;
   /**
+   * Phase 2 legacy: Add-ons as separate items. Kept for backward compat.
    * @deprecated
    * @nullable
    */
@@ -33,6 +44,10 @@ export interface PaymentItemRequest {
    */
   quantity: number;
   taxType: TaxType;
-  /** @nullable */
+  /**
+   * Optional catalog variant. Metadata only: not stored on payment_details
+and not part of the RKSV receipt, TSE payload, or DEP export.
+   * @nullable
+   */
   variantId?: string | null;
 }

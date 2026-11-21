@@ -7,11 +7,17 @@
  */
 
 export interface AdminOnlinePaymentTestRequest {
-  /** @nullable */
+  /**
+   * `create`, `webhookSucceeded`/`success`, `webhookFailed`/`failed`, or `expire`.
+   * @nullable
+   */
   action?: string | null;
   /** @nullable */
   amount?: number | null;
-  /** @nullable */
+  /**
+   * POS `gateway_payment_intents` row to simulate (alias of KasseAPI_Final.DTOs.AdminOnlinePaymentTestRequest.TransactionId).
+   * @nullable
+   */
   onlinePaymentId?: string | null;
   /** @nullable */
   paymentMethod?: string | null;

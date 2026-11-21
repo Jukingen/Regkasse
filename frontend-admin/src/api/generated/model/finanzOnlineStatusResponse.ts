@@ -9,14 +9,19 @@
 export interface FinanzOnlineStatusResponse {
   /** @nullable */
   apiVersion?: string | null;
-  /** @nullable */
+  /**
+   * English operator hint when KasseAPI_Final.Controllers.FinanzOnlineStatusResponse.IsAuthoritative is false; null when authoritative.
+   * @nullable
+   */
   diagnosticWarning?: string | null;
   enableRealTestSubmission?: boolean;
   /** @nullable */
   errorMessage?: string | null;
   finanzOnlineTransportsSimulated?: boolean;
+  /** True when KasseAPI_Final.Controllers.FinanzOnlineStatusResponse.IsConnected is backed by a cached SOAP session probe (live transport, not simulated). */
   isAuthoritative?: boolean;
   isConnected?: boolean;
+  /** True when FinanzOnline SOAP transports are in simulation mode (same signal as KasseAPI_Final.Controllers.FinanzOnlineStatusResponse.FinanzOnlineTransportsSimulated). */
   isSimulated?: boolean;
   /** @nullable */
   lastSync?: string | null;

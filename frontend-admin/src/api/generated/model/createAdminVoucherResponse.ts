@@ -14,7 +14,10 @@ export interface CreateAdminVoucherResponse {
   initialAmount?: number;
   /** @nullable */
   maskedCode?: string | null;
-  /** @nullable */
+  /**
+   * Plaintext code — returned once; never stored server-side.
+   * @nullable
+   */
   plaintextCode?: string | null;
   validFromUtc?: string;
 }

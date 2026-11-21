@@ -7,8 +7,15 @@
  */
 import type { CashRegisterSelectableRow } from './cashRegisterSelectableRow';
 
+/**
+ * POS GET selectable response body: registers plus optional empty reason when count is zero.
+ */
 export interface PosSelectableListResult {
-  /** @nullable */
+  /**
+   * Set only when KasseAPI_Final.Services.PosSelectableListResult.Registers is empty: `no_registers`, `none_assigned`, or `none_selectable_for_user`.
+`none_open` is no longer produced (the picker lists closed registers too) but stays a known value for older clients.
+   * @nullable
+   */
   emptyReason?: string | null;
   /** @nullable */
   registers?: CashRegisterSelectableRow[] | null;

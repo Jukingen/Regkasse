@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Operatör / muhasebe rapor paketi — POS `payment_details` üzerinden; fatura tablosu değil.
+ */
 export interface OperationalReportMetaDto {
   activeOnly?: boolean;
   /** @nullable */
@@ -18,6 +21,7 @@ export interface OperationalReportMetaDto {
   periodEndUtc?: string;
   /** @nullable */
   periodPreset?: string | null;
+  /** Austria takvim günü başlangıç (gösterim). */
   periodStartLocalDate?: string;
   periodStartUtc?: string;
   reportGeneratedAtUtc?: string;

@@ -7,11 +7,15 @@
  */
 import type { TenantLimitsDto } from './tenantLimitsDto';
 
+/**
+ * Current-tenant caps plus live usage for FA warnings (Manager + Super Admin).
+ */
 export interface TenantLimitUsageDto {
   currentBackups?: number;
   currentBackupSizeMb?: number;
   currentDailyRevenue?: number;
   currentDailyTransactions?: number;
+  /** Peak count of non-decommissioned registers assigned to any single user (for maxActiveRegistersPerUser). */
   currentMaxAssignedRegistersPerUser?: number;
   currentOfflineTransactions?: number;
   currentProducts?: number;

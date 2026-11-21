@@ -7,6 +7,9 @@
  */
 import type { IssuedLicenseListItemDto } from './issuedLicenseListItemDto';
 
+/**
+ * Paged payload for `GET /api/admin/license/list`.
+ */
 export interface IssuedLicensesListResponse {
   /** @nullable */
   items?: IssuedLicenseListItemDto[] | null;

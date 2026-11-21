@@ -17,13 +17,16 @@ export interface TseRecommendationDto {
   /** @nullable */
   description?: string | null;
   diagnosticOnly?: boolean;
+  /** 1–10 effort score. */
   effortScore?: number;
+  /** Indicative monthly EUR savings. */
   estimatedSavings?: number;
   id?: string;
   /** @nullable */
   impact?: string | null;
   isApplied?: boolean;
   isDismissed?: boolean;
+  /** 1–5; 0 = unrated. */
   rating?: number;
   tenantId?: string;
   /** @nullable */

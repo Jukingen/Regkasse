@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Body for `POST /api/admin/license/{id}/extend`.
+ */
 export interface ExtendLicenseRequestBody {
   /** @nullable */
   addDays?: number | null;

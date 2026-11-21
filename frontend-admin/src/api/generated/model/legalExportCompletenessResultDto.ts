@@ -8,7 +8,10 @@
 import type { LegalExportCompletenessIssueDto } from './legalExportCompletenessIssueDto';
 
 export interface LegalExportCompletenessResultDto {
-  /** @nullable */
+  /**
+   * allowed | allowed_with_warnings | blocked
+   * @nullable
+   */
   gate?: string | null;
   /** @nullable */
   issues?: LegalExportCompletenessIssueDto[] | null;

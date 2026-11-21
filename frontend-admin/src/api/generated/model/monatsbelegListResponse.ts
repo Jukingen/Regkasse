@@ -9,6 +9,7 @@ import type { MonatsbelegListRowDto } from './monatsbelegListRowDto';
 
 export interface MonatsbelegListResponse {
   hasFailedAutoCreates?: boolean;
+  /** True when auto-create catch-up closed with the previous month still missing. */
   hasMissedAutoCreates?: boolean;
   /** @nullable */
   items?: MonatsbelegListRowDto[] | null;

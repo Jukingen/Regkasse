@@ -8,21 +8,45 @@
 import type { DemoImportProductOverrideDto } from './demoImportProductOverrideDto';
 
 export interface DemoImportRequest {
-  /** @nullable */
+  /**
+   * Category names to skip even when selected.
+   * @nullable
+   */
   excludedCategories?: string[] | null;
-  /** @nullable */
+  /**
+   * none | categoryPlaceholder | defaultAsset. Empty defaults to categoryPlaceholder.
+   * @nullable
+   */
   imageMode?: string | null;
   overwriteExisting?: boolean;
-  /** @nullable */
+  /**
+   * None | IncreasePercent | DecreasePercent | RoundUpToIncrement
+   * @nullable
+   */
   priceAdjustmentMode?: string | null;
-  /** @nullable */
+  /**
+   * Percent for increase/decrease modes (e.g. 10 = +10%).
+   * @nullable
+   */
   priceAdjustmentPercent?: number | null;
-  /** @nullable */
+  /**
+   * Increment for RoundUpToIncrement (e.g. 0.50).
+   * @nullable
+   */
   priceRoundIncrement?: number | null;
-  /** @nullable */
+  /**
+   * Optional per-product price/tax overrides from import wizard.
+   * @nullable
+   */
   productOverrides?: DemoImportProductOverrideDto[] | null;
-  /** @nullable */
+  /**
+   * When empty, all categories (except excluded) are imported.
+   * @nullable
+   */
   selectedCategories?: string[] | null;
-  /** @nullable */
+  /**
+   * When non-empty, only these demo catalog product ids are imported (within category filter).
+   * @nullable
+   */
   selectedProductIds?: string[] | null;
 }

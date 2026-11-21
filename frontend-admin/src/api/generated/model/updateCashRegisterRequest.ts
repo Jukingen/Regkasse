@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * PUT /api/admin/cash-registers/{id} — update stammdaten for a tenant-scoped register row.
+ */
 export interface UpdateCashRegisterRequest {
   /**
    * @minLength 1

@@ -7,7 +7,10 @@
  */
 
 export interface TseOfflineQueueClearRequestDto {
-  /** @nullable */
+  /**
+   * Must equal `SOFT_CLEAR`.
+   * @nullable
+   */
   confirmToken?: string | null;
   /** @nullable */
   reason?: string | null;

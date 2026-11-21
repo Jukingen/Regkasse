@@ -8,9 +8,15 @@
 import type { ReasonOption } from './reasonOption';
 
 export interface AvailableAction {
-  /** @nullable */
+  /**
+   * Machine action id: `storno`, `refund`, or `view_only`.
+   * @nullable
+   */
   action?: string | null;
-  /** @nullable */
+  /**
+   * Frontend i18n key (e.g. paymentHistory.actions.storno).
+   * @nullable
+   */
   labelKey?: string | null;
   /** @nullable */
   reasonLabelKey?: string | null;

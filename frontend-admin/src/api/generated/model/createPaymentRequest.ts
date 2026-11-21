@@ -10,29 +10,55 @@ import type { PaymentItemRequest } from './paymentItemRequest';
 import type { PaymentMethodRequest } from './paymentMethodRequest';
 import type { StornoReason } from './stornoReason';
 
+/**
+ * POS payment create request. Authoritative inputs: KasseAPI_Final.DTOs.CreatePaymentRequest.CustomerId, KasseAPI_Final.DTOs.CreatePaymentRequest.Items, KasseAPI_Final.DTOs.CreatePaymentRequest.Payment, KasseAPI_Final.DTOs.CreatePaymentRequest.CashRegisterId (register FK).
+KasseAPI_Final.DTOs.CreatePaymentRequest.TotalAmount is a client gross hint; the server recomputes totals from catalog pricing and rejects on mismatch (not authoritative).
+KasseAPI_Final.DTOs.CreatePaymentRequest.Steuernummer is optional; when empty or invalid, the server substitutes from company profile — do not treat the raw request field as sole fiscal authority.
+When KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno or KasseAPI_Final.DTOs.CreatePaymentRequest.IsRefund is set, this request performs a fiscal reversal linked by KasseAPI_Final.DTOs.CreatePaymentRequest.OriginalReceiptNumber (RKSV: Storno vs partial refund).
+ */
 export interface CreatePaymentRequest {
+  /**
+   * Cash tendered by the customer. Stored on the payment row with the computed change.
+Not part of the RKSV signature or the TSE payload.
+   * @nullable
+   */
+  cashGiven?: number | null;
+  /** Required: POS cash register row (FK). Must not be empty GUID. */
   cashRegisterId: string;
   customerId: string;
   customerKind?: CustomerKind;
   /**
+   * Optional idempotency key for this payment attempt. When retried with the same key, the existing payment result is returned.
    * @maxLength 64
    * @nullable
    */
   idempotencyKey?: string | null;
+  /** When true on a normal sale, a Vorbestellung row is created after the fiscal receipt.
+Ignored for storno/refund. Does not change TSE signing. */
   isPreorder?: boolean;
+  /** True: partial return (Refund); mutually exclusive with KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno. */
   isRefund?: boolean;
+  /** True: full receipt cancellation (Storno); mutually exclusive with KasseAPI_Final.DTOs.CreatePaymentRequest.IsRefund. */
   isStorno?: boolean;
-  /** @nullable */
+  /**
+   * Required for normal sales; may be empty when KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno or KasseAPI_Final.DTOs.CreatePaymentRequest.IsRefund is true.
+   * @nullable
+   */
   items?: PaymentItemRequest[] | null;
   /** @nullable */
   notes?: string | null;
   /**
+   * Original sale BelegNr / receipt number; required when KasseAPI_Final.DTOs.CreatePaymentRequest.IsStorno or KasseAPI_Final.DTOs.CreatePaymentRequest.IsRefund.
    * @maxLength 256
    * @nullable
    */
   originalReceiptNumber?: string | null;
   payment: PaymentMethodRequest;
-  /** @nullable */
+  /**
+   * When set, this sale pays remaining balance on an existing Vorbestellung.
+Creates a new fiscal receipt; mutually exclusive with KasseAPI_Final.DTOs.CreatePaymentRequest.IsPreorder.
+   * @nullable
+   */
   preorderBalanceOrderId?: string | null;
   /**
    * @maxLength 2000
@@ -40,41 +66,61 @@ export interface CreatePaymentRequest {
    */
   preorderCustomerNotes?: string | null;
   /**
+   * Operational remaining amount due later (not part of this TSE total).
+This sale still fiscalizes KasseAPI_Final.DTOs.CreatePaymentRequest.TotalAmount / catalog lines.
    * @minimum 0
    * @maximum 999999
    */
   preorderRemainingAmount?: number;
   /**
+   * Optional non-fiscal prescription reference. Accepted only when the tenant vertical
+profile has patientRecord=true. Not part of the RKSV signature chain.
    * @maxLength 255
    * @nullable
    */
   prescriptionReference?: string | null;
   /**
+   * Offline order replay: pre-reserved BelegNr from KasseAPI_Final.Services.Offline.ISequenceReservationService.
    * @maxLength 256
    * @nullable
    */
   reservedReceiptNumber?: string | null;
   /**
+   * Optional taxi origin. Accepted only when the tenant vertical profile id is `taxi`.
+Not part of the RKSV signature chain.
    * @maxLength 255
    * @nullable
    */
   routeFrom?: string | null;
   /**
+   * Optional taxi distance in kilometres. Accepted only when the tenant vertical profile id is `taxi`.
    * @minimum 0
    * @maximum 999999.99
    * @nullable
    */
   routeKm?: number | null;
   /**
+   * Optional taxi destination. Accepted only when the tenant vertical profile id is `taxi`.
    * @maxLength 255
    * @nullable
    */
   routeTo?: string | null;
-  /** @nullable */
+  /**
+   * Optional VAT-ID hint. The shape is the tenant country profile
+(`vatIdPattern` on `GET /api/admin/countries`), enforced by
+`ITaxStrategy.ValidateVatId`. This property does not publish a country regex.
+   * @nullable
+   */
   steuernummer?: string | null;
   stornoReason?: StornoReason;
   tableNumber: number;
+  /** Normal sale: client gross hint for parity with server catalog totals.
+Refund via create: positive refund gross amount.
+Storno via create: must match original receipt gross total (parity). */
   totalAmount?: number;
-  /** @nullable */
+  /**
+   * Optional taxi trip start (UTC). Accepted only when the tenant vertical profile id is `taxi`.
+   * @nullable
+   */
   tripStartedAtUtc?: string | null;
 }

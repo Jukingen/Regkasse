@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV-compliant product categories (Austrian fiscal regulation).
+ */
 export type RksvProductCategory = typeof RksvProductCategory[keyof typeof RksvProductCategory];
 
 

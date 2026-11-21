@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * GET /api/user/profile — current user profile for self-service display.
+ */
 export interface UserProfileDto {
   /** @nullable */
   email?: string | null;

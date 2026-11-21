@@ -9,6 +9,9 @@ import type { OperationalReportMetaDto } from './operationalReportMetaDto';
 import type { UserPerformanceRowDto } from './userPerformanceRowDto';
 import type { StaffPerformanceReliabilityDto } from './staffPerformanceReliabilityDto';
 
+/**
+ * Extended user performance report (payment_details, per cashier user id).
+ */
 export interface UserPerformanceReportDto {
   highStornoRateThreshold?: number;
   /** @nullable */

@@ -34,18 +34,22 @@ export interface Category {
   icon?: string | null;
   id?: string;
   isActive?: boolean;
+  /** When true, category cannot be deleted by tenant admins (demo/system categories). */
   isSystemCategory?: boolean;
   /**
+   * Immutable internal identifier (slug). Never changes after creation.
    * @minLength 1
    * @maxLength 100
    */
   key: string;
   /**
+   * User-editable display name for UI only.
    * @minLength 1
    * @maxLength 100
    */
   name: string;
   /**
+   * Original demo catalog name; used for reset-to-default display name.
    * @maxLength 100
    * @nullable
    */
@@ -54,6 +58,7 @@ export interface Category {
   products?: Product[] | null;
   sortOrder?: number;
   tenant?: Tenant;
+  /** FK to KasseAPI_Final.Models.Tenant; category keys are unique per tenant. */
   tenantId?: string;
   /** @nullable */
   updatedAt?: string | null;
@@ -63,6 +68,7 @@ export interface Category {
    */
   updatedBy?: string | null;
   /**
+   * Default VAT rate percent (e.g. 10, 20). Calculation uses fraction = VatRate/100.
    * @minimum 0
    * @maximum 100
    */

@@ -8,6 +8,10 @@
 import type { LicenseType } from './licenseType';
 import type { Tenant } from './tenant';
 
+/**
+ * Super Admin SaaS billing record for a Mandanten license sale.
+Isolated from RKSV / deployment (KasseAPI_Final.Models.IssuedLicense) licensing.
+ */
 export interface LicenseSale {
   /** @nullable */
   activationDateUtc?: string | null;
@@ -17,6 +21,7 @@ export interface LicenseSale {
   cancelledAtUtc?: string | null;
   /** @nullable */
   cancelledByUserId?: string | null;
+  /** True when this sale was linked via trial → paid conversion. */
   convertedFromTrial?: boolean;
   createdAt?: string;
   /**
@@ -47,6 +52,7 @@ export interface LicenseSale {
    */
   licenseKey?: string | null;
   /**
+   * '6_months', '12_months', 'custom' — see KasseAPI_Final.Models.LicenseSalePlans.
    * @maxLength 50
    * @nullable
    */
@@ -56,11 +62,15 @@ export interface LicenseSale {
   notes?: string | null;
   priceGross?: number;
   priceNet?: number;
-  /** @nullable */
+  /**
+   * Remaining trial calendar days appended to KasseAPI_Final.Models.LicenseSale.ValidUntilUtc at conversion (if any).
+   * @nullable
+   */
   remainingTrialDaysAdded?: number | null;
   soldAtUtc?: string;
   soldByUserId?: string;
   /**
+   * active, cancelled, refunded — see KasseAPI_Final.Models.LicenseSaleStatuses.
    * @maxLength 20
    * @nullable
    */

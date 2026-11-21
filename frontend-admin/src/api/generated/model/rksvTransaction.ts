@@ -6,7 +6,12 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One historical VAT bucket from a receipt (rate frozen at issuance).
+Multi-rate receipts produce multiple rows.
+ */
 export interface RksvTransaction {
+  /** Net amount for this tax rate line (transaction-time). */
   amount?: number;
   grossAmount?: number;
   issuedAt?: string;
@@ -16,6 +21,7 @@ export interface RksvTransaction {
   taxAmount?: number;
   /** @nullable */
   taxGroupName?: string | null;
+  /** VAT rate (%) stored on the receipt tax line at sale time. */
   taxRate?: number;
   /** @nullable */
   tseSignature?: string | null;

@@ -6,8 +6,16 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Assigns a cash register to a cashier, or clears the assignment when KasseAPI_Final.DTOs.AssignCashRegisterUserRequest.UserId is null or empty.
+ */
 export interface AssignCashRegisterUserRequest {
+  /** SuperAdmin-only: skip tenant assignment cap (`maxActiveRegistersPerUser`).
+Ignored for every other role. */
   force?: boolean;
-  /** @nullable */
+  /**
+   * Target user id. Must be an active member of the register's tenant. Null or empty removes the assignment.
+   * @nullable
+   */
   userId?: string | null;
 }

@@ -8,11 +8,19 @@
 import type { AutoTagesabschlussSettingsDto } from './autoTagesabschlussSettingsDto';
 import type { WorkingHoursDto } from './workingHoursDto';
 
+/**
+ * RKSV §8 company header for POS receipts (read-only). Source: KasseAPI_Final.Models.CompanySettings.
+Also includes working hours for smart Tagesabschluss reminders and schedule display.
+Working hours must never gate POS orders or payments.
+ */
 export interface PosCompanyInfoDto {
   autoTagesabschluss?: AutoTagesabschlussSettingsDto;
   /** @nullable */
   companyAddress?: string | null;
-  /** @nullable */
+  /**
+   * Optional company description printed after the thank-you line.
+   * @nullable
+   */
   companyDescription?: string | null;
   /** @nullable */
   companyName?: string | null;
@@ -20,9 +28,15 @@ export interface PosCompanyInfoDto {
   receiptFooter?: string | null;
   /** @nullable */
   taxNumber?: string | null;
-  /** @nullable */
+  /**
+   * Resolved Dankesnachricht for POS print (custom or default).
+   * @nullable
+   */
   thankYouMessage?: string | null;
-  /** @nullable */
+  /**
+   * IANA time zone for local closing times (default Europe/Vienna).
+   * @nullable
+   */
   timeZone?: string | null;
   workingHours?: WorkingHoursDto;
 }

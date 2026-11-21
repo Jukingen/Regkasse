@@ -7,7 +7,12 @@
  */
 
 export interface RestoreTseBackupRequestDto {
-  /** @nullable */
+  /**
+   * Must equal `RESTORE` (case-sensitive).
+   * @nullable
+   */
   confirmToken?: string | null;
+  /** When true, allow writing a lower LastCounter / NextSequence than live
+(dangerous — only after confirmed disaster wipe). */
   forceChainDowngrade?: boolean;
 }

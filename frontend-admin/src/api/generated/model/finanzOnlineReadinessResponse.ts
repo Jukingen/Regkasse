@@ -9,27 +9,56 @@ import type { FinanzOnlineReadinessDiagnosticsDto } from './finanzOnlineReadines
 import type { FinanzOnlineReadinessFindingDto } from './finanzOnlineReadinessFindingDto';
 import type { FinanzOnlineReadinessResponseOutboxCountsByStatus } from './finanzOnlineReadinessResponseOutboxCountsByStatus';
 
+/**
+ * API / health JSON contract for FinanzOnline configuration readiness (no secrets).
+ */
 export interface FinanzOnlineReadinessResponse {
-  /** @nullable */
+  /**
+   * Trimmed `FinanzOnline:Simulation:Scenario` when not None (may be unknown string).
+   * @nullable
+   */
   configuredSimulationScenario?: string | null;
   diagnostics?: FinanzOnlineReadinessDiagnosticsDto;
-  /** @nullable */
+  /**
+   * Canonical scenario id when host guards allow it; otherwise null.
+   * @nullable
+   */
   effectiveSimulationScenario?: string | null;
   /** @nullable */
   findings?: FinanzOnlineReadinessFindingDto[] | null;
-  /** @nullable */
+  /**
+   * Populated only on admin readiness endpoint (optional).
+   * @nullable
+   */
   outboxCountsByStatus?: FinanzOnlineReadinessResponseOutboxCountsByStatus;
   outboxWorkerEnabled?: boolean;
-  /** @nullable */
+  /**
+   * Healthy, Degraded, or Unhealthy.
+   * @nullable
+   */
   overallStatus?: string | null;
+  /** True when config allows real status_kasse / protocol reconciliation for TEST. */
   protocolReconciliationPossible?: boolean;
+  /** True when config allows real SOAP rkdb TEST submission (not a live probe). */
   realTestSubmissionPossible?: boolean;
-  /** @nullable */
+  /**
+   * From `FinanzOnline:Simulation:FixedDelayMs` when > 0.
+   * @nullable
+   */
   simulationFixedDelayMs?: number | null;
-  /** @nullable */
+  /**
+   * From `FinanzOnline:Simulation:Seed` when non-zero.
+   * @nullable
+   */
   simulationSeed?: number | null;
-  /** @nullable */
+  /**
+   * Human-readable English summary for operators and logs.
+   * @nullable
+   */
   summary?: string | null;
-  /** @nullable */
+  /**
+   * AllSimulated, Mixed, or AllReal — layer alignment of Session / Registrierkassen / TransmissionQuery.
+   * @nullable
+   */
   transportMode?: string | null;
 }

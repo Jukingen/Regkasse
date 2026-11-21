@@ -8,20 +8,36 @@
 import type { CashRegisterDeviceInfoDto } from './cashRegisterDeviceInfoDto';
 import type { RegisterStatus } from './registerStatus';
 
+/**
+ * Admin FA list/detail projection for cash register inventory rows.
+ */
 export interface CashRegisterDto {
-  /** @nullable */
+  /**
+   * Admin-managed cashier assignment. Null means the register is selectable by every POS user of the tenant.
+Controls POS picker visibility only — payment authorization stays on KasseAPI_Final.DTOs.CashRegisterDto.CurrentUserId (open shift).
+   * @nullable
+   */
   assignedUserId?: string | null;
-  /** @nullable */
+  /**
+   * Display name of KasseAPI_Final.DTOs.CashRegisterDto.AssignedUserId; null when the register is unassigned.
+   * @nullable
+   */
   assignedUserName?: string | null;
   createdAt?: string;
   /** @nullable */
   createdBy?: string | null;
   currentBalance?: number;
-  /** @nullable */
+  /**
+   * Email of the open-shift cashier; omitted when the till is unattended.
+   * @nullable
+   */
   currentCashierEmail?: string | null;
   /** @nullable */
   currentCashierName?: string | null;
-  /** @nullable */
+  /**
+   * Login of the open-shift cashier; used to disambiguate similar display names.
+   * @nullable
+   */
   currentCashierUserName?: string | null;
   /** @nullable */
   currentUserId?: string | null;
@@ -38,16 +54,26 @@ export interface CashRegisterDto {
   lastJahresbelegUtc?: string | null;
   /** @nullable */
   lastMonatsbelegUtc?: string | null;
-  /** @nullable */
+  /**
+   * Latest cashier-shift timestamp (ended_at, else started_at). Null when this register has never had a shift.
+Distinct from KasseAPI_Final.DTOs.CashRegisterDto.Status (open till) and KasseAPI_Final.DTOs.CashRegisterDto.IsActive (inventory flag).
+   * @nullable
+   */
   lastShiftAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Last successful fiscal payment or TSE health ping (UTC).
+   * @nullable
+   */
   lastSyncAtUtc?: string | null;
   /** @nullable */
   location?: string | null;
   offlineQueueCount?: number;
   /** @nullable */
   registerNumber?: string | null;
-  /** @nullable */
+  /**
+   * UTC timestamp when the RKSV Startbeleg was recorded on this register; null when not yet created.
+   * @nullable
+   */
   startbelegCreatedAtUtc?: string | null;
   startingBalance?: number;
   status?: RegisterStatus;
@@ -56,7 +82,10 @@ export interface CashRegisterDto {
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
-  /** @nullable */
+  /**
+   * healthy | degraded | offline | notConfigured
+   * @nullable
+   */
   tseHealthStatus?: string | null;
   /** @nullable */
   updatedAt?: string | null;

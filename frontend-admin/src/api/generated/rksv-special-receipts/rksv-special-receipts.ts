@@ -34,6 +34,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence) for year and optional month (defaults to current Vienna month).
+ */
 export const postApiRksvSpecialReceiptsNullbeleg = (
     createNullbelegRequest: CreateNullbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -72,7 +75,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvSpecialReceiptsNullbelegMutationBody = CreateNullbelegRequest
     export type PostApiRksvSpecialReceiptsNullbelegMutationError = ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsNullbeleg = <TError = ProblemDetails,
+    /**
+ * @summary Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence) for year and optional month (defaults to current Vienna month).
+ */
+export const usePostApiRksvSpecialReceiptsNullbeleg = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsNullbeleg>>, TError,{data: CreateNullbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsNullbeleg>>,
@@ -85,7 +91,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiRksvSpecialReceiptsStartbeleg = (
+    /**
+ * @summary Creates RKSV Startbeleg (first zero TSE receipt for the register).
+ */
+export const postApiRksvSpecialReceiptsStartbeleg = (
     createStartbelegRequest: CreateStartbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -123,7 +132,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvSpecialReceiptsStartbelegMutationBody = CreateStartbelegRequest
     export type PostApiRksvSpecialReceiptsStartbelegMutationError = ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsStartbeleg = <TError = ProblemDetails,
+    /**
+ * @summary Creates RKSV Startbeleg (first zero TSE receipt for the register).
+ */
+export const usePostApiRksvSpecialReceiptsStartbeleg = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsStartbeleg>>, TError,{data: CreateStartbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsStartbeleg>>,
@@ -136,7 +148,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiRksvSpecialReceiptsMonatsbeleg = (
+    /**
+ * @summary Creates RKSV Monatsbeleg (monthly zero TSE receipt for a Vienna calendar month).
+ */
+export const postApiRksvSpecialReceiptsMonatsbeleg = (
     createMonatsbelegRequest: CreateMonatsbelegRequest,
     params?: PostApiRksvSpecialReceiptsMonatsbelegParams,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -176,7 +191,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvSpecialReceiptsMonatsbelegMutationBody = CreateMonatsbelegRequest
     export type PostApiRksvSpecialReceiptsMonatsbelegMutationError = MonatsbelegWarningResponse | ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsMonatsbeleg = <TError = MonatsbelegWarningResponse | ProblemDetails,
+    /**
+ * @summary Creates RKSV Monatsbeleg (monthly zero TSE receipt for a Vienna calendar month).
+ */
+export const usePostApiRksvSpecialReceiptsMonatsbeleg = <TError = MonatsbelegWarningResponse | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>,
@@ -189,7 +207,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiRksvSpecialReceiptsJahresbeleg = (
+    /**
+ * @summary Creates RKSV Jahresbeleg (annual zero TSE receipt for a Vienna calendar year).
+ */
+export const postApiRksvSpecialReceiptsJahresbeleg = (
     createJahresbelegRequest: CreateJahresbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -227,7 +248,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvSpecialReceiptsJahresbelegMutationBody = CreateJahresbelegRequest
     export type PostApiRksvSpecialReceiptsJahresbelegMutationError = ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsJahresbeleg = <TError = ProblemDetails,
+    /**
+ * @summary Creates RKSV Jahresbeleg (annual zero TSE receipt for a Vienna calendar year).
+ */
+export const usePostApiRksvSpecialReceiptsJahresbeleg = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsJahresbeleg>>, TError,{data: CreateJahresbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsJahresbeleg>>,
@@ -240,7 +264,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiRksvSpecialReceiptsSchlussbeleg = (
+    /**
+ * @summary Creates RKSV Schlussbeleg (Endbeleg) and permanently decommissions the cash register.
+ */
+export const postApiRksvSpecialReceiptsSchlussbeleg = (
     createSchlussbelegRequest: CreateSchlussbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -278,7 +305,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiRksvSpecialReceiptsSchlussbelegMutationBody = CreateSchlussbelegRequest
     export type PostApiRksvSpecialReceiptsSchlussbelegMutationError = ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsSchlussbeleg = <TError = ProblemDetails,
+    /**
+ * @summary Creates RKSV Schlussbeleg (Endbeleg) and permanently decommissions the cash register.
+ */
+export const usePostApiRksvSpecialReceiptsSchlussbeleg = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsSchlussbeleg>>, TError,{data: CreateSchlussbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsSchlussbeleg>>,

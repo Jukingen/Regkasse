@@ -8,6 +8,9 @@
 import type { TenantProfileImpactCounts } from './tenantProfileImpactCounts';
 import type { TenantProfileImpactWarning } from './tenantProfileImpactWarning';
 
+/**
+ * Rows that stay in the database and would be hidden by the target profile.
+ */
 export interface TenantProfileImpactDto {
   counts?: TenantProfileImpactCounts;
   /** @nullable */

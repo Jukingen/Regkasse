@@ -8,6 +8,7 @@
 
 export interface UpdatePreorderStatusRequest {
   /**
+   * Required when KasseAPI_Final.DTOs.UpdatePreorderStatusRequest.Status is cancelled; forwarded to existing fiscal storno.
    * @maxLength 500
    * @nullable
    */

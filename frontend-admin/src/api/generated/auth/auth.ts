@@ -34,6 +34,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Extends the current auth session idle window by updating last-activity on `auth_sessions`.
+ */
 export const postApiAuthRefreshSession = (
 
  options?: SecondParameter<typeof customInstance>,) => {
@@ -70,7 +73,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAuthRefreshSessionMutationError = unknown
 
-    export const usePostApiAuthRefreshSession = <TError = unknown,
+    /**
+ * @summary Extends the current auth session idle window by updating last-activity on `auth_sessions`.
+ */
+export const usePostApiAuthRefreshSession = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRefreshSession>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthRefreshSession>>,
@@ -83,7 +89,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthForgotUsername = (
+    /**
+ * @summary Sends the current login username for the given email (admin app). Always returns success to avoid account enumeration.
+Username change history remains in audit tables only — not included in this email.
+ */
+export const postApiAuthForgotUsername = (
     forgotUsernameRequest: ForgotUsernameRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -121,7 +131,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthForgotUsernameMutationBody = ForgotUsernameRequest
     export type PostApiAuthForgotUsernameMutationError = unknown
 
-    export const usePostApiAuthForgotUsername = <TError = unknown,
+    /**
+ * @summary Sends the current login username for the given email (admin app). Always returns success to avoid account enumeration.
+Username change history remains in audit tables only — not included in this email.
+ */
+export const usePostApiAuthForgotUsername = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthForgotUsername>>, TError,{data: ForgotUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthForgotUsername>>,
@@ -134,7 +148,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthForgotPassword = (
+    /**
+ * @summary Sends a password reset email for the given address (admin app). Always returns success to avoid account enumeration.
+ */
+export const postApiAuthForgotPassword = (
     forgotPasswordRequest: ForgotPasswordRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -172,7 +189,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthForgotPasswordMutationBody = ForgotPasswordRequest
     export type PostApiAuthForgotPasswordMutationError = unknown
 
-    export const usePostApiAuthForgotPassword = <TError = unknown,
+    /**
+ * @summary Sends a password reset email for the given address (admin app). Always returns success to avoid account enumeration.
+ */
+export const usePostApiAuthForgotPassword = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthForgotPassword>>, TError,{data: ForgotPasswordRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthForgotPassword>>,
@@ -185,7 +205,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthLogin = (
+    /**
+ * @summary Authenticates a cashier or admin by username or email and returns a JWT.
+ */
+export const postApiAuthLogin = (
     loginModel: LoginModel,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -223,7 +246,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthLoginMutationBody = LoginModel
     export type PostApiAuthLoginMutationError = ProblemDetails
 
-    export const usePostApiAuthLogin = <TError = ProblemDetails,
+    /**
+ * @summary Authenticates a cashier or admin by username or email and returns a JWT.
+ */
+export const usePostApiAuthLogin = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogin>>, TError,{data: LoginModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthLogin>>,
@@ -236,7 +262,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthVerify2fa = (
+    /**
+ * @summary Completes SuperAdmin login after TOTP verification (Production only; Development skips 2FA at login).
+ */
+export const postApiAuthVerify2fa = (
     verifyTwoFactorModel: VerifyTwoFactorModel,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -274,7 +303,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthVerify2faMutationBody = VerifyTwoFactorModel
     export type PostApiAuthVerify2faMutationError = ProblemDetails
 
-    export const usePostApiAuthVerify2fa = <TError = ProblemDetails,
+    /**
+ * @summary Completes SuperAdmin login after TOTP verification (Production only; Development skips 2FA at login).
+ */
+export const usePostApiAuthVerify2fa = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthVerify2fa>>, TError,{data: VerifyTwoFactorModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthVerify2fa>>,
@@ -287,7 +319,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthLogout = (
+    /**
+ * @summary Ends the current session, revokes its refresh token, and clears auth cookies.
+ */
+export const postApiAuthLogout = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -323,7 +358,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAuthLogoutMutationError = unknown
 
-    export const usePostApiAuthLogout = <TError = unknown,
+    /**
+ * @summary Ends the current session, revokes its refresh token, and clears auth cookies.
+ */
+export const usePostApiAuthLogout = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthLogout>>,
@@ -336,7 +374,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAuthMe = (
+    /**
+ * @summary GET /me — returns current user; 401 if token missing/invalid or no user id claims.
+ */
+export const getApiAuthMe = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -375,6 +416,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAuthMeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuthMe>>>
 export type GetApiAuthMeQueryError = ProblemDetails
 
+/**
+ * @summary GET /me — returns current user; 401 if token missing/invalid or no user id claims.
+ */
 export const useGetApiAuthMe = <TData = Awaited<ReturnType<typeof getApiAuthMe>>, TError = ProblemDetails>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuthMe>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -391,6 +435,13 @@ export const useGetApiAuthMe = <TData = Awaited<ReturnType<typeof getApiAuthMe>>
 
 
 
+/**
+ * @summary Rotates refresh + access tokens (opaque refresh rotation, reuse detection).
+Used by FA silent proactive refresh (~5 min before JWT `exp`) and 401 recovery.
+Optional KasseAPI_Final.Models.RefreshRequest.TenantId rebinds JWT `tenant_id`.
+Browser clients may omit the body token — the HttpOnly app-specific refresh cookie is used
+(`rk_admin_refresh_token` or `rk_pos_refresh_token`).
+ */
 export const postApiAuthRefresh = (
     refreshRequest: RefreshRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -429,7 +480,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthRefreshMutationBody = RefreshRequest
     export type PostApiAuthRefreshMutationError = unknown
 
-    export const usePostApiAuthRefresh = <TError = unknown,
+    /**
+ * @summary Rotates refresh + access tokens (opaque refresh rotation, reuse detection).
+Used by FA silent proactive refresh (~5 min before JWT `exp`) and 401 recovery.
+Optional KasseAPI_Final.Models.RefreshRequest.TenantId rebinds JWT `tenant_id`.
+Browser clients may omit the body token — the HttpOnly app-specific refresh cookie is used
+(`rk_admin_refresh_token` or `rk_pos_refresh_token`).
+ */
+export const usePostApiAuthRefresh = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRefresh>>, TError,{data: RefreshRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthRefresh>>,
@@ -442,7 +500,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthRegister = (
+    /**
+ * @summary Registers a new user account. Disabled outside the flows that already allow self-registration.
+ */
+export const postApiAuthRegister = (
     registerModel: RegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -480,7 +541,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthRegisterMutationBody = RegisterModel
     export type PostApiAuthRegisterMutationError = unknown
 
-    export const usePostApiAuthRegister = <TError = unknown,
+    /**
+ * @summary Registers a new user account. Disabled outside the flows that already allow self-registration.
+ */
+export const usePostApiAuthRegister = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRegister>>, TError,{data: RegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthRegister>>,
@@ -493,7 +557,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthLogoutAll = (
+    /**
+ * @summary Revokes every session for the current user and rotates the security stamp.
+ */
+export const postApiAuthLogoutAll = (
 
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -529,7 +596,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAuthLogoutAllMutationError = unknown
 
-    export const usePostApiAuthLogoutAll = <TError = unknown,
+    /**
+ * @summary Revokes every session for the current user and rotates the security stamp.
+ */
+export const usePostApiAuthLogoutAll = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthLogoutAll>>,
@@ -542,7 +612,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAuthRevoke = (
+    /**
+ * @summary Revokes a single refresh token presented by the client.
+ */
+export const postApiAuthRevoke = (
     refreshTokenModel: RefreshTokenModel,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -580,7 +653,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiAuthRevokeMutationBody = RefreshTokenModel
     export type PostApiAuthRevokeMutationError = unknown
 
-    export const usePostApiAuthRevoke = <TError = unknown,
+    /**
+ * @summary Revokes a single refresh token presented by the client.
+ */
+export const usePostApiAuthRevoke = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRevoke>>, TError,{data: RefreshTokenModel}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAuthRevoke>>,

@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Device-session list shape for `/api/user/sessions/devices`
+(mapped from KasseAPI_Final.Models.DTOs.ActiveSessionDto).
+ */
 export interface UserSessionDto {
   /** @nullable */
   browser?: string | null;

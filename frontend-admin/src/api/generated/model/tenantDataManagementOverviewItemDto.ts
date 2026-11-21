@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Super Admin cross-tenant data-management row (lifecycle + RKSV retention + deletion requests).
+ */
 export interface TenantDataManagementOverviewItemDto {
   /** @nullable */
   customerDataPurgedAtUtc?: string | null;

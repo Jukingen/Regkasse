@@ -18,7 +18,10 @@ export interface BackupVerificationReportDto {
   logicalDumpAnalysisMessage?: string | null;
   logicalDumpAnalyzed?: boolean;
   sourceStatistics?: BackupSourceDatabaseStatisticsDto;
-  /** @nullable */
+  /**
+   * `Verified`, `PartiallyVerified`, or `NotVerified`.
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   tableStatistics?: BackupTableStatisticsDto[] | null;

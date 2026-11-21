@@ -10,6 +10,7 @@ export interface SchedulePermissionAuditReportRequest {
   /** @nullable */
   actorUserId?: string | null;
   /**
+   * permission-csv | permission-json | permission-pdf (or csv/json/pdf).
    * @maxLength 32
    * @nullable
    */
@@ -22,6 +23,7 @@ export interface SchedulePermissionAuditReportRequest {
    */
   name: string;
   /**
+   * weekly | monthly | compliance — used when Schedule is empty.
    * @maxLength 32
    * @nullable
    */
@@ -31,6 +33,7 @@ export interface SchedulePermissionAuditReportRequest {
   /** @nullable */
   roleName?: string | null;
   /**
+   * Optional cron (UTC). Overrides Preset when set.
    * @maxLength 64
    * @nullable
    */

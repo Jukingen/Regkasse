@@ -8,6 +8,9 @@
 import type { PosCustomerAddressDataDto } from './posCustomerAddressDataDto';
 import type { PosCustomerPetDataDto } from './posCustomerPetDataDto';
 
+/**
+ * POS customer lookup response (QR scan).
+ */
 export interface PosCustomerDto {
   /** @nullable */
   address?: string | null;

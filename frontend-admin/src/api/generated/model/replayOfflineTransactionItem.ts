@@ -8,10 +8,16 @@
 
 export interface ReplayOfflineTransactionItem {
   cashRegisterId: string;
-  /** @nullable */
+  /**
+   * Optional client sequence number used for monotonic client sequence tracking.
+   * @nullable
+   */
   clientSequenceNumber?: number | null;
   createdAtUtc: string;
-  /** @nullable */
+  /**
+   * Optional device id used for monotonic client sequence tracking.
+   * @nullable
+   */
   deviceId?: string | null;
   offlineTransactionId: string;
   payload: unknown;

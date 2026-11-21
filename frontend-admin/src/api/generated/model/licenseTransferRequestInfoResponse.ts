@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS helper response for `GET /api/admin/license/transfer-request/{licenseKey}`.
+ */
 export interface LicenseTransferRequestInfoResponse {
   /** @nullable */
   customerNameMasked?: string | null;

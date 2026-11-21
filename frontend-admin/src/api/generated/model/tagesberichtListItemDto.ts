@@ -19,6 +19,7 @@ export interface TagesberichtListItemDto {
   /** @nullable */
   reportStatus?: string | null;
   reportVersion?: number;
+  salePaymentRowCount?: number;
   submission?: TagesberichtSubmissionStateDto;
   /** @nullable */
   submissionImpact?: string | null;

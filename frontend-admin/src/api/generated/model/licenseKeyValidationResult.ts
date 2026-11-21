@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Key-based validation result for KasseAPI_Final.Services.License.IUnifiedLicenseService.
+Distinct from KasseAPI_Final.Models.LicenseValidationResult (deployment snapshot used by middleware).
+ */
 export interface LicenseKeyValidationResult {
   /** @nullable */
   canonicalLicenseKey?: string | null;

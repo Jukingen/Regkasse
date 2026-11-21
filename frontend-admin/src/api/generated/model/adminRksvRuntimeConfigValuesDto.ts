@@ -7,6 +7,7 @@
  */
 
 export interface AdminRksvRuntimeConfigValuesDto {
+  /** Development-only TSE health bypass overlay. Ignored when TseMode is Real or host is not Development. */
   bypassTseInDevelopment?: boolean;
   /** @nullable */
   finanzOnlineMode?: string | null;

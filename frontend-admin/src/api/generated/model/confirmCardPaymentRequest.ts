@@ -6,9 +6,18 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POS card payment confirm (spec-aligned).
+ */
 export interface ConfirmCardPaymentRequest {
-  /** @nullable */
+  /**
+   * Internal intent id (Guid) or gateway payment intent id (e.g. pi_xxx).
+   * @nullable
+   */
   paymentIntentId?: string | null;
-  /** @nullable */
+  /**
+   * Simulated card number or Stripe payment method id (pm_xxx).
+   * @nullable
+   */
   paymentMethodId?: string | null;
 }

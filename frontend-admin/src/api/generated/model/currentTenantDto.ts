@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Current mandant row bound on !:Tenancy.ICurrentTenantAccessor (FA tenant context provider).
+ */
 export interface CurrentTenantDto {
   id?: string;
   licenseValid?: boolean;

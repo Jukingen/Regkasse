@@ -8,6 +8,9 @@
 import type { ProductModifierGroup } from './productModifierGroup';
 import type { Product } from './product';
 
+/**
+ * Ürün ile modifier grubu arasında M:N atama. Hangi ürünün hangi grupları kullanabileceğini tanımlar.
+ */
 export interface ProductModifierGroupAssignment {
   modifierGroup?: ProductModifierGroup;
   modifierGroupId?: string;

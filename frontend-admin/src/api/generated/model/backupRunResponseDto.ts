@@ -16,49 +16,83 @@ import type { BackupVerificationResponseDto } from './backupVerificationResponse
 export interface BackupRunResponseDto {
   /** @nullable */
   adapterKind?: string | null;
-  /** @nullable */
+  /**
+   * İngilizce: !:CompletenessFlag ve terminal `Succeeded` ilişkisi (adapter’a göre; restore kanıtı değil).
+   * @nullable
+   */
   artifactCompletenessPolicyNote?: string | null;
   /** @nullable */
   artifacts?: BackupArtifactResponseDto[] | null;
+  /** Otomatik requeue tur sayısı (başarılı otomatik yeniden kuyruğa alma sonrası artar). */
   automaticRetryCount?: number;
-  /** @nullable */
+  /**
+   * Son otomatik requeue planlamasının UTC zamanı.
+   * @nullable
+   */
   automaticRetryLastScheduledAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Sunucudaki etkin `Backup:AutomaticRetryMaxAttempts` (bilgilendirme; 0 ise otomatik requeue kapalı).
+   * @nullable
+   */
   automaticRetryMaxAttemptsBudget?: number | null;
-  /** @nullable */
+  /**
+   * Bekleyen otomatik requeue sınıfı (İngilizce sabit; null: plan yok).
+   * @nullable
+   */
   automaticRetryPendingClassifiedReason?: string | null;
   /** @nullable */
   completedAt?: string | null;
-  /** @nullable */
+  /**
+   * Backup artifact total size as percent of estimated original DB size when known;
+otherwise (original / logical dump) * 100 from artifact metadata.
+   * @nullable
+   */
   compressionRatio?: number | null;
-  /** @nullable */
+  /**
+   * Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).
+   * @nullable
+   */
   configSnapshotJson?: string | null;
   /** @nullable */
   correlationId?: string | null;
   downloadCount?: number;
   duplicatePrevented?: boolean;
-  /** @nullable */
+  /**
+   * English human-readable duration (e.g. "2m 30s").
+   * @nullable
+   */
   durationFormatted?: string | null;
-  /** @nullable */
+  /**
+   * Wall-clock duration from KasseAPI_Final.DTOs.BackupRunResponseDto.StartedAt to KasseAPI_Final.DTOs.BackupRunResponseDto.CompletedAt in seconds.
+   * @nullable
+   */
   durationSeconds?: number | null;
   /** @nullable */
   failureCode?: string | null;
   /** @nullable */
   failureDetail?: string | null;
+  /** True when materialized artifacts include a LogicalDump row (metadata); does not assert production pg_dump format. */
   hasLogicalDumpArtifact?: boolean;
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
   inColdStorage?: boolean;
+  /** True when KasseAPI_Final.DTOs.BackupRunResponseDto.AdapterKind is Fake or ProductionStub (no pg_dump; stub or placeholder execution). */
   isSimulatedExecution?: boolean;
-  /** @nullable */
+  /**
+   * Son kayıtlı terminal hata kodu (Succeeded sonrası temizlenir).
+   * @nullable
+   */
   lastRecordedTerminalFailureCode?: string | null;
   legalHold?: boolean;
   /** @nullable */
   legalHoldReason?: string | null;
   /** @nullable */
   legalHoldUntilUtc?: string | null;
-  /** @nullable */
+  /**
+   * Planlanan otomatik requeue UTC zamanı; null ise bekleyen otomatik requeue yok.
+   * @nullable
+   */
   nextRetryAtUtc?: string | null;
   pipeline?: BackupPipelineSnapshotDto;
   /** @nullable */
@@ -91,9 +125,15 @@ export interface BackupRunResponseDto {
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
-  /** @nullable */
+  /**
+   * Sum of artifact byte sizes when children are loaded; null when artifacts were not included.
+   * @nullable
+   */
   totalSizeBytes?: number | null;
-  /** @nullable */
+  /**
+   * English human-readable total size (e.g. "12.5 MB").
+   * @nullable
+   */
   totalSizeFormatted?: string | null;
   triggerSource?: BackupTriggerSource;
   /** @nullable */

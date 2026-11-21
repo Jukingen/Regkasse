@@ -6,10 +6,16 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Response payload for `POST /api/admin/license/generate`.
+ */
 export interface GenerateLicenseResponse {
   /** @nullable */
   expiryAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * Same as KasseAPI_Final.Controllers.GenerateLicenseResponse.SignedJwt; stable alias for newer clients.
+   * @nullable
+   */
   readonly licenseJwt?: string | null;
   /** @nullable */
   licenseKey?: string | null;

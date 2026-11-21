@@ -6,14 +6,26 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One Vienna calendar day in KasseAPI_Final.Models.DailyClosingCalendarDto.
+KasseAPI_Final.Models.DailyClosingDayDto.ClosingType here is the day kind (`normal`/`empty`), not Daily/Monthly/Yearly.
+ */
 export interface DailyClosingDayDto {
+  /** True when a daily closing can still be created (not closed, not a future Vienna day, register exists). */
   canClose?: boolean;
   /** @nullable */
   closingId?: string | null;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.Models.DailyClosingDayDto.DayKind for calendar consumers (not period type).
+   * @nullable
+   */
   closingType?: string | null;
+  /** Vienna calendar date (JSON `yyyy-MM-dd`). */
   date?: string;
-  /** @nullable */
+  /**
+   * `normal`, `empty`, or null when the day is not closed.
+   * @nullable
+   */
   dayKind?: string | null;
   isClosed?: boolean;
   isFuture?: boolean;

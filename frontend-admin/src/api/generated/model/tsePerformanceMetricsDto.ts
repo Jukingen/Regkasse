@@ -7,6 +7,9 @@
  */
 import type { TsePerformancePointDto } from './tsePerformancePointDto';
 
+/**
+ * Aggregated TSE health-probe performance for a device over a time window.
+ */
 export interface TsePerformanceMetricsDto {
   averageResponseTime?: number;
   criticalThresholdMs?: number;

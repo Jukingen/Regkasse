@@ -6,14 +6,20 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Open/close times for a single weekday (local restaurant clock, HH:mm).
+ */
 export interface WorkingHoursDay {
   /**
+   * Local close time as `HH:mm` (24h). When earlier than open, closing is next calendar day.
    * @maxLength 5
    * @nullable
    */
   closeTime?: string | null;
+  /** When true, the restaurant is closed this weekday (no hours-based Tagesabschluss reminder). */
   isClosed?: boolean;
   /**
+   * Local open time as `HH:mm` (24h). Ignored when KasseAPI_Final.Models.WorkingHoursDay.IsClosed.
    * @maxLength 5
    * @nullable
    */

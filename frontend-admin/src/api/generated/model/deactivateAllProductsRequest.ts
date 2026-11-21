@@ -7,6 +7,9 @@
  */
 
 export interface DeactivateAllProductsRequest {
-  /** @nullable */
+  /**
+   * Required confirmation phrase to prevent accidental API calls.
+   * @nullable
+   */
   confirmPhrase?: string | null;
 }

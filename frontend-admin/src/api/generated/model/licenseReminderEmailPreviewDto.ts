@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Sample mandant license reminder email for Super Admin FA preview (no SMTP send).
+ */
 export interface LicenseReminderEmailPreviewDto {
   daysUntilExpiry?: number;
   /** @nullable */

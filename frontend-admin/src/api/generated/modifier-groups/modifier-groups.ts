@@ -29,6 +29,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Tüm modifier gruplarını listele (Add-on Products; fiyat Product'tan).
+ */
 export const getApiModifierGroups = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -68,6 +71,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiModifierGroupsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiModifierGroups>>>
 export type GetApiModifierGroupsQueryError = unknown
 
+/**
+ * @summary Tüm modifier gruplarını listele (Add-on Products; fiyat Product'tan).
+ */
 export const useGetApiModifierGroups = <TData = Awaited<ReturnType<typeof getApiModifierGroups>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -84,6 +90,9 @@ export const useGetApiModifierGroups = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * @summary Yeni modifier group oluştur.
+ */
 export const postApiModifierGroups = (
     createModifierGroupRequest: CreateModifierGroupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -122,7 +131,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiModifierGroupsMutationBody = CreateModifierGroupRequest
     export type PostApiModifierGroupsMutationError = unknown
 
-    export const usePostApiModifierGroups = <TError = unknown,
+    /**
+ * @summary Yeni modifier group oluştur.
+ */
+export const usePostApiModifierGroups = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroups>>, TError,{data: CreateModifierGroupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiModifierGroups>>,
@@ -135,7 +147,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiModifierGroupsId = (
+    /**
+ * @summary Tekil modifier group getir. Products (AddOnGroupProduct + Product); fiyat Product'tan.
+ */
+export const getApiModifierGroupsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -174,6 +189,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiModifierGroupsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiModifierGroupsId>>>
 export type GetApiModifierGroupsIdQueryError = unknown
 
+/**
+ * @summary Tekil modifier group getir. Products (AddOnGroupProduct + Product); fiyat Product'tan.
+ */
 export const useGetApiModifierGroupsId = <TData = Awaited<ReturnType<typeof getApiModifierGroupsId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroupsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -190,6 +208,9 @@ export const useGetApiModifierGroupsId = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * @summary Modifier group güncelle.
+ */
 export const putApiModifierGroupsId = (
     id: string,
     createModifierGroupRequest: CreateModifierGroupRequest,
@@ -229,7 +250,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiModifierGroupsIdMutationBody = CreateModifierGroupRequest
     export type PutApiModifierGroupsIdMutationError = unknown
 
-    export const usePutApiModifierGroupsId = <TError = unknown,
+    /**
+ * @summary Modifier group güncelle.
+ */
+export const usePutApiModifierGroupsId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiModifierGroupsId>>, TError,{id: string;data: CreateModifierGroupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiModifierGroupsId>>,
@@ -242,7 +266,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiModifierGroupsId = (
+    /**
+ * @summary Modifier group sil (soft: IsActive = false).
+ */
+export const deleteApiModifierGroupsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -278,7 +305,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiModifierGroupsIdMutationError = unknown
 
-    export const useDeleteApiModifierGroupsId = <TError = unknown,
+    /**
+ * @summary Modifier group sil (soft: IsActive = false).
+ */
+export const useDeleteApiModifierGroupsId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiModifierGroupsId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiModifierGroupsId>>,
@@ -293,6 +323,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     }
     /**
  * @deprecated
+ * @summary Gruba yeni modifier ekle. Legacy: creation frozen (Phase 2).
+Returns 410 Gone. Use POST .../products (add-on products) instead. Kept for route stability; remove in Phase 3 when no clients call it.
  */
 export const postApiModifierGroupsGroupIdModifiers = (
     groupId: string,
@@ -335,6 +367,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     /**
  * @deprecated
+ * @summary Gruba yeni modifier ekle. Legacy: creation frozen (Phase 2).
+Returns 410 Gone. Use POST .../products (add-on products) instead. Kept for route stability; remove in Phase 3 when no clients call it.
  */
 export const usePostApiModifierGroupsGroupIdModifiers = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroupsGroupIdModifiers>>, TError,{groupId: string;data: CreateModifierRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -349,7 +383,10 @@ export const usePostApiModifierGroupsGroupIdModifiers = <TError = unknown,
 
       return useMutation(mutationOptions);
     }
-    export const postApiModifierGroupsIdProducts = (
+    /**
+ * @summary Faz 1: Gruba product ekle (mevcut product veya yeni Zusatzprodukt). Fiyat her zaman Product tablosundan; grup satırı fiyat taşımaz.
+ */
+export const postApiModifierGroupsIdProducts = (
     id: string,
     addProductToGroupRequest: AddProductToGroupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -388,7 +425,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiModifierGroupsIdProductsMutationBody = AddProductToGroupRequest
     export type PostApiModifierGroupsIdProductsMutationError = unknown
 
-    export const usePostApiModifierGroupsIdProducts = <TError = unknown,
+    /**
+ * @summary Faz 1: Gruba product ekle (mevcut product veya yeni Zusatzprodukt). Fiyat her zaman Product tablosundan; grup satırı fiyat taşımaz.
+ */
+export const usePostApiModifierGroupsIdProducts = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroupsIdProducts>>, TError,{id: string;data: AddProductToGroupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiModifierGroupsIdProducts>>,
@@ -401,7 +441,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiModifierGroupsGroupIdProductsProductId = (
+    /**
+ * @summary Faz 1: Produkt aus Gruppe entfernen (nur die Zuordnung; Product bleibt erhalten).
+ */
+export const deleteApiModifierGroupsGroupIdProductsProductId = (
     groupId: string,
     productId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -438,7 +481,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiModifierGroupsGroupIdProductsProductIdMutationError = unknown
 
-    export const useDeleteApiModifierGroupsGroupIdProductsProductId = <TError = unknown,
+    /**
+ * @summary Faz 1: Produkt aus Gruppe entfernen (nur die Zuordnung; Product bleibt erhalten).
+ */
+export const useDeleteApiModifierGroupsGroupIdProductsProductId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiModifierGroupsGroupIdProductsProductId>>, TError,{groupId: string;productId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiModifierGroupsGroupIdProductsProductId>>,

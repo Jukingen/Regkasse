@@ -8,6 +8,7 @@
 
 export interface CreateMaintenanceNotificationRequestDto {
   /**
+   * POS, FA, API, All — or comma-separated combination.
    * @minLength 1
    * @maxLength 64
    */
@@ -26,6 +27,7 @@ export interface CreateMaintenanceNotificationRequestDto {
    * @maximum 5
    */
   priority?: number;
+  /** When true, create already Published. */
   publishImmediately?: boolean;
   scheduledEndAt: string;
   scheduledStartAt: string;

@@ -7,6 +7,9 @@
  */
 import type { TseCohortRowDto } from './tseCohortRowDto';
 
+/**
+ * Weekly signup-cohort retention for POS/admin sessions.
+ */
 export interface TseCohortAnalysisResultDto {
   /** @nullable */
   cohorts?: TseCohortRowDto[] | null;

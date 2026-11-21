@@ -19,13 +19,19 @@ export interface LimitStatusDto {
   key?: string | null;
   limit?: number;
   percentage?: number;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.LimitUsageStatuses.Healthy, KasseAPI_Final.DTOs.LimitUsageStatuses.Warning, or KasseAPI_Final.DTOs.LimitUsageStatuses.Critical.
+   * @nullable
+   */
   status?: string | null;
   tenantId?: string;
   /** @nullable */
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.LimitUsageStatuses.Increasing, KasseAPI_Final.DTOs.LimitUsageStatuses.Stable, or KasseAPI_Final.DTOs.LimitUsageStatuses.Decreasing.
+   * @nullable
+   */
   trend?: string | null;
 }

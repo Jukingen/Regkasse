@@ -14,10 +14,16 @@ export interface OperationalSummaryDto {
   byCashier?: CashierBucketDto[] | null;
   /** @nullable */
   byPaymentMethod?: PaymentMethodBucketDto[] | null;
-  /** @nullable */
+  /**
+   * Tagesabschluss / Kassenabschluss ile ilişkilendirme notu.
+   * @nullable
+   */
   closingDisclaimer?: string | null;
   grossTotalAmount?: number;
-  /** @nullable */
+  /**
+   * Donanım TSE X raporu değildir — kasa içi ara özet.
+   * @nullable
+   */
   interimDisclaimer?: string | null;
   meta?: OperationalReportMetaDto;
   paymentRowCount?: number;

@@ -7,6 +7,7 @@
  */
 
 export interface EnableTenantDigitalServiceRequestDto {
+  /** Maps to `TenantServiceStatus.IsEnabled` (Mandanten preference). */
   enabled?: boolean;
   /** @nullable */
   serviceType?: string | null;

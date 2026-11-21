@@ -7,6 +7,9 @@
  */
 import type { RksvReminderStatusDto } from './rksvReminderStatusDto';
 
+/**
+ * Per-register unified RKSV reminder status for dashboard overview (single HTTP round-trip).
+ */
 export interface RksvReminderRegisterStatusItemDto {
   cashRegisterId?: string;
   status?: RksvReminderStatusDto;

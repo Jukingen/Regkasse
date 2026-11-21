@@ -9,6 +9,7 @@ import type { DepExportStatisticsDtoExportsByType } from './depExportStatisticsD
 import type { DepExportStatisticsDtoExportsByYear } from './depExportStatisticsDtoExportsByYear';
 
 export interface DepExportStatisticsDto {
+  /** Average completed export size in bytes. */
   averageExportSizeBytes?: number;
   /** @nullable */
   exportsByType?: DepExportStatisticsDtoExportsByType;
@@ -21,8 +22,10 @@ export interface DepExportStatisticsDto {
   /** @nullable */
   nextDueDate?: string | null;
   successfulExports?: number;
+  /** 0–100 success percentage among terminal statuses (Completed + Failed). */
   successRate?: number;
   totalExports?: number;
+  /** Total storage of completed exports in the window (megabytes). */
   totalStorageUsedMb?: number;
   toUtc?: string;
 }

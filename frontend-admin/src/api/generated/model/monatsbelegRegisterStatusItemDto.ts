@@ -7,6 +7,9 @@
  */
 import type { MonatsbelegStatusDto } from './monatsbelegStatusDto';
 
+/**
+ * Per-register Monatsbeleg status for dashboard overview (single HTTP round-trip).
+ */
 export interface MonatsbelegRegisterStatusItemDto {
   cashRegisterId?: string;
   status?: MonatsbelegStatusDto;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Assign modifier groups to a product.
+ */
 export interface SetProductModifierGroupsRequest {
   /** @nullable */
   modifierGroupIds?: string[] | null;

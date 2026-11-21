@@ -7,7 +7,10 @@
  */
 
 export interface TseBiExportRequestDto {
-  /** @nullable */
+  /**
+   * csv | pdf
+   * @nullable
+   */
   format?: string | null;
   lookbackDays?: number;
   tenantId?: string;

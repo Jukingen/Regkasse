@@ -10,7 +10,10 @@ export interface DailyClosingDaySummaryDto {
   canClose?: boolean;
   /** @nullable */
   closingId?: string | null;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.Models.DailyClosingDaySummaryDto.DayKind (normal/empty), not Daily/Monthly/Yearly.
+   * @nullable
+   */
   closingType?: string | null;
   date?: string;
   /** @nullable */

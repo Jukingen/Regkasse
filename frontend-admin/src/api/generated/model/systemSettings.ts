@@ -78,6 +78,7 @@ export interface SystemSettings {
    */
   invoicePrefix?: string | null;
   isActive?: boolean;
+  /** When true, POS keeps cart state after idle logout (client-side). */
   keepCartAfterTimeout?: boolean;
   /** @nullable */
   lastBackup?: string | null;
@@ -87,6 +88,8 @@ export interface SystemSettings {
    */
   maxBackupFiles?: number;
   /**
+   * Comma-separated online checkout methods (card, paypal, bank, cash, online).
+Stripe/platform keys remain in `PaymentGateway` config — not stored here.
    * @maxLength 100
    * @nullable
    */
@@ -101,13 +104,16 @@ export interface SystemSettings {
    * @nullable
    */
   receiptTemplate?: string | null;
+  /** When false, idle auto-logout and warning modal are disabled for the tenant. */
   sessionIdleTimeoutEnabled?: boolean;
   /**
+   * Idle auto-logout after this many minutes (POS + Admin).
    * @minimum 5
    * @maximum 480
    */
   sessionTimeoutMinutes?: number;
   /**
+   * Warn users this many minutes before idle logout.
    * @minimum 1
    * @maximum 60
    */

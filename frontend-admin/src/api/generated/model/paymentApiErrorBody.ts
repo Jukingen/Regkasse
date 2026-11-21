@@ -9,10 +9,16 @@ import type { PaymentApiErrorContext } from './paymentApiErrorContext';
 import type { PaymentApiErrorBodyFieldErrors } from './paymentApiErrorBodyFieldErrors';
 import type { LimitErrorDto } from './limitErrorDto';
 
+/**
+ * Unified payment error body (v2). Aligns with !:ApiError where possible.
+ */
 export interface PaymentApiErrorBody {
   /** @nullable */
   apiVersion?: string | null;
-  /** @minLength 1 */
+  /**
+   * Stable machine code, e.g. PAYMENT_TSE_DEVICE_NOT_READY.
+   * @minLength 1
+   */
   code: string;
   context?: PaymentApiErrorContext;
   /** @nullable */

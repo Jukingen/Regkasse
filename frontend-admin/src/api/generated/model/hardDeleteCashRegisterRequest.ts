@@ -7,6 +7,9 @@
  */
 
 export interface HardDeleteCashRegisterRequest {
-  /** @minLength 1 */
+  /**
+   * Must be exactly `HARD_DELETE` when KasseAPI_Final.Configuration.CashRegisterComplianceOptions.AllowHardDelete is enabled.
+   * @minLength 1
+   */
   confirmPhrase: string;
 }

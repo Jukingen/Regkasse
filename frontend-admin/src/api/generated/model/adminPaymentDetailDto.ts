@@ -15,7 +15,10 @@ export interface AdminPaymentDetailDto {
   cancellationReason?: string | null;
   /** @nullable */
   cancelledAt?: string | null;
-  /** @nullable */
+  /**
+   * Resolved cashier display name for admin UX (falls back to KasseAPI_Final.Controllers.AdminPaymentDetailDto.CashierId).
+   * @nullable
+   */
   cashierDisplayName?: string | null;
   /** @nullable */
   cashierId?: string | null;
@@ -35,8 +38,12 @@ export interface AdminPaymentDetailDto {
   finanzOnlineRetryCount?: number;
   /** @nullable */
   finanzOnlineStatus?: string | null;
+  /** True when a fiscal storno reversal row exists for this original sale. */
   hasStornoReversal?: boolean;
-  /** @deprecated */
+  /**
+   * Derived from KasseAPI_Final.Controllers.AdminPaymentDetailDto.VoucherRedeemedAmount > 0; prefer the amount field.
+   * @deprecated
+   */
   hasVoucherRedemption?: boolean;
   id?: string;
   /** @nullable */

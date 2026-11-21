@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Request body for `POST /api/rksv/jahresbeleg/create` (Phase 3 snapshot).
+ */
 export interface CreateRksvJahresbelegRequest {
   cashRegisterId?: string;
   useDecemberMonatsbeleg?: boolean;

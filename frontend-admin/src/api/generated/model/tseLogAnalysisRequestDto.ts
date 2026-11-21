@@ -7,7 +7,10 @@
  */
 
 export interface TseLogAnalysisRequestDto {
-  /** @nullable */
+  /**
+   * Optional focus: Error | Warning | All
+   * @nullable
+   */
   focusLevel?: string | null;
   /** @nullable */
   fromUtc?: string | null;

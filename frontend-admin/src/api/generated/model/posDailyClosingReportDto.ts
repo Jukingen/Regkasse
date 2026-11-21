@@ -10,7 +10,10 @@ import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto'
 import type { TransactionBreakdown } from './transactionBreakdown';
 
 export interface PosDailyClosingReportDto {
-  /** @nullable */
+  /**
+   * Plain-text late-closing note when `DailyClosing.IsBackdated`.
+   * @nullable
+   */
   backdatedNotice?: string | null;
   businessDate?: string;
   cashCount?: number;
@@ -18,7 +21,10 @@ export interface PosDailyClosingReportDto {
   cashierName?: string | null;
   /** @nullable */
   cashRegisterId?: string | null;
-  /** @nullable */
+  /**
+   * Daily, Monthly, or Yearly — drives localized PDF title.
+   * @nullable
+   */
   closingType?: string | null;
   /** @nullable */
   companyAddress?: string | null;
@@ -29,7 +35,10 @@ export interface PosDailyClosingReportDto {
   /** @nullable */
   depExportStatusLabel?: string | null;
   difference?: number;
-  /** @nullable */
+  /**
+   * Explains shift-scoped cash difference vs calendar-day cash sales.
+   * @nullable
+   */
   differenceScopeNote?: string | null;
   /** @nullable */
   fiscalEnvironment?: string | null;
@@ -41,22 +50,39 @@ export interface PosDailyClosingReportDto {
   hasMonatsbeleg?: boolean;
   hasStartbeleg?: boolean;
   isDemoFiscal?: boolean;
+  /**
+   * Shown when open tables were forced. Fiscal totals stay paid invoices only.
+   * @nullable
+   */
+  openTablesForcedNotice?: string | null;
   paymentBreakdown?: PaymentBreakdown;
   /** @nullable */
   periodEndUtc?: string | null;
   /** @nullable */
   periodStartUtc?: string | null;
-  /** @nullable */
+  /**
+   * Compact JWS of the previous completed daily closing (signature chain).
+   * @nullable
+   */
   previousClosingSignature?: string | null;
-  /** @nullable */
+  /**
+   * RKSV §9 QR wire format in production; NON_FISCAL_DEMO marker in demo.
+   * @nullable
+   */
   qrPayload?: string | null;
   /** @nullable */
   registerNumber?: string | null;
   /** @nullable */
   rksvFooterLabel?: string | null;
-  /** @nullable */
+  /**
+   * Shown when payment-row Umsatz and signed fiscal gross diverge.
+   * @nullable
+   */
   salesFiscalReconciliationNote?: string | null;
-  /** @nullable */
+  /**
+   * RKSV Schicht-Nr. (short cashier shift id).
+   * @nullable
+   */
   shiftNumber?: string | null;
   /** @nullable */
   snapshotDisclaimerDe?: string | null;
@@ -72,7 +98,10 @@ export interface PosDailyClosingReportDto {
   /** @nullable */
   tseSignature?: string | null;
   tseSignatureVerified?: boolean;
-  /** @nullable */
+  /**
+   * Short badge: TSE AKTIV / TSE SIMULIERT.
+   * @nullable
+   */
   tseStatusBadge?: string | null;
   /** @nullable */
   tseStatusLabel?: string | null;

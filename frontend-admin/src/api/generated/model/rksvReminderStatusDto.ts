@@ -9,6 +9,9 @@ import type { RksvReminderJahresbelegDto } from './rksvReminderJahresbelegDto';
 import type { RksvReminderMonatsbelegDto } from './rksvReminderMonatsbelegDto';
 import type { RksvReminderStartbelegDto } from './rksvReminderStartbelegDto';
 
+/**
+ * Unified RKSV special-receipt reminder payload for a cash register.
+ */
 export interface RksvReminderStatusDto {
   jahresbeleg: RksvReminderJahresbelegDto;
   monatsbeleg: RksvReminderMonatsbelegDto;

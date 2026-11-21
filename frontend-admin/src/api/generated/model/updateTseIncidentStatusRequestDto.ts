@@ -11,6 +11,9 @@ export interface UpdateTseIncidentStatusRequestDto {
   note?: string | null;
   /** @nullable */
   resolution?: string | null;
-  /** @nullable */
+  /**
+   * Open | Investigating | Resolved | Closed
+   * @nullable
+   */
   status?: string | null;
 }

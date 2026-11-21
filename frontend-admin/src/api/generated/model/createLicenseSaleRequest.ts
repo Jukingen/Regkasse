@@ -8,6 +8,8 @@
 import type { LicenseType } from './licenseType';
 
 export interface CreateLicenseSaleRequest {
+  /** When true (default), immediately assign the new key to the tenant.
+When false, only create the sale; Mandanten-Admin must enter the key to activate/extend. */
   applyToTenant?: boolean;
   /** @nullable */
   customValidUntilUtc?: string | null;

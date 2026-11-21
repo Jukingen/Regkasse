@@ -9,6 +9,9 @@ import type { PaymentBreakdown } from './paymentBreakdown';
 import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto';
 import type { TransactionBreakdown } from './transactionBreakdown';
 
+/**
+ * Read-only monthly aggregation preview from daily closings and payment rows.
+ */
 export interface MonatsbelegSummaryDto {
   cashRegisterId?: string;
   dailyClosingCount?: number;

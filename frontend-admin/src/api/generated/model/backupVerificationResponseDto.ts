@@ -11,7 +11,9 @@ export interface BackupVerificationResponseDto {
   backupRunId?: string;
   /** @nullable */
   completedAt?: string | null;
+  /** Doğrulanan listede mantıksal dump artefaktı var mı (restore doğrulaması değil). */
   completenessFlag?: boolean;
+  /** Bu run adapter’ı için terminal başarı öncesi bu bayrağın zorunlu olup olmadığı (PgDump: true). */
   completenessRequiredForTerminalSuccess?: boolean;
   /** @nullable */
   failureReason?: string | null;

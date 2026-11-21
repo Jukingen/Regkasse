@@ -8,7 +8,10 @@
 
 export interface StaffPerformanceLocalDayAggregateDto {
   grossSalesAmount?: number;
-  /** @nullable */
+  /**
+   * Format yyyyMMdd (Vienna).
+   * @nullable
+   */
   localDayYyyyMmDd?: string | null;
   refundRowCount?: number;
   saleTransactionCount?: number;

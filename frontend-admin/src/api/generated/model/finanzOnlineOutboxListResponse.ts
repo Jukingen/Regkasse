@@ -8,9 +8,15 @@
 import type { FinanzOnlineOutboxItemDto } from './finanzOnlineOutboxItemDto';
 
 export interface FinanzOnlineOutboxListResponse {
-  /** @nullable */
+  /**
+   * Non-production: active `FinanzOnline:Simulation:Developer` profile when not None (see KasseAPI_Final.Services.FinanzOnlineIntegration.FinanzOnlineSimulationDeveloperUi).
+   * @nullable
+   */
   finanzOnlineDeveloperSimulationProfile?: string | null;
-  /** @nullable */
+  /**
+   * True when session, rkdb, or transmission-query layer uses simulation.
+   * @nullable
+   */
   finanzOnlineTransportSimulationActive?: boolean | null;
   /** @nullable */
   items?: FinanzOnlineOutboxItemDto[] | null;

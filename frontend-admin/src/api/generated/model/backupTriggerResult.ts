@@ -7,6 +7,14 @@
  */
 import type { BackupManualTriggerResultKind } from './backupManualTriggerResultKind';
 
+/**
+ * Outcome of M:KasseAPI_Final.Services.Backup.IBackupService.CreateBackupAsync(System.Guid,System.Guid,System.Threading.CancellationToken).
+Enqueue-only: dump / checksum / retention run on the backup worker.
+
+Named `BackupTriggerResult` rather than `BackupResult` because
+KasseAPI_Final.Services.Billing.BackupResult already owns that short name, and OpenAPI schema ids are built
+from the short name — two types called `BackupResult` break spec generation outright.
+ */
 export interface BackupTriggerResult {
   /** @nullable */
   readonly backupRunId?: string | null;

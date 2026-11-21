@@ -13,7 +13,10 @@ export interface TenantTseStatusDto {
   generatedAt?: string;
   /** @nullable */
   nearestDaysUntilExpiry?: number | null;
-  /** @nullable */
+  /**
+   * Healthy | Degraded | Unknown
+   * @nullable
+   */
   overallHealth?: string | null;
   overallHealthScore?: number;
   tenantId?: string;

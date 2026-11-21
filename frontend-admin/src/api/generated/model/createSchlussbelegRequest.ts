@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV Schlussbeleg (Endbeleg): final zero signed receipt when permanently decommissioning a cash register.
+ */
 export interface CreateSchlussbelegRequest {
   cashRegisterId: string;
   /**

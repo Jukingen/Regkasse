@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Per-catalog-product overrides applied during demo import (wizard price/tax step).
+ */
 export interface DemoImportProductOverrideDto {
   catalogProductId?: string;
   /** @nullable */

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * L4 dilimi: izole geri yüklenen DB üzerindeki yapılandırılmış süreklilik SQL sonucu (tam uygulama kurtarılabilirliği değil).
+ */
 export type PostRestoreContinuityProofState = typeof PostRestoreContinuityProofState[keyof typeof PostRestoreContinuityProofState];
 
 

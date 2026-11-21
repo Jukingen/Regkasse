@@ -8,6 +8,10 @@
 import type { DailyVolumeDto } from './dailyVolumeDto';
 import type { MonthlyVolumeDto } from './monthlyVolumeDto';
 
+/**
+ * Super Admin POS payment-volume snapshot (fiscal `payment_details` GMV).
+Not license MRR / not digital-subscription revenue.
+ */
 export interface PaymentVolumeAnalyticsDto {
   averageTransactionValue?: number;
   /** @nullable */

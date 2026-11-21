@@ -7,6 +7,9 @@
  */
 import type { TseForecastDayPointDto } from './tseForecastDayPointDto';
 
+/**
+ * Forward projection of TSE signing volume for a tenant.
+ */
 export interface TseForecastResultDto {
   baselineDailyAverage?: number;
   /** @nullable */

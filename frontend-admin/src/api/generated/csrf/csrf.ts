@@ -23,6 +23,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Returns a new CSRF token and sets the matching cookie (readable by JS for double-submit).
+Clients must send the token in `X-XSRF-TOKEN` (or configured header) on mutations.
+ */
 export const getApiCsrfToken = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -62,6 +66,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCsrfTokenQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCsrfToken>>>
 export type GetApiCsrfTokenQueryError = unknown
 
+/**
+ * @summary Returns a new CSRF token and sets the matching cookie (readable by JS for double-submit).
+Clients must send the token in `X-XSRF-TOKEN` (or configured header) on mutations.
+ */
 export const useGetApiCsrfToken = <TData = Awaited<ReturnType<typeof getApiCsrfToken>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCsrfToken>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

@@ -16,7 +16,10 @@ export interface PitrAvailabilityResponseDto {
   message?: string | null;
   /** @nullable */
   supportedTimePointsUtc?: string[] | null;
-  /** @nullable */
+  /**
+   * Instance-wide unless KasseAPI_Final.DTOs.PitrAvailabilityResponseDto.TenantIdFilter was applied (manual idempotency key hint only).
+   * @nullable
+   */
   tenantIdFilter?: string | null;
   /** @nullable */
   walArchiveLagMinutes?: number | null;

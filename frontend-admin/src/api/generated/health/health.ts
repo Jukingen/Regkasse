@@ -24,6 +24,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Liveness: process is up. No dependency I/O.
+ */
 export const getApiHealthLive = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -63,6 +66,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiHealthLiveQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealthLive>>>
 export type GetApiHealthLiveQueryError = unknown
 
+/**
+ * @summary Liveness: process is up. No dependency I/O.
+ */
 export const useGetApiHealthLive = <TData = Awaited<ReturnType<typeof getApiHealthLive>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthLive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -79,6 +85,14 @@ export const useGetApiHealthLive = <TData = Awaited<ReturnType<typeof getApiHeal
 
 
 
+/**
+ * @summary Readiness: database + fiscal config posture (TSE production lock + FinanzOnline simulation gate) + cache/Redis.
+Device TSE/NTP probes are excluded (see `/api/health`). In Development, fiscal checks stay Healthy
+when Soft TSE / FON simulation is intentional; in Production, misconfiguration → Unhealthy (HTTP 503).
+Cache/Redis is probed via KasseAPI_Final.HealthChecks.RedisCacheHealthCheck (GetAsync `health_check_ping`, ≤1s);
+failures are `Degraded` (not Unhealthy) and surfaced as KasseAPI_Final.DTOs.HealthProbeResponseDto.RedisStatus.
+Response includes KasseAPI_Final.DTOs.HealthProbeResponseDto.ReleaseStage for Staging (Demo & QA) / smoke verification.
+ */
 export const getApiHealthReady = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -118,6 +132,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiHealthReadyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealthReady>>>
 export type GetApiHealthReadyQueryError = HealthProbeResponseDto
 
+/**
+ * @summary Readiness: database + fiscal config posture (TSE production lock + FinanzOnline simulation gate) + cache/Redis.
+Device TSE/NTP probes are excluded (see `/api/health`). In Development, fiscal checks stay Healthy
+when Soft TSE / FON simulation is intentional; in Production, misconfiguration → Unhealthy (HTTP 503).
+Cache/Redis is probed via KasseAPI_Final.HealthChecks.RedisCacheHealthCheck (GetAsync `health_check_ping`, ≤1s);
+failures are `Degraded` (not Unhealthy) and surfaced as KasseAPI_Final.DTOs.HealthProbeResponseDto.RedisStatus.
+Response includes KasseAPI_Final.DTOs.HealthProbeResponseDto.ReleaseStage for Staging (Demo & QA) / smoke verification.
+ */
 export const useGetApiHealthReady = <TData = Awaited<ReturnType<typeof getApiHealthReady>>, TError = HealthProbeResponseDto>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthReady>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -134,6 +156,10 @@ export const useGetApiHealthReady = <TData = Awaited<ReturnType<typeof getApiHea
 
 
 
+/**
+ * @summary Dependency snapshot: database + cached TSE + cached NTP.
+HTTP 200 for Healthy/Degraded; 503 only when a critical check (database) is Unhealthy.
+ */
 export const getApiHealth = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -173,6 +199,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealth>>>
 export type GetApiHealthQueryError = void
 
+/**
+ * @summary Dependency snapshot: database + cached TSE + cached NTP.
+HTTP 200 for Healthy/Degraded; 503 only when a critical check (database) is Unhealthy.
+ */
 export const useGetApiHealth = <TData = Awaited<ReturnType<typeof getApiHealth>>, TError = void>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -189,6 +219,10 @@ export const useGetApiHealth = <TData = Awaited<ReturnType<typeof getApiHealth>>
 
 
 
+/**
+ * @summary Fiskaly SIGN AT status (no secrets). Anonymous for ops dashboards.
+When enabled and API keys are present, probes authentication (token is cached).
+ */
 export const getApiHealthFiskalyStatus = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -228,6 +262,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiHealthFiskalyStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>>
 export type GetApiHealthFiskalyStatusQueryError = unknown
 
+/**
+ * @summary Fiskaly SIGN AT status (no secrets). Anonymous for ops dashboards.
+When enabled and API keys are present, probes authentication (token is cached).
+ */
 export const useGetApiHealthFiskalyStatus = <TData = Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -244,6 +282,10 @@ export const useGetApiHealthFiskalyStatus = <TData = Awaited<ReturnType<typeof g
 
 
 
+/**
+ * @summary EF Core migration posture: applied vs pending relative to the running binary.
+HTTP 200 for Healthy/Degraded; 503 when the check cannot query the database.
+ */
 export const getApiHealthMigrations = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -283,6 +325,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiHealthMigrationsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealthMigrations>>>
 export type GetApiHealthMigrationsQueryError = void
 
+/**
+ * @summary EF Core migration posture: applied vs pending relative to the running binary.
+HTTP 200 for Healthy/Degraded; 503 when the check cannot query the database.
+ */
 export const useGetApiHealthMigrations = <TData = Awaited<ReturnType<typeof getApiHealthMigrations>>, TError = void>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthMigrations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

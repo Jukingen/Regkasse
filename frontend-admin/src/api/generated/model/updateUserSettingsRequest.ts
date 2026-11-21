@@ -9,7 +9,10 @@
 export interface UpdateUserSettingsRequest {
   /** @nullable */
   autoPrintReceipts?: boolean | null;
-  /** @nullable */
+  /**
+   * Optional cash register row id (GUID string). Cleared when empty after trim.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   /** @nullable */
   compactMode?: boolean | null;

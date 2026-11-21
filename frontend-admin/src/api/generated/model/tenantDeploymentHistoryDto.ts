@@ -13,6 +13,7 @@ export interface TenantDeploymentHistoryDto {
   /** @nullable */
   gitSha?: string | null;
   id?: string;
+  /** True when stage=canary and soak window still open. */
   isCanarySoaking?: boolean;
   /** @nullable */
   previousVersion?: string | null;

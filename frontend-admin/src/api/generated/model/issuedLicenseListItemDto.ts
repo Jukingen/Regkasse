@@ -6,12 +6,19 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One issued-license row from `issued_licenses` (no JWT). Full key for Super Admin; otherwise masked.
+ */
 export interface IssuedLicenseListItemDto {
+  /** Rows in `activated_licenses` for this license key (distinct machines). */
   activatedDeviceCount?: number;
   /** @nullable */
   customerName?: string | null;
   expiryAtUtc?: string;
-  /** @nullable */
+  /**
+   * Enabled license feature ids when stored on the issuance row; null = full bundle / legacy row.
+   * @nullable
+   */
   features?: string[] | null;
   id?: string;
   isCancelled?: boolean;
@@ -20,13 +27,19 @@ export interface IssuedLicenseListItemDto {
   issuedAtUtc?: string;
   /** @nullable */
   issuedByUserId?: string | null;
-  /** @nullable */
+  /**
+   * Latest `activated_at_utc` across activations for this key.
+   * @nullable
+   */
   lastActivationAtUtc?: string | null;
   /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   machineHashHex?: string | null;
-  /** @nullable */
+  /**
+   * Shortened fingerprint (first 8 + last 8 hex) of the device with the latest `last_seen_at_utc`.
+   * @nullable
+   */
   recentMachineFingerprintShort?: string | null;
   requireFingerprint?: boolean;
   /** @nullable */

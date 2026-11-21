@@ -7,6 +7,9 @@
  */
 import type { BackupScheduleConfigurationDto } from './backupScheduleConfigurationDto';
 
+/**
+ * Per-tenant backup automation knobs (KasseAPI_Final.Models.Backup.BackupScheduleConfiguration).
+ */
 export interface BackupSettingsResponseDto {
   enabled?: boolean;
   /** @nullable */
@@ -15,7 +18,10 @@ export interface BackupSettingsResponseDto {
   nextRunAtUtc?: string | null;
   retentionDays?: number;
   schedule?: BackupScheduleConfigurationDto;
-  /** @nullable */
+  /**
+   * Five-field UTC cron (CronFormat.Standard).
+   * @nullable
+   */
   scheduleCron?: string | null;
   tenantId?: string;
   updatedAtUtc?: string;

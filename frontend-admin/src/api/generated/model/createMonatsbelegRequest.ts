@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV Monatsbeleg (monthly zero signed receipt; Vienna calendar month).
+ */
 export interface CreateMonatsbelegRequest {
   cashRegisterId: string;
   /**

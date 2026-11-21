@@ -18,7 +18,10 @@ export interface CriticalUserDto {
   recommendedAction?: string | null;
   /** @nullable */
   role?: string | null;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.LimitUsageStatuses.Approaching, KasseAPI_Final.DTOs.LimitUsageStatuses.Full, or KasseAPI_Final.DTOs.LimitUsageStatuses.Exceeded.
+   * @nullable
+   */
   status?: string | null;
   tenantId?: string;
   /** @nullable */

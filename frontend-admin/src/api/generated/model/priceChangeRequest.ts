@@ -8,8 +8,13 @@
 
 export interface PriceChangeRequest {
   changedBy?: string;
-  /** @nullable */
+  /**
+   * Actor role for audit (e.g. Manager). Optional.
+   * @nullable
+   */
   changedByRole?: string | null;
+  /** When true, updates price in place even if the product has fiscal sales history.
+Default false: RKSV path creates a new catalog product version instead. */
   forceInPlaceUpdate?: boolean;
   newPrice?: number;
   newTaxGroupId?: string;

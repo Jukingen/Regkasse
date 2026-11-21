@@ -9,6 +9,9 @@ import type { TseCostReportDtoCostBreakdown } from './tseCostReportDtoCostBreakd
 import type { TseCostTrendDto } from './tseCostTrendDto';
 import type { TseCostSavingRecommendationDto } from './tseCostSavingRecommendationDto';
 
+/**
+ * Indicative TSE operating-cost report (not an invoice).
+ */
 export interface TseCostReportDto {
   activeDeviceCount?: number;
   /** @nullable */

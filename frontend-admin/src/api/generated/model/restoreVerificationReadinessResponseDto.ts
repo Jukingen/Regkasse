@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Restore worker config / dağıtık kilit sağlığı (HTTP tetiklemez).
+ */
 export interface RestoreVerificationReadinessResponseDto {
   /** @nullable */
   issues?: string[] | null;

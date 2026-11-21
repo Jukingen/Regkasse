@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * TSE device row for Super Admin failover dashboard.
+ */
 export interface TseFailoverDeviceDto {
   /** @nullable */
   cashRegisterId?: string | null;

@@ -8,22 +8,33 @@
 import type { BackupStorageCostRecommendationDto } from './backupStorageCostRecommendationDto';
 import type { BackupStorageTierCostRowDto } from './backupStorageTierCostRowDto';
 
+/**
+ * Indicative backup storage cost rollup (ops estimate — not a billing invoice).
+ */
 export interface BackupStorageCostResponseDto {
+  /** Average logical-dump size in MiB. */
   averageSizeMb?: number;
   backupCount?: number;
+  /** Configured enqueue budget (KasseAPI_Final.Services.Backup.BackupService.MaxStorageBytes) in GiB. */
   budgetGb?: number;
+  /** Blended EUR per GiB-month. */
   costPerGbEur?: number;
   /** @nullable */
   disclaimer?: string | null;
+  /** Estimated monthly EUR at configured Hot/Warm/Cold rates. */
   monthlyCostEur?: number;
+  /** Simple forward estimate (usage pressure may inflate). */
   projectedMonthlyEur?: number;
   /** @nullable */
   recommendations?: BackupStorageCostRecommendationDto[] | null;
+  /** Percent saved vs pricing all bytes as Hot. */
   retentionSavingsPercent?: number;
   smartRetentionEnabled?: boolean;
   storageTierManagementEnabled?: boolean;
   /** @nullable */
   tiers?: BackupStorageTierCostRowDto[] | null;
+  /** Succeeded logical-dump bytes summed, in GiB. */
   totalStorageGb?: number;
+  /** 0–100 of budget consumed. */
   usagePercentage?: number;
 }

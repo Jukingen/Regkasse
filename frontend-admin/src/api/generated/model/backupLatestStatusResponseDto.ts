@@ -12,15 +12,29 @@ import type { RestoreCapabilityDto } from './restoreCapabilityDto';
 
 export interface BackupLatestStatusResponseDto {
   artifactPipelinePolicy?: BackupArtifactPipelinePolicyResponseDto;
+  /** KasseAPI_Final.DTOs.BackupLatestStatusResponseDto.AverageSucceededBackupDurationSeconds için kullanılan başarılı çalıştırma sayısı. */
   averageSucceededBackupDurationSampleCount?: number;
-  /** @nullable */
+  /**
+   * Son başarılı yedeklerin ortalama süresi (saniye); örnek yoksa null.
+   * @nullable
+   */
   averageSucceededBackupDurationSeconds?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
-  /** @nullable */
+  /**
+   * Indicative remaining seconds while the latest run is queued/running/awaiting verification; otherwise null.
+   * @nullable
+   */
   estimatedRemainingSeconds?: number | null;
-  /** @nullable */
+  /**
+   * Indicative total duration estimate (seconds) for the latest run context.
+Prefer historical average when samples exist; otherwise size+step heuristic.
+   * @nullable
+   */
   estimatedTotalSeconds?: number | null;
-  /** @nullable */
+  /**
+   * `historical` or `heuristic` — how KasseAPI_Final.DTOs.BackupLatestStatusResponseDto.EstimatedTotalSeconds was derived.
+   * @nullable
+   */
   estimateSource?: string | null;
   latestRun?: BackupRunResponseDto;
   restore?: RestoreCapabilityDto;

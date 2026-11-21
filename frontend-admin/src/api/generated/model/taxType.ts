@@ -6,6 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV uyumlu vergi tipleri - API contract için string enum standardı.
+DB'de int olarak saklanır (1=Standard, 2=Reduced, 3=Special, 4=ZeroRate).
+Österreich 2026 Reform: ZeroRate = 0% VAT (technisch 0% MwSt., nicht "Exempt").
+ */
 export type TaxType = typeof TaxType[keyof typeof TaxType];
 
 

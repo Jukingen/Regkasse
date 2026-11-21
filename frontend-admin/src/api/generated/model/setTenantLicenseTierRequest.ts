@@ -8,10 +8,14 @@
 
 export interface SetTenantLicenseTierRequest {
   /**
+   * basic | standard | premium
    * @minLength 1
    * @maxLength 32
    */
   tier: string;
-  /** @nullable */
+  /**
+   * Optional explicit end date; otherwise extends 365 days from max(now, current end).
+   * @nullable
+   */
   validUntilUtc?: string | null;
 }

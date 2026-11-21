@@ -7,9 +7,13 @@
  */
 import type { InitiateOnlinePaymentRequestMetadata } from './initiateOnlinePaymentRequestMetadata';
 
+/**
+ * POS online payment initiation (card / PayPal hosted or intent flow).
+ */
 export interface InitiateOnlinePaymentRequest {
   amount: number;
   /**
+   * Optional cancel URL for hosted checkout. Falls back to KasseAPI_Final.DTOs.InitiateOnlinePaymentRequest.ReturnUrl.
    * @maxLength 500
    * @nullable
    */
@@ -33,11 +37,13 @@ export interface InitiateOnlinePaymentRequest {
   /** @nullable */
   metadata?: InitiateOnlinePaymentRequestMetadata;
   /**
+   * Online method: `card` or `paypal`.
    * @minLength 1
    * @maxLength 32
    */
   method: string;
   /**
+   * Optional return URL after hosted checkout (PayPal / redirect providers).
    * @maxLength 500
    * @nullable
    */

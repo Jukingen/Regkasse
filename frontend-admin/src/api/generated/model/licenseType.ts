@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Mandanten SaaS package tier on `license_sales.license_type`.
+ */
 export type LicenseType = typeof LicenseType[keyof typeof LicenseType];
 
 

@@ -9,14 +9,26 @@ import type { BackupContentFiscalValidationDto } from './backupContentFiscalVali
 import type { BackupContentFiscalCheckDto } from './backupContentFiscalCheckDto';
 import type { BackupContentTableValidationDto } from './backupContentTableValidationDto';
 
+/**
+ * Content validation of a backup package (manifest counts vs live DB + fiscal checks).
+ */
 export interface BackupContentValidationDto {
   fiscal?: BackupContentFiscalValidationDto;
-  /** @nullable */
+  /**
+   * Named fiscal integrity checks (receipt sequence, signature chain, presence).
+   * @nullable
+   */
   fiscalChecks?: BackupContentFiscalCheckDto[] | null;
-  /** @nullable */
+  /**
+   * Passed | Failed | Partial | Unavailable
+   * @nullable
+   */
   overallStatus?: string | null;
   runId?: string;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.DTOs.BackupContentValidationDto.OverallStatus (Passed | Failed | Partial | Unavailable).
+   * @nullable
+   */
   readonly status?: string | null;
   /** @nullable */
   strategy?: string | null;
@@ -25,7 +37,10 @@ export interface BackupContentValidationDto {
   /** @nullable */
   tables?: BackupContentTableValidationDto[] | null;
   validatedAtUtc?: string;
-  /** @nullable */
+  /**
+   * Persisted `backup_verifications.id` when written.
+   * @nullable
+   */
   verificationId?: string | null;
   /** @nullable */
   warnings?: string[] | null;

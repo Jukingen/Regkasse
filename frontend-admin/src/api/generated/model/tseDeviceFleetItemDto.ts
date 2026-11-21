@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One TSE device row enriched for Super Admin fleet management.
+ */
 export interface TseDeviceFleetItemDto {
   canCreateInvoices?: boolean;
   cashRegisterId?: string;
@@ -18,6 +21,7 @@ export interface TseDeviceFleetItemDto {
   deviceType?: string | null;
   /** @nullable */
   errorMessage?: string | null;
+  /** Derived 0–100 score from connection / cert / active flags (not stored). */
   healthScore?: number;
   id?: string;
   isActive?: boolean;
@@ -28,7 +32,10 @@ export interface TseDeviceFleetItemDto {
   memoryStatus?: string | null;
   /** @nullable */
   serialNumber?: string | null;
-  /** @nullable */
+  /**
+   * Active | Degraded | Inactive | Expired
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   tenantId?: string | null;

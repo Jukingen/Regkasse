@@ -6,17 +6,29 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Backoffice Nachdruck-Bestätigung: Begründungspflicht, optional Gerät/Profil/Notiz, optional Idempotenz-Schlüssel für Audit-Korrelation.
+ */
 export interface ReceiptReprintRequest {
   /** @nullable */
   deviceId?: string | null;
-  /** @nullable */
+  /**
+   * Optional: gleicher Schlüssel → idempotente Audit-Zeile (keine doppelte Ausführung in DB, nur Korrelation).
+   * @nullable
+   */
   idempotencyKey?: string | null;
   /** @nullable */
   note?: string | null;
   /** @nullable */
   printerProfileId?: string | null;
-  /** @nullable */
+  /**
+   * Freitext nur bei OTHER oder ergänzend (max. Länge serverseitig begrenzt).
+   * @nullable
+   */
   reasonDetail?: string | null;
-  /** @nullable */
+  /**
+   * Pflicht: einer der KasseAPI_Final.DTOs.ReceiptReprintReasonCodes Werte.
+   * @nullable
+   */
   reprintReasonCode?: string | null;
 }

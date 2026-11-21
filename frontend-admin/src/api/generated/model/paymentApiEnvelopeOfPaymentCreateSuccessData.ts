@@ -8,6 +8,9 @@
 import type { PaymentCreateSuccessData } from './paymentCreateSuccessData';
 import type { PaymentIdempotencyInfo } from './paymentIdempotencyInfo';
 
+/**
+ * Standard payment API envelope (OpenAPI-first, Orval-friendly). Opt-in via `X-Regkasse-Payment-Contract: v2`.
+ */
 export interface PaymentApiEnvelopeOfPaymentCreateSuccessData {
   /** @nullable */
   apiVersion?: string | null;
@@ -15,7 +18,10 @@ export interface PaymentApiEnvelopeOfPaymentCreateSuccessData {
   correlationId?: string | null;
   data?: PaymentCreateSuccessData;
   idempotency?: PaymentIdempotencyInfo;
-  /** @nullable */
+  /**
+   * Human-readable outcome; UI may localize via !:Code.
+   * @nullable
+   */
   message?: string | null;
   success?: boolean;
   timestamp?: string;

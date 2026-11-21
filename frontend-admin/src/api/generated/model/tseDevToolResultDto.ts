@@ -8,12 +8,18 @@
 import type { TseDevToolResultDtoMetadata } from './tseDevToolResultDtoMetadata';
 import type { TseDevToolCheckDto } from './tseDevToolCheckDto';
 
+/**
+ * Result envelope for diagnostics / traffic / config / seed operations.
+ */
 export interface TseDevToolResultDto {
   developmentOnly?: boolean;
   generatedAtUtc?: string;
   /** @nullable */
   metadata?: TseDevToolResultDtoMetadata;
-  /** @nullable */
+  /**
+   * Diagnostics | SimulateTraffic | ValidateConfig | GenerateTestData
+   * @nullable
+   */
   operation?: string | null;
   /** @nullable */
   results?: TseDevToolCheckDto[] | null;

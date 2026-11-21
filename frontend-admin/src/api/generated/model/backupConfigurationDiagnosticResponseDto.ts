@@ -7,12 +7,18 @@
  */
 
 export interface BackupConfigurationDiagnosticResponseDto {
-  /** @nullable */
+  /**
+   * Stable token, e.g. BACKUP_SETUP_DEV_ADAPTER_FAKE_NO_REAL_PG_DUMP.
+   * @nullable
+   */
   code?: string | null;
   /** @nullable */
   message?: string | null;
   /** @nullable */
   relatedConfigurationKeys?: string[] | null;
-  /** @nullable */
+  /**
+   * Information, Warning, or Error.
+   * @nullable
+   */
   severity?: string | null;
 }

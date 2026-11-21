@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Non-fiscal shift closing summary for POS print/preview.
+ */
 export interface ShiftClosingReceiptDto {
   /** @nullable */
   cashierName?: string | null;

@@ -38,6 +38,11 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Perform daily closing for the current Vienna day, or for an optional past business day (nachträglich).
+Days with no fiscal invoices are allowed as empty closings (`dayKind=empty`, `isEmpty=true`).
+Future dates and duplicate closings remain rejected.
+ */
 export const postApiTagesabschlussDaily = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -76,7 +81,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiTagesabschlussDailyMutationBody = DailyClosingRequest
     export type PostApiTagesabschlussDailyMutationError = TagesabschlussErrorResponse
 
-    export const usePostApiTagesabschlussDaily = <TError = TagesabschlussErrorResponse,
+    /**
+ * @summary Perform daily closing for the current Vienna day, or for an optional past business day (nachträglich).
+Days with no fiscal invoices are allowed as empty closings (`dayKind=empty`, `isEmpty=true`).
+Future dates and duplicate closings remain rejected.
+ */
+export const usePostApiTagesabschlussDaily = <TError = TagesabschlussErrorResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussDaily>>, TError,{data: DailyClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiTagesabschlussDaily>>,
@@ -89,7 +99,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiTagesabschlussMonthly = (
+    /**
+ * @summary Perform monthly closing for the current month
+ */
+export const postApiTagesabschlussMonthly = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -127,7 +140,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiTagesabschlussMonthlyMutationBody = DailyClosingRequest
     export type PostApiTagesabschlussMonthlyMutationError = TagesabschlussErrorResponse
 
-    export const usePostApiTagesabschlussMonthly = <TError = TagesabschlussErrorResponse,
+    /**
+ * @summary Perform monthly closing for the current month
+ */
+export const usePostApiTagesabschlussMonthly = <TError = TagesabschlussErrorResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussMonthly>>, TError,{data: DailyClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiTagesabschlussMonthly>>,
@@ -140,7 +156,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiTagesabschlussYearly = (
+    /**
+ * @summary Perform yearly closing for the current year
+ */
+export const postApiTagesabschlussYearly = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -178,7 +197,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiTagesabschlussYearlyMutationBody = DailyClosingRequest
     export type PostApiTagesabschlussYearlyMutationError = TagesabschlussErrorResponse
 
-    export const usePostApiTagesabschlussYearly = <TError = TagesabschlussErrorResponse,
+    /**
+ * @summary Perform yearly closing for the current year
+ */
+export const usePostApiTagesabschlussYearly = <TError = TagesabschlussErrorResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussYearly>>, TError,{data: DailyClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiTagesabschlussYearly>>,
@@ -191,7 +213,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiTagesabschlussIdSubmitFiskaly = (
+    /**
+ * @summary Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+ */
+export const postApiTagesabschlussIdSubmitFiskaly = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -227,7 +253,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiTagesabschlussIdSubmitFiskalyMutationError = FiskalyReceiptEnvelopeDto
 
-    export const usePostApiTagesabschlussIdSubmitFiskaly = <TError = FiskalyReceiptEnvelopeDto,
+    /**
+ * @summary Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+ */
+export const usePostApiTagesabschlussIdSubmitFiskaly = <TError = FiskalyReceiptEnvelopeDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>,
@@ -240,7 +270,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiTagesabschlussIdSubmitFinanzonline = (
+    /**
+ * @summary Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+ */
+export const postApiTagesabschlussIdSubmitFinanzonline = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -276,7 +310,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiTagesabschlussIdSubmitFinanzonlineMutationError = FiskalyReceiptEnvelopeDto
 
-    export const usePostApiTagesabschlussIdSubmitFinanzonline = <TError = FiskalyReceiptEnvelopeDto,
+    /**
+ * @summary Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+ */
+export const usePostApiTagesabschlussIdSubmitFinanzonline = <TError = FiskalyReceiptEnvelopeDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>,
@@ -289,7 +327,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiTagesabschlussClosingClosingIdReportPdf = (
+    /**
+ * @summary Localized PDF report for a completed RKSV closing (Daily/Monthly/Yearly).
+ */
+export const getApiTagesabschlussClosingClosingIdReportPdf = (
     closingId: string,
     params?: GetApiTagesabschlussClosingClosingIdReportPdfParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -333,6 +374,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTagesabschlussClosingClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>>
 export type GetApiTagesabschlussClosingClosingIdReportPdfQueryError = ProblemDetails
 
+/**
+ * @summary Localized PDF report for a completed RKSV closing (Daily/Monthly/Yearly).
+ */
 export const useGetApiTagesabschlussClosingClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError = ProblemDetails>(
  closingId: string,
     params?: GetApiTagesabschlussClosingClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -350,6 +394,9 @@ export const useGetApiTagesabschlussClosingClosingIdReportPdf = <TData = Awaited
 
 
 
+/**
+ * @summary Get closing history for the authenticated tenant / operational register.
+ */
 export const getApiTagesabschlussHistory = (
     params?: GetApiTagesabschlussHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -390,6 +437,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTagesabschlussHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussHistory>>>
 export type GetApiTagesabschlussHistoryQueryError = TagesabschlussErrorResponse
 
+/**
+ * @summary Get closing history for the authenticated tenant / operational register.
+ */
 export const useGetApiTagesabschlussHistory = <TData = Awaited<ReturnType<typeof getApiTagesabschlussHistory>>, TError = TagesabschlussErrorResponse>(
  params?: GetApiTagesabschlussHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -406,6 +456,9 @@ export const useGetApiTagesabschlussHistory = <TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Per-tenant automatic Tagesabschluss fallback settings (Europe/Vienna time).
+ */
 export const getApiTagesabschlussAutoCloseSettings = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -445,6 +498,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTagesabschlussAutoCloseSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>>
 export type GetApiTagesabschlussAutoCloseSettingsQueryError = unknown
 
+/**
+ * @summary Per-tenant automatic Tagesabschluss fallback settings (Europe/Vienna time).
+ */
 export const useGetApiTagesabschlussAutoCloseSettings = <TData = Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -461,6 +517,9 @@ export const useGetApiTagesabschlussAutoCloseSettings = <TData = Awaited<ReturnT
 
 
 
+/**
+ * @summary Update per-tenant automatic Tagesabschluss fallback settings.
+ */
 export const putApiTagesabschlussAutoCloseSettings = (
     autoTagesabschlussSettingsDto: AutoTagesabschlussSettingsDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -499,7 +558,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiTagesabschlussAutoCloseSettingsMutationBody = AutoTagesabschlussSettingsDto
     export type PutApiTagesabschlussAutoCloseSettingsMutationError = unknown
 
-    export const usePutApiTagesabschlussAutoCloseSettings = <TError = unknown,
+    /**
+ * @summary Update per-tenant automatic Tagesabschluss fallback settings.
+ */
+export const usePutApiTagesabschlussAutoCloseSettings = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, TError,{data: AutoTagesabschlussSettingsDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>,
@@ -512,7 +574,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiTagesabschlussCanCloseCashRegisterId = (
+    /**
+ * @summary Check if daily closing can be performed for a cash register (optional Vienna business day).
+ */
+export const getApiTagesabschlussCanCloseCashRegisterId = (
     cashRegisterId: string,
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -555,6 +620,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTagesabschlussCanCloseCashRegisterIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>>
 export type GetApiTagesabschlussCanCloseCashRegisterIdQueryError = TagesabschlussErrorResponse
 
+/**
+ * @summary Check if daily closing can be performed for a cash register (optional Vienna business day).
+ */
 export const useGetApiTagesabschlussCanCloseCashRegisterId = <TData = Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError = TagesabschlussErrorResponse>(
  cashRegisterId: string,
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -572,6 +640,9 @@ export const useGetApiTagesabschlussCanCloseCashRegisterId = <TData = Awaited<Re
 
 
 
+/**
+ * @summary Get closing statistics for a specific period
+ */
 export const getApiTagesabschlussStatistics = (
     params?: GetApiTagesabschlussStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -612,6 +683,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiTagesabschlussStatisticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>>
 export type GetApiTagesabschlussStatisticsQueryError = TagesabschlussErrorResponse
 
+/**
+ * @summary Get closing statistics for a specific period
+ */
 export const useGetApiTagesabschlussStatistics = <TData = Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>, TError = TagesabschlussErrorResponse>(
  params?: GetApiTagesabschlussStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

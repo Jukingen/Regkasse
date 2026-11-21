@@ -7,6 +7,7 @@
  */
 
 /**
+ * Populated only on admin readiness endpoint (optional).
  * @nullable
  */
 export type FinanzOnlineReadinessResponseOutboxCountsByStatus = {[key: string]: number} | null;

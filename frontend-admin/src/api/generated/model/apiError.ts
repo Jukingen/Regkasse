@@ -7,14 +7,23 @@
  */
 import type { ApiErrorErrors } from './apiErrorErrors';
 
+/**
+ * Tutarlı API hata modeli – FE formları ve istemci işleme için.
+ */
 export interface ApiError {
   /** @nullable */
   detail?: string | null;
-  /** @nullable */
+  /**
+   * Validation hataları: alan adı → hata mesajları.
+   * @nullable
+   */
   errors?: ApiErrorErrors;
   /** @nullable */
   instance?: string | null;
-  /** @nullable */
+  /**
+   * Optional reason code for 403 Forbidden (e.g. USERS_MANAGE_REQUIRED). FE can map to i18n.
+   * @nullable
+   */
   reasonCode?: string | null;
   status?: number;
   /** @nullable */

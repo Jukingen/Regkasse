@@ -7,13 +7,25 @@
  */
 import type { HealthProbeResponseDtoEntries } from './healthProbeResponseDtoEntries';
 
+/**
+ * JSON body for `/api/health/ready` (and shared probe shape).
+ */
 export interface HealthProbeResponseDto {
   checkedAtUtc?: string;
   /** @nullable */
   entries?: HealthProbeResponseDtoEntries;
-  /** @nullable */
+  /**
+   * Cache/Redis posture from the ready `cache` check: `Healthy` or `Degraded`.
+Omitted when the probe set does not include the cache check.
+   * @nullable
+   */
   redisStatus?: string | null;
-  /** @nullable */
+  /**
+   * Effective release stage (`dev`|`staging`|`canary`|`production`)
+from `Deployment:ReleaseStage` / `RELEASE_STAGE` (via KasseAPI_Final.Services.Deployment.ReleaseStageResolver).
+Exposed for all environments; primarily for debugging and Staging (Demo & QA) verification / smoke checks.
+   * @nullable
+   */
   releaseStage?: string | null;
   /** @nullable */
   status?: string | null;

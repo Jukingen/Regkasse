@@ -22,6 +22,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Replays offline intents in the provided order.
+Creates canonical fiscal Payment + Receipt for Synced outcomes only.
+ */
 export const postApiOfflineTransactionsReplay = (
     replayOfflineTransactionsRequest: ReplayOfflineTransactionsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -60,7 +64,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiOfflineTransactionsReplayMutationBody = ReplayOfflineTransactionsRequest
     export type PostApiOfflineTransactionsReplayMutationError = unknown
 
-    export const usePostApiOfflineTransactionsReplay = <TError = unknown,
+    /**
+ * @summary Replays offline intents in the provided order.
+Creates canonical fiscal Payment + Receipt for Synced outcomes only.
+ */
+export const usePostApiOfflineTransactionsReplay = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOfflineTransactionsReplay>>, TError,{data: ReplayOfflineTransactionsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiOfflineTransactionsReplay>>,

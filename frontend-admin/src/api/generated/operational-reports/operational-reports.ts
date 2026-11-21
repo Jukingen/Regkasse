@@ -57,6 +57,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Kasiyer-Leistung: Zählungen und Beträge aus `payment_details` (kein Audit-Mix; siehe KasseAPI_Final.Models.Reports.StaffPerformanceReliabilityDto).
+ */
 export const getApiReportsOperationalUserPerformance = (
     params?: GetApiReportsOperationalUserPerformanceParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -97,6 +100,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiReportsOperationalUserPerformanceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalUserPerformance>>>
 export type GetApiReportsOperationalUserPerformanceQueryError = unknown
 
+/**
+ * @summary Kasiyer-Leistung: Zählungen und Beträge aus `payment_details` (kein Audit-Mix; siehe KasseAPI_Final.Models.Reports.StaffPerformanceReliabilityDto).
+ */
 export const useGetApiReportsOperationalUserPerformance = <TData = Awaited<ReturnType<typeof getApiReportsOperationalUserPerformance>>, TError = unknown>(
  params?: GetApiReportsOperationalUserPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalUserPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -555,6 +561,9 @@ export const useGetApiReportsOperationalClosings = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * @summary X/Z reference bundle: interim (X-like), full-day operational totals, daily closings (Z-like). Read model, not hardware TSE output.
+ */
 export const getApiReportsOperationalXzReferenceBundle = (
     params?: GetApiReportsOperationalXzReferenceBundleParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -595,6 +604,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiReportsOperationalXzReferenceBundleQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalXzReferenceBundle>>>
 export type GetApiReportsOperationalXzReferenceBundleQueryError = unknown
 
+/**
+ * @summary X/Z reference bundle: interim (X-like), full-day operational totals, daily closings (Z-like). Read model, not hardware TSE output.
+ */
 export const useGetApiReportsOperationalXzReferenceBundle = <TData = Awaited<ReturnType<typeof getApiReportsOperationalXzReferenceBundle>>, TError = unknown>(
  params?: GetApiReportsOperationalXzReferenceBundleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalXzReferenceBundle>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -611,6 +623,9 @@ export const useGetApiReportsOperationalXzReferenceBundle = <TData = Awaited<Ret
 
 
 
+/**
+ * @summary CSV export — aynı filtreler; satış satırları (refund/storno hariç toplam sütunları).
+ */
 export const getApiReportsOperationalExportSummaryCsv = (
     params?: GetApiReportsOperationalExportSummaryCsvParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -651,6 +666,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiReportsOperationalExportSummaryCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>>
 export type GetApiReportsOperationalExportSummaryCsvQueryError = unknown
 
+/**
+ * @summary CSV export — aynı filtreler; satış satırları (refund/storno hariç toplam sütunları).
+ */
 export const useGetApiReportsOperationalExportSummaryCsv = <TData = Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError = unknown>(
  params?: GetApiReportsOperationalExportSummaryCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

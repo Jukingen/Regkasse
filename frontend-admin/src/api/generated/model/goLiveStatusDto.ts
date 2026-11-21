@@ -7,11 +7,17 @@
  */
 import type { GoLiveCheckDto } from './goLiveCheckDto';
 
+/**
+ * Aggregated production-readiness verdict (GO / NO-GO).
+ */
 export interface GoLiveStatusDto {
   checkedAtUtc?: string;
   /** @nullable */
   checks?: GoLiveCheckDto[] | null;
-  /** @nullable */
+  /**
+   * KasseAPI_Final.DTOs.GoLiveStatusDto.StatusGo or KasseAPI_Final.DTOs.GoLiveStatusDto.StatusNoGo.
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   summary?: string | null;

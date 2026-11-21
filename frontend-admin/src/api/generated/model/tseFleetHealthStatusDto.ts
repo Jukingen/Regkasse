@@ -8,6 +8,9 @@
 import type { TseFleetDeviceHealthDto } from './tseFleetDeviceHealthDto';
 import type { TseHealthMetricsSummaryDto } from './tseHealthMetricsSummaryDto';
 
+/**
+ * Overall TSE fleet health for external monitors / FA ops.
+ */
 export interface TseFleetHealthStatusDto {
   checkedAtUtc?: string;
   degradedCount?: number;
@@ -17,7 +20,10 @@ export interface TseFleetHealthStatusDto {
   healthyCount?: number;
   liveProbe?: boolean;
   metrics?: TseHealthMetricsSummaryDto;
-  /** @nullable */
+  /**
+   * `healthy` | `degraded` | `unhealthy`
+   * @nullable
+   */
   status?: string | null;
   unhealthyCount?: number;
 }

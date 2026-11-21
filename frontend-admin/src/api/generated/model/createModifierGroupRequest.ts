@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Create or update modifier group request.
+ */
 export interface CreateModifierGroupRequest {
   isRequired?: boolean;
   /** @nullable */

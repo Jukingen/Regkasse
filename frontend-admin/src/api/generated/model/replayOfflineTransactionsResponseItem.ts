@@ -11,12 +11,19 @@ export interface ReplayOfflineTransactionsResponseItem {
   error?: string | null;
   /** @nullable */
   errorCode?: string | null;
-  /** @nullable */
+  /**
+   * When Status stays Pending (under retry limit), hint next retry delay in seconds.
+   * @nullable
+   */
   exponentialBackoffHintSeconds?: number | null;
   /** @nullable */
   lastErrorMessageSafe?: string | null;
+  /** The canonical OfflineTransaction.Id after dedup / conflict resolution. */
   offlineTransactionId?: string;
+  /** Server-generated replay batch id (same for all items in one POST /replay). */
   replayBatchCorrelationId?: string;
+  /** The OfflineTransactionId originally sent by the client for this queue entry.
+Client should update its local state based on this id. */
   requestedOfflineTransactionId?: string;
   retryCount?: number;
   /** @nullable */

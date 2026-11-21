@@ -25,6 +25,7 @@ export interface Customer {
   addressData?: CustomerAddressData;
   applicationUser?: ApplicationUser;
   /**
+   * Optional FK to AspNetUsers. When set, this customer is the benefit identity for that employee (POS staff benefits).
    * @maxLength 450
    * @nullable
    */
@@ -57,6 +58,7 @@ export interface Customer {
   /** @nullable */
   invoices?: Invoice[] | null;
   isActive?: boolean;
+  /** System-managed customer (e.g. walk-in guest). Non–Super Admin users cannot modify or delete. */
   isSystem?: boolean;
   isVip?: boolean;
   /** @nullable */
@@ -84,6 +86,7 @@ export interface Customer {
    */
   taxNumber?: string | null;
   tenant?: Tenant;
+  /** Owning tenant. System customers (e.g. walk-in guest) are seeded to the default tenant but remain visible cross-tenant via the query filter's IsSystem exemption. */
   tenantId: string;
   totalSpent?: number;
   /** @nullable */

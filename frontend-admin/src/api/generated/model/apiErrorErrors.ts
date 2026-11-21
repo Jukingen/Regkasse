@@ -7,6 +7,7 @@
  */
 
 /**
+ * Validation hataları: alan adı → hata mesajları.
  * @nullable
  */
 export type ApiErrorErrors = {[key: string]: string[]} | null;

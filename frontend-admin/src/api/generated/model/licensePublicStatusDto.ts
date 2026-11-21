@@ -7,40 +7,79 @@
  */
 import type { LicenseLayerPublicStatusDto } from './licenseLayerPublicStatusDto';
 
+/**
+ * Public POS/FA contract for `GET /api/license/status` (also referred to as license status read model).
+ */
 export interface LicensePublicStatusDto {
   allActive?: boolean;
   anyActive?: boolean;
-  /** @nullable */
+  /**
+   * Mandant access flag when `tenantId` query or tenant context is resolved; otherwise null.
+   * @nullable
+   */
   canAccess?: boolean | null;
-  /** @nullable */
+  /**
+   * Mandant transaction flag when tenant context is resolved; otherwise null.
+   * @nullable
+   */
   canTransact?: boolean | null;
+  /** Elapsed whole days since expiry when expired; otherwise 0. */
   daysOverdue?: number;
   daysRemaining?: number;
   /** @nullable */
   features?: string[] | null;
+  /** Remaining mandant grace days when KasseAPI_Final.Models.LicensePublicStatusDto.IsInGracePeriod is true. */
   gracePeriodRemaining?: number;
+  /** True when !:IDevelopmentModeService.ShouldBypassLicense supplied the current snapshot (Development host only). */
   isDevelopmentBypass?: boolean;
   isExpired?: boolean;
+  /** True when mandant license is expired but still within the grace window. */
   isInGracePeriod?: boolean;
+  /** True when mandant license is past grace (POS locked). */
   isLocked?: boolean;
   isValid?: boolean;
-  /** @nullable */
+  /**
+   * `Trial`, `Licensed`, `Expired`, or `Demo` (development-only snapshot).
+   * @nullable
+   */
   licenseType?: string | null;
-  /** @nullable */
+  /**
+   * UTC instant when POS lock starts (expiry + grace); null when not expired.
+   * @nullable
+   */
   lockDate?: string | null;
-  /** @nullable */
+  /**
+   * Coarse deployment display: `Demo` (local dev bypass), `Trial`, or `Production`.
+   * @nullable
+   */
   mode?: string | null;
+  /** True when mandant license requires renewal (lockdown). */
   requiresRenewal?: boolean;
-  /** @nullable */
+  /**
+   * Restriction codes (e.g. `POS_LOCKED`, `SUPERADMIN_UNLOCK_ONLY`).
+   * @nullable
+   */
   restrictions?: string[] | null;
-  /** @nullable */
+  /**
+   * Coarse combined label: `active`, `grace`, or `expired`.
+   * @nullable
+   */
   status?: string | null;
-  /** @nullable */
+  /**
+   * German mandant status copy when tenant context is resolved (localized when Accept-Language is set).
+   * @nullable
+   */
   statusMessage?: string | null;
-  /** @nullable */
+  /**
+   * Stable message key for clients (`license.status.*`).
+   * @nullable
+   */
   statusMessageKey?: string | null;
   systemLicense?: LicenseLayerPublicStatusDto;
   tenantLicense?: LicenseLayerPublicStatusDto;
-  /** @nullable */
+  /**
+   * UTC instant when the current mode ends (trial end or JWT exp). Serialized as ISO-8601.
+   * @nullable
+   */
   validUntil?: string | null;
 }

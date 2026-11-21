@@ -7,6 +7,9 @@
  */
 import type { TseCapacityReportDto } from './tseCapacityReportDto';
 
+/**
+ * Capacity threshold evaluation + optional activity alert.
+ */
 export interface TseCapacityAlertDto {
   alertPublished?: boolean;
   /** @nullable */

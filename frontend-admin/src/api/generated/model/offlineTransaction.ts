@@ -8,9 +8,17 @@
 import type { OfflineTransactionStatus } from './offlineTransactionStatus';
 import type { Tenant } from './tenant';
 
+/**
+ * Controlled offline intent record.
+Invariant: OfflineTransaction itself must never get fiscal fields (receipt number/signature).
+A SyncedPaymentId links the offline intent to the canonical fiscal payment after replay.
+ */
 export interface OfflineTransaction {
   cashRegisterId: string;
-  /** @nullable */
+  /**
+   * Optional client sequence number for (DeviceId + CashRegisterId) monotonic validation.
+   * @nullable
+   */
   clientSequenceNumber?: number | null;
   clockDriftWarning: boolean;
   createdAt: string;
@@ -20,11 +28,15 @@ export interface OfflineTransaction {
    */
   createdBy?: string | null;
   /**
+   * Optional device identifier for monotonic client sequence tracking.
    * @maxLength 128
    * @nullable
    */
   deviceId?: string | null;
-  /** @nullable */
+  /**
+   * UTC when replay completed and fiscal payment/receipt was created (server time).
+   * @nullable
+   */
   fiscalizedAtUtc?: string | null;
   id?: string;
   isActive?: boolean;
@@ -40,22 +52,38 @@ export interface OfflineTransaction {
   lastErrorMessageSafe?: string | null;
   /** @nullable */
   lastReplayAttemptAt?: string | null;
+  /** Client-side UTC timestamp when the offline intent was created (device time). */
   offlineCreatedAtUtc: string;
   /**
+   * Normalized payload hash (SHA-256) to deduplicate identical intents across offline IDs.
+Unique constraint is enforced on (CashRegisterId, PayloadHash) for non-null values.
    * @maxLength 64
    * @nullable
    */
   payloadHash?: string | null;
-  /** @minLength 1 */
+  /**
+   * Serialized original request payload (e.g. CreatePaymentRequest JSON).
+Immutable after first persist; structural mismatch on replay is rejected.
+Stored as normalized JSON to make hashing + dedup deterministic.
+   * @minLength 1
+   */
   payloadJson: string;
-  /** @nullable */
+  /**
+   * Data-protection ciphertext (base64) of UTF-8 full canonical PayloadJson when voucher plaintext was redacted from KasseAPI_Final.Models.OfflineTransaction.PayloadJson.
+Null for legacy rows or non-voucher intents.
+   * @nullable
+   */
   payloadSecretsProtected?: string | null;
   retryCount?: number;
   sequenceDuplicateDetected: boolean;
   sequenceGapDetected: boolean;
+  /** Server UTC timestamp when this offline intent was first received/persisted. */
   serverReceivedAtUtc: string;
   status: OfflineTransactionStatus;
-  /** @nullable */
+  /**
+   * Set only after successful replay (synced to a real fiscal payment).
+   * @nullable
+   */
   syncedPaymentId?: string | null;
   tenant?: Tenant;
   tenantId?: string;

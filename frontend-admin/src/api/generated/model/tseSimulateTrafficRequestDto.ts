@@ -7,5 +7,6 @@
  */
 
 export interface TseSimulateTrafficRequestDto {
+  /** Synthetic probe/sample count (1–1000). Not fiscal transactions. */
   transactionCount?: number;
 }

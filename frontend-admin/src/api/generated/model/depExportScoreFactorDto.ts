@@ -11,8 +11,13 @@ export interface DepExportScoreFactorDto {
   description?: string | null;
   /** @nullable */
   name?: string | null;
+  /** 0–100 factor score. */
   score?: number;
-  /** @nullable */
+  /**
+   * Passed, Warning, or Failed.
+   * @nullable
+   */
   status?: string | null;
+  /** Weight as percent of overall score (factors sum to 100). */
   weight?: number;
 }

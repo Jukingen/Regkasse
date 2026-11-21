@@ -7,6 +7,9 @@
  */
 import type { TenantDigitalServiceStateDto } from './tenantDigitalServiceStateDto';
 
+/**
+ * One tenant row for Super Admin digital-service management.
+ */
 export interface TenantDigitalServiceRowDto {
   app: TenantDigitalServiceStateDto;
   /** @nullable */

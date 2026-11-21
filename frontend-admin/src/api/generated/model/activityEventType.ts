@@ -6,6 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Admin activity feed / notification event kinds (FA bell, email, webhook).
+KasseAPI_Final.Models.DTOs.ActivityDto.Type serializes the member name (`UserCreated`).
+ */
 export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType];
 
 
@@ -28,6 +32,7 @@ export const ActivityEventType = {
   OfflineSyncStalled: 'OfflineSyncStalled',
   OfflineQueueApproachingLimit: 'OfflineQueueApproachingLimit',
   FinanzOnlineSubmissionFailed: 'FinanzOnlineSubmissionFailed',
+  FinanzOnlineOutboxFailureSpike: 'FinanzOnlineOutboxFailureSpike',
   BackupFailed: 'BackupFailed',
   BackupSucceeded: 'BackupSucceeded',
   RestoreDrillFailed: 'RestoreDrillFailed',
@@ -53,6 +58,7 @@ export const ActivityEventType = {
   OnlineOrderConfirmed: 'OnlineOrderConfirmed',
   JahresbelegFonReminder: 'JahresbelegFonReminder',
   MonatsbelegAutoCreateMissed: 'MonatsbelegAutoCreateMissed',
+  JahresbelegDeadlineReminder: 'JahresbelegDeadlineReminder',
   DigitalServiceRequested: 'DigitalServiceRequested',
   DataAccessDeleteRequested: 'DataAccessDeleteRequested',
   DataExportReady: 'DataExportReady',
@@ -140,4 +146,5 @@ export const ActivityEventType = {
   EinvoiceSubmissionRetry: 'EinvoiceSubmissionRetry',
   DemoRequestReceived: 'DemoRequestReceived',
   OnlineOrderIntegrationFailed: 'OnlineOrderIntegrationFailed',
+  MonatsbelegReissued: 'MonatsbelegReissued',
 } as const;

@@ -13,7 +13,10 @@ export interface CreateTseIncidentRequestDto {
   detectedAt?: string | null;
   /** @nullable */
   deviceId?: string | null;
-  /** @nullable */
+  /**
+   * Critical | High | Medium | Low
+   * @nullable
+   */
   severity?: string | null;
   tenantId?: string;
   /** @nullable */

@@ -7,6 +7,8 @@
  */
 
 export interface AcknowledgeMaintenanceNotificationRequestDto {
+  /** Mark as dismissed (ignored when notice is mandatory / force-display). */
   dismiss?: boolean;
+  /** Mark as read. */
   markRead?: boolean;
 }

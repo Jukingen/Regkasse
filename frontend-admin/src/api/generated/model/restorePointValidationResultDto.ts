@@ -19,7 +19,10 @@ export interface RestorePointValidationResultDto {
   isValid?: boolean;
   /** @nullable */
   message?: string | null;
-  /** @nullable */
+  /**
+   * `PITR`, `FullPlusIncremental`, or `FullBackupOnly`.
+   * @nullable
+   */
   recoveryMethod?: string | null;
   /** @nullable */
   targetTimeUtc?: string | null;

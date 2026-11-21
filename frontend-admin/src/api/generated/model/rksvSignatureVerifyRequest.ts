@@ -7,8 +7,14 @@
  */
 
 export interface RksvSignatureVerifyRequest {
-  /** @nullable */
+  /**
+   * Optional SHA-1 certificate thumbprint. When omitted, the active TSE signing certificate is used.
+   * @nullable
+   */
   certificateThumbprint?: string | null;
-  /** @minLength 1 */
+  /**
+   * Compact JWS: header.payload.signature (Base64URL, no padding).
+   * @minLength 1
+   */
   signature: string;
 }

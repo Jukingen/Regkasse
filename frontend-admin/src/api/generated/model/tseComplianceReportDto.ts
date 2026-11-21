@@ -10,6 +10,10 @@ import type { TseComplianceIssueDto } from './tseComplianceIssueDto';
 import type { TseComplianceRecommendationDto } from './tseComplianceRecommendationDto';
 import type { TseComplianceSignatureChainSummaryDto } from './tseComplianceSignatureChainSummaryDto';
 
+/**
+ * Diagnostic TSE/RKSV compliance snapshot for a tenant period.
+Not a legally binding Finanzamt proof — see KasseAPI_Final.DTOs.TseComplianceReportDto.LegalNoticeDe.
+ */
 export interface TseComplianceReportDto {
   generatedAt?: string;
   healthSummary?: TseComplianceHealthSummaryDto;

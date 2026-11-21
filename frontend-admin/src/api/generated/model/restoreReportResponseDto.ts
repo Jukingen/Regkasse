@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV-oriented restore compliance report for a manual validation restore request.
+ */
 export interface RestoreReportResponseDto {
   /** @nullable */
   backupDate?: string | null;
@@ -35,7 +38,10 @@ export interface RestoreReportResponseDto {
   rksvCompliant?: boolean;
   /** @nullable */
   status?: string | null;
-  /** @nullable */
+  /**
+   * Best-effort from drill TOC line count when present; not a row inventory.
+   * @nullable
+   */
   tablesRestored?: number | null;
   /** @nullable */
   targetDatabaseName?: string | null;

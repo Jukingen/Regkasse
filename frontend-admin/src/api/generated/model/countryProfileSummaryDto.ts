@@ -10,6 +10,9 @@ import type { EInvoicingStandard } from './eInvoicingStandard';
 import type { CountryFiscalSectionDto } from './countryFiscalSectionDto';
 import type { FiscalSystem } from './fiscalSystem';
 
+/**
+ * Tenant-selectable country profile for Super Admin provisioning APIs.
+ */
 export interface CountryProfileSummaryDto {
   /** @nullable */
   allowedVatRegimes: VatRegime[] | null;
@@ -24,10 +27,16 @@ export interface CountryProfileSummaryDto {
   /** @nullable */
   fiscalSections: CountryFiscalSectionDto[] | null;
   fiscalSystem: FiscalSystem;
-  /** @nullable */
+  /**
+   * Operator-facing fiscal system name. Not an ISO country code.
+   * @nullable
+   */
   fiscalSystemLabel: string | null;
   /** @nullable */
   name: string | null;
-  /** @nullable */
+  /**
+   * VAT-ID shape from the country profile seed. Admin UI must not keep a second copy.
+   * @nullable
+   */
   vatIdPattern: string | null;
 }

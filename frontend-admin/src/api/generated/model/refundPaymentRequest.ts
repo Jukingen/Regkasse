@@ -7,6 +7,9 @@
  */
 import type { RefundReasonCode } from './refundReasonCode';
 
+/**
+ * Admin API body for POST /api/admin/payments/{id}/refund.
+ */
 export interface RefundPaymentRequest {
   /**
    * @minimum 0.01

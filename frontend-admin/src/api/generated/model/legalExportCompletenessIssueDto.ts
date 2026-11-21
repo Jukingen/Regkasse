@@ -6,13 +6,22 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * LegalComplianceExport öncesi bütünlük kapısı — OperationalPreview/DiagnosticPackage ile karıştırılmamalı.
+ */
 export interface LegalExportCompletenessIssueDto {
-  /** @nullable */
+  /**
+   * Makine okunur kod (örn. incomplete_payment_mapping).
+   * @nullable
+   */
   code?: string | null;
   /** @nullable */
   messageDe?: string | null;
   /** @nullable */
   messageEn?: string | null;
-  /** @nullable */
+  /**
+   * block: Legal export yapılmamalı; warn: izinli ancak uyarılı.
+   * @nullable
+   */
   severity?: string | null;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Create manual restore (validation-only); requires second Super Admin approval.
+ */
 export interface RestoreRequest {
   backupRunId: string;
   /**
@@ -18,5 +21,6 @@ export interface RestoreRequest {
    * @maxLength 63
    */
   targetDatabaseName: string;
+  /** Must be true; production restore is not supported via this API. */
   validationOnly: boolean;
 }

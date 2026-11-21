@@ -8,12 +8,18 @@
 import type { ReplayBatchPaymentItemDto } from './replayBatchPaymentItemDto';
 
 export interface ReplayBatchDetailResponse {
-  /** @nullable */
+  /**
+   * Use for GET /api/AuditLog/correlation/{AuditCorrelationId} (log trace).
+   * @nullable
+   */
   auditCorrelationId?: string | null;
   correlationId?: string;
+  /** Observability-only replay loop samples (device/sequence coverage). Supplementary to audit/fiscal counts. */
   coverageSampleCount?: number;
   failedOrDuplicateCount?: number;
+  /** Immutable audit events: terminal offline replay failure in this batch. */
   offlineFinalFailureAuditCount?: number;
+  /** Immutable audit events: fiscal sync completed for an offline intent in this batch. */
   offlineSyncedAuditCount?: number;
   /** @nullable */
   payments?: ReplayBatchPaymentItemDto[] | null;

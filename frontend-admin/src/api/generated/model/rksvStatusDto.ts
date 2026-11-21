@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV environment status for POS/Admin badges (`GET /api/rksv/status`).
+ */
 export interface RksvStatusDto {
   /** @nullable */
   displayName?: string | null;

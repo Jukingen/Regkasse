@@ -23,6 +23,7 @@ export interface CreateAdminFeedbackRequestDto {
    */
   pagePath?: string | null;
   /**
+   * Optional 1–5 score for ease-of-use / performance.
    * @minimum 1
    * @maximum 5
    * @nullable

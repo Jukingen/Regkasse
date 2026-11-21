@@ -21,7 +21,10 @@ export interface ApplicationUser {
   accountType?: string | null;
   /** @nullable */
   carts?: Cart[] | null;
-  /** @nullable */
+  /**
+   * Legacy column; prefer KasseAPI_Final.Models.UserSettings.CashRegisterId for POS payment register preference.
+   * @nullable
+   */
   cashRegisterId?: string | null;
   /** @nullable */
   cashRegisters?: CashRegister[] | null;
@@ -72,6 +75,7 @@ export interface ApplicationUser {
   /** @nullable */
   lockoutEnd?: string | null;
   loginCount?: number;
+  /** When true, login is allowed but API access is limited until the user changes their password. */
   mustChangePasswordOnNextLogin?: boolean;
   /** @nullable */
   readonly name?: string | null;

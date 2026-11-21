@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One automatic DEP export validation check.
+ */
 export interface DepExportValidationCheck {
   /** @nullable */
   details?: string | null;

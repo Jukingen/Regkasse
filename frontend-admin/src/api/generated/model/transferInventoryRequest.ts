@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Lagerumlagerung zwischen zwei Bestandszeilen (unterschiedliche Produkte möglich).
+ */
 export interface TransferInventoryRequest {
   /** @nullable */
   notes?: string | null;

@@ -7,6 +7,7 @@
  */
 
 export interface TseDropoffPointDto {
+  /** 0–100 percent of users who did not continue. */
   dropoffPercent?: number;
   fromCount?: number;
   /** @nullable */

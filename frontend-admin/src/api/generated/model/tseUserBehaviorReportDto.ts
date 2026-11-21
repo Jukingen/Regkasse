@@ -12,7 +12,11 @@ import type { TseFunnelStepDto } from './tseFunnelStepDto';
 import type { TseUxRecommendationDto } from './tseUxRecommendationDto';
 import type { TseUserBehaviorReportDtoUserSatisfactionScores } from './tseUserBehaviorReportDtoUserSatisfactionScores';
 
+/**
+ * Tenant-scoped TSE / POS user-behavior report (diagnostic UX analytics — not fiscal evidence).
+ */
 export interface TseUserBehaviorReportDto {
+  /** Average session length in minutes. */
   averageSessionDuration?: number;
   dailyActiveUsers?: number;
   diagnosticOnly?: boolean;

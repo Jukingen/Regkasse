@@ -7,8 +7,20 @@
  */
 
 export type GetApiAdminRksvComplianceReportParams = {
+/**
+ * Optional: scope to a single cash register.
+ */
 cashRegisterId?: string;
+/**
+ * Optional: inclusive lower bound on `receipts.issued_at` (UTC).
+ */
 fromUtc?: string;
+/**
+ * Optional: exclusive upper bound on `receipts.issued_at` (UTC).
+ */
 toUtc?: string;
+/**
+ * `json` (default) or `pdf`.
+ */
 format?: string;
 };

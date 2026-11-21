@@ -8,11 +8,13 @@
 
 export interface RecordDownloadHistoryRequest {
   /**
+   * Optional API path / opaque reference (no secrets).
    * @maxLength 2000
    * @nullable
    */
   downloadUrl?: string | null;
   /**
+   * Optional observed download duration in milliseconds.
    * @minimum 0
    * @maximum 2147483647
    * @nullable

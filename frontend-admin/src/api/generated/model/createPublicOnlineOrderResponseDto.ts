@@ -11,7 +11,10 @@ export interface CreatePublicOnlineOrderResponseDto {
   code?: string | null;
   /** @nullable */
   error?: string | null;
-  /** @nullable */
+  /**
+   * Set to `v2` when `EnableOnlineOrdersV2` feature flag is on.
+   * @nullable
+   */
   intakeVersion?: string | null;
   /** @nullable */
   message?: string | null;

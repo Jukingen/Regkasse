@@ -14,71 +14,131 @@ import type { ReceiptSignatureDTO } from './receiptSignatureDTO';
 import type { ReceiptTaxLineDTO } from './receiptTaxLineDTO';
 import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 
+/**
+ * RKSV-compliant receipt data transfer object
+ */
 export interface ReceiptDTO {
-  /** @nullable */
+  /**
+   * Filiale / branch display when known (cash register `Location`).
+   * @nullable
+   */
   branchName?: string | null;
   /** @nullable */
   cashierDisplayName?: string | null;
   /** @nullable */
   cashierId?: string | null;
+  /** Authoritative cash register identity: FK to `cash_registers.Id` (same value stored on receipt row). */
   cashRegisterId?: string;
+  /** Clock drift warning flag raised during offline intent creation (if provided by client). */
   clockDriftWarning?: boolean;
   company?: ReceiptCompanyDTO;
+  /** Receipt issued-at (Belegzeit, fiscal). */
   date?: string;
-  /** @nullable */
+  /**
+   * Explicit alias for KasseAPI_Final.DTOs.ReceiptDTO.KassenID (display register number). Kept alongside legacy `kassenID` JSON for clarity.
+   * @nullable
+   */
   displayRegisterNumber?: string | null;
-  /** @nullable */
+  /**
+   * Server UTC when offline replay produced the fiscal payment (if HasOfflineOrigin).
+   * @nullable
+   */
   fiscalizedAtUtc?: string | null;
-  /** @nullable */
+  /**
+   * null = normal sale; Storno; Refund.
+   * @nullable
+   */
   fiscalTraceKind?: string | null;
   /** @nullable */
   footerText?: string | null;
   grandTotal?: number;
+  /** True when payment is linked to a controlled offline intent replay. */
   hasOfflineOrigin?: boolean;
   header?: ReceiptHeaderDTO;
+  /** True when the sale was marked Vorbestellung (pickup later). Fiscal receipt already exists. */
   isPreorder?: boolean;
   /** @nullable */
   items?: ReceiptItemDTO[] | null;
-  /** @nullable */
+  /**
+   * RKSV / receipt display register id: `CashRegisters.RegisterNumber`, not the register row GUID. Same text as KasseAPI_Final.DTOs.ReceiptDTO.DisplayRegisterNumber.
+   * @nullable
+   */
   kassenID?: string | null;
+  /** Netto (Brutto − MwSt). Same value as KasseAPI_Final.DTOs.ReceiptDTO.SubTotal / KasseAPI_Final.DTOs.ReceiptTotalsDTO.TotalNet. */
   netTotal?: number;
-  /** @nullable */
+  /**
+   * Device-time UTC when offline queue entry was created (if HasOfflineOrigin).
+   * @nullable
+   */
   offlineCreatedAtUtc?: string | null;
   /** @nullable */
   offlineTransactionId?: string | null;
-  /** @nullable */
+  /**
+   * When this receipt is a reversal: original sale payment id.
+   * @nullable
+   */
   originalPaymentId?: string | null;
-  /** @nullable */
+  /**
+   * When this receipt is a reversal: original sale receipt id.
+   * @nullable
+   */
   originalSaleReceiptId?: string | null;
+  /** Source payment row for this fiscal receipt (navigation / forensic). */
   paymentId?: string;
   /** @nullable */
   payments?: ReceiptPaymentDTO[] | null;
-  /** @nullable */
+  /**
+   * Besorgerzettel number (BS…). Not the fiscal Belegnummer.
+   * @nullable
+   */
   preorderNumber?: string | null;
-  /** @nullable */
+  /**
+   * Amount already paid (this and prior fiscal payments on the pre-order).
+   * @nullable
+   */
   preorderPaidAmount?: number | null;
   /** @nullable */
   preorderPickupWeeks?: number | null;
   /** @nullable */
   preorderPolicyText?: string | null;
-  /** @nullable */
+  /**
+   * Operational remaining amount; paid later as a separate fiscal sale.
+   * @nullable
+   */
   preorderRemainingAmount?: number | null;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  /** When the receipt row was persisted (may differ slightly from issued-at). */
   receiptPersistedAtUtc?: string;
   rksvFinanzOnlineSubmission?: RksvFinanzOnlineSubmissionStatusDto;
-  /** @nullable */
+  /**
+   * Environment-aware RKSV compliance label for printed receipt QR block.
+   * @nullable
+   */
   rksvFooterLabel?: string | null;
+  /** December Nullbeleg Jahres-tag (future Jahresbeleg handling). */
   rksvNullbelegActsAsJahresbeleg?: boolean;
-  /** @nullable */
+  /**
+   * RKSV Sonderbeleg (e.g. Nullbeleg); null = normal payment.
+   * @nullable
+   */
   rksvSpecialReceiptKind?: string | null;
+  /** Client sequence duplicate/non-monotonic detected during offline intent creation. */
   sequenceDuplicateDetected?: boolean;
+  /** Client sequence gap detected during offline intent creation (missing sequence numbers). */
   sequenceGapDetected?: boolean;
-  /** @nullable */
+  /**
+   * Cashier shift row id when resolvable at issue time.
+   * @nullable
+   */
   shiftId?: string | null;
-  /** @nullable */
+  /**
+   * RKSV Schicht-Nr. display (short shift id).
+   * @nullable
+   */
   shiftNumber?: string | null;
+  /** True when POS/print should show the DEMO / NICHT FISKAL disclaimer (`RKSV:ShowDemoLabel`). */
   showDemoLabel?: boolean;
   signature?: ReceiptSignatureDTO;
   subTotal?: number;
@@ -87,9 +147,15 @@ export interface ReceiptDTO {
   taxAmount?: number;
   /** @nullable */
   taxRates?: ReceiptTaxLineDTO[] | null;
-  /** @nullable */
+  /**
+   * Optional POS terminal number when stored on the register; omitted from print when empty.
+   * @nullable
+   */
   terminalNumber?: string | null;
-  /** @nullable */
+  /**
+   * Resolved Dankesnachricht (same value as KasseAPI_Final.DTOs.ReceiptDTO.FooterText).
+   * @nullable
+   */
   thankYouMessage?: string | null;
   totals?: ReceiptTotalsDTO;
 }

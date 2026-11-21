@@ -7,12 +7,19 @@
  */
 
 export interface CreateMonatsbelegResponse {
+  /** Real UTC timestamp when the receipt was signed and persisted (never backdated). */
   createdAtUtc?: string;
+  /** Whole days past the legal deadline (0 when on time or within grace). */
   daysLate?: number;
-  /** @nullable */
+  /**
+   * Last day of the covered Vienna calendar month.
+   * @nullable
+   */
   intendedPeriodDate?: string | null;
   invoiceId?: string;
+  /** True when created nachträglich or past the legal Monatsbeleg deadline. */
   isLateCreated?: boolean;
+  /** Covered Vienna calendar month 1–12 (same as request). */
   month?: number;
   paymentId?: string;
   /** @nullable */
@@ -20,5 +27,13 @@ export interface CreateMonatsbelegResponse {
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  /** True when force=true replaced the active Monatsbeleg with a newly signed receipt. */
+  reissued?: boolean;
+  /**
+   * Previous active payment kept for the audit trail. Null on the first Monatsbeleg of the month.
+   * @nullable
+   */
+  supersededPaymentId?: string | null;
+  /** Covered Vienna calendar year (same as request). */
   year?: number;
 }

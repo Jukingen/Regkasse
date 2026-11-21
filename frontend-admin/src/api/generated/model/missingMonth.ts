@@ -7,7 +7,9 @@
  */
 
 export interface MissingMonth {
+  /** Legal completion deadline (Vienna calendar date): end of following month. */
   deadline: string;
+  /** True when current Vienna date is after the legal deadline (end of following month). */
   isOverdue: boolean;
   month: number;
   year: number;

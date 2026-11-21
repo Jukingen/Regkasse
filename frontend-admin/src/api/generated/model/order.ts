@@ -33,15 +33,20 @@ export interface Order {
   discountAmount: number;
   id?: string;
   /**
+   * Sprint 6: Optional idempotency key for order creation; retries with same key return existing order.
    * @maxLength 64
    * @nullable
    */
   idempotencyKey?: string | null;
   isActive?: boolean;
+  /** True when this row tracks a paid POS layaway / Vorbestellung (fiscal receipt already issued). */
   isPreorder?: boolean;
   /** @nullable */
   items?: OrderItem[] | null;
-  /** @nullable */
+  /**
+   * Latest fiscal payment on this pre-order (create or remaining-balance sale).
+   * @nullable
+   */
   lastPreorderPaymentId?: string | null;
   locationData?: OrderLocationData;
   /**
@@ -60,6 +65,7 @@ export interface Order {
   /** @nullable */
   preorderCustomerNotes?: string | null;
   /**
+   * Besorgerzettel number, e.g. BS2609201. Not a fiscal Belegnummer.
    * @maxLength 20
    * @nullable
    */
@@ -72,23 +78,31 @@ export interface Order {
   preorderReadyAt?: string | null;
   preorderRemainingAmount?: number;
   /**
+   * KasseAPI_Final.Models.PreorderStatuses — pending / ready / collected / cancelled.
    * @maxLength 20
    * @nullable
    */
   preorderStatus?: string | null;
   /**
+   * Belegnummer snapshot for cashier search (same as payment_details.ReceiptNumber).
    * @maxLength 256
    * @nullable
    */
   receiptNumber?: string | null;
-  /** @nullable */
+  /**
+   * Fiscal sale payment that created this pre-order. Pickup never creates a second payment.
+   * @nullable
+   */
   sourcePaymentId?: string | null;
   status: OrderStatus;
   subtotal: number;
   /** @nullable */
   tableNumber?: number | null;
   taxAmount: number;
-  /** @nullable */
+  /**
+   * Ambient tenant for POS pre-orders. Legacy kitchen rows may be null.
+   * @nullable
+   */
   tenantId?: string | null;
   totalAmount: number;
   /** @nullable */

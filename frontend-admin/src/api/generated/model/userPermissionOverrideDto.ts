@@ -18,7 +18,10 @@ export interface UserPermissionOverrideDto {
   permission?: string | null;
   /** @nullable */
   reason?: string | null;
-  /** @nullable */
+  /**
+   * scheduled | active | expiringSoon | expired
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   tenantId?: string | null;

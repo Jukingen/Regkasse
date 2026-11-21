@@ -7,6 +7,7 @@
  */
 
 export interface ToggleTenantDigitalServiceRequestDto {
+  /** Maps to `TenantServiceStatus.IsActive` (Super Admin platform gate). */
   active?: boolean;
   /** @nullable */
   reason?: string | null;

@@ -7,11 +7,16 @@
  */
 import type { AdminTenantListItemDto } from './adminTenantListItemDto';
 
+/**
+ * Generic pagination envelope for list endpoints.
+JSON keeps legacy `totalCount` (via KasseAPI_Final.Models.PagedResult`1.TotalCount); KasseAPI_Final.Models.PagedResult`1.Total is a code-side alias.
+ */
 export interface PagedResultOfAdminTenantListItemDto {
   /** @nullable */
   items?: AdminTenantListItemDto[] | null;
   page?: number;
   pageSize?: number;
+  /** Serialized as `totalCount` — do not rename (invoice/receipt/cash-register API contract). */
   totalCount?: number;
   totalPages?: number;
 }

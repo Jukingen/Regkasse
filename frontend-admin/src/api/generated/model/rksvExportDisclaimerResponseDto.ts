@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Dual-language RKSV export disclaimer for admin UI and clients.
+ */
 export interface RksvExportDisclaimerResponseDto {
   /** @nullable */
   de?: string | null;

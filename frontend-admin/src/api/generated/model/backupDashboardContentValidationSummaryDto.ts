@@ -9,7 +9,10 @@
 export interface BackupDashboardContentValidationSummaryDto {
   /** @nullable */
   lastSucceededRunId?: string | null;
-  /** @nullable */
+  /**
+   * passed | failed | partial | available | unavailable | unknown
+   * @nullable
+   */
   status?: string | null;
   /** @nullable */
   summary?: string | null;

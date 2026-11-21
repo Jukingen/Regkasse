@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * FA dashboard system metrics summary (derived from Prometheus + live DB counts).
+ */
 export interface SystemMetricsSummaryDto {
   activeOrders?: number;
   activeTenants?: number;

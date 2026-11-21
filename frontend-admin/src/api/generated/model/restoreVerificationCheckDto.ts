@@ -9,8 +9,14 @@
 export interface RestoreVerificationCheckDto {
   /** @nullable */
   detail?: string | null;
-  /** @nullable */
+  /**
+   * `hash` | `schema` | `data` | `tse` | `fiscal`.
+   * @nullable
+   */
   id?: string | null;
-  /** @nullable */
+  /**
+   * `passed` | `failed` | `skipped` | `unavailable`.
+   * @nullable
+   */
   result?: string | null;
 }

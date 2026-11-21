@@ -6,6 +6,11 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * E-invoicing document standards a country profile may declare. Declaring a standard does not
+enable a builder — every one of these is gated behind an `EInvoicing.*` feature flag and
+none is implemented yet. See `docs/EINVOICING_EU.md`.
+ */
 export type EInvoicingStandard = typeof EInvoicingStandard[keyof typeof EInvoicingStandard];
 
 

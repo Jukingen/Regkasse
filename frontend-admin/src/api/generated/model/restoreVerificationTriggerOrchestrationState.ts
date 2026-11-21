@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Manuel restore drill tetikleme sonucu (API yanıtı ile uyumlu).
+ */
 export type RestoreVerificationTriggerOrchestrationState = typeof RestoreVerificationTriggerOrchestrationState[keyof typeof RestoreVerificationTriggerOrchestrationState];
 
 

@@ -7,6 +7,9 @@
  */
 import type { TseSustainabilityTrendDto } from './tseSustainabilityTrendDto';
 
+/**
+ * Indicative TSE green-IT sustainability report (not certified LCA / ESG audit).
+ */
 export interface TseSustainabilityReportDto {
   activeDeviceCount?: number;
   averageDeviceEnergyUsage?: number;

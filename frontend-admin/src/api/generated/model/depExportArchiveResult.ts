@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Result of archiving one DEP export history row.
+ */
 export interface DepExportArchiveResult {
   alreadyArchived?: boolean;
   /** @nullable */

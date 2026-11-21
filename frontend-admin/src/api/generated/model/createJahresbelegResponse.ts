@@ -7,11 +7,17 @@
  */
 
 export interface CreateJahresbelegResponse {
+  /** Real UTC timestamp when the receipt was signed and persisted (never backdated). */
   createdAtUtc?: string;
+  /** Whole days past the legal Jahresbeleg deadline (January 31 of the following year). */
   daysLate?: number;
-  /** @nullable */
+  /**
+   * Last day of the covered Vienna calendar year (December 31).
+   * @nullable
+   */
   intendedPeriodDate?: string | null;
   invoiceId?: string;
+  /** True when created nachträglich or past the January 31 legal deadline. */
   isLateCreated?: boolean;
   paymentId?: string;
   /** @nullable */
@@ -19,5 +25,6 @@ export interface CreateJahresbelegResponse {
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  /** Covered Vienna calendar year (same as request). */
   year?: number;
 }

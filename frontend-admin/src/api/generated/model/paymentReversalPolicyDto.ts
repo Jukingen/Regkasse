@@ -11,7 +11,10 @@ export interface PaymentReversalPolicyDto {
   amount?: number | null;
   /** @nullable */
   operation?: string | null;
-  /** @nullable */
+  /**
+   * Primary German reason (first risk factor).
+   * @nullable
+   */
   reason?: string | null;
   /** @nullable */
   reasons?: string[] | null;

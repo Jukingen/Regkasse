@@ -9,10 +9,12 @@
 export interface MaintenanceNotificationDto {
   /** @nullable */
   affectedSystems?: string | null;
+  /** Whether the current user may dismiss this notice. */
   canDismiss?: boolean;
   createdAt?: string;
   /** @nullable */
   createdBy?: string | null;
+  /** Effective force overlay for the current user/time (24h window or flags). */
   effectiveForceDisplay?: boolean;
   /** @nullable */
   forceDisplayFrom?: string | null;

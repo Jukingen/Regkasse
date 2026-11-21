@@ -30,5 +30,8 @@ pageNumber?: number;
 pageSize?: number;
 categoryId?: string;
 name?: string;
+/**
+ * Legacy optional: omit or "true" = active only (default); "false" = inactive only; "all" = both.
+ */
 isActive?: string;
 };

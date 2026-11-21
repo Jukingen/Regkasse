@@ -35,6 +35,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Place a new online order (website/PWA/native). Returns 409 when closed / past cutoff.
+ */
 export const postApiPublicOnlineOrders = (
     createPublicOnlineOrderRequestDto: CreatePublicOnlineOrderRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -73,7 +76,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPublicOnlineOrdersMutationBody = CreatePublicOnlineOrderRequestDto
     export type PostApiPublicOnlineOrdersMutationError = CreatePublicOnlineOrderResponseDto
 
-    export const usePostApiPublicOnlineOrders = <TError = CreatePublicOnlineOrderResponseDto,
+    /**
+ * @summary Place a new online order (website/PWA/native). Returns 409 when closed / past cutoff.
+ */
+export const usePostApiPublicOnlineOrders = <TError = CreatePublicOnlineOrderResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrders>>, TError,{data: CreatePublicOnlineOrderRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPublicOnlineOrders>>,
@@ -86,7 +92,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPublicOnlineOrdersStatus = (
+    /**
+ * @summary Lookup by tenant slug + order number. Optional phone (digits) must match when provided.
+Returns 404 for unknown / mismatched lookups (no enumeration).
+ */
+export const getApiPublicOnlineOrdersStatus = (
     params?: GetApiPublicOnlineOrdersStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -126,6 +136,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPublicOnlineOrdersStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>>
 export type GetApiPublicOnlineOrdersStatusQueryError = ProblemDetails
 
+/**
+ * @summary Lookup by tenant slug + order number. Optional phone (digits) must match when provided.
+Returns 404 for unknown / mismatched lookups (no enumeration).
+ */
 export const useGetApiPublicOnlineOrdersStatus = <TData = Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>, TError = ProblemDetails>(
  params?: GetApiPublicOnlineOrdersStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -142,6 +156,9 @@ export const useGetApiPublicOnlineOrdersStatus = <TData = Awaited<ReturnType<typ
 
 
 
+/**
+ * @summary Create PaymentIntent for online checkout (requires tenant slug).
+ */
 export const postApiPublicOnlineOrdersOrderIdPaymentIntent = (
     orderId: string,
     createOnlineOrderPaymentIntentRequestDto: CreateOnlineOrderPaymentIntentRequestDto,
@@ -183,7 +200,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPublicOnlineOrdersOrderIdPaymentIntentMutationBody = CreateOnlineOrderPaymentIntentRequestDto
     export type PostApiPublicOnlineOrdersOrderIdPaymentIntentMutationError = OnlineOrderPaymentIntentResponseDto
 
-    export const usePostApiPublicOnlineOrdersOrderIdPaymentIntent = <TError = OnlineOrderPaymentIntentResponseDto,
+    /**
+ * @summary Create PaymentIntent for online checkout (requires tenant slug).
+ */
+export const usePostApiPublicOnlineOrdersOrderIdPaymentIntent = <TError = OnlineOrderPaymentIntentResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrdersOrderIdPaymentIntent>>, TError,{orderId: string;data: CreateOnlineOrderPaymentIntentRequestDto;params?: PostApiPublicOnlineOrdersOrderIdPaymentIntentParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPublicOnlineOrdersOrderIdPaymentIntent>>,
@@ -196,7 +216,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPublicOnlineOrdersPaymentsConfirm = (
+    /**
+ * @summary Confirm PaymentIntent after client-side payment (Mock auto-succeeds; Stripe when status=succeeded).
+ */
+export const postApiPublicOnlineOrdersPaymentsConfirm = (
     confirmOnlineOrderPaymentRequestDto: ConfirmOnlineOrderPaymentRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
 
@@ -234,7 +257,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPublicOnlineOrdersPaymentsConfirmMutationBody = ConfirmOnlineOrderPaymentRequestDto
     export type PostApiPublicOnlineOrdersPaymentsConfirmMutationError = OnlineOrderPaymentIntentResponseDto
 
-    export const usePostApiPublicOnlineOrdersPaymentsConfirm = <TError = OnlineOrderPaymentIntentResponseDto,
+    /**
+ * @summary Confirm PaymentIntent after client-side payment (Mock auto-succeeds; Stripe when status=succeeded).
+ */
+export const usePostApiPublicOnlineOrdersPaymentsConfirm = <TError = OnlineOrderPaymentIntentResponseDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrdersPaymentsConfirm>>, TError,{data: ConfirmOnlineOrderPaymentRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPublicOnlineOrdersPaymentsConfirm>>,

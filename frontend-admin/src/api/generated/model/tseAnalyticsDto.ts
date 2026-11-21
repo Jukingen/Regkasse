@@ -7,6 +7,9 @@
  */
 import type { TseDailyUsageDto } from './tseDailyUsageDto';
 
+/**
+ * Fleet TSE usage snapshot. Diagnostic Super Admin KPI — not DEP / Finanzamt evidence.
+ */
 export interface TseAnalyticsDto {
   activeRegisters?: number;
   averageSignaturesPerRegister?: number;

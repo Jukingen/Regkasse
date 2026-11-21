@@ -7,6 +7,7 @@
  */
 
 export interface TseScalingPolicyDto {
+  /** Soft backup stub provision/deactivation. Default false = recommend-only. */
   autoProvision?: boolean;
   cooldownMinutes?: number;
   enabled?: boolean;

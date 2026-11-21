@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Makine tarafından işlenebilir hata sınıfı; UI’dan bağımsız operatör anlamı.
+ */
 export type RestoreDrillFailureCategory = typeof RestoreDrillFailureCategory[keyof typeof RestoreDrillFailureCategory];
 
 

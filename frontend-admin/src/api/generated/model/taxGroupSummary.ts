@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Aggregated VAT bucket within a KasseAPI_Final.Models.TaxReport.
+ */
 export interface TaxGroupSummary {
   grossRevenue?: number;
   netRevenue?: number;

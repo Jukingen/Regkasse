@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/Auth/forgot-password — request a password reset email (admin app).
+ */
 export interface ForgotPasswordRequest {
-  /** @nullable */
+  /**
+   * Must be `admin` for this flow.
+   * @nullable
+   */
   clientApp?: string | null;
   /** @minLength 1 */
   email: string;

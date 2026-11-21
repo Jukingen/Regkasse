@@ -9,10 +9,17 @@
 export interface ActivateLicenseRequest {
   /** @minLength 1 */
   licenseKey: string;
-  /** @nullable */
+  /**
+   * Optional client-reported fingerprint; when set, must match this host.
+   * @nullable
+   */
   machineFingerprint?: string | null;
   /** @nullable */
   offlineActivationJwt?: string | null;
-  /** @nullable */
+  /**
+   * Optional mandant target for Super Admin (platform mode has no ambient tenant).
+Ignored for `system` keys. When omitted, tenant is resolved from the key slug.
+   * @nullable
+   */
   tenantId?: string | null;
 }

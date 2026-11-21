@@ -7,6 +7,9 @@
  */
 import type { CreatePublicOnlineOrderItemDto } from './createPublicOnlineOrderItemDto';
 
+/**
+ * Customer website/app order placement (non-fiscal). Gated by working hours.
+ */
 export interface CreatePublicOnlineOrderRequestDto {
   /**
    * @maxLength 256
@@ -36,16 +39,19 @@ export interface CreatePublicOnlineOrderRequestDto {
    */
   notes?: string | null;
   /**
+   * `takeaway` | `delivery` | `dine-in`
    * @maxLength 20
    * @nullable
    */
   orderType?: string | null;
   /**
+   * `cash` | `card` | `online`
    * @maxLength 20
    * @nullable
    */
   paymentMethod?: string | null;
   /**
+   * `web` | `pwa` | `native`
    * @maxLength 20
    * @nullable
    */

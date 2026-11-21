@@ -12,10 +12,17 @@ import type { TaxGroup } from './taxGroup';
 import type { Tenant } from './tenant';
 import type { ProductVariant } from './productVariant';
 
+/**
+ * RKSV uyumlu ürün modeli - Avusturya kasa sistemi standartlarına uygun
+ */
 export interface Product {
-  /** @nullable */
+  /**
+   * UTC timestamp when the product was archived after being superseded by a newer catalog version.
+   * @nullable
+   */
   archivedAt?: string | null;
   /**
+   * Optional retail lookup code. Not part of RKSV, TSE, or DEP.
    * @maxLength 64
    * @nullable
    */
@@ -59,6 +66,7 @@ export interface Product {
    */
   descriptionTr?: string | null;
   /**
+   * Optional service duration used by appointment-oriented verticals.
    * @minimum 1
    * @maximum 1440
    * @nullable
@@ -69,6 +77,7 @@ export interface Product {
    * @nullable
    */
   fiscalCategoryCode?: string | null;
+  /** List payload only. Not stored. Detail variants stay on the variants endpoint. */
   hasVariants?: boolean;
   id?: string;
   /**
@@ -78,11 +87,14 @@ export interface Product {
   imageUrl?: string | null;
   /** @nullable */
   imeis?: ProductImei[] | null;
+  /** When true, each sold unit must pick a unique IMEI from KasseAPI_Final.Models.Product.Imeis. */
   imeiTracked?: boolean;
   isActive?: boolean;
   isFiscalCompliant?: boolean;
+  /** Faz 1: Sellable add-on (Zusatzprodukt); sepette/ödeme/fişte ayrı line item; fiyat burada; stok düşülmez. */
   isSellableAddOn?: boolean;
   isTaxable?: boolean;
+  /** When true, a ticket-sales sale issues a redeemable ticket code (hash stored only). */
   isTicket?: boolean;
   /**
    * @minimum 0
@@ -95,7 +107,10 @@ export interface Product {
    * @maximum 2147483647
    */
   minStockLevel: number;
-  /** @nullable */
+  /**
+   * Bu ürüne atanmış modifier grupları (Extra Zutaten).
+   * @nullable
+   */
   modifierGroupAssignments?: ProductModifierGroupAssignment[] | null;
   /**
    * @minLength 1
@@ -118,13 +133,18 @@ export interface Product {
    */
   nameTr?: string | null;
   originalProduct?: Product;
-  /** @nullable */
+  /**
+   * Immediate predecessor product id when this row was created via catalog versioning.
+   * @nullable
+   */
   originalProductId?: string | null;
   /**
    * @minimum 0
    * @maximum 1.7976931348623157e+308
    */
   price: number;
+  /** When true, a sale of this product needs a prescription reference.
+Enforced only by `prescription_required` when that extension is enabled. */
   requiresPrescription?: boolean;
   /**
    * @maxLength 50
@@ -132,6 +152,8 @@ export interface Product {
    */
   rksvProductType?: string | null;
   /**
+   * Optional default staff Identity id for this service. Kept as a scalar reference:
+staff membership/tenant authorization is resolved at booking time.
    * @maxLength 450
    * @nullable
    */
@@ -147,6 +169,7 @@ export interface Product {
    */
   taxExemptionReason?: string | null;
   taxGroup?: TaxGroup;
+  /** FK to tenant KasseAPI_Final.Models.Product.TaxGroup catalog; drives KasseAPI_Final.Models.Product.TaxRate / KasseAPI_Final.Models.Product.TaxType. */
   taxGroupId?: string;
   /**
    * @minimum 0
@@ -155,6 +178,7 @@ export interface Product {
   taxRate?: number;
   taxType: number;
   tenant?: Tenant;
+  /** FK to KasseAPI_Final.Models.Tenant; aligns with KasseAPI_Final.Models.Product.CategoryId composite FK to KasseAPI_Final.Models.Product.Category. */
   tenantId?: string;
   /**
    * @minLength 1
@@ -170,5 +194,8 @@ export interface Product {
   updatedBy?: string | null;
   /** @nullable */
   variants?: ProductVariant[] | null;
+  /** Catalog version number for RKSV-safe supersession (1 = original).
+When a product with fiscal sales history gets a price/tax change, a new product row is created
+with `Version = previous + 1` and the old row is archived. */
   version?: number;
 }

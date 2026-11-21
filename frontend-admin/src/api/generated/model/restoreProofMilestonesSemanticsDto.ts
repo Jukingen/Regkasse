@@ -6,11 +6,17 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Muhafazakâr uyarı kodları; KasseAPI_Final.DTOs.RestoreProofMilestonesSemanticsDto.SchemaVersion ile birlikte sürümlenir.
+ */
 export interface RestoreProofMilestonesSemanticsDto {
   /** @nullable */
   conservativeNote?: string | null;
   /** @nullable */
   schemaVersion?: string | null;
-  /** @nullable */
+  /**
+   * Örn. `LATEST_DRILL_ATTEMPT_FAILED`, `NEWER_SUCCESS_WITHOUT_L4_CONTINUITY_PROOF`.
+   * @nullable
+   */
   warningCodes?: string[] | null;
 }

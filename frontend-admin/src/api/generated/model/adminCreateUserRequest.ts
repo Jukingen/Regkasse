@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * POST /api/admin/users — platform or tenant user (no invitation email).
+ */
 export interface AdminCreateUserRequest {
   /**
    * @minLength 1
@@ -34,6 +37,7 @@ export interface AdminCreateUserRequest {
    */
   notes?: string | null;
   /**
+   * Optional operator-provided password; generated securely when omitted.
    * @minLength 8
    * @maxLength 128
    * @nullable
@@ -49,9 +53,14 @@ export interface AdminCreateUserRequest {
    * @nullable
    */
   taxNumber?: string | null;
-  /** @nullable */
+  /**
+   * When set, creates a tenant-scoped user under this mandant.
+Omit or null for platform KasseAPI_Final.Services.AdminTenants.AdminCreateUserRequest.Role = SuperAdmin only.
+   * @nullable
+   */
   tenantId?: string | null;
   /**
+   * Optional login name; generated from role when omitted (e.g. admin1, manager2).
    * @maxLength 256
    * @nullable
    */

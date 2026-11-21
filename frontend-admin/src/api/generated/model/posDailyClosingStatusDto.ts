@@ -7,13 +7,19 @@
  */
 
 export interface PosDailyClosingStatusDto {
-  /** @nullable */
+  /**
+   * Machine-readable block reason for POS i18n (KasseAPI_Final.DTOs.PosDailyClosingBlockReasons).
+   * @nullable
+   */
   blockReason?: string | null;
   canClose?: boolean;
   hasActiveShift?: boolean;
   /** @nullable */
   lastClosingDate?: string | null;
-  /** @nullable */
+  /**
+   * When the latest daily closing was performed (UTC !:DailyClosing.CreatedAt).
+   * @nullable
+   */
   lastClosingPerformedAt?: string | null;
   /** @nullable */
   message?: string | null;

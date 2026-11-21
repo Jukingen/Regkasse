@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Flexible tax group kinds for Austrian MwSt (extends legacy Standard/Reduced/Special/ZeroRate).
+ */
 export type TaxGroupType = typeof TaxGroupType[keyof typeof TaxGroupType];
 
 

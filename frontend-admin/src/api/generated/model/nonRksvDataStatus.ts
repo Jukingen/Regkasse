@@ -7,6 +7,7 @@
  */
 
 export interface NonRksvDataStatus {
+  /** Non-fiscal rows may be purged after an approved deletion request (RKSV rows remain). */
   canBeDeleted?: boolean;
   categoriesCount?: number;
   customersCount?: number;

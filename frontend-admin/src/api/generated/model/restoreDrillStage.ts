@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Restore drill ilerleme evreleri; terminal başarı için sıralı kanıt zinciri (sayısal depolama için ayrık değerler).
+ */
 export type RestoreDrillStage = typeof RestoreDrillStage[keyof typeof RestoreDrillStage];
 
 

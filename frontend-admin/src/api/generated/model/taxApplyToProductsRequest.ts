@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Assign one tax group to an explicit product id list (quick actions / selection).
+ */
 export interface TaxApplyToProductsRequest {
   /** @nullable */
   productIds?: string[] | null;

@@ -9,7 +9,10 @@
 export interface MarkPaidRequest {
   /** @nullable */
   paidAt?: string | null;
-  /** @nullable */
+  /**
+   * `bank_transfer`, `card`, or `cash`.
+   * @nullable
+   */
   paymentMethod?: string | null;
   /** @nullable */
   reference?: string | null;

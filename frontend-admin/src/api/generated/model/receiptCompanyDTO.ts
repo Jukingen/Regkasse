@@ -9,7 +9,10 @@
 export interface ReceiptCompanyDTO {
   /** @nullable */
   address?: string | null;
-  /** @nullable */
+  /**
+   * Optional company description printed after the Dankesnachricht.
+   * @nullable
+   */
   description?: string | null;
   /** @nullable */
   name?: string | null;

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Single device row in the Super Admin fleet health status response.
+ */
 export interface TseFleetDeviceHealthDto {
   deviceId?: string;
   healthScore?: number;

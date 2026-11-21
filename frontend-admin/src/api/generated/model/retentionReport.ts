@@ -8,10 +8,15 @@
 import type { NonRksvDataStatus } from './nonRksvDataStatus';
 import type { RksvDataStatus } from './rksvDataStatus';
 
+/**
+ * RKSV 7-year retention snapshot for a single tenant (compliance dashboard).
+ */
 export interface RetentionReport {
   asOfUtc?: string;
   nonRksvData: NonRksvDataStatus;
+  /** UTC cutoff: records with CreatedAt/IssuedAt before this are past the minimum retention window. */
   retentionCutoffUtc?: string;
+  /** Austrian RKSV minimum retention period in years. */
   retentionYears?: number;
   rksvData: RksvDataStatus;
   tenantId?: string;

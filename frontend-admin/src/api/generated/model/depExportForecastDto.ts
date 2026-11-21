@@ -8,6 +8,7 @@
 import type { DepExportForecastPointDto } from './depExportForecastPointDto';
 
 export interface DepExportForecastDto {
+  /** Average successful exports per month over the lookback window. */
   averageMonthlyExports?: number;
   generatedAtUtc?: string;
   /** @nullable */
@@ -16,6 +17,9 @@ export interface DepExportForecastDto {
   nextDueDate?: string | null;
   /** @nullable */
   nextRequirementTitle?: string | null;
-  /** @nullable */
+  /**
+   * Simple projected successful export count for upcoming months.
+   * @nullable
+   */
   points?: DepExportForecastPointDto[] | null;
 }

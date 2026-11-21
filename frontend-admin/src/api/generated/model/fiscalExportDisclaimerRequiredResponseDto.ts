@@ -7,6 +7,9 @@
  */
 import type { RksvExportDisclaimerResponseDto } from './rksvExportDisclaimerResponseDto';
 
+/**
+ * Returned when fiscal export requires prior UI disclaimer acknowledgment (§ 8 RKSV).
+ */
 export interface FiscalExportDisclaimerRequiredResponseDto {
   disclaimer?: RksvExportDisclaimerResponseDto;
   /** @nullable */

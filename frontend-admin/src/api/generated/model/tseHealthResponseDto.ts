@@ -6,9 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Cached TSE connectivity snapshot for POS dashboards.
+ */
 export interface TseHealthResponseDto {
   consecutiveFailures?: number;
-  /** @nullable */
+  /**
+   * Optional ETA when status is Offline (next probe).
+   * @nullable
+   */
   estimatedRecoveryTimeUtc?: string | null;
   /** @nullable */
   lastCheckUtc?: string | null;
@@ -16,8 +22,14 @@ export interface TseHealthResponseDto {
   lastErrorMessageSafe?: string | null;
   /** @nullable */
   lastSuccessfulPingUtc?: string | null;
-  /** @nullable */
+  /**
+   * Count of server-side non-fiscal pending intents for the register (when cashRegisterId query was sent).
+   * @nullable
+   */
   nonFiscalPendingQueueCount?: number | null;
-  /** @nullable */
+  /**
+   * Online | Degraded | Offline
+   * @nullable
+   */
   status?: string | null;
 }

@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * DEP history status for API responses (string enum JSON: "Completed", not 2).
+ */
 export type DepExportStatus = typeof DepExportStatus[keyof typeof DepExportStatus];
 
 

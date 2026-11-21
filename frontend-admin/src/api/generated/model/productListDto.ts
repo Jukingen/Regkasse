@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Lightweight projection for admin product list queries.
+ */
 export interface ProductListDto {
   /** @nullable */
   barcode?: string | null;

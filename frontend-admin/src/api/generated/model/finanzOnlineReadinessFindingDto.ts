@@ -7,7 +7,10 @@
  */
 
 export interface FinanzOnlineReadinessFindingDto {
-  /** @nullable */
+  /**
+   * Optional grouping for UIs: Transport, Simulation, Credentials, CompanySettings, Outbox, DevTest.
+   * @nullable
+   */
   category?: string | null;
   /** @nullable */
   code?: string | null;

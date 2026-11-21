@@ -17,7 +17,11 @@ export interface CreatePosAppointmentRequest {
   customerName?: string | null;
   /** @nullable */
   endUtc?: string | null;
-  /** @nullable */
+  /**
+   * Optimistic slot token. `0`/omitted means "slot is empty".
+A mismatch against an existing active row returns HTTP 409.
+   * @nullable
+   */
   expectedVersion?: number | null;
   /** @nullable */
   notes?: string | null;

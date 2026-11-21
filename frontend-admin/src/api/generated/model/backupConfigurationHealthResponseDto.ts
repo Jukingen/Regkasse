@@ -10,27 +10,52 @@ import type { BackupExternalArchiveReadinessResponseDto } from './backupExternal
 import type { BackupRetentionReadinessResponseDto } from './backupRetentionReadinessResponseDto';
 
 export interface BackupConfigurationHealthResponseDto {
-  /** @nullable */
+  /**
+   * Kalıcı admin modu: InheritFromConfiguration, SimulatedFake, PostgreSqlPgDump.
+   * @nullable
+   */
   adminRuntimeExecutionMode?: string | null;
-  /** @nullable */
+  /**
+   * Explicitly states Phase 1 verification is not restore proof.
+   * @nullable
+   */
   artifactVerificationDisclaimer?: string | null;
-  /** @nullable */
+  /**
+   * Stable token: PostgreSqlLogicalDump, SimulatedFake, ProductionStubNoPostgreSqlBackup, …
+   * @nullable
+   */
   backupExecutionReality?: string | null;
-  /** @nullable */
+  /**
+   * `appsettings` içindeki `Backup:ExecutionAdapterKind` (admin geçersiz kılmasından önce).
+   * @nullable
+   */
   configurationExecutionAdapterKind?: string | null;
-  /** @nullable */
+  /**
+   * Machine-actionable setup reasons (merged with Development pg_dump/pg_restore probes when applicable).
+   * @nullable
+   */
   diagnostics?: BackupConfigurationDiagnosticResponseDto[] | null;
   /** @nullable */
   effectiveAdapterKind?: string | null;
   externalArchiveReadiness?: BackupExternalArchiveReadinessResponseDto;
   /** @nullable */
   issues?: string[] | null;
-  /** @nullable */
+  /**
+   * Healthy, Degraded, or Unhealthy.
+   * @nullable
+   */
   level?: string | null;
-  /** @nullable */
+  /**
+   * Set when Fake or ProductionStub runs in a production-like environment with matching acknowledgment (configuration key for operators).
+   * @nullable
+   */
   nonRealBackupAdapterAcknowledgmentConfigurationKey?: string | null;
-  /** @nullable */
+  /**
+   * One-line English summary for dashboards.
+   * @nullable
+   */
   readinessNarrative?: string | null;
+  /** True when `ExecutionAdapterKind=PgDump`. */
   realPostgreSqlLogicalDumpConfigured?: boolean;
   retentionReadiness?: BackupRetentionReadinessResponseDto;
   workerEnabled?: boolean;

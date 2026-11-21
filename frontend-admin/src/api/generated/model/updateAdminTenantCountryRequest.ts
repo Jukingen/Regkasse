@@ -9,6 +9,7 @@ import type { VatRegime } from './vatRegime';
 
 export interface UpdateAdminTenantCountryRequest {
   /**
+   * ISO 3166-1 alpha-2 from `GET /api/admin/countries`. `EU_DEFAULT` is rejected.
    * @minLength 1
    * @maxLength 32
    */

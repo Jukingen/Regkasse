@@ -7,6 +7,7 @@
  */
 
 /**
+ * Tax rate (%) → VAT amount.
  * @nullable
  */
 export type TaxBreakdownByRate = {[key: string]: number} | null;

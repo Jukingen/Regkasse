@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   CreateOrderRequest,
+  GetApiOrdersParams,
   Order,
   OrderStatus,
   UpdateOrderStatusRequest
@@ -30,34 +31,38 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Paged order list for the ambient tenant.
+ */
 export const getApiOrders = (
-
+    params?: GetApiOrdersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
 
 
-      return customInstance<Order[]>(
-      {url: `/api/Orders`, method: 'GET', signal
+      return customInstance<void>(
+      {url: `/api/Orders`, method: 'GET',
+        params, signal
     },
       options);
     }
 
 
-export const getGetApiOrdersQueryKey = () => {
-    return [`/api/Orders`] as const;
+export const getGetApiOrdersQueryKey = (params?: GetApiOrdersParams,) => {
+    return [`/api/Orders`, ...(params ? [params]: [])] as const;
     }
 
 
-export const getGetApiOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrders>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrders>>, TError = unknown>(params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrders>>> = ({ signal }) => getApiOrders(requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrders>>> = ({ signal }) => getApiOrders(params, requestOptions, signal);
 
 
 
@@ -69,12 +74,15 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiOrders>>>
 export type GetApiOrdersQueryError = unknown
 
+/**
+ * @summary Paged order list for the ambient tenant.
+ */
 export const useGetApiOrders = <TData = Awaited<ReturnType<typeof getApiOrders>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiOrdersQueryOptions(options)
+  const queryOptions = getGetApiOrdersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -85,6 +93,9 @@ export const useGetApiOrders = <TData = Awaited<ReturnType<typeof getApiOrders>>
 
 
 
+/**
+ * @summary Creates an order from the posted lines for the ambient tenant.
+ */
 export const postApiOrders = (
     createOrderRequest: CreateOrderRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -123,7 +134,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiOrdersMutationBody = CreateOrderRequest
     export type PostApiOrdersMutationError = unknown
 
-    export const usePostApiOrders = <TError = unknown,
+    /**
+ * @summary Creates an order from the posted lines for the ambient tenant.
+ */
+export const usePostApiOrders = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrders>>, TError,{data: CreateOrderRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiOrders>>,

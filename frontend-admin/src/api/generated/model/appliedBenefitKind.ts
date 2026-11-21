@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Benefit types supported in applied-benefit snapshot. Extensible for future handlers.
+ */
 export type AppliedBenefitKind = typeof AppliedBenefitKind[keyof typeof AppliedBenefitKind];
 
 

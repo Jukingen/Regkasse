@@ -7,6 +7,9 @@
  */
 import type { PlanDistributionDto } from './planDistributionDto';
 
+/**
+ * Super Admin customer / mandant KPI snapshot (SaaS — not POS fiscal revenue).
+ */
 export interface CustomerAnalyticsDto {
   activeTenants?: number;
   arpu?: number;

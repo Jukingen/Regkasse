@@ -9,11 +9,18 @@ import type { RksvReportTaxBreakdown } from './rksvReportTaxBreakdown';
 import type { RksvTransaction } from './rksvTransaction';
 import type { ComplianceWarning } from './complianceWarning';
 
+/**
+ * RKSV historical period report built from receipt tax lines captured at sale time
+(never from current product catalog prices/rates).
+ */
 export interface RksvReport {
   isCompliant?: boolean;
   periodEnd?: string;
   periodStart?: string;
-  /** @nullable */
+  /**
+   * Tax rate (%) → sum of VAT amounts for that historical rate.
+   * @nullable
+   */
   taxBreakdown?: RksvReportTaxBreakdown;
   totalGross?: number;
   totalNet?: number;

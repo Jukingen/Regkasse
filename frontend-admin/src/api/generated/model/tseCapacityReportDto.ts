@@ -7,14 +7,25 @@
  */
 import type { TseDailyTransactionTrendDto } from './tseDailyTransactionTrendDto';
 
+/**
+ * Tenant TSE signing-capacity snapshot (receipt volume vs configured device limits).
+ */
 export interface TseCapacityReportDto {
   activeSigningDevices?: number;
+  /** Daily average / max daily capacity × 100. */
   currentUtilizationPercentage?: number;
   dailyGrowthRatePercent?: number;
+  /** Average receipts/day over the lookback window. */
   dailyTransactionAverage?: number;
-  /** @nullable */
+  /**
+   * Per-day receipt counts for trend charts.
+   * @nullable
+   */
   dailyTrends?: TseDailyTransactionTrendDto[] | null;
-  /** @nullable */
+  /**
+   * Projected date when daily volume would reach capacity; null when not approaching.
+   * @nullable
+   */
   estimatedCapacityReachDate?: string | null;
   estimatedNextMonthTransactions?: number;
   generatedAt?: string;
@@ -22,7 +33,9 @@ export interface TseCapacityReportDto {
   lookbackDays?: number;
   maxDailyCapacity?: number;
   maxHourlyCapacity?: number;
+  /** Total receipts in the lookback window. */
   monthlyTransactionTotal?: number;
+  /** Highest receipts in any single UTC hour in the lookback window. */
   peakHourlyTransactions?: number;
   periodEnd?: string;
   periodStart?: string;

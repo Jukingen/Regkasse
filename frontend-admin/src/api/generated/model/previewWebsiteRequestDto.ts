@@ -23,7 +23,10 @@ export interface PreviewWebsiteRequestDto {
   logoUrl?: string | null;
   /** @nullable */
   pages?: string[] | null;
-  /** @nullable */
+  /**
+   * Optional unsaved FA form overrides applied only for this preview (not persisted).
+   * @nullable
+   */
   primaryColor?: string | null;
   /** @nullable */
   secondaryColor?: string | null;

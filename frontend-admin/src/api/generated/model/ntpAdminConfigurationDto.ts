@@ -9,6 +9,7 @@
 export interface NtpAdminConfigurationDto {
   autoSyncEnabled?: boolean;
   criticalOffsetSeconds?: number;
+  /** False until an admin row exists in `ntp_admin_settings`. */
   hasDatabaseOverride?: boolean;
   maxAllowedOffsetSeconds?: number;
   syncIntervalMinutes?: number;

@@ -6,7 +6,14 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Manuel JWS doğrulama request.
+Swagger örnek: { "compactJws": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSJ9.signature..." }
+ */
 export interface VerifySignatureRequest {
-  /** @minLength 1 */
+  /**
+   * COMPACT JWS string: base64url(header).base64url(payload).base64url(signature)
+   * @minLength 1
+   */
   compactJws: string;
 }

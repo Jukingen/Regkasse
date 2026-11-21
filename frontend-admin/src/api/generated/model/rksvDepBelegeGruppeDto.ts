@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * One certificate group: all compact JWS receipts signed with the same Signaturzertifikat.
+ */
 export interface RksvDepBelegeGruppeDto {
   /** @nullable */
   'Belege-kompakt'?: string[] | null;

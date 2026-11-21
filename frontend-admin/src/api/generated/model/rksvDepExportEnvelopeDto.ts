@@ -8,40 +8,71 @@
 import type { RksvDepExportRootDto } from './rksvDepExportRootDto';
 import type { RksvDepExportValidationResult } from './rksvDepExportValidationResult';
 
+/**
+ * Inline JSON response: legal notice + BMF DEP root.
+ */
 export interface RksvDepExportEnvelopeDto {
   belegCount?: number;
   belegeGruppeCount?: number;
   cashRegisterId?: string;
   dep?: RksvDepExportRootDto;
-  /** @nullable */
+  /**
+   * Relative download URL for the stored JSON (auth required).
+   * @nullable
+   */
   downloadUrl?: string | null;
   /** @nullable */
   environment?: string | null;
-  /** @nullable */
+  /**
+   * When the hot download copy expires (UTC); archive may remain longer.
+   * @nullable
+   */
   expiresAt?: string | null;
-  /** @nullable */
+  /**
+   * History / export id for `GET …/download/{id}` (same as KasseAPI_Final.DTOs.RksvDepExportEnvelopeDto.HistoryId).
+   * @nullable
+   */
   exportId?: string | null;
+  /** F5-compliant compact JWS count (payload starts with `_R1-`). */
   f5CompliantJwsCount?: number;
-  /** @nullable */
+  /**
+   * Canonical download file name stored with the history row.
+   * @nullable
+   */
   fileName?: string | null;
-  /** @nullable */
+  /**
+   * Stored file size in bytes when persisted.
+   * @nullable
+   */
   fileSizeBytes?: number | null;
   formatValidated?: boolean;
   formatValidation?: RksvDepExportValidationResult;
   fromUtc?: string;
-  /** @nullable */
+  /**
+   * History row id for subsequent download via `/download/{historyId}`.
+   * @nullable
+   */
   historyId?: string | null;
   isDemo?: boolean;
+  /** True when RKSV demo mode or TSE simulation is active. */
   isSimulated?: boolean;
+  /** Pre-F5 compact JWS count (JSON Belegdaten payload instead of §9 machine code). */
   legacyJwsCount?: number;
-  /** @nullable */
+  /**
+   * Present when KasseAPI_Final.DTOs.RksvDepExportEnvelopeDto.LegacyJwsCount > 0.
+   * @nullable
+   */
   legacyJwsWarning?: string | null;
   /** @nullable */
   legalNotice?: string | null;
+  /** True when no legacy JWS entries are present in the export. */
   prueftoolCompatible?: boolean;
   /** @nullable */
   registerNumber?: string | null;
-  /** @nullable */
+  /**
+   * Operator note when KasseAPI_Final.DTOs.RksvDepExportEnvelopeDto.IsSimulated; null in production.
+   * @nullable
+   */
   simulationNote?: string | null;
   toUtc?: string;
 }

@@ -7,6 +7,7 @@
  */
 
 export interface RequestTenantSettingsChangeDto {
+  /** Scalar string (currency/country/timezone) or fiscal settings object. */
   newValue: unknown;
   /**
    * @minLength 1
@@ -14,6 +15,7 @@ export interface RequestTenantSettingsChangeDto {
    */
   reason: string;
   /**
+   * currency | country | timezone | fiscal_settings
    * @minLength 1
    * @maxLength 32
    */

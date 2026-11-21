@@ -7,8 +7,20 @@
  */
 
 export type GetApiAdminOfflineIntentCoverageTopRiskParams = {
+/**
+ * Inclusive start (UTC). Default: 24h ago.
+ */
 fromUtc?: string;
+/**
+ * Inclusive end (UTC). Default: now.
+ */
 toUtc?: string;
+/**
+ * Max number of registers to return. Default 10.
+ */
 limit?: number;
+/**
+ * Optional: restrict top-risk ranking to one cash register.
+ */
 cashRegisterId?: string;
 };

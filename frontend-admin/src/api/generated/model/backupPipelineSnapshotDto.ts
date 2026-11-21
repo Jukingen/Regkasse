@@ -8,7 +8,10 @@
 import type { BackupPipelineStepDto } from './backupPipelineStepDto';
 
 export interface BackupPipelineSnapshotDto {
-  /** @nullable */
+  /**
+   * full | partial_run_row_only (çocuk satırlar yüklenmediyse UI yanlış yeşil göstermesin).
+   * @nullable
+   */
   dataCompleteness?: string | null;
   /** @nullable */
   overallPhase?: string | null;

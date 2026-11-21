@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * UI profili: operationalPreview / accountingReport / legalComplianceExport / diagnosticPackage.
+ */
 export interface TagesberichtExportProfileDto {
   /** @nullable */
   descriptionDe?: string | null;

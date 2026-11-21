@@ -7,7 +7,10 @@
  */
 
 export interface TseBlockchainSignatureDataDto {
-  /** @nullable */
+  /**
+   * Compact JWS or signature string to hash (never persisted in full when long).
+   * @nullable
+   */
   signatureData?: string | null;
   /** @nullable */
   sourceId?: string | null;

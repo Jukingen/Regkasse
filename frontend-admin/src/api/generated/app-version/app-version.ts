@@ -23,6 +23,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary Returns the latest published POS APK metadata (versionCode, downloadUrl, mandatory flag, …).
+Cached for 60 seconds at the edge; clients also throttle their own checks.
+ */
 export const getApiAppVersion = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -62,6 +66,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiAppVersionQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAppVersion>>>
 export type GetApiAppVersionQueryError = unknown
 
+/**
+ * @summary Returns the latest published POS APK metadata (versionCode, downloadUrl, mandatory flag, …).
+Cached for 60 seconds at the edge; clients also throttle their own checks.
+ */
 export const useGetApiAppVersion = <TData = Awaited<ReturnType<typeof getApiAppVersion>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAppVersion>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 

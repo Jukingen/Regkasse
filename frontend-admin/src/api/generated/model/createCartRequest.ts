@@ -13,6 +13,9 @@ export interface CreateCartRequest {
   notes?: string | null;
   /** @nullable */
   tableNumber?: number | null;
-  /** @nullable */
+  /**
+   * Display-only waiter/cashier label; cart owner remains the authenticated user.
+   * @nullable
+   */
   waiterName?: string | null;
 }

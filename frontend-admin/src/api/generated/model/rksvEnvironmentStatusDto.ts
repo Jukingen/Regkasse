@@ -6,24 +6,47 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * RKSV deployment environment snapshot for POS and Admin UI badges.
+ */
 export interface RksvEnvironmentStatusDto {
-  /** @nullable */
+  /**
+   * Demo | Production — mirrors `RKSV:Mode` and host policy.
+   * @nullable
+   */
   environment?: string | null;
   /** @nullable */
   environmentDisplayName?: string | null;
+  /** True when unsafe modes are allowed only because `Tse:AllowUnsafeFiscalModesInProduction` is set. */
   fiscalConfigLockEscapeHatchActive?: boolean;
+  /** True when Production/Staging lock does not apply, config is safe, or escape hatch is on. */
   fiscalConfigLockOk?: boolean;
-  /** @nullable */
+  /**
+   * Human-readable lock violation reasons (no secrets).
+   * @nullable
+   */
   fiscalConfigLockReasons?: string[] | null;
-  /** @nullable */
+  /**
+   * ASP.NET Core host environment name (Development / Staging / Production).
+   * @nullable
+   */
   hostEnvironment?: string | null;
+  /** True when effective KasseAPI_Final.DTOs.RksvEnvironmentStatusDto.ReleaseStage is `canary`. */
   isCanary?: boolean;
+  /** True when any FinanzOnline nested `UseSimulation` (or Mode=Simulation) is active. */
   isFinanzOnlineSimulated?: boolean;
+  /** True when `ASPNETCORE_ENVIRONMENT=Development`. */
   isHostDevelopment?: boolean;
+  /** True when `ASPNETCORE_ENVIRONMENT=Staging`. */
   isHostStaging?: boolean;
   isSimulated?: boolean;
+  /** Composite: TSE/RKSV simulation or FinanzOnline simulation — FA/POS "SIMULATION" banner. */
   isSimulationMode?: boolean;
-  /** @nullable */
+  /**
+   * Release stage: `dev` | `staging` | `canary` | `production`
+(from `RELEASE_STAGE` / `Deployment:ReleaseStage`, host env, or canary tenant).
+   * @nullable
+   */
   releaseStage?: string | null;
   showDemoLabel?: boolean;
   /** @nullable */

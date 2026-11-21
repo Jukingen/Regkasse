@@ -6,10 +6,19 @@
  * OpenAPI spec version: v1
  */
 import type { AuditEventType } from './auditEventType';
+import type { NpgsqlTsVectorLexeme } from './npgsqlTsVectorLexeme';
 import type { AuditLogStatus } from './auditLogStatus';
 import type { Tenant } from './tenant';
 import type { ApplicationUser } from './applicationUser';
 
+/**
+ * Audit log entity – immutable event stream. Compliance invariants:
+1. Append-only: records are only inserted; updates to existing rows are rejected (see AppDbContext.SaveChanges).
+2. No audit record may be modified after write; deletion only via dedicated retention (DeleteAuditLogsOlderThanAsync).
+3. Every event must contain actor (UserId), timestamp (Timestamp), and actionType (Action/ActionType).
+4. Sensitive data must never be logged (password, tokens, credentials, taxNumber, security stamps); use UserAuditDiffHelper whitelist.
+5. Consumers (e.g. UI) must gracefully handle incomplete historical records (null/legacy fields).
+ */
 export interface AuditLog {
   /**
    * @minLength 1
@@ -18,13 +27,17 @@ export interface AuditLog {
   action: string;
   actionType?: AuditEventType;
   /**
+   * Resolved actor display name at write time (e.g. FirstName LastName).
    * @maxLength 200
    * @nullable
    */
   actorDisplayName?: string | null;
   /** @nullable */
   amount?: number | null;
-  /** @nullable */
+  /**
+   * Structured diff: [{ "field", "oldValue", "newValue" }]. Whitelist fields only; never password, tokens, taxNumber.
+   * @nullable
+   */
   changes?: string | null;
   /**
    * @maxLength 100
@@ -73,11 +86,15 @@ export interface AuditLog {
   httpStatusCode?: number | null;
   id?: string;
   /**
+   * When set, the action was performed under Super Admin impersonation (original actor user id).
    * @maxLength 450
    * @nullable
    */
   impersonatedBy?: string | null;
-  /** @nullable */
+  /**
+   * Target tenant id when the action was performed under impersonation.
+   * @nullable
+   */
   impersonatedTenantId?: string | null;
   /**
    * @maxLength 45
@@ -85,7 +102,10 @@ export interface AuditLog {
    */
   ipAddress?: string | null;
   isActive?: boolean;
-  /** @nullable */
+  /**
+   * Additional metadata as JSON (e.g. reason, targetUserId). Never contains credentials.
+   * @nullable
+   */
   metadata?: string | null;
   /**
    * @maxLength 4000
@@ -120,6 +140,12 @@ export interface AuditLog {
    */
   responseData?: string | null;
   /**
+   * Stored `to_tsvector('simple', …)` over action, entity type, description, and KasseAPI_Final.Models.AuditLog.UserEmail.
+PostgreSQL maintains it; the application does not write it.
+   * @nullable
+   */
+  searchVector?: NpgsqlTsVectorLexeme[] | null;
+  /**
    * @minLength 1
    * @maxLength 100
    */
@@ -151,6 +177,12 @@ export interface AuditLog {
    * @nullable
    */
   userAgent?: string | null;
+  /**
+   * Actor email copied at insert so the full-text vector can include it. Audit rows are append-only.
+   * @maxLength 256
+   * @nullable
+   */
+  userEmail?: string | null;
   /**
    * @minLength 1
    * @maxLength 450

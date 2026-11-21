@@ -8,6 +8,9 @@
 import type { RestoreVerificationTriggerOrchestrationState } from './restoreVerificationTriggerOrchestrationState';
 import type { RestoreVerificationRunResponseDto } from './restoreVerificationRunResponseDto';
 
+/**
+ * POST /trigger yanıtı (JSON camelCase: `runId`, `orchestrationState`, `newQueuedRunCreated`, `existingRunReturned`, `run`).
+ */
 export interface RestoreVerificationTriggerResponseDto {
   existingRunReturned?: boolean;
   newQueuedRunCreated?: boolean;

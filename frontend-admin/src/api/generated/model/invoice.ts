@@ -12,6 +12,7 @@ import type { Tenant } from './tenant';
 import type { VatRegime } from './vatRegime';
 
 export interface Invoice {
+  /** Required FK to cash_registers. KassenId string is RKSV display (RegisterNumber), not the primary key. */
   cashRegisterId: string;
   /**
    * @minLength 0
@@ -46,6 +47,7 @@ export interface Invoice {
    */
   correlationId?: string | null;
   /**
+   * ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.
    * @minLength 0
    * @maxLength 2
    * @nullable
@@ -89,22 +91,29 @@ export interface Invoice {
   customerTaxNumber?: string | null;
   documentType?: DocumentType;
   dueDate: string;
-  /** @nullable */
+  /**
+   * EN 16931 Schematron outcome. Null until a flagged validation runs. Historical rows stay null.
+   * @nullable
+   */
   einvoiceValidationPassed?: boolean | null;
   /**
+   * Comma-separated Schematron rule ids when validation failed. Never the UBL document.
    * @minLength 0
    * @maxLength 500
    * @nullable
    */
   einvoiceValidationRuleIds?: string | null;
   id?: string;
-  /** @nullable */
+  /**
+   * API-only (not mapped): `Persisted` = loaded from `invoices`; `DerivedFromPayment` = response synthesized from `PaymentDetails` when no invoice row exists (GET by id fallback). Does not change persistence or signing.
+   * @nullable
+   */
   invoiceDataProvenance?: string | null;
   invoiceDate: string;
   invoiceItems?: unknown;
   /**
    * @minLength 0
-   * @maxLength 50
+   * @maxLength 80
    */
   invoiceNumber: string;
   isActive?: boolean;

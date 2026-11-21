@@ -7,6 +7,9 @@
  */
 import type { CancellationReasonCode } from './cancellationReasonCode';
 
+/**
+ * Admin API body for POST /api/admin/payments/{id}/cancel (payment id from route).
+ */
 export interface CancelPaymentRequest {
   /** @nullable */
   approvalToken?: string | null;

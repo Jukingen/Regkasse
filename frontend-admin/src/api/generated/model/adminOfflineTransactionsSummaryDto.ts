@@ -6,9 +6,15 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Summary counters for admin offline queue dashboard widgets.
+ */
 export interface AdminOfflineTransactionsSummaryDto {
   failedCount?: number;
-  /** @nullable */
+  /**
+   * Latest UTC timestamp of any replay attempt (manual or worker), or null if none.
+   * @nullable
+   */
   lastReplayAtUtc?: string | null;
   pendingCount?: number;
 }

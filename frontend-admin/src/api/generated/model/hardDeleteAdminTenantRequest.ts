@@ -8,6 +8,7 @@
 
 export interface HardDeleteAdminTenantRequest {
   /**
+   * Must match tenant slug exactly (safety confirmation).
    * @minLength 1
    * @maxLength 64
    */

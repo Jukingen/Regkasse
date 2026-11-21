@@ -9,6 +9,9 @@
 export interface CreateDataRightsRequestDto {
   /** @nullable */
   reason?: string | null;
-  /** @nullable */
+  /**
+   * `view` | `export` | `delete`
+   * @nullable
+   */
   type?: string | null;
 }

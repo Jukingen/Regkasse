@@ -10,6 +10,7 @@ import type { TenantStatus } from './tenantStatus';
 
 export interface BulkEmailRequest {
   /**
+   * HTML body supported.
    * @minLength 1
    * @maxLength 100000
    */
@@ -21,6 +22,9 @@ export interface BulkEmailRequest {
    * @maxLength 500
    */
   subject: string;
-  /** @nullable */
+  /**
+   * Optional explicit tenant ids. When null/empty, all tenants matching filters are targeted.
+   * @nullable
+   */
   tenantIds?: string[] | null;
 }

@@ -8,8 +8,11 @@
 
 export interface OfflineIntentCoverageByRegisterDto {
   cashRegisterId?: string;
+  /** Fraction of intents missing DeviceId for this register (0..1). */
   deviceIdMissingRate?: number;
+  /** Risk score: DeviceIdMissingRate + SequenceMissingRate (0..2). Higher = riskier. */
   riskScore?: number;
+  /** Fraction of intents missing ClientSequence for this register (0..1). */
   sequenceMissingRate?: number;
   total?: number;
   withDeviceId?: number;

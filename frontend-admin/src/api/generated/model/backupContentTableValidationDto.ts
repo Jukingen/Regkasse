@@ -7,7 +7,10 @@
  */
 
 export interface BackupContentTableValidationDto {
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.DTOs.BackupContentTableValidationDto.LiveCount.
+   * @nullable
+   */
   readonly actualCount?: number | null;
   /** @nullable */
   detail?: string | null;
@@ -15,11 +18,21 @@ export interface BackupContentTableValidationDto {
   liveCount?: number | null;
   /** @nullable */
   manifestCount?: number | null;
+  /** True when both counts are present and equal. */
   match?: boolean;
-  /** @nullable */
+  /**
+   * passed | warning | failed | skipped
+   * @nullable
+   */
   status?: string | null;
-  /** @nullable */
+  /**
+   * Manifest / package key (e.g. products.json).
+   * @nullable
+   */
   tableKey?: string | null;
-  /** @nullable */
+  /**
+   * Alias of KasseAPI_Final.DTOs.BackupContentTableValidationDto.TableKey for report consumers.
+   * @nullable
+   */
   readonly tableName?: string | null;
 }

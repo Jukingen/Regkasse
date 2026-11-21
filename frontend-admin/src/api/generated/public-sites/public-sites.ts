@@ -24,6 +24,9 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * @summary GET live HTML for tenant slug. Query: template=modern|classic|minimal.
+ */
 export const getApiPublicSitesSlug = (
     slug: string,
     params?: GetApiPublicSitesSlugParams,
@@ -67,6 +70,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPublicSitesSlugQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPublicSitesSlug>>>
 export type GetApiPublicSitesSlugQueryError = ProblemDetails
 
+/**
+ * @summary GET live HTML for tenant slug. Query: template=modern|classic|minimal.
+ */
 export const useGetApiPublicSitesSlug = <TData = Awaited<ReturnType<typeof getApiPublicSitesSlug>>, TError = ProblemDetails>(
  slug: string,
     params?: GetApiPublicSitesSlugParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicSitesSlug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}

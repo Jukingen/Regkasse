@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Kein „ungefähr“: nur dokumentierte Annahmen.
+ */
 export interface StaffPerformanceReliabilityDto {
   /** @nullable */
   auditSeparationNote?: string | null;
@@ -13,7 +16,10 @@ export interface StaffPerformanceReliabilityDto {
   businessTimeZone?: string | null;
   /** @nullable */
   cashierIdentityNote?: string | null;
-  /** @nullable */
+  /**
+   * Keine separate Schicht-Tabelle: Tagesgrenzen = AT-Kalendertag auf Basis von `CreatedAt` (UTC).
+   * @nullable
+   */
   dayBucketNote?: string | null;
   /** @nullable */
   primaryDataSource?: string | null;

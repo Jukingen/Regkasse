@@ -8,7 +8,10 @@
 
 export interface IssueVoucherResponse {
   amount?: number;
-  /** @nullable */
+  /**
+   * Returned once — never persisted or logged server-side.
+   * @nullable
+   */
   fullCode?: string | null;
   /** @nullable */
   maskedCode?: string | null;

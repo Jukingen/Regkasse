@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * Current RKSV/TSE simulation flag plus optional last-export summary.
+ */
 export interface DepExportStatusResponse {
   /** @nullable */
   environment?: string | null;

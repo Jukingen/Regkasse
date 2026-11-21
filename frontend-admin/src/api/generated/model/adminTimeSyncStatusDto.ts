@@ -16,9 +16,15 @@ export interface AdminTimeSyncStatusDto {
   ntpTimeUtc?: string | null;
   /** @nullable */
   offsetSeconds?: number | null;
-  /** @nullable */
+  /**
+   * Synchronized | Warning | Critical (admin UI badge).
+   * @nullable
+   */
   statusBadge?: string | null;
-  /** @nullable */
+  /**
+   * Europe/Vienna wall-clock string for operators.
+   * @nullable
+   */
   systemTimeLocalVienna?: string | null;
   systemTimeUtc?: string;
   /** @nullable */
