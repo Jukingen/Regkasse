@@ -83,6 +83,8 @@ internal static class TenantPiiPurge
             .ConfigureAwait(false);
         counts["appointments_anonymized"] = await ClearAppointmentNotesAsync(db, tenantId, ct)
             .ConfigureAwait(false);
+        counts["vouchers_anonymized"] = await AnonymizeVouchersAsync(db, tenantId, ct)
+            .ConfigureAwait(false);
         counts["demo_requests_anonymized"] = await AnonymizeDemoRequestsAsync(db, emails, ct)
             .ConfigureAwait(false);
         counts["users_anonymized"] = await AnonymizeUsersAsync(db, tenantId, ct).ConfigureAwait(false);
@@ -215,6 +217,12 @@ internal static class TenantPiiPurge
             payment.CustomerName = AnonymousName;
             payment.CompanyName = null;
             payment.CompanyAddress = null;
+            payment.Notes = null;
+            payment.PrescriptionReference = null;
+            payment.RouteFrom = null;
+            payment.RouteTo = null;
+            payment.RefundReason = null;
+            payment.CancellationReason = null;
             if (!string.IsNullOrEmpty(payment.Steuernummer))
                 payment.Steuernummer = AnonymousName;
         }
@@ -409,6 +417,22 @@ internal static class TenantPiiPurge
         return rows.Count;
     }
 
+    private static async Task<int> AnonymizeVouchersAsync(AppDbContext db, Guid tenantId, CancellationToken ct)
+    {
+        var rows = await db.Vouchers.IgnoreQueryFilters()
+            .Where(v => v.TenantId == tenantId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var row in rows)
+        {
+            row.CustomerId = null;
+            row.InternalNote = null;
+            row.CancellationReason = null;
+        }
+
+        return rows.Count;
+    }
+
     private static async Task<int> ClearAppointmentNotesAsync(AppDbContext db, Guid tenantId, CancellationToken ct)
     {
         var rows = await db.Appointments.IgnoreQueryFilters()
@@ -542,6 +566,8 @@ internal static class TenantPiiPurge
                 a.Description,
                 a.Notes,
                 a.EntityName,
+                a.IpAddress,
+                a.UserAgent,
             })
             .ToListAsync(ct)
             .ConfigureAwait(false);
@@ -556,13 +582,17 @@ internal static class TenantPiiPurge
             var description = GdprPayloadRedactor.RedactFreeText(log.Description);
             var notes = GdprPayloadRedactor.RedactFreeText(log.Notes);
             var entityName = GdprPayloadRedactor.RedactFreeText(log.EntityName);
+            var ipAddress = string.IsNullOrEmpty(log.IpAddress) ? log.IpAddress : null;
+            var userAgent = string.IsNullOrEmpty(log.UserAgent) ? log.UserAgent : null;
             if (oldValues == log.OldValues
                 && newValues == log.NewValues
                 && requestData == log.RequestData
                 && responseData == log.ResponseData
                 && description == log.Description
                 && notes == log.Notes
-                && entityName == log.EntityName)
+                && entityName == log.EntityName
+                && ipAddress == log.IpAddress
+                && userAgent == log.UserAgent)
             {
                 continue;
             }
@@ -579,7 +609,9 @@ internal static class TenantPiiPurge
                             .SetProperty(a => a.ResponseData, responseData)
                             .SetProperty(a => a.Description, description)
                             .SetProperty(a => a.Notes, notes)
-                            .SetProperty(a => a.EntityName, entityName),
+                            .SetProperty(a => a.EntityName, entityName)
+                            .SetProperty(a => a.IpAddress, ipAddress)
+                            .SetProperty(a => a.UserAgent, userAgent),
                         ct)
                     .ConfigureAwait(false);
             }
@@ -597,6 +629,8 @@ internal static class TenantPiiPurge
                 entity.Description = description;
                 entity.Notes = notes;
                 entity.EntityName = entityName;
+                entity.IpAddress = ipAddress;
+                entity.UserAgent = userAgent;
                 // Keep the redacted values on the tracked instance. Setting State = Unchanged
                 // directly would copy the store snapshot back over them, and SaveChanges
                 // rejects Modified audit rows (append-only).
@@ -639,11 +673,11 @@ internal static class TenantPiiPurge
                     $"""
                     UPDATE elmah_error
                     SET "User" = 'anonymous',
-                        "Message" = '[redacted]',
-                        "AllXml" = '[redacted]'
+                        message = '[redacted]',
+                        allxml = '[redacted]'
                     WHERE "User" ILIKE {pattern}
-                       OR "Message" ILIKE {pattern}
-                       OR "AllXml" ILIKE {pattern}
+                       OR message ILIKE {pattern}
+                       OR allxml ILIKE {pattern}
                     """,
                     ct).ConfigureAwait(false);
             }
