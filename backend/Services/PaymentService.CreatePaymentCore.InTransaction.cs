@@ -1149,29 +1149,6 @@ namespace KasseAPI_Final.Services
                 new() { Stop = error, TransactionAlreadyRolledBack = alreadyRolledBack };
         }
 
-        private sealed class PaymentPreconditions
-        {
-            public Guid TenantIdForFlags { get; init; }
-            public string? PrescriptionReference { get; init; }
-            public string? RouteFrom { get; init; }
-            public string? RouteTo { get; init; }
-            public decimal? RouteKm { get; init; }
-            public DateTime? TripStartedAtUtc { get; init; }
-        }
-
-        private sealed class PreparedFiscalSale
-        {
-            public required Customer Customer { get; init; }
-            public required CompanyProfileOptions CompanyProfile { get; init; }
-            public required CountryStrategyBinding CountryBinding { get; init; }
-            public required ITaxStrategy TaxStrategy { get; init; }
-            public required string EffectiveSteuernummer { get; init; }
-            public required System.Security.Claims.ClaimsPrincipal Principal { get; init; }
-            public required bool VoucherLikelyFromClientMethod { get; init; }
-            public required bool HasVoucherPayload { get; init; }
-            public required bool EffectiveTseRequired { get; init; }
-        }
-
         private sealed class CommitRegister
         {
             public required Guid CashRegisterId { get; init; }
