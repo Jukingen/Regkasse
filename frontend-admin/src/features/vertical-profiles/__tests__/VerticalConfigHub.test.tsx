@@ -101,7 +101,7 @@ function renderHub() {
   );
 }
 
-describe('VerticalConfigHub', () => {
+describe.sequential('VerticalConfigHub', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockList.mockResolvedValue(profiles);

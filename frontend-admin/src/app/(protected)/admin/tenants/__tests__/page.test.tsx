@@ -164,7 +164,7 @@ function renderPage() {
   );
 }
 
-describe('SuperAdminTenantsPage', () => {
+describe.sequential('SuperAdminTenantsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: 'super-1', role: 'SuperAdmin', permissions: [] } });
