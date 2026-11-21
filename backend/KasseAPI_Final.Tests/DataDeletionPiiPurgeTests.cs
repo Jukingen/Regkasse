@@ -86,6 +86,7 @@ public sealed class DataDeletionPiiPurgeTests
             CashRegisterId = registerId,
             ReceiptNumber = "R-100",
             TseSignature = "jws-keep",
+            Notes = "Max Mustermann, max@test.at, Hauptstrasse 1",
             TaxDetails = JsonDocument.Parse("{}"),
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -117,6 +118,28 @@ public sealed class DataDeletionPiiPurgeTests
             TseSignature = "invoice-jws-keep",
             SourcePaymentId = paymentId,
             IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var receiptId = Guid.NewGuid();
+        db.Receipts.Add(new Receipt
+        {
+            ReceiptId = receiptId,
+            TenantId = tenantId,
+            PaymentId = paymentId,
+            ReceiptNumber = "R-100",
+            IssuedAt = DateTime.UtcNow,
+            CashierId = "cashier",
+            CashRegisterId = registerId,
+            SubTotal = 35.42m,
+            TaxTotal = 7.08m,
+            GrandTotal = 42.50m,
+            QrCodePayload = "fiscal-qr-keep",
+            SignatureValue = "receipt-sig-keep",
+            PrevSignatureValue = "prev-sig-keep",
+            JwsHeader = "header-keep",
+            JwsPayload = "payload-keep",
+            JwsSignature = "jws-sig-keep",
             CreatedAt = DateTime.UtcNow,
         });
 
@@ -289,28 +312,44 @@ public sealed class DataDeletionPiiPurgeTests
         Assert.Equal(TenantPiiPurge.AnonymousName, payment.CustomerName);
         Assert.Null(payment.CompanyName);
         Assert.Null(payment.CompanyAddress);
+        Assert.Null(payment.Notes);
         Assert.Equal(TenantPiiPurge.AnonymousName, payment.Steuernummer);
+        Assert.DoesNotContain("max@test.at", payment.CustomerName, StringComparison.OrdinalIgnoreCase);
         Assert.NotEqual(customerId, payment.CustomerId);
 
         var invoice = await db.Invoices.IgnoreQueryFilters().SingleAsync(i => i.TenantId == tenantId);
         Assert.Equal(42.50m, invoice.TotalAmount);
         Assert.Equal("invoice-jws-keep", invoice.TseSignature);
         Assert.Equal("Cafe GmbH", invoice.CompanyName);
+        Assert.Equal(TenantPiiPurge.AnonymousName, invoice.CustomerName);
         Assert.Null(invoice.CustomerEmail);
         Assert.Null(invoice.CustomerPhone);
         Assert.Null(invoice.CustomerAddress);
+        Assert.Null(invoice.CustomerTaxNumber);
+
+        var receipt = await db.Receipts.IgnoreQueryFilters().SingleAsync(r => r.ReceiptId == receiptId);
+        Assert.Equal(42.50m, receipt.GrandTotal);
+        Assert.Equal(7.08m, receipt.TaxTotal);
+        Assert.Equal("R-100", receipt.ReceiptNumber);
+        Assert.Equal("receipt-sig-keep", receipt.SignatureValue);
+        Assert.Equal("prev-sig-keep", receipt.PrevSignatureValue);
+        Assert.Equal("fiscal-qr-keep", receipt.QrCodePayload);
+        Assert.Equal("jws-sig-keep", receipt.JwsSignature);
 
         var online = await db.OnlineOrders.IgnoreQueryFilters().SingleAsync(o => o.TenantId == tenantId);
         Assert.Equal(18m, online.Total);
+        Assert.Equal(TenantPiiPurge.AnonymousName, online.CustomerName);
         Assert.Equal(string.Empty, online.CustomerPhone);
         Assert.Null(online.CustomerEmail);
         Assert.Null(online.DeliveryAddress);
         Assert.Null(online.CustomerDeviceToken);
         Assert.Null(online.Notes);
+        Assert.DoesNotContain("Mustermann", online.CustomerName, StringComparison.OrdinalIgnoreCase);
 
         var audit = await db.AuditLogs.IgnoreQueryFilters().SingleAsync(a => a.TenantId == tenantId);
         Assert.DoesNotContain("max@test.at", audit.OldValues ?? "", StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Mustermann", audit.NewValues ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Max", audit.OldValues ?? "", StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("max@test.at", audit.EntityName ?? "", StringComparison.OrdinalIgnoreCase);
 
         var activity = await db.ActivityEvents.IgnoreQueryFilters().SingleAsync(a => a.TenantId == tenantId);
@@ -320,7 +359,9 @@ public sealed class DataDeletionPiiPurgeTests
 
         var ticket = await db.SupportTickets.IgnoreQueryFilters().SingleAsync(t => t.TenantId == tenantId);
         Assert.Equal("[redacted]", ticket.Message);
+        Assert.Equal("[redacted]", ticket.Title);
         Assert.Equal(TenantPiiPurge.AnonymousName, ticket.CreatedByDisplayName);
+        Assert.DoesNotContain("Max", ticket.Title, StringComparison.OrdinalIgnoreCase);
 
         var mail = await db.CommunicationLogs.IgnoreQueryFilters().SingleAsync(c => c.TenantId == tenantId);
         Assert.DoesNotContain("max@test.at", mail.Email, StringComparison.OrdinalIgnoreCase);
@@ -342,8 +383,11 @@ public sealed class DataDeletionPiiPurgeTests
         var purgedUser = await db.Users.SingleAsync(u => u.Id == userId);
         Assert.Equal(userId, purgedUser.Id);
         Assert.DoesNotContain("max@test.at", purgedUser.Email ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("@anonymized.invalid", purgedUser.Email, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(TenantPiiPurge.AnonymousName, purgedUser.FirstName);
+        Assert.Equal("User", purgedUser.LastName);
         Assert.Null(purgedUser.PhoneNumber);
+        Assert.DoesNotContain("Mustermann", purgedUser.UserName ?? "", StringComparison.OrdinalIgnoreCase);
 
         var kept = await db.Users.SingleAsync(u => u.Id == keptUserId);
         Assert.Equal("erika@other.at", kept.Email);
