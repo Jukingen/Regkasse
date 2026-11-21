@@ -103,6 +103,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentStornoService _storno;
         private readonly IPaymentRefundService _refund;
         private readonly IPaymentSaleGateService _saleGate;
+        private readonly IPaymentSettlementService _settlement;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -167,7 +168,8 @@ namespace KasseAPI_Final.Services
             IPaymentVoucherLedgerService? voucherLedger = null,
             IPaymentStornoService? storno = null,
             IPaymentRefundService? refund = null,
-            IPaymentSaleGateService? saleGate = null)
+            IPaymentSaleGateService? saleGate = null,
+            IPaymentSettlementService? settlement = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -319,6 +321,16 @@ namespace KasseAPI_Final.Services
                 _developmentOptions,
                 _verticalProfiles,
                 _profileGuard);
+            _settlement = settlement ?? new PaymentSettlementService(
+                _logger,
+                _paymentMethodCatalog,
+                _voucherLedger,
+                _tseOptions,
+                _ntpEffectiveSettings,
+                _ntpTimeSyncStatus,
+                _cardPaymentService,
+                _preorderService,
+                _tenantLimitGuard);
         }
 
         internal Task RunPaymentHookAsync(
@@ -815,44 +827,6 @@ namespace KasseAPI_Final.Services
                 "Die Server-Lizenz ist seit mehr als 15 Tagen abgelaufen. " +
                 "Zahlungen sind deaktiviert. Bitte verlaengern Sie die Lizenz im Admin-Panel.");
         }
-
-        private async Task<PaymentResult?> TryRejectSaleForTenantLimitsAsync(
-            Guid tenantId,
-            decimal totalAmount,
-            Guid? offlineTransactionId,
-            CancellationToken cancellationToken)
-        {
-            if (_tenantLimitGuard is null || tenantId == Guid.Empty || offlineTransactionId.HasValue)
-                return null;
-
-            try
-            {
-                await _tenantLimitGuard
-                    .EnsureSaleWithinLimitsAsync(tenantId, totalAmount, cancellationToken)
-                    .ConfigureAwait(false);
-                return null;
-            }
-            catch (LimitExceededException ex)
-            {
-                _logger.LogWarning(
-                    "Payment blocked by tenant limit TenantId={TenantId} LimitKey={LimitKey} Limit={Limit} Current={Current}",
-                    tenantId,
-                    ex.LimitKey,
-                    ex.LimitAmount,
-                    ex.CurrentAmount);
-                return new PaymentResult
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Errors = { ex.Message },
-                    DiagnosticCode = LimitExceededException.ErrorCodeValue,
-                    LimitError = ex.ToErrorDto(),
-                    IsDeterministicFailure = true,
-                };
-            }
-        }
-
-
 
         /// <summary>
         /// Read-only eligibility preview: which benefits would apply for this customer and cart. No persistence (no BenefitDailyUsage write, no payment).
@@ -1505,9 +1479,6 @@ namespace KasseAPI_Final.Services
                 },
                 _ => null,
             };
-
-        private static bool IsCardLegacyPayment(string legacyRaw) =>
-            string.Equals(legacyRaw, ((int)PaymentMethod.Card).ToString(), StringComparison.Ordinal);
 
         #endregion
     }
