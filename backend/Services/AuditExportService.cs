@@ -25,6 +25,13 @@ public interface IAuditExportService
         AuditLogQueryFilters filters,
         string format,
         CancellationToken cancellationToken = default);
+
+    /// <summary>CSV or real XLSX. Uses the same filters as the list, including optional page and page size.</summary>
+    Task StreamTabularExportAsync(
+        AuditLogQueryFilters filters,
+        string format,
+        Stream output,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class AuditExportService : IAuditExportService
@@ -81,6 +88,37 @@ public sealed class AuditExportService : IAuditExportService
         }
     }
 
+    public async Task StreamTabularExportAsync(
+        AuditLogQueryFilters filters,
+        string format,
+        Stream output,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = (format ?? "csv").Trim().ToLowerInvariant();
+        if (normalized is not ("csv" or "xlsx"))
+            throw new ArgumentException("format must be csv or xlsx.", nameof(format));
+
+        if (filters.Page is not > 0 || filters.PageSize is not > 0)
+        {
+            var count = await CountForExportAsync(filters, cancellationToken).ConfigureAwait(false);
+            if (count > IAuditExportService.MaxExportRows)
+                throw new InvalidOperationException($"Export exceeds maximum of {IAuditExportService.MaxExportRows} rows ({count} matched). Narrow your filters.");
+        }
+
+        if (normalized == "xlsx")
+        {
+            await AuditXlsxWriter.WriteAsync(output, StreamCellsAsync(filters, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        await using var writer = new StreamWriter(output, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true);
+        await writer.WriteLineAsync(string.Join(',', ExportColumns)).ConfigureAwait(false);
+        await foreach (var log in StreamRowsAsync(filters, cancellationToken).ConfigureAwait(false))
+            await writer.WriteLineAsync(ToTabularCsvRow(log)).ConfigureAwait(false);
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<byte[]> ExportToBytesAsync(
         AuditLogQueryFilters filters,
         string format,
@@ -98,6 +136,19 @@ public sealed class AuditExportService : IAuditExportService
         AuditLogQueryFilters filters,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        if (filters.Page is > 0 && filters.PageSize is > 0)
+        {
+            var size = Math.Clamp(filters.PageSize.Value, 1, IAuditExportService.MaxExportRows);
+            var page = await BuildQuery(filters)
+                .Skip((filters.Page.Value - 1) * size)
+                .Take(size)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var row in page)
+                yield return row;
+            yield break;
+        }
+
         var skip = 0;
         while (true)
         {
@@ -131,6 +182,22 @@ public sealed class AuditExportService : IAuditExportService
 
     private static readonly JsonSerializerOptions JsonExportOptions = new() { WriteIndented = false };
 
+    private async IAsyncEnumerable<string[]> StreamCellsAsync(
+        AuditLogQueryFilters filters,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        yield return ExportColumns;
+        await foreach (var log in StreamRowsAsync(filters, cancellationToken).ConfigureAwait(false))
+            yield return ToCells(log);
+    }
+
+    private static readonly string[] ExportColumns =
+    [
+        "Id", "SessionId", "UserId", "UserEmail", "UserRole", "Action", "EntityType", "EntityId", "EntityName",
+        "Status", "Timestamp", "Description", "IpAddress", "CorrelationId", "TransactionId",
+        "OldValues", "NewValues", "Changes", "RequestData", "ResponseData", "ErrorDetails",
+    ];
+
     private static string CsvHeader(char delimiter) =>
         string.Join(delimiter, new[]
         {
@@ -138,6 +205,44 @@ public sealed class AuditExportService : IAuditExportService
             "Status", "Timestamp", "Description", "IpAddress", "CorrelationId", "TransactionId",
             "OldValues", "NewValues", "Changes", "RequestData", "ResponseData", "ErrorDetails",
         });
+
+    private static string ToTabularCsvRow(AuditLog log)
+    {
+        string Esc(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return "";
+            var escaped = value.Replace("\"", "\"\"");
+            return $"\"{escaped}\"";
+        }
+
+        return string.Join(',', ToCells(log).Select(Esc));
+    }
+
+    private static string[] ToCells(AuditLog log) =>
+    [
+        log.Id.ToString(),
+        log.SessionId,
+        log.UserId,
+        log.UserEmail ?? "",
+        log.UserRole,
+        log.Action,
+        log.EntityType,
+        log.EntityId?.ToString() ?? "",
+        log.EntityName ?? "",
+        log.Status.ToString(),
+        log.Timestamp.ToString("o", CultureInfo.InvariantCulture),
+        log.Description ?? "",
+        log.IpAddress ?? "",
+        log.CorrelationId ?? "",
+        log.TransactionId ?? "",
+        log.OldValues ?? "",
+        log.NewValues ?? "",
+        log.Changes ?? "",
+        log.RequestData ?? "",
+        log.ResponseData ?? "",
+        log.ErrorDetails ?? "",
+    ];
 
     private static string ToCsvRow(AuditLog log, char delimiter)
     {

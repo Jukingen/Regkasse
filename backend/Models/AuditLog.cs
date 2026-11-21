@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using NpgsqlTypes;
 
 namespace KasseAPI_Final.Models
 {
@@ -23,6 +24,10 @@ namespace KasseAPI_Final.Models
         [Required]
         [MaxLength(450)]
         public string UserId { get; set; } = string.Empty;
+
+        /// <summary>Actor email copied at insert so the full-text vector can include it. Audit rows are append-only.</summary>
+        [MaxLength(256)]
+        public string? UserEmail { get; set; }
 
         [Required]
         [MaxLength(50)]
@@ -116,6 +121,12 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Target tenant id when the action was performed under impersonation.</summary>
         public Guid? ImpersonatedTenantId { get; set; }
+
+        /// <summary>
+        /// Stored <c>to_tsvector('simple', …)</c> over action, entity type, description, and <see cref="UserEmail"/>.
+        /// PostgreSQL maintains it; the application does not write it.
+        /// </summary>
+        public NpgsqlTsVector? SearchVector { get; set; }
 
         // Navigation properties
         [ForeignKey("UserId")]

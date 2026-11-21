@@ -7,6 +7,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
+/// <summary>
+/// Stored full-text expression. Underscores become spaces so an action such as USER_LOGIN matches "login".
+/// </summary>
+internal static class AuditLogSearchVector
+{
+    public const string StoredExpression =
+        "to_tsvector('simple', replace(replace(replace(coalesce(action, '') || ' ' || coalesce(entity_type, '') || ' ' || coalesce(description, '') || ' ' || coalesce(user_email, ''), '_', ' '), '@', ' '), '.', ' '))";
+}
+
 internal static class AuditLogQueryExtensions
 {
     public static IQueryable<AuditLog> ApplyFilters(
@@ -94,34 +103,9 @@ internal static class AuditLogQueryExtensions
 
         if (!string.IsNullOrWhiteSpace(filters.Search))
         {
-            var term = $"%{filters.Search.Trim()}%";
-            // AuditLog.User is Ignore()'d. Email lives on AspNetUsers, so match it with a subquery.
-            if (db == null)
-            {
-                query = query.Where(a =>
-                    EF.Functions.ILike(a.Action, term)
-                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
-                    || EF.Functions.ILike(a.EntityType, term)
-                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
-                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
-                    || EF.Functions.ILike(a.UserId, term)
-                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term)));
-            }
-            else
-            {
-                query = query.Where(a =>
-                    EF.Functions.ILike(a.Action, term)
-                    || (a.Description != null && EF.Functions.ILike(a.Description, term))
-                    || EF.Functions.ILike(a.EntityType, term)
-                    || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
-                    || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
-                    || EF.Functions.ILike(a.UserId, term)
-                    || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
-                    || db.Users.Any(u =>
-                        u.Id == a.UserId
-                        && u.Email != null
-                        && EF.Functions.ILike(u.Email, term)));
-            }
+            var term = filters.Search.Trim().Replace('_', ' ').Replace('@', ' ').Replace('.', ' ');
+            query = query.Where(a =>
+                a.SearchVector!.Matches(EF.Functions.PlainToTsQuery("simple", term)));
         }
 
         return query;

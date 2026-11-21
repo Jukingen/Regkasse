@@ -677,6 +677,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             FirstName = "Ada",
             LastName = "Lovelace",
             SecurityStamp = Guid.NewGuid().ToString("N"),
+            EmployeeNumber = Guid.NewGuid().ToString("N")[..8],
             IsActive = true
         });
         seed.UserTenantMemberships.Add(new UserTenantMembership

@@ -25,8 +25,12 @@ public sealed class AuditLogQueryFilters
     public bool ExcludePlatformOperatorActors { get; set; }
 
     /// <summary>
-    /// Case-insensitive PostgreSQL ILIKE across action, entity type, description,
-    /// and the actor's AspNetUsers email (plus entity name, IP, user id, and display name).
+    /// Full-text query against the stored search vector (action, entity type, description, actor email).
     /// </summary>
     public string? Search { get; set; }
+
+    /// <summary>When both are set, export returns this page instead of the full filtered set.</summary>
+    public int? Page { get; set; }
+
+    public int? PageSize { get; set; }
 }
