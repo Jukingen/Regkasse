@@ -7,7 +7,13 @@ const SUPER_ADMIN_ID = '11111111-1111-4111-8111-111111111111';
 const CASHIER_ID = '66666666-6666-4666-8666-666666666666';
 
 async function openSelect(page: import('@playwright/test').Page, label: string) {
-  await page.locator('.ant-select').filter({ hasText: label }).first().click();
+  await page.keyboard.press('Escape');
+  // Match the placeholder exactly. hasText: "Rolle" also hits the open user
+  // select once its popup (user id + display name) is in the same tree.
+  const select = page.locator('.ant-select').filter({
+    has: page.getByText(label, { exact: true }),
+  });
+  await select.first().click();
 }
 
 async function expectDropdownLabels(
@@ -15,14 +21,21 @@ async function expectDropdownLabels(
   present: string[],
   absent: string[]
 ) {
-  const popup = page.locator('.ant-select-dropdown:visible').last();
+  const combobox = page.getByRole('combobox', { expanded: true }).last();
+  await expect(combobox).toBeVisible();
+  const listId = await combobox.getAttribute('aria-controls');
+  const popup = listId
+    ? page.locator('.ant-select-dropdown').filter({
+        has: page.locator(`[id="${listId}"]`),
+      })
+    : page.locator('.ant-select-dropdown:visible').last();
   await expect(popup).toBeVisible();
-  const text = await popup.innerText();
   for (const value of present) {
-    expect(text).toContain(value);
+    await expect(popup).toContainText(value);
   }
+  const text = await popup.innerText();
   for (const value of absent) {
-    expect(text).not.toContain(value);
+    expect(text, `dropdown text:\n${text}`).not.toContain(value);
   }
   await page.keyboard.press('Escape');
 }
