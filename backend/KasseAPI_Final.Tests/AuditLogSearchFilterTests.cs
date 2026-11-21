@@ -10,28 +10,38 @@ namespace KasseAPI_Final.Tests;
 public class AuditLogSearchFilterTests
 {
     [Fact]
-    public void Search_TranslatesToIlikeAcrossActionEntityTypeDescriptionAndEmail()
+    public void Search_TranslatesToPlainToTsQueryOnTheStoredVector()
     {
         using var db = CreateContext();
         var sql = db.AuditLogs
             .ApplyFilters(new AuditLogQueryFilters { Search = "Kasse" }, db)
             .ToQueryString();
 
-        Assert.Contains("ILIKE", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("a.action", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("a.entity_type", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("a.description", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"Email\"", sql, StringComparison.Ordinal);
+        Assert.Contains("plainto_tsquery", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("search_vector", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("simple", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ILIKE", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void BlankSearch_DoesNotAddIlike()
+    public void StoredVector_UsesToTsVectorOverActionEntityTypeDescriptionAndEmail()
+    {
+        Assert.Contains("to_tsvector", AuditLogSearchVector.StoredExpression, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("action", AuditLogSearchVector.StoredExpression, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("entity_type", AuditLogSearchVector.StoredExpression, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("description", AuditLogSearchVector.StoredExpression, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("user_email", AuditLogSearchVector.StoredExpression, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BlankSearch_DoesNotAddFullTextQuery()
     {
         using var db = CreateContext();
         var sql = db.AuditLogs
             .ApplyFilters(new AuditLogQueryFilters { Search = "   " }, db)
             .ToQueryString();
 
+        Assert.DoesNotContain("plainto_tsquery", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ILIKE", sql, StringComparison.OrdinalIgnoreCase);
     }
 

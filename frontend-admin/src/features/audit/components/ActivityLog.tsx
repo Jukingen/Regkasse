@@ -1,7 +1,7 @@
 'use client';
 
 import { FileExcelOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, DatePicker, Input, Select, Space, Table, Tag } from 'antd';
+import { Button, Card, DatePicker, Dropdown, Input, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -158,26 +158,45 @@ export function ActivityLog() {
     [formatActionLabel, t]
   );
 
-  const exportToCsv = useCallback(async () => {
-    try {
-      const [from, to] = filters.dateRange ?? [null, null];
-      const query = buildAuditLogExportQuery({
-        startDate: from?.format('YYYY-MM-DD'),
-        endDate: to?.format('YYYY-MM-DD'),
-        userId: filters.userId,
-        action: filters.actionType || undefined,
-        search: filters.search.trim() || undefined,
-        page: 1,
-        pageSize: 1000,
-      });
-      await downloadAuditLogExport('csv', query, {
-        exportFailedMessage: t('activity.exportFailed'),
-      });
-      message.success(t('activity.exportSuccess'));
-    } catch {
-      message.error(t('activity.exportFailed'));
-    }
-  }, [filters.actionType, filters.dateRange, filters.search, filters.userId, message, t]);
+  const exportLogs = useCallback(
+    async (format: 'csv' | 'xlsx') => {
+      try {
+        const [from, to] = filters.dateRange ?? [null, null];
+        const query = {
+          ...buildAuditLogExportQuery({
+            page: filters.page,
+            pageSize: filters.pageSize,
+            startDate: from?.format('YYYY-MM-DD'),
+            endDate: to?.format('YYYY-MM-DD'),
+            userId: filters.userId,
+            action: filters.actionType || undefined,
+            search: filters.search.trim() || undefined,
+          }),
+          ...(filters.userRole ? { userRole: filters.userRole } : {}),
+          page: String(filters.page),
+          pageSize: String(filters.pageSize),
+        };
+        await downloadAuditLogExport(format, query, {
+          exportFailedMessage: t('activity.exportFailed'),
+          url: '/api/admin/audit-logs/export',
+        });
+        message.success(t('activity.exportSuccess'));
+      } catch {
+        message.error(t('activity.exportFailed'));
+      }
+    },
+    [
+      filters.actionType,
+      filters.dateRange,
+      filters.page,
+      filters.pageSize,
+      filters.search,
+      filters.userId,
+      filters.userRole,
+      message,
+      t,
+    ]
+  );
 
   const onDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setFilters((prev) => ({
@@ -195,9 +214,19 @@ export function ActivityLog() {
           <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
             {t('common.buttons.refresh')}
           </Button>
-          <Button icon={<FileExcelOutlined />} onClick={exportToCsv}>
-            {t('activity.export')}
-          </Button>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'csv', label: t('common.auditLogs.exportCsv') },
+                { key: 'xlsx', label: t('common.auditLogs.exportExcel') },
+              ],
+              onClick: ({ key }) => exportLogs(key === 'xlsx' ? 'xlsx' : 'csv'),
+            }}
+          >
+            <Button icon={<FileExcelOutlined />} aria-label={t('activity.export')}>
+              {t('activity.export')}
+            </Button>
+          </Dropdown>
         </Space>
       }
     >

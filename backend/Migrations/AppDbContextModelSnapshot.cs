@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -775,6 +776,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("response_data");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector")
+                        .HasComputedColumnSql("to_tsvector('simple', replace(replace(replace(coalesce(action, '') || ' ' || coalesce(entity_type, '') || ' ' || coalesce(description, '') || ' ' || coalesce(user_email, ''), '_', ' '), '@', ' '), '.', ' '))", true);
+
                     b.Property<string>("SessionId")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -817,6 +824,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("user_agent");
 
+                    b.Property<string>("UserEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("user_email");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)
@@ -840,6 +852,11 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("ImpersonatedBy");
 
                     b.HasIndex("ImpersonatedTenantId");
+
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("ix_audit_logs_search_vector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("TenantId");
 

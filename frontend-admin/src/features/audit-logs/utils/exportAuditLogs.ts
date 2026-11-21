@@ -2,7 +2,7 @@ import { buildAuditExportFileName } from '@/features/audit/utils/auditExportFile
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
-export type AuditLogExportFormat = 'json' | 'csv';
+export type AuditLogExportFormat = 'json' | 'csv' | 'xlsx';
 
 export type AuditLogExportQueryParams = Record<string, string>;
 
@@ -52,15 +52,20 @@ function fileNameFromDisposition(
   return match?.[1] ?? fallback;
 }
 
-/** Download audit log export via GET /api/AuditLog/export (same filters as list). */
+/** Download audit log export. Defaults to GET /api/AuditLog/export. */
 export async function downloadAuditLogExport(
   format: AuditLogExportFormat,
   query: AuditLogExportQueryParams,
-  options: { exportFailedMessage: string }
+  options: { exportFailedMessage: string; url?: string }
 ): Promise<void> {
-  const headers = format === 'csv' ? { Accept: 'text/csv' } : { Accept: 'application/json' };
+  const headers =
+    format === 'csv'
+      ? { Accept: 'text/csv' }
+      : format === 'xlsx'
+        ? { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+        : { Accept: 'application/json' };
 
-  const res = await AXIOS_INSTANCE.get<Blob>('/api/AuditLog/export', {
+  const res = await AXIOS_INSTANCE.get<Blob>(options.url ?? '/api/AuditLog/export', {
     params: { format, ...query },
     responseType: 'blob',
     headers,
@@ -73,6 +78,11 @@ export async function downloadAuditLogExport(
   const contentType = contentTypeHeader || blobType;
   const fallbackName = exportFilename(format, query);
   const fileName = fileNameFromDisposition(disposition, fallbackName);
+
+  if (format === 'xlsx') {
+    triggerBlobDownload(blob, fileName);
+    return;
+  }
 
   if (format === 'json') {
     if (contentType.includes('application/json')) {

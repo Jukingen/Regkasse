@@ -3536,6 +3536,21 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TseSignature).HasMaxLength(500).HasColumnName("tse_signature");
                 entity.Property(e => e.UserAgent).HasMaxLength(500).HasColumnName("user_agent");
                 entity.Property(e => e.UserId).IsRequired().HasMaxLength(450).HasColumnName("user_id");
+                entity.Property(e => e.UserEmail).HasMaxLength(256).HasColumnName("user_email");
+                if (Database.IsNpgsql())
+                {
+                    entity.Property(e => e.SearchVector)
+                        .HasColumnName("search_vector")
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql(AuditLogSearchVector.StoredExpression, stored: true);
+                    entity.HasIndex(e => e.SearchVector)
+                        .HasMethod("GIN")
+                        .HasDatabaseName("ix_audit_logs_search_vector");
+                }
+                else
+                {
+                    entity.Ignore(e => e.SearchVector);
+                }
                 entity.Property(e => e.UserRole).IsRequired().HasMaxLength(50).HasColumnName("user_role");
                 entity.Property(e => e.ActorDisplayName).HasMaxLength(200).HasColumnName("actor_display_name");
                 entity.Property(e => e.Changes).HasColumnType("jsonb").HasColumnName("changes");
@@ -6587,6 +6602,7 @@ namespace KasseAPI_Final.Data
         {
             NormalizeTimestamptzDateTimesBeforeSave();
             StampTenantIdsOnInsert();
+            StampAuditUserEmail();
             NormalizeCategoriesBeforeSave();
             EnforceAuditLogAppendOnly();
             return base.SaveChanges();
@@ -6599,6 +6615,7 @@ namespace KasseAPI_Final.Data
         {
             NormalizeTimestamptzDateTimesBeforeSave();
             StampTenantIdsOnInsert();
+            await StampAuditUserEmailAsync(cancellationToken);
             NormalizeCategoriesBeforeSave();
             EnforceAuditLogAppendOnly();
             return await base.SaveChangesAsync(cancellationToken);
@@ -6776,6 +6793,96 @@ namespace KasseAPI_Final.Data
                          ?? AutoTagesabschlussSettings.CreateDefault();
             parsed.Normalize();
             return parsed;
+        }
+
+        /// <summary>
+        /// Copies the actor email onto new audit rows so the stored search vector can include it.
+        /// Existing rows stay immutable.
+        /// </summary>
+        private void StampAuditUserEmail()
+        {
+            var pending = PendingAuditRowsMissingEmail();
+            if (pending.Count == 0)
+                return;
+
+            var ids = AuditActorIds(pending);
+            if (ids.Count == 0)
+                return;
+
+            var byId = TrackedUserEmails(ids);
+            var missing = ids.Where(id => !byId.ContainsKey(id)).ToList();
+            if (missing.Count > 0)
+            {
+                var emails = Users.AsNoTracking().IgnoreQueryFilters()
+                    .Where(u => missing.Contains(u.Id) && u.Email != null)
+                    .Select(u => new { u.Id, u.Email })
+                    .ToList();
+                foreach (var email in emails)
+                    byId[email.Id] = email.Email!;
+            }
+
+            ApplyAuditEmails(pending, byId);
+        }
+
+        private async Task StampAuditUserEmailAsync(CancellationToken cancellationToken)
+        {
+            var pending = PendingAuditRowsMissingEmail();
+            if (pending.Count == 0)
+                return;
+
+            var ids = AuditActorIds(pending);
+            if (ids.Count == 0)
+                return;
+
+            var byId = TrackedUserEmails(ids);
+            var missing = ids.Where(id => !byId.ContainsKey(id)).ToList();
+            if (missing.Count > 0)
+            {
+                var emails = await Users.AsNoTracking().IgnoreQueryFilters()
+                    .Where(u => missing.Contains(u.Id) && u.Email != null)
+                    .Select(u => new { u.Id, u.Email })
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                foreach (var email in emails)
+                    byId[email.Id] = email.Email!;
+            }
+
+            ApplyAuditEmails(pending, byId);
+        }
+
+        private Dictionary<string, string> TrackedUserEmails(List<string> ids)
+        {
+            var idSet = ids.ToHashSet(StringComparer.Ordinal);
+            return ChangeTracker.Entries<ApplicationUser>()
+                .Where(e => e.State != EntityState.Deleted
+                    && idSet.Contains(e.Entity.Id)
+                    && !string.IsNullOrWhiteSpace(e.Entity.Email))
+                .ToDictionary(e => e.Entity.Id, e => e.Entity.Email!, StringComparer.Ordinal);
+        }
+
+        private List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditLog>> PendingAuditRowsMissingEmail() =>
+            ChangeTracker.Entries<AuditLog>()
+                .Where(e => e.State == EntityState.Added && string.IsNullOrWhiteSpace(e.Entity.UserEmail))
+                .ToList();
+
+        private static List<string> AuditActorIds(
+            List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditLog>> pending) =>
+            pending
+                .Select(e => e.Entity.UserId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+        private static void ApplyAuditEmails(
+            List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditLog>> pending,
+            Dictionary<string, string> byId)
+        {
+            foreach (var entry in pending)
+            {
+                if (!byId.TryGetValue(entry.Entity.UserId, out var email))
+                    continue;
+                entry.Entity.UserEmail = email.Length <= 256 ? email : email[..256];
+            }
         }
 
         /// <summary>Invariant 1–2: Reject any UPDATE to AuditLog; records are immutable after insert.</summary>
