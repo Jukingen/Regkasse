@@ -116,11 +116,12 @@ namespace KasseAPI_Final.Services
                         return totals.Stop;
                     }
 
-                    var settlement = await ResolveSettlementAsync(
+                    var settlement = await _settlement.ResolveSettlementAsync(
                             request,
                             gates,
                             sale,
-                            totals.Value!,
+                            totals.Value!.TotalAmount,
+                            totals.Value.EffectiveTenantId,
                             cashRegisterId,
                             offlineTransactionId,
                             licenseCheckCancellation)

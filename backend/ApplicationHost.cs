@@ -1523,6 +1523,16 @@ internal static class ApplicationHost
             sp.GetService<IOptionsMonitor<DevelopmentOptions>>(),
             sp.GetService<IVerticalProfileService>(),
             sp.GetService<IVerticalProfileGuard>()));
+        builder.Services.AddScoped<IPaymentSettlementService>(sp => new PaymentSettlementService(
+            sp.GetRequiredService<ILogger<PaymentService>>(),
+            sp.GetRequiredService<IPaymentMethodCatalogService>(),
+            sp.GetRequiredService<IPaymentVoucherLedgerService>(),
+            sp.GetRequiredService<IOptions<TseOptions>>().Value,
+            sp.GetRequiredService<INtpEffectiveSettingsProvider>(),
+            sp.GetRequiredService<INtpTimeSyncStatus>(),
+            sp.GetService<ICardPaymentService>(),
+            sp.GetService<IPreorderService>(),
+            sp.GetService<ITenantLimitGuard>()));
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {
