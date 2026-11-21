@@ -66,6 +66,8 @@ internal static class TenantPiiPurge
         var payments = await AnonymizePaymentsAsync(db, tenantId, registerIds, ct).ConfigureAwait(false);
         counts["payments_anonymized"] = payments.Count;
         counts["invoices_anonymized"] = await AnonymizeInvoicesAsync(db, tenantId, ct).ConfigureAwait(false);
+        counts["tenant_contact_anonymized"] = await AnonymizeTenantContactAsync(db, tenantId, ct)
+            .ConfigureAwait(false);
         counts["online_orders_anonymized"] = await AnonymizeOnlineOrdersAsync(db, tenantId, ct)
             .ConfigureAwait(false);
         counts["orders_anonymized"] = await AnonymizeOrdersAsync(db, tenantId, ct).ConfigureAwait(false);
@@ -221,16 +223,14 @@ internal static class TenantPiiPurge
         {
             payment.CustomerId = placeholder.Id;
             payment.CustomerName = AnonymousName;
-            payment.CompanyName = null;
-            payment.CompanyAddress = null;
             payment.Notes = null;
             payment.PrescriptionReference = null;
             payment.RouteFrom = null;
             payment.RouteTo = null;
             payment.RefundReason = null;
             payment.CancellationReason = null;
-            if (!string.IsNullOrEmpty(payment.Steuernummer))
-                payment.Steuernummer = AnonymousName;
+            // CompanyName, CompanyAddress, and Steuernummer are the RKSV issuer snapshot.
+            // payment_details has no company email or phone column.
         }
 
         return new PaymentAnonymization(payments.Count, placeholder.Id);
@@ -249,9 +249,28 @@ internal static class TenantPiiPurge
             invoice.CustomerPhone = null;
             invoice.CustomerAddress = null;
             invoice.CustomerTaxNumber = null;
+            invoice.CompanyEmail = null;
+            invoice.CompanyPhone = null;
         }
 
         return invoices.Count;
+    }
+
+    /// <summary>
+    /// Clears the SaaS contact channel. Name, slug, and address stay: receipts reference the tenant row,
+    /// and the address is the business seat kept for the fiscal retention window.
+    /// </summary>
+    private static async Task<int> AnonymizeTenantContactAsync(AppDbContext db, Guid tenantId, CancellationToken ct)
+    {
+        var tenant = await db.Tenants.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return 0;
+
+        tenant.Email = null;
+        tenant.Phone = null;
+        return 1;
     }
 
     private static async Task<int> AnonymizeOnlineOrdersAsync(AppDbContext db, Guid tenantId, CancellationToken ct)

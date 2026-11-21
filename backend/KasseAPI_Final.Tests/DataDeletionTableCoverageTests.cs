@@ -44,9 +44,9 @@ public sealed class DataDeletionTableCoverageTests
         Assert.Equal("R-100", payment.ReceiptNumber);
         Assert.Equal(KeptSignature, payment.TseSignature);
         Assert.Equal(TenantPiiPurge.AnonymousName, payment.CustomerName);
-        Assert.Equal(TenantPiiPurge.AnonymousName, payment.Steuernummer);
-        Assert.Null(payment.CompanyName);
-        Assert.Null(payment.CompanyAddress);
+        Assert.Equal("Cafe GmbH", payment.CompanyName);
+        Assert.Equal(PiiAddress, payment.CompanyAddress);
+        Assert.Equal(PiiTax, payment.Steuernummer);
         Assert.Null(payment.Notes);
         Assert.Null(payment.RouteFrom);
         Assert.Null(payment.RouteTo);
@@ -55,7 +55,6 @@ public sealed class DataDeletionTableCoverageTests
         Assert.Null(payment.CancellationReason);
         Assert.NotEqual(fx.CustomerId, payment.CustomerId);
         AssertNoPii(payment.CustomerName);
-        AssertNoPii(payment.Steuernummer);
         AssertNoPii(payment.Notes);
 
         var other = await fx.Db.PaymentDetails.IgnoreQueryFilters().SingleAsync(p => p.Id == otherPaymentId);
@@ -87,6 +86,8 @@ public sealed class DataDeletionTableCoverageTests
         Assert.Equal("Cafe GmbH", fiscal.CompanyName);
         Assert.Equal("ATU87654321", fiscal.CompanyTaxNumber);
         Assert.Equal("Sitz 9", fiscal.CompanyAddress);
+        Assert.Null(fiscal.CompanyEmail);
+        Assert.Null(fiscal.CompanyPhone);
         Assert.Equal(TenantPiiPurge.AnonymousName, fiscal.CustomerName);
         Assert.Null(fiscal.CustomerEmail);
         Assert.Null(fiscal.CustomerPhone);
@@ -751,6 +752,8 @@ public sealed class DataDeletionTableCoverageTests
             CompanyName = "Cafe GmbH",
             CompanyTaxNumber = "ATU87654321",
             CompanyAddress = "Sitz 9",
+            CompanyEmail = "firma@cafe.at",
+            CompanyPhone = "+431234567",
             KassenId = "K1",
             CashRegisterId = registerId,
             TseSignature = KeptSignature,

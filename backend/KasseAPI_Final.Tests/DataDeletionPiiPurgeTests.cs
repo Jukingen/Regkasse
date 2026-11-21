@@ -30,8 +30,28 @@ public sealed class DataDeletionPiiPurgeTests
         var keptUserId = "user-other-tenant";
 
         db.Tenants.AddRange(
-            new Tenant { Id = tenantId, Name = "Cafe", Slug = "cafe-purge", IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Tenant { Id = otherTenantId, Name = "Other", Slug = "other-purge", IsActive = true, CreatedAt = DateTime.UtcNow });
+            new Tenant
+            {
+                Id = tenantId,
+                Name = "Cafe",
+                Slug = "cafe-purge",
+                Email = "cafe@test.at",
+                Phone = "+431111111",
+                Address = "Hauptstrasse 1",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = otherTenantId,
+                Name = "Other",
+                Slug = "other-purge",
+                Email = "other@test.at",
+                Phone = "+432222222",
+                Address = "Nebenstrasse 2",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
 
         db.Customers.Add(new Customer
         {
@@ -128,6 +148,8 @@ public sealed class DataDeletionPiiPurgeTests
             CompanyName = "Cafe GmbH",
             CompanyTaxNumber = "ATU87654321",
             CompanyAddress = "Hauptstrasse 1",
+            CompanyEmail = "firma@cafe.at",
+            CompanyPhone = "+431234567",
             KassenId = "K1",
             CashRegisterId = registerId,
             TseSignature = "invoice-jws-keep",
@@ -440,10 +462,12 @@ public sealed class DataDeletionPiiPurgeTests
         Assert.Equal("R-100", payment.ReceiptNumber);
         Assert.Equal("jws-keep", payment.TseSignature);
         Assert.Equal(TenantPiiPurge.AnonymousName, payment.CustomerName);
-        Assert.Null(payment.CompanyName);
-        Assert.Null(payment.CompanyAddress);
+        Assert.Equal("Cafe GmbH", payment.CompanyName);
+        Assert.Equal("Hauptstrasse 1", payment.CompanyAddress);
+        Assert.Equal("ATU12345678", payment.Steuernummer);
+        Assert.NotEqual(TenantPiiPurge.AnonymousName, payment.CompanyName);
+        Assert.NotEqual(TenantPiiPurge.AnonymousName, payment.Steuernummer);
         Assert.Null(payment.Notes);
-        Assert.Equal(TenantPiiPurge.AnonymousName, payment.Steuernummer);
         Assert.DoesNotContain("max@test.at", payment.CustomerName, StringComparison.OrdinalIgnoreCase);
         Assert.NotEqual(customerId, payment.CustomerId);
 
@@ -451,6 +475,10 @@ public sealed class DataDeletionPiiPurgeTests
         Assert.Equal(42.50m, invoice.TotalAmount);
         Assert.Equal("invoice-jws-keep", invoice.TseSignature);
         Assert.Equal("Cafe GmbH", invoice.CompanyName);
+        Assert.Equal("Hauptstrasse 1", invoice.CompanyAddress);
+        Assert.Equal("ATU87654321", invoice.CompanyTaxNumber);
+        Assert.Null(invoice.CompanyEmail);
+        Assert.Null(invoice.CompanyPhone);
         Assert.Equal(TenantPiiPurge.AnonymousName, invoice.CustomerName);
         Assert.Null(invoice.CustomerEmail);
         Assert.Null(invoice.CustomerPhone);
@@ -551,6 +579,16 @@ public sealed class DataDeletionPiiPurgeTests
         Assert.Null((await db.KitchenOrderItems.SingleAsync(i => i.KitchenOrderId == kitchenId)).Notes);
         var otherKitchen = await db.KitchenOrders.IgnoreQueryFilters().SingleAsync(o => o.Id == otherKitchenId);
         Assert.Equal("Erika allergy", otherKitchen.Notes);
+
+        var tenant = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal("Cafe", tenant.Name);
+        Assert.Equal("cafe-purge", tenant.Slug);
+        Assert.Equal("Hauptstrasse 1", tenant.Address);
+        Assert.True(string.IsNullOrEmpty(tenant.Email));
+        Assert.True(string.IsNullOrEmpty(tenant.Phone));
+        var otherTenant = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Id == otherTenantId);
+        Assert.Equal("other@test.at", otherTenant.Email);
+        Assert.Equal("+432222222", otherTenant.Phone);
 
         var otherCustomer = await db.Customers.IgnoreQueryFilters().SingleAsync(c => c.TenantId == otherTenantId);
         Assert.Equal("erika@other.at", otherCustomer.Email);
