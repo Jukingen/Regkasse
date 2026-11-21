@@ -104,6 +104,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentRefundService _refund;
         private readonly IPaymentSaleGateService _saleGate;
         private readonly IPaymentSettlementService _settlement;
+        private readonly IPaymentDocumentPersistenceService _documents;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -169,7 +170,8 @@ namespace KasseAPI_Final.Services
             IPaymentStornoService? storno = null,
             IPaymentRefundService? refund = null,
             IPaymentSaleGateService? saleGate = null,
-            IPaymentSettlementService? settlement = null)
+            IPaymentSettlementService? settlement = null,
+            IPaymentDocumentPersistenceService? documents = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -331,6 +333,18 @@ namespace KasseAPI_Final.Services
                 _cardPaymentService,
                 _preorderService,
                 _tenantLimitGuard);
+            _documents = documents ?? new PaymentDocumentPersistenceService(
+                _context,
+                _logger,
+                _auditLogService,
+                _fiscalSignatureRouter,
+                _receiptService,
+                _voucherLedger,
+                AllocateCountryBelegNrAsync,
+                _ticketRedemptions,
+                _extensionRegistry,
+                _profileGuard,
+                _verticalProfiles);
         }
 
         internal Task RunPaymentHookAsync(
@@ -357,112 +371,6 @@ namespace KasseAPI_Final.Services
                 CancellationToken.None);
         }
 
-        /// <summary>
-        /// Sale-path <c>payment.before-sign</c>. When an extension returns adjusted line gross
-        /// totals, those amounts are re-taxed with the existing country strategy and written onto
-        /// the payment before the unchanged <c>SignAsync</c> call. Payloads without a matching
-        /// line list leave the cart as calculated.
-        /// </summary>
-        private async Task<(TaxCalculationResult Tax, Dictionary<string, decimal> Details)> ApplyBeforeSignCartAsync(
-            Guid tenantId,
-            PaymentDetails payment,
-            List<PaymentItem> paymentItems,
-            TaxCalculationResult taxResult,
-            Dictionary<string, decimal> taxDetails,
-            ITaxStrategy taxStrategy,
-            CountryStrategyBinding countryBinding,
-            ICountryTaxTypeRegistry rateCatalog,
-            string? buyerVatId,
-            IReadOnlyDictionary<Guid, bool> requiresPrescriptionByProduct)
-        {
-            var lines = paymentItems.Select(item => new ExtensionCartLine(
-                item.ProductId,
-                item.Quantity,
-                item.TaxType,
-                item.TotalPrice,
-                requiresPrescriptionByProduct.TryGetValue(item.ProductId, out var required) && required)).ToList();
-
-            var payload = new Dictionary<string, object?>
-            {
-                ["paymentId"] = payment.Id,
-                ["totalAmount"] = payment.TotalAmount,
-                ["receiptNumber"] = payment.ReceiptNumber,
-                [ExtensionCart.HasPrescriptionKey] = !string.IsNullOrEmpty(payment.PrescriptionReference),
-                [ExtensionCart.PrescriptionReferenceKey] = payment.PrescriptionReference,
-                [ExtensionCart.LinesKey] = lines,
-            };
-
-            var modified = await TenantExtensionRunner.RunAsync(
-                    _extensionRegistry,
-                    tenantId,
-                    TenantExtensionHooks.PaymentBeforeSign,
-                    payload,
-                    CancellationToken.None)
-                .ConfigureAwait(false);
-
-            var adjusted = ExtensionCart.ReadLines(modified);
-            if (adjusted.Count != paymentItems.Count || adjusted.Count != taxResult.Lines.Count)
-                return (taxResult, taxDetails);
-
-            var changed = false;
-            for (var i = 0; i < adjusted.Count; i++)
-            {
-                if (adjusted[i].GrossTotal != paymentItems[i].TotalPrice)
-                {
-                    changed = true;
-                    break;
-                }
-            }
-
-            if (!changed)
-                return (taxResult, taxDetails);
-
-            var inputs = new List<TaxLineItemInput>(adjusted.Count);
-            for (var i = 0; i < adjusted.Count; i++)
-            {
-                inputs.Add(CountryPaymentTaxLineMapper.FromProductTaxType(
-                    countryBinding.Profile,
-                    adjusted[i].GrossTotal,
-                    1,
-                    paymentItems[i].TaxType,
-                    rateCatalog));
-            }
-
-            var recalculated = taxStrategy.CalculateTax(
-                inputs,
-                new TaxCalculationContext
-                {
-                    CountryProfile = countryBinding.Profile,
-                    VatRegime = countryBinding.VatRegime,
-                    TaxExempt = countryBinding.Settings.TaxExempt,
-                    BuyerVatId = buyerVatId,
-                    DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
-                        countryBinding.VatRegime,
-                        buyerVatId),
-                    TenantId = countryBinding.Settings.TenantId,
-                });
-
-            for (var i = 0; i < paymentItems.Count && i < recalculated.Lines.Count; i++)
-            {
-                var line = recalculated.Lines[i];
-                var quantity = paymentItems[i].Quantity <= 0 ? 1 : paymentItems[i].Quantity;
-                paymentItems[i].TotalPrice = line.LineGross;
-                paymentItems[i].TaxAmount = line.LineTax;
-                paymentItems[i].LineNet = line.LineNet;
-                paymentItems[i].TaxRate = line.TaxRate;
-                paymentItems[i].TaxType = line.TaxType;
-                paymentItems[i].UnitPrice = quantity == 1
-                    ? line.LineGross
-                    : decimal.Round(line.LineGross / quantity, 2, MidpointRounding.AwayFromZero);
-            }
-
-            var details = recalculated.TaxDetails.ToDictionary(static kv => kv.Key, static kv => kv.Value);
-            payment.TotalAmount = recalculated.Totals.TotalGross;
-            payment.TaxAmount = recalculated.Totals.TotalVat;
-            payment.TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(details));
-            payment.PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems));
-            return (recalculated, details);
-        }
 
         internal static PaymentResult ExtensionRejected(ExtensionFailedException ex) =>
             new()
@@ -485,22 +393,6 @@ namespace KasseAPI_Final.Services
             return _chMwstRates.ForCalculation(_taxTypes, binding.Settings.TenantId);
         }
 
-        private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken) =>
-            await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false);
-
-        private async Task<bool> AllowsFeatureAsync(string feature, CancellationToken cancellationToken)
-        {
-            if (_profileGuard is not null)
-                return await _profileGuard.IsFeatureEnabledAsync(feature, cancellationToken).ConfigureAwait(false);
-
-            if (_verticalProfiles is null)
-                return false;
-
-            var profile = await _verticalProfiles
-                .GetForCurrentTenantAsync(cancellationToken)
-                .ConfigureAwait(false);
-            return profile?.HasPosFeature(feature) == true;
-        }
 
         private static PaymentResult ImeiPaymentFailure(string code, string message) => new()
         {

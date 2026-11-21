@@ -1533,6 +1533,22 @@ internal static class ApplicationHost
             sp.GetService<ICardPaymentService>(),
             sp.GetService<IPreorderService>(),
             sp.GetService<ITenantLimitGuard>()));
+        builder.Services.AddScoped<IPaymentDocumentPersistenceService>(sp =>
+        {
+            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            return new PaymentDocumentPersistenceService(
+                sp.GetRequiredService<AppDbContext>(),
+                sp.GetRequiredService<ILogger<PaymentService>>(),
+                sp.GetRequiredService<IAuditLogService>(),
+                sp.GetRequiredService<KasseAPI_Final.Fiscal.IFiscalSignatureRouter>(),
+                sp.GetRequiredService<IReceiptService>(),
+                sp.GetRequiredService<IPaymentVoucherLedgerService>(),
+                (binding, tx, registerId, registerNumber) => payments.Value.AllocateCountryBelegNrAsync(binding, tx, registerId, registerNumber),
+                sp.GetService<KasseAPI_Final.Services.Tickets.ITicketRedemptionService>(),
+                sp.GetService<KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry>(),
+                sp.GetService<IVerticalProfileGuard>(),
+                sp.GetService<IVerticalProfileService>());
+        });
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {

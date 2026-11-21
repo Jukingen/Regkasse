@@ -135,7 +135,7 @@ namespace KasseAPI_Final.Services
 
                     effectiveTseRequired = settlement.Value!.EffectiveTseRequired;
                     paymentStockLinesSkipped = totals.Value!.PaymentStockLinesSkipped;
-                    var docs = await PersistFiscalDocumentsAsync(
+                    var docs = await _documents.PersistFiscalDocumentsAsync(
                             request,
                             userId,
                             transaction,
