@@ -176,10 +176,15 @@ internal static class ApplicationHost
     }
 
     /// <summary>
-    /// Production Npgsql pool defaults. Explicit connection-string values win; missing keys get safe defaults.
-    /// (Npgsql pools by default; this sets Min/Max/Lifetime for predictable production capacity.)
+    /// Npgsql pool defaults when the connection string omits them. Explicit keywords win.
+    /// Sized for concurrent POS checkouts. Keep <paramref name="maxPoolSize"/> below PostgreSQL max_connections.
+    /// Override with Database:MaxPoolSize, Database:MinPoolSize, and Database:ConnectionIdleLifetime.
     /// </summary>
-    private static string ApplyProductionNpgsqlPooling(string connectionString)
+    internal static string ApplyProductionNpgsqlPooling(
+        string connectionString,
+        int maxPoolSize = 200,
+        int minPoolSize = 5,
+        int connectionIdleLifetimeSeconds = 300)
     {
         var builder = new NpgsqlConnectionStringBuilder(connectionString)
         {
@@ -189,15 +194,19 @@ internal static class ApplicationHost
         // Apply only when the operator did not set the key (keyword absent from the raw string).
         if (!ContainsConnectionKeyword(connectionString, "Minimum Pool Size")
             && !ContainsConnectionKeyword(connectionString, "MinPoolSize"))
-            builder.MinPoolSize = 5;
+            builder.MinPoolSize = minPoolSize;
 
         if (!ContainsConnectionKeyword(connectionString, "Maximum Pool Size")
             && !ContainsConnectionKeyword(connectionString, "MaxPoolSize"))
-            builder.MaxPoolSize = 20;
+            builder.MaxPoolSize = maxPoolSize;
 
         if (!ContainsConnectionKeyword(connectionString, "Connection Lifetime")
             && !ContainsConnectionKeyword(connectionString, "ConnectionLifetime"))
             builder.ConnectionLifetime = 300;
+
+        if (!ContainsConnectionKeyword(connectionString, "Connection Idle Lifetime")
+            && !ContainsConnectionKeyword(connectionString, "ConnectionIdleLifetime"))
+            builder.ConnectionIdleLifetime = connectionIdleLifetimeSeconds;
 
         return builder.ConnectionString;
     }
@@ -695,9 +704,15 @@ internal static class ApplicationHost
                 "OpenAPI export: DefaultConnection missing â€” OpenApiExportConfiguration should supply in-memory defaults.");
         }
 
-        // Production: ensure Npgsql connection pooling knobs (env CS often omits them).
-        if (builder.Environment.IsProduction())
-            defaultConnection = ApplyProductionNpgsqlPooling(defaultConnection);
+        // Explicit connection-string keywords win. Missing keys use Database:* (default max 200).
+        var maxPoolSize = builder.Configuration.GetValue("Database:MaxPoolSize", 200);
+        var minPoolSize = builder.Configuration.GetValue("Database:MinPoolSize", 5);
+        var connectionIdleLifetime = builder.Configuration.GetValue("Database:ConnectionIdleLifetime", 300);
+        defaultConnection = ApplyProductionNpgsqlPooling(
+            defaultConnection,
+            maxPoolSize,
+            minPoolSize,
+            connectionIdleLifetime);
 
         // AppDbContext depends on scoped ICurrentTenantAccessor. Keep context + options + factory
         // all Scoped so bootstrap (CreateScope) and request paths can resolve them; a Singleton

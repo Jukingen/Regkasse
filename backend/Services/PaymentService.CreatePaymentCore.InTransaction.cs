@@ -18,18 +18,39 @@ namespace KasseAPI_Final.Services
     public partial class PaymentService
     {
         /// <summary>
+        /// One read of the sale's products, including categories. No stock mutation.
+        /// The caller runs this before BeginTransaction. CalculateTotalsAsync then uses the tracked rows.
+        /// </summary>
+        private async Task<Dictionary<Guid, Product>> LoadSaleProductsAsync(
+            Guid effectiveTenantId,
+            IReadOnlyList<PaymentItemRequest> items)
+        {
+            var ids = items.Select(item => item.ProductId).Distinct().ToList();
+            if (ids.Count == 0)
+                return new Dictionary<Guid, Product>();
+
+            var products = await _context.Products
+                .Include(p => p.CategoryNavigation)
+                .Where(p => ids.Contains(p.Id) && p.TenantId == effectiveTenantId)
+                .ToListAsync()
+                .ConfigureAwait(false);
+            return products.ToDictionary(p => p.Id);
+        }
+
+        /// <summary>
         /// Cart claim, line pricing, tax, and benefit usage on the caller's transaction.
         /// Variant and IMEI helpers still roll that transaction back themselves; other failures do not.
+        /// Product entities come from <see cref="LoadSaleProductsAsync"/>; this method does not query them again.
         /// </summary>
         private async Task<PaymentCorePhase<SaleTotals>> CalculateTotalsAsync(
             CreatePaymentRequest request,
             string userId,
             IDbContextTransaction transaction,
             PreparedFiscalSale sale,
-            Guid cashRegisterId)
+            Guid cashRegisterId,
+            IReadOnlyDictionary<Guid, Product> productsById,
+            Guid effectiveTenantId)
         {
-            var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-
             // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
             var paymentItems = new List<PaymentItem>();
             var productIdToCategoryId = new Dictionary<Guid, Guid>();
@@ -48,10 +69,7 @@ namespace KasseAPI_Final.Services
             var variantPriceDeltas = new Dictionary<PaymentItemRequest, decimal>();
             foreach (var itemRequest in request.Items)
             {
-                var product = await _context.Products
-                    .Include(p => p.CategoryNavigation)
-                    .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId && p.TenantId == effectiveTenantId);
-                if (product == null)
+                if (!productsById.TryGetValue(itemRequest.ProductId, out var product))
                 {
                     return PaymentCorePhase<SaleTotals>.Fail(new PaymentResult
                     {

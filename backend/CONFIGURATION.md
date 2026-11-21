@@ -40,7 +40,7 @@ Load order (ASP.NET Core): base → environment overlay → user secrets (Develo
 
 | Setting | JSON path | Environment variable (override) | Notes |
 |--------|------------|-----------------------------------|--------|
-| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. Production should include `Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;` (ApplicationHost also applies these defaults in Production when omitted). |
+| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. When pool keywords are omitted, ApplicationHost applies `Pooling=true`, `Database:MinPoolSize` (5), `Database:MaxPoolSize` (200), `Connection Lifetime=300`, and `Database:ConnectionIdleLifetime` (300). Explicit connection-string keywords win. Keep max pool size below PostgreSQL `max_connections`. |
 | JWT signing key | `JwtSettings:SecretKey` | `JwtSettings__SecretKey` | Minimum 32 characters; rotate if ever exposed. |
 | JWT issuer / audience | `JwtSettings:Issuer`, `JwtSettings:Audience` | `JwtSettings__Issuer`, `JwtSettings__Audience` | Non-secret values may live in example config. |
 | Redis (distributed cache) | `Redis:ConnectionString` | `Redis__ConnectionString` | Default `localhost:6379`. Used by `ICacheService` (`RedisCacheService`). On Redis failure the service falls back to process-local `IMemoryCache` (Error logged; `IsRedisAvailable=false`). Process-local `IMemoryCache` also remains for lockout/rate-limit/QR. |
@@ -287,7 +287,7 @@ Production must **not** use `ProductionStub` or `Fake`. Set real PostgreSQL logi
 ```bash
 # PostgreSQL (required for pg_dump; use a least-privilege backup role in production)
 # Pooling: Min 5 / Max 20 / Connection Lifetime 300s (ApplicationHost also applies these in Production if omitted)
-ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=...;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;"
+ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=...;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=200;Connection Lifetime=300;Connection Idle Lifetime=300;"
 
 # Real pg_dump adapter (mandatory in production)
 Backup__ExecutionAdapterKind=PgDump

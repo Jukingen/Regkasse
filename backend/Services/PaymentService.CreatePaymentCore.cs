@@ -66,7 +66,16 @@ namespace KasseAPI_Final.Services
                 var paymentStockLinesSkipped = 0;
                 var effectiveTseRequired = sale.EffectiveTseRequired;
 
+                // Product rows are read-only here. Stock changes stay inside the fiscal transaction,
+                // after the register lock, so this lookup does not hold a pooled connection for the N+1 reads.
+                var saleTenantId = await _settingsTenantResolver
+                    .ResolveEffectiveTenantIdAsync(licenseCheckCancellation)
+                    .ConfigureAwait(false);
+                var productsById = await LoadSaleProductsAsync(saleTenantId, request.Items).ConfigureAwait(false);
+
                 // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
+                // The signature-chain FOR UPDATE stays inside this transaction until Commit: releasing it earlier
+                // would let two sales on one register sign from the same previous signature.
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
@@ -87,7 +96,15 @@ namespace KasseAPI_Final.Services
 
                     var cashRegisterId = registerGate.Value!.CashRegisterId;
                     var registerNumber = registerGate.Value.RegisterNumber;
-                    var totals = await CalculateTotalsAsync(request, userId, transaction, sale, cashRegisterId).ConfigureAwait(false);
+                    var totals = await CalculateTotalsAsync(
+                            request,
+                            userId,
+                            transaction,
+                            sale,
+                            cashRegisterId,
+                            productsById,
+                            saleTenantId)
+                        .ConfigureAwait(false);
                     if (totals.Stop != null)
                     {
                         if (!totals.TransactionAlreadyRolledBack)

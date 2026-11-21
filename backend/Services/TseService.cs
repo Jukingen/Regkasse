@@ -432,9 +432,15 @@ namespace KasseAPI_Final.Services
                     compactJws,
                     newTurnoverCents);
                 phase = "save_changes";
-                await _context.SaveChangesAsync();
+                // Enlisted callers (payment, storno, refund, special receipts) SaveChanges once
+                // before their own commit. That flush writes this TseSignature with the fiscal rows.
+                // A second SaveChanges here would keep the connection busy for an extra round-trip
+                // and would not change the signature or the chain update, which is already raw SQL.
                 if (ownTransaction)
+                {
+                    await _context.SaveChangesAsync();
                     await dbTransaction!.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
@@ -604,7 +610,12 @@ namespace KasseAPI_Final.Services
             return new FiskalySignOutcome(signed.QrCodeData, receiptId);
         }
 
-        /// <summary>Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current chain state.</summary>
+        /// <summary>
+        /// Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current chain state.
+        /// The lock lives on <paramref name="transaction"/> until that transaction commits. It is not taken
+        /// in a separate transaction: releasing it before the signature row commits would let two sales on
+        /// the same register chain from the same previous signature.
+        /// </summary>
         private async Task<(string prevSignature, int lastCounter, long turnoverCents)> EnsureChainRowAndLockAsync(IDbContextTransaction transaction, Guid cashRegisterId)
         {
             var conn = _context.Database.GetDbConnection();
