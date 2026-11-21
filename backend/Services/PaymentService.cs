@@ -102,6 +102,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentVoucherLedgerService _voucherLedger;
         private readonly IPaymentStornoService _storno;
         private readonly IPaymentRefundService _refund;
+        private readonly IPaymentSaleGateService _saleGate;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -165,7 +166,8 @@ namespace KasseAPI_Final.Services
             IPaymentBenefitService? benefits = null,
             IPaymentVoucherLedgerService? voucherLedger = null,
             IPaymentStornoService? storno = null,
-            IPaymentRefundService? refund = null)
+            IPaymentRefundService? refund = null,
+            IPaymentSaleGateService? saleGate = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -299,6 +301,24 @@ namespace KasseAPI_Final.Services
                 AllocateCountryBelegNrAsync,
                 RunPaymentHookAsync,
                 LogPaymentAuditAsync);
+            _saleGate = saleGate ?? new PaymentSaleGateService(
+                _context,
+                _logger,
+                _settingsTenantResolver,
+                _companyProfileProvider,
+                _countryStrategyContext,
+                _taxStrategyResolver,
+                _cashRegisterResolution,
+                _httpContextAccessor,
+                _offlineIntents,
+                _tseOptions,
+                _tseHealthMonitor,
+                _featureFlags,
+                _developmentModeService,
+                _hostEnvironment,
+                _developmentOptions,
+                _verticalProfiles,
+                _profileGuard);
         }
 
         internal Task RunPaymentHookAsync(
@@ -453,24 +473,6 @@ namespace KasseAPI_Final.Services
             return _chMwstRates.ForCalculation(_taxTypes, binding.Settings.TenantId);
         }
 
-        private static string? NormalizePrescriptionReference(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            var trimmed = value.Trim();
-            return trimmed.Length == 0 ? null : trimmed;
-        }
-
-        private static string? NormalizeTaxiText(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            var trimmed = value.Trim();
-            return trimmed.Length == 0 ? null : trimmed;
-        }
-
         private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken) =>
             await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false);
 
@@ -486,59 +488,6 @@ namespace KasseAPI_Final.Services
                 .GetForCurrentTenantAsync(cancellationToken)
                 .ConfigureAwait(false);
             return profile?.HasPosFeature(feature) == true;
-        }
-
-        private async Task<bool> AllowsTaxiSurfaceAsync(CancellationToken cancellationToken)
-        {
-            if (_profileGuard is not null)
-                return await _profileGuard.IsTaxiSurfaceAsync(cancellationToken).ConfigureAwait(false);
-
-            if (_verticalProfiles is null)
-                return false;
-
-            var profile = await _verticalProfiles
-                .GetForCurrentTenantAsync(cancellationToken)
-                .ConfigureAwait(false);
-            return VerticalProfileGuard.IsTaxiSurface(profile);
-        }
-
-        private PaymentResult ProfileFeatureRejected(string feature)
-        {
-            _logger.LogInformation("PROFILE_FEATURE_REJECTED feature={Feature}", feature);
-            return new PaymentResult
-            {
-                Success = false,
-                Message = FeatureNotEnabledForProfileException.DefaultMessage,
-                Errors = { FeatureNotEnabledForProfileException.Code },
-                DiagnosticCode = FeatureNotEnabledForProfileException.Code,
-                ProfileFeature = feature,
-                IsDeterministicFailure = true,
-            };
-        }
-
-        private async Task<PaymentResult?> RejectDisabledProfileSaleFieldsAsync(
-            CreatePaymentRequest request,
-            CancellationToken cancellationToken)
-        {
-            var hasImei = request.Items?.Any(item =>
-                ProductImeiService.ResolveRequestedImeis(item.Imei, item.Imeis).Count > 0) == true;
-            if (hasImei && !await AllowsFeatureAsync("imeiTracking", cancellationToken).ConfigureAwait(false))
-                return ProfileFeatureRejected("imeiTracking");
-
-            var productIds = request.Items?.Select(item => item.ProductId).Distinct().ToList();
-            if (productIds is not { Count: > 0 })
-                return null;
-
-            var hasTicketProduct = await _context.Products
-                .AsNoTracking()
-                .AnyAsync(
-                    product => productIds.Contains(product.Id) && product.IsTicket,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (hasTicketProduct && !await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false))
-                return ProfileFeatureRejected("ticketScan");
-
-            return null;
         }
 
         private static PaymentResult ImeiPaymentFailure(string code, string message) => new()

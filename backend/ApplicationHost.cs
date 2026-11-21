@@ -1505,6 +1505,24 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IPaymentVoucherLedgerService>(sp => new PaymentVoucherLedgerService(
             sp.GetRequiredService<AppDbContext>(),
             sp.GetRequiredService<ILogger<PaymentService>>()));
+        builder.Services.AddScoped<IPaymentSaleGateService>(sp => new PaymentSaleGateService(
+            sp.GetRequiredService<AppDbContext>(),
+            sp.GetRequiredService<ILogger<PaymentService>>(),
+            sp.GetRequiredService<ISettingsTenantResolver>(),
+            sp.GetRequiredService<ICompanyProfileProvider>(),
+            sp.GetRequiredService<ICountryStrategyContext>(),
+            sp.GetRequiredService<ITaxStrategyResolver>(),
+            sp.GetRequiredService<ICashRegisterResolutionService>(),
+            sp.GetRequiredService<IHttpContextAccessor>(),
+            sp.GetRequiredService<IPaymentOfflineIntentService>(),
+            sp.GetRequiredService<IOptions<TseOptions>>().Value,
+            sp.GetService<ITseHealthMonitor>() ?? AlwaysOnlineTseHealthMonitor.Instance,
+            sp.GetService<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService>(),
+            sp.GetService<IDevelopmentModeService>(),
+            sp.GetService<IHostEnvironment>(),
+            sp.GetService<IOptionsMonitor<DevelopmentOptions>>(),
+            sp.GetService<IVerticalProfileService>(),
+            sp.GetService<IVerticalProfileGuard>()));
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {
