@@ -44,10 +44,10 @@ export default defineConfig({
       '**/playwright-report/**',
       '**/test-results/**',
     ],
-    // Two jsdom workers. Four Ant Design suites (tenant page, wizard, users, vertical profiles)
-    // exceed the 15s default when they share a machine with other workers.
+    // Two jsdom workers. Ant Design suites (tenant page, wizard, users, vertical profiles)
+    // exceed 15s when they share a machine with the other worker.
     maxWorkers: 2,
-    testTimeout: 15_000,
+    testTimeout: 30_000,
     hookTimeout: 15_000,
     clearMocks: true,
     // Do not enable restoreMocks — many suites spy on shared modules and re-bind in beforeEach only.
