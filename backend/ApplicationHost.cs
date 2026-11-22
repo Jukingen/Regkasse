@@ -1565,6 +1565,14 @@ internal static class ApplicationHost
                 sp.GetService<IFinanzOnlineMetrics>(),
                 sp.GetService<ICardPaymentService>());
         });
+        builder.Services.AddScoped<IPaymentCommitFailureHandler>(sp =>
+        {
+            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            return new PaymentCommitFailureHandler(
+                sp.GetRequiredService<AppDbContext>(),
+                sp.GetRequiredService<ILogger<PaymentService>>(),
+                (payment, tseRequired) => payments.Value.BuildQrPayloadAndFlagsAsync(payment, tseRequired));
+        });
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {
