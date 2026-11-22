@@ -105,6 +105,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentSaleGateService _saleGate;
         private readonly IPaymentSettlementService _settlement;
         private readonly IPaymentDocumentPersistenceService _documents;
+        private readonly IPaymentPostCommitService _postCommit;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -171,7 +172,8 @@ namespace KasseAPI_Final.Services
             IPaymentRefundService? refund = null,
             IPaymentSaleGateService? saleGate = null,
             IPaymentSettlementService? settlement = null,
-            IPaymentDocumentPersistenceService? documents = null)
+            IPaymentDocumentPersistenceService? documents = null,
+            IPaymentPostCommitService? postCommit = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -345,6 +347,17 @@ namespace KasseAPI_Final.Services
                 _extensionRegistry,
                 _profileGuard,
                 _verticalProfiles);
+            _postCommit = postCommit ?? new PaymentPostCommitService(
+                _context,
+                _logger,
+                _auditLogService,
+                _finanzOnlineService,
+                _finanzOnlineSubmission,
+                _inventoryOptions,
+                LogPaymentAuditAsync,
+                BuildQrPayloadAndFlagsAsync,
+                _finanzOnlineMetrics,
+                _cardPaymentService);
         }
 
         internal Task RunPaymentHookAsync(
@@ -731,7 +744,7 @@ namespace KasseAPI_Final.Services
         /// QR payload (RKSV belegdaten veya NON_FISCAL_DEMO) ve demo/fiscal flag'leri üretir.
         /// tseRequired=false: Açık NON_FISCAL marker ile UI yanlışlıkla fiskal sanmasın.
         /// </summary>
-        private Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(
+        internal Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(
             PaymentDetails payment,
             bool tseRequired)
         {
@@ -1111,15 +1124,6 @@ namespace KasseAPI_Final.Services
         private static bool TryMapPaymentCommitPostgresException(PostgresException pgEx, out PaymentResult result) =>
             PaymentCommitFailureMapper.TryMapPaymentCommitPostgresException(pgEx, out result);
 
-        /// <summary>Persist FinanzOnline reconciliation state on PaymentDetails after submit (post-commit). Best-effort; does not throw. Logs FO attempt to audit for incident investigation (correlation id + retry history).</summary>
-        private Task UpdatePaymentFinanzOnlineStateAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry,
-            string? userIdForAudit = null,
-            string? correlationIdForAudit = null) =>
-            _finanzOnlineSubmission.UpdatePaymentFinanzOnlineStateAsync(
-                paymentId, result, isRetry, userIdForAudit, correlationIdForAudit);
-
-        private static FinanzOnlineFailureKind ClassifyFinanzOnlineFailure(Exception ex) =>
-            PaymentFinanzOnlineSubmissionService.ClassifyFinanzOnlineFailure(ex);
 
         /// <summary>
         /// Marks the matching active cart <see cref="CartStatus.Completed"/> inside the open payment transaction.
@@ -1250,94 +1254,6 @@ namespace KasseAPI_Final.Services
             }
 
             return new CartPriceSnapshot(prices, stayNames);
-        }
-
-
-        private async Task DispatchPostCommitComplianceAsync(
-            PaymentDetails createdPayment,
-            Invoice createdInvoice,
-            string userId,
-            Guid? offlineReplayBatchCorrelationId,
-            bool effectiveTseRequired)
-        {
-            try
-            {
-                // Audit: append-only, after successful commit. Best-effort; failure does not roll back payment.
-                var paymentAuditCorrelation = offlineReplayBatchCorrelationId?.ToString("N");
-                await LogPaymentAuditAsync("PaymentCreated", "Payment", createdPayment.Id, userId,
-                    amount: createdPayment.TotalAmount,
-                    paymentMethod: createdPayment.PaymentMethodRaw,
-                    tseSignature: createdPayment.TseSignature,
-                    correlationId: paymentAuditCorrelation,
-                    responseData: new
-                    {
-                        createdPayment.Id,
-                        createdPayment.ReceiptNumber,
-                        createdPayment.TotalAmount,
-                        createdPayment.CashRegisterId,
-                        CreatedAt = createdPayment.CreatedAt,
-                        offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
-                    });
-
-                var persistedReceipt = await _context.Receipts.AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.PaymentId == createdPayment.Id);
-                if (persistedReceipt != null)
-                {
-                    await LogPaymentAuditAsync("ReceiptPersisted", "Receipt", persistedReceipt.ReceiptId, userId,
-                        amount: createdPayment.TotalAmount,
-                        tseSignature: createdPayment.TseSignature,
-                        correlationId: paymentAuditCorrelation,
-                        description: "Canonical fiscal receipt persisted with payment",
-                        responseData: new
-                        {
-                            persistedReceipt.ReceiptId,
-                            persistedReceipt.ReceiptNumber,
-                            PaymentId = createdPayment.Id,
-                            createdPayment.CashRegisterId,
-                            offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
-                        });
-                }
-
-                // FinanzOnline: best-effort after commit; failure does not roll back DB.
-                if (effectiveTseRequired)
-                {
-                    try
-                    {
-                        _finanzOnlineMetrics?.IncrementSubmitTotal();
-                        var foResult = await _finanzOnlineService.SubmitInvoiceAsync(createdInvoice).ConfigureAwait(false);
-                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, foResult, isRetry: false,
-                            userIdForAudit: userId,
-                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
-                        if (foResult.Success)
-                            _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId={RefId}", createdInvoice.Id, foResult.ReferenceId);
-                        else
-                        {
-                            _finanzOnlineMetrics?.IncrementSubmitFailed(foResult.FailureKind);
-                            _logger.LogWarning("FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind={Kind}", createdInvoice.Id, foResult.ErrorMessage, foResult.FailureKind);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        var kind = ClassifyFinanzOnlineFailure(ex);
-                        _finanzOnlineMetrics?.IncrementSubmitFailed(kind);
-                        _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", createdInvoice.Id);
-                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, new FinanzOnlineSubmitResponse
-                        {
-                            Success = false,
-                            ErrorMessage = ex.Message,
-                            SubmittedAt = DateTime.UtcNow,
-                            Status = "Failed",
-                            FailureKind = kind
-                        }, isRetry: false,
-                            userIdForAudit: userId,
-                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Post-commit compliance orchestration failed for payment {PaymentId}. The payment was successfully committed, but secondary actions failed.", createdPayment.Id);
-            }
         }
 
 
