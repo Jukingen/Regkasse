@@ -33,7 +33,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
-using Npgsql;
 using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
 
 namespace KasseAPI_Final.Services
@@ -106,6 +105,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentSettlementService _settlement;
         private readonly IPaymentDocumentPersistenceService _documents;
         private readonly IPaymentPostCommitService _postCommit;
+        private readonly IPaymentCommitFailureHandler _commitFailures;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -173,7 +173,8 @@ namespace KasseAPI_Final.Services
             IPaymentSaleGateService? saleGate = null,
             IPaymentSettlementService? settlement = null,
             IPaymentDocumentPersistenceService? documents = null,
-            IPaymentPostCommitService? postCommit = null)
+            IPaymentPostCommitService? postCommit = null,
+            IPaymentCommitFailureHandler? commitFailures = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -358,6 +359,10 @@ namespace KasseAPI_Final.Services
                 BuildQrPayloadAndFlagsAsync,
                 _finanzOnlineMetrics,
                 _cardPaymentService);
+            _commitFailures = commitFailures ?? new PaymentCommitFailureHandler(
+                _context,
+                _logger,
+                BuildQrPayloadAndFlagsAsync);
         }
 
         internal Task RunPaymentHookAsync(
@@ -1086,43 +1091,6 @@ namespace KasseAPI_Final.Services
                     storno.Id);
             }
         }
-
-        /// <summary>
-        /// Returns the standard PaymentResult for daily allowance conflict (concurrency or unique-index race).
-        /// Keeps contract stable for mobile POS.
-        /// </summary>
-        private static PaymentResult ToDailyAllowanceConflictResult() =>
-            PaymentCommitFailureMapper.ToDailyAllowanceConflictResult();
-
-        /// <summary>
-        /// True when the exception is a PostgreSQL unique constraint violation (23505) on the idempotency_key column.
-        /// Used to return existing payment on concurrent duplicate key insert.
-        /// </summary>
-        private static bool IsIdempotencyKeyViolation(DbUpdateException ex) =>
-            PaymentCommitFailureMapper.IsIdempotencyKeyViolation(ex);
-
-        /// <summary>
-        /// Unique violation on <c>voucher_ledger_entries.idempotency_key</c> (e.g. index IX_voucher_ledger_entries_idempotency_key).
-        /// </summary>
-        private static bool IsVoucherLedgerIdempotencyConstraintViolation(DbUpdateException ex) =>
-            PaymentCommitFailureMapper.IsVoucherLedgerIdempotencyConstraintViolation(ex);
-
-        /// <summary>
-        /// True when the exception is a PostgreSQL unique constraint violation (23505) on BenefitDailyUsage
-        /// (CustomerId, BenefitDefinitionId, UsageDate) create-if-missing race. Excludes idempotency_key violations.
-        /// </summary>
-        private static bool IsBenefitDailyUsageConflict(DbUpdateException ex) =>
-            PaymentCommitFailureMapper.IsBenefitDailyUsageConflict(ex);
-
-        /// <summary>Walks inner exceptions for <see cref="PostgresException"/> (Npgsql may nest it).</summary>
-        private static bool TryGetPostgresException(Exception ex, out PostgresException pgEx) =>
-            PaymentCommitFailureMapper.TryGetPostgresException(ex, out pgEx);
-
-        /// <summary>
-        /// Maps PostgreSQL errors from payment fiscal transaction SaveChanges to a deterministic <see cref="PaymentResult"/>.
-        /// </summary>
-        private static bool TryMapPaymentCommitPostgresException(PostgresException pgEx, out PaymentResult result) =>
-            PaymentCommitFailureMapper.TryMapPaymentCommitPostgresException(pgEx, out result);
 
 
         /// <summary>

@@ -173,7 +173,7 @@ namespace KasseAPI_Final.Services
                 {
                     await transaction.RollbackAsync();
                     _context.ChangeTracker.Clear();
-                    var mapped = await MapFiscalCommitFailureAsync(ex, idempotencyKey, request.CustomerId).ConfigureAwait(false);
+                    var mapped = await _commitFailures.MapFiscalCommitFailureAsync(ex, idempotencyKey, request.CustomerId).ConfigureAwait(false);
                     if (mapped.Rethrow)
                         throw;
                     return mapped.Result!;
