@@ -181,7 +181,7 @@ namespace KasseAPI_Final.Services
 
                 if (committedPayment != null && committedInvoice != null)
                 {
-                    return await DispatchPostCommitAsync(
+                    return await _postCommit.DispatchPostCommitAsync(
                             request,
                             userId,
                             actor.Value!,

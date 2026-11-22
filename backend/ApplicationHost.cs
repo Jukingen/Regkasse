@@ -1549,6 +1549,22 @@ internal static class ApplicationHost
                 sp.GetService<IVerticalProfileGuard>(),
                 sp.GetService<IVerticalProfileService>());
         });
+        builder.Services.AddScoped<IPaymentPostCommitService>(sp =>
+        {
+            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            return new PaymentPostCommitService(
+                sp.GetRequiredService<AppDbContext>(),
+                sp.GetRequiredService<ILogger<PaymentService>>(),
+                sp.GetRequiredService<IAuditLogService>(),
+                sp.GetRequiredService<IFinanzOnlineService>(),
+                sp.GetRequiredService<IPaymentFinanzOnlineSubmissionService>(),
+                sp.GetRequiredService<IOptions<InventoryOptions>>().Value,
+                (action, entityType, entityId, userId, amount, paymentMethod, tseSignature, description, responseData, correlationId) =>
+                    payments.Value.LogPaymentAuditAsync(action, entityType, entityId, userId, amount, paymentMethod, tseSignature, description, responseData, correlationId),
+                (payment, tseRequired) => payments.Value.BuildQrPayloadAndFlagsAsync(payment, tseRequired),
+                sp.GetService<IFinanzOnlineMetrics>(),
+                sp.GetService<ICardPaymentService>());
+        });
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {
