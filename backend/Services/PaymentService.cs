@@ -106,6 +106,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentDocumentPersistenceService _documents;
         private readonly IPaymentPostCommitService _postCommit;
         private readonly IPaymentCommitFailureHandler _commitFailures;
+        private readonly IPaymentStornoRefundGate _stornoRefundGate;
 
         private static readonly IDataProtectionProvider FallbackOfflinePayloadProtection =
             DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-offline-intent-dp")));
@@ -174,7 +175,8 @@ namespace KasseAPI_Final.Services
             IPaymentSettlementService? settlement = null,
             IPaymentDocumentPersistenceService? documents = null,
             IPaymentPostCommitService? postCommit = null,
-            IPaymentCommitFailureHandler? commitFailures = null)
+            IPaymentCommitFailureHandler? commitFailures = null,
+            IPaymentStornoRefundGate? stornoRefundGate = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -363,6 +365,14 @@ namespace KasseAPI_Final.Services
                 _context,
                 _logger,
                 BuildQrPayloadAndFlagsAsync);
+            _stornoRefundGate = stornoRefundGate ?? new PaymentStornoRefundGate(
+                _context,
+                _logger,
+                _cashRegisterResolution,
+                _httpContextAccessor,
+                _storno,
+                _refund,
+                PaymentBelongsToEffectiveTenantAsync);
         }
 
         internal Task RunPaymentHookAsync(

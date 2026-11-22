@@ -1573,6 +1573,18 @@ internal static class ApplicationHost
                 sp.GetRequiredService<ILogger<PaymentService>>(),
                 (payment, tseRequired) => payments.Value.BuildQrPayloadAndFlagsAsync(payment, tseRequired));
         });
+        builder.Services.AddScoped<IPaymentStornoRefundGate>(sp =>
+        {
+            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            return new PaymentStornoRefundGate(
+                sp.GetRequiredService<AppDbContext>(),
+                sp.GetRequiredService<ILogger<PaymentService>>(),
+                sp.GetRequiredService<ICashRegisterResolutionService>(),
+                sp.GetRequiredService<IHttpContextAccessor>(),
+                sp.GetRequiredService<IPaymentStornoService>(),
+                sp.GetRequiredService<IPaymentRefundService>(),
+                (payment, cancellationToken) => payments.Value.PaymentBelongsToEffectiveTenantAsync(payment, cancellationToken));
+        });
         builder.Services.AddScoped<PaymentService>();
         builder.Services.AddScoped<IPaymentStornoService>(sp =>
         {
