@@ -6,8 +6,8 @@
  * OpenAPI spec version: v1
  */
 
-export type GetInvoiceListSortDir = typeof GetInvoiceListSortDir[keyof typeof GetInvoiceListSortDir];
-
+export type GetInvoiceListSortDir =
+  (typeof GetInvoiceListSortDir)[keyof typeof GetInvoiceListSortDir];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetInvoiceListSortDir = {

@@ -75,6 +75,7 @@
     "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
   },
   "devDependencies": {
+    "commander": "15.1.0",
     "husky": "^9.1.7",
     "@react-native/jest-preset": "0.85.3",
     "react": "19.2.3",

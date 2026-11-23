@@ -7,5 +7,5 @@
  */
 
 export type GetApiUserManagementSearchParams = {
-query?: string;
+  query?: string;
 };

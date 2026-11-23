@@ -7,6 +7,6 @@
  */
 
 export type GetApiProductParams = {
-pageNumber?: number;
-pageSize?: number;
+  pageNumber?: number;
+  pageSize?: number;
 };

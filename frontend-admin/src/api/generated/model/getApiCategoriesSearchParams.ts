@@ -7,5 +7,5 @@
  */
 
 export type GetApiCategoriesSearchParams = {
-query?: string;
+  query?: string;
 };

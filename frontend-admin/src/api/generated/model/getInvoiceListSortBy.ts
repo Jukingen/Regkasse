@@ -6,8 +6,7 @@
  * OpenAPI spec version: v1
  */
 
-export type GetInvoiceListSortBy = typeof GetInvoiceListSortBy[keyof typeof GetInvoiceListSortBy];
-
+export type GetInvoiceListSortBy = (typeof GetInvoiceListSortBy)[keyof typeof GetInvoiceListSortBy];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetInvoiceListSortBy = {

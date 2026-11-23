@@ -6,8 +6,8 @@
  * OpenAPI spec version: v1
  */
 
-export type GetApiAdminProductsIsActive = typeof GetApiAdminProductsIsActive[keyof typeof GetApiAdminProductsIsActive];
-
+export type GetApiAdminProductsIsActive =
+  (typeof GetApiAdminProductsIsActive)[keyof typeof GetApiAdminProductsIsActive];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetApiAdminProductsIsActive = {

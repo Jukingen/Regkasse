@@ -8,11 +8,11 @@
 import type { InvoiceStatus } from './invoiceStatus';
 
 export type ExportInvoicesParams = {
-from?: string;
-to?: string;
-status?: InvoiceStatus;
-query?: string;
-sortBy?: string;
-sortDir?: string;
-cashRegisterId?: string;
+  from?: string;
+  to?: string;
+  status?: InvoiceStatus;
+  query?: string;
+  sortBy?: string;
+  sortDir?: string;
+  cashRegisterId?: string;
 };
