@@ -176,6 +176,46 @@ internal static class ApplicationHost
     }
 
     /// <summary>
+    /// Open HTTP connections Kestrel will hold. The framework default is unlimited.
+    /// 1000 leaves room for the 500-cashier stress burst. It does not enlarge the TCP accept queue.
+    /// </summary>
+    internal const int KestrelMaxConcurrentConnections = 1000;
+
+    /// <summary>
+    /// Pending connection queue length. Kestrel's default is 512.
+    /// A full queue is reset with <c>WSAECONNREFUSED</c>, which clients report as connection refused.
+    /// </summary>
+    internal const int KestrelListenBacklog = 2048;
+
+    /// <summary>
+    /// Value passed to <c>listen</c>. On Windows a positive backlog is silently capped at 200
+    /// (<c>SOMAXCONN</c>). <c>SOMAXCONN_HINT(n)</c> is <c>-n</c> and is honored in the range 200–65535.
+    /// Linux uses the positive value, then caps it with <c>net.core.somaxconn</c>.
+    /// </summary>
+    internal static int EffectiveListenBacklog =>
+        OperatingSystem.IsWindows() ? -KestrelListenBacklog : KestrelListenBacklog;
+
+    /// <summary>
+    /// Connection ceilings. These do not enlarge the TCP accept queue; see <see cref="ConfigureListenBacklog"/>.
+    /// </summary>
+    internal static void ConfigureKestrelLimits(Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions options)
+    {
+        options.Limits.MaxConcurrentConnections = KestrelMaxConcurrentConnections;
+        options.Limits.MaxConcurrentUpgradedConnections = KestrelMaxConcurrentConnections;
+    }
+
+    /// <summary>
+    /// Raises the socket accept queue. On .NET 10 the backlog lives on <c>SocketTransportOptions</c>, not <c>ListenOptions</c>.
+    /// </summary>
+    internal static void ConfigureListenBacklog(IWebHostBuilder webHost)
+    {
+        webHost.UseSockets(socket =>
+        {
+            socket.Backlog = EffectiveListenBacklog;
+        });
+    }
+
+    /// <summary>
     /// Npgsql pool defaults when the connection string omits them. Explicit keywords win.
     /// Sized for concurrent POS checkouts. Keep <paramref name="maxPoolSize"/> below PostgreSQL max_connections.
     /// Override with Database:MaxPoolSize, Database:MinPoolSize, and Database:ConnectionIdleLifetime.
@@ -675,18 +715,20 @@ internal static class ApplicationHost
                 .Bind(builder.Configuration.GetSection(BackupKnownGapsAcceptanceOptions.SectionName));
         }
 
-        // Local development iÃ§in explicit host binding; production host binding platform tarafÄ±ndan yÃ¶netilmelidir.
-        if (isDevelopment && !OpenApiExportMode.IsEnabled)
+        // Limits apply in every environment. Development also pins one listen address.
+        // Local lab has no nginx or IIS in front of this process (launch profile "Project" is Kestrel).
+        ConfigureListenBacklog(builder.WebHost);
+        builder.WebHost.ConfigureKestrel(serverOptions =>
         {
-            var devListenPort = GetDevelopmentHttpListenPort(builder.Configuration);
-            // Single listen: LAN and loopback share one port (from Urls / default 5184).
-            builder.WebHost.ConfigureKestrel(serverOptions =>
+            ConfigureKestrelLimits(serverOptions);
+            if (isDevelopment && !OpenApiExportMode.IsEnabled)
             {
+                var devListenPort = GetDevelopmentHttpListenPort(builder.Configuration);
+                // Single listen: LAN and loopback share one port (from Urls / default 5184).
                 serverOptions.ListenAnyIP(devListenPort);
-            });
-
-            Console.WriteLine($"ðŸŒ Development host binding: 0.0.0.0:{devListenPort} (includes localhost and LAN; set Urls in appsettings.Development.json to change)");
-        }
+                Console.WriteLine($"Development host binding: 0.0.0.0:{devListenPort} (includes localhost and LAN; set Urls in appsettings.Development.json to change)");
+            }
+        });
 
         // Entity Framework ve PostgreSQL baÄŸlantÄ±sÄ±
         var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
