@@ -7,8 +7,8 @@
  */
 
 export type GetApiPaymentDateRangeParams = {
-startDate?: string;
-endDate?: string;
-pageNumber?: number;
-pageSize?: number;
+  startDate?: string;
+  endDate?: string;
+  pageNumber?: number;
+  pageSize?: number;
 };

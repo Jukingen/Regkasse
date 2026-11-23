@@ -7,5 +7,5 @@
  */
 
 export type PostApiTestQuickPaymentParams = {
-tseRequired?: boolean;
+  tseRequired?: boolean;
 };

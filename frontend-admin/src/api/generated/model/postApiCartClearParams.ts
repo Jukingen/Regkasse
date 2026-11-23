@@ -7,5 +7,5 @@
  */
 
 export type PostApiCartClearParams = {
-tableNumber?: number;
+  tableNumber?: number;
 };

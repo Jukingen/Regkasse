@@ -7,5 +7,5 @@
  */
 
 export type GetApiInvoiceIdPdfParams = {
-copy?: boolean;
+  copy?: boolean;
 };

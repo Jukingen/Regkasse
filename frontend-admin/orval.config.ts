@@ -19,7 +19,11 @@ export default defineConfig({
       target: 'src/api/generated/endpoints.ts',
       schemas: 'src/api/generated/model',
       client: 'react-query',
-      prettier: true,
+      // Orval 8 defaults the HTTP caller to fetch `(url, RequestInit)`.
+      // Keep the axios mutator shape `{ url, method, params, signal }` so
+      // `customInstance` and existing callers stay on the same contract.
+      httpClient: 'axios',
+      formatter: 'prettier',
       override: {
         mutator: {
           path: 'src/lib/axios.ts',
