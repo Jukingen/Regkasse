@@ -76,8 +76,7 @@ namespace KasseAPI_Final.Services
                 // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
                 // The signature-chain FOR UPDATE stays inside this transaction until Commit: releasing it earlier
                 // would let two sales on one register sign from the same previous signature.
-                await using (var transaction = await _context.Database.BeginTransactionAsync())
-                {
+                await using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
                     var inTxReplay = await TryReplayIdempotencyInsideTransactionAsync(idempotencyKey).ConfigureAwait(false);
@@ -179,28 +178,20 @@ namespace KasseAPI_Final.Services
                         throw;
                     return mapped.Result!;
                 }
-                }
 
                 if (committedPayment != null && committedInvoice != null)
                 {
-                    // Fiscal commit stays here. Audit and FinanzOnline run after it, on a new scope,
-                    // so this request's sale connection is back in the pool before those writes.
-                    return await PaymentPostCommitDispatcher.DispatchAfterFiscalCommitAsync(
-                            _context,
-                            _postCommit,
-                            _postCommitScopes,
-                            _requestTenant,
-                            postCommit => postCommit.DispatchPostCommitAsync(
-                                request,
-                                userId,
-                                actor.Value!,
-                                gates.TenantIdForFlags,
-                                committedPayment,
-                                committedInvoice,
-                                committedIssuedTickets,
-                                paymentStockLinesSkipped,
-                                effectiveTseRequired,
-                                offlineReplayBatchCorrelationId))
+                    return await _postCommit.DispatchPostCommitAsync(
+                            request,
+                            userId,
+                            actor.Value!,
+                            gates.TenantIdForFlags,
+                            committedPayment,
+                            committedInvoice,
+                            committedIssuedTickets,
+                            paymentStockLinesSkipped,
+                            effectiveTseRequired,
+                            offlineReplayBatchCorrelationId)
                         .ConfigureAwait(false);
                 }
 
