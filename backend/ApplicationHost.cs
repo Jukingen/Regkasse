@@ -1593,17 +1593,25 @@ internal static class ApplicationHost
         });
         builder.Services.AddScoped<IPaymentPostCommitService>(sp =>
         {
-            var payments = new Lazy<PaymentService>(() => sp.GetRequiredService<PaymentService>());
+            // Do not resolve PaymentService here. A post-commit scope would otherwise build a second
+            // payment graph and its database context for every sale.
+            var users = sp.GetRequiredService<IUserService>();
+            var audit = sp.GetRequiredService<IAuditLogService>();
+            var logger = sp.GetRequiredService<ILogger<PaymentService>>();
+            var tseOptions = sp.GetRequiredService<IOptions<TseOptions>>().Value;
             return new PaymentPostCommitService(
                 sp.GetRequiredService<AppDbContext>(),
-                sp.GetRequiredService<ILogger<PaymentService>>(),
-                sp.GetRequiredService<IAuditLogService>(),
+                logger,
+                audit,
                 sp.GetRequiredService<IFinanzOnlineService>(),
                 sp.GetRequiredService<IPaymentFinanzOnlineSubmissionService>(),
                 sp.GetRequiredService<IOptions<InventoryOptions>>().Value,
                 (action, entityType, entityId, userId, amount, paymentMethod, tseSignature, description, responseData, correlationId) =>
-                    payments.Value.LogPaymentAuditAsync(action, entityType, entityId, userId, amount, paymentMethod, tseSignature, description, responseData, correlationId),
-                (payment, tseRequired) => payments.Value.BuildQrPayloadAndFlagsAsync(payment, tseRequired),
+                    PaymentService.LogPaymentAuditCoreAsync(
+                        users, audit, logger, action, entityType, entityId, userId,
+                        amount, paymentMethod, tseSignature, description, responseData, correlationId),
+                (payment, tseRequired) => Task.FromResult(
+                    PaymentService.BuildQrPayloadAndFlags(payment, tseRequired, tseOptions, logger)),
                 sp.GetService<IFinanzOnlineMetrics>(),
                 sp.GetService<ICardPaymentService>());
         });

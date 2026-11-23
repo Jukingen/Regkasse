@@ -30,6 +30,7 @@ using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
@@ -105,6 +106,8 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentSettlementService _settlement;
         private readonly IPaymentDocumentPersistenceService _documents;
         private readonly IPaymentPostCommitService _postCommit;
+        private readonly IServiceScopeFactory? _postCommitScopes;
+        private readonly ICurrentTenantAccessor? _requestTenant;
         private readonly IPaymentCommitFailureHandler _commitFailures;
         private readonly IPaymentStornoRefundGate _stornoRefundGate;
 
@@ -176,7 +179,9 @@ namespace KasseAPI_Final.Services
             IPaymentDocumentPersistenceService? documents = null,
             IPaymentPostCommitService? postCommit = null,
             IPaymentCommitFailureHandler? commitFailures = null,
-            IPaymentStornoRefundGate? stornoRefundGate = null)
+            IPaymentStornoRefundGate? stornoRefundGate = null,
+            IServiceScopeFactory? postCommitScopes = null,
+            ICurrentTenantAccessor? requestTenant = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -373,6 +378,8 @@ namespace KasseAPI_Final.Services
                 _storno,
                 _refund,
                 PaymentBelongsToEffectiveTenantAsync);
+            _postCommitScopes = postCommitScopes;
+            _requestTenant = requestTenant;
         }
 
         internal Task RunPaymentHookAsync(
@@ -761,10 +768,17 @@ namespace KasseAPI_Final.Services
         /// </summary>
         internal Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(
             PaymentDetails payment,
-            bool tseRequired)
+            bool tseRequired) =>
+            Task.FromResult(BuildQrPayloadAndFlags(payment, tseRequired, _tseOptions, _logger));
+
+        internal static (string QrPayload, bool IsDemoFiscal, string TseProvider) BuildQrPayloadAndFlags(
+            PaymentDetails payment,
+            bool tseRequired,
+            TseOptions tseOptions,
+            ILogger logger)
         {
-            var isDemoFiscal = !tseRequired || _tseOptions.UseSoftTseWhenNoDevice;
-            var tseProvider = tseRequired ? (_tseOptions.UseSoftTseWhenNoDevice ? "Demo" : "Device") : "None";
+            var isDemoFiscal = !tseRequired || tseOptions.UseSoftTseWhenNoDevice;
+            var tseProvider = tseRequired ? (tseOptions.UseSoftTseWhenNoDevice ? "Demo" : "Device") : "None";
             var receiptNumber = payment.ReceiptNumber ?? "";
             var createdAt = payment.CreatedAt;
             var totalAmount = payment.TotalAmount;
@@ -782,7 +796,7 @@ namespace KasseAPI_Final.Services
                 }
                 else if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
                 {
-                    _logger.LogWarning(
+                    logger.LogWarning(
                         "Unable to build RKSV §9 QR payload from compact JWS for payment {PaymentId}",
                         payment.Id);
                     qrPayload = string.Empty;
@@ -794,7 +808,7 @@ namespace KasseAPI_Final.Services
                 qrPayload = $"NON_FISCAL_DEMO_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{formattedTotalAmount}";
             }
 
-            return Task.FromResult((qrPayload, isDemoFiscal, tseProvider));
+            return (qrPayload, isDemoFiscal, tseProvider);
         }
 
         private static bool LooksLikeFiskalyMachineCode(string signatureValue)
@@ -1040,21 +1054,51 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>Writes payment lifecycle audit log after successful commit. Append-only; never updates. Swallows exceptions to avoid affecting caller.</summary>
-        internal async Task LogPaymentAuditAsync(string action, string entityType, Guid entityId, string userId,
+        internal Task LogPaymentAuditAsync(string action, string entityType, Guid entityId, string userId,
             decimal? amount = null, string? paymentMethod = null, string? tseSignature = null, string? description = null,
-            object? responseData = null, string? correlationId = null)
+            object? responseData = null, string? correlationId = null) =>
+            LogPaymentAuditCoreAsync(
+                _userService,
+                _auditLogService,
+                _logger,
+                action,
+                entityType,
+                entityId,
+                userId,
+                amount,
+                paymentMethod,
+                tseSignature,
+                description,
+                responseData,
+                correlationId);
+
+        internal static async Task LogPaymentAuditCoreAsync(
+            IUserService userService,
+            IAuditLogService auditLogService,
+            ILogger logger,
+            string action,
+            string entityType,
+            Guid entityId,
+            string userId,
+            decimal? amount = null,
+            string? paymentMethod = null,
+            string? tseSignature = null,
+            string? description = null,
+            object? responseData = null,
+            string? correlationId = null)
         {
             try
             {
-                var userRole = await GetUserRoleAsync(userId);
-                await _auditLogService.LogPaymentOperationAsync(action, entityType, entityId, userId, userRole,
+                var user = await userService.GetUserByIdAsync(userId).ConfigureAwait(false);
+                var userRole = user?.Role ?? "Unknown";
+                await auditLogService.LogPaymentOperationAsync(action, entityType, entityId, userId, userRole,
                     amount: amount, paymentMethod: paymentMethod, tseSignature: tseSignature,
                     correlationId: correlationId,
-                    description: description, responseData: responseData);
+                    description: description, responseData: responseData).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Audit log write failed for action {Action} EntityType={EntityType} EntityId={EntityId}; payment operation already committed.", action, entityType, entityId);
+                logger.LogWarning(ex, "Audit log write failed for action {Action} EntityType={EntityType} EntityId={EntityId}; payment operation already committed.", action, entityType, entityId);
             }
         }
 
