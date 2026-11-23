@@ -2,7 +2,7 @@
 
 One-page start for a new chat. Canonical rules stay in `AGENTS.md` and `.cursor/rules/`.
 
-**Last updated:** 2026-11-12
+**Last updated:** 2026-11-23
 
 ## What this project is
 
@@ -44,6 +44,7 @@ Regkasse is a multi-tenant SaaS point-of-sale system for Austria. The production
 - Monitoring: Sentry, uptime, Slack alerts, `/admin/monitoring`.
 - ImageSharp replaced by SkiaSharp (MIT).
 - Dependabot guard and branch protection are active.
+- npm audit reports 6 high + 18 moderate, all dev-time, accepted risk. Detail: `docs/SECURITY_ADVISORIES.md`. Do not run `npm audit fix --force` (that downgrades Expo SDK 56 to 52).
 
 ## High-risk do-not
 

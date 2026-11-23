@@ -2,7 +2,7 @@
 
 This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc) on every task. Other rules attach by glob, or manually for workflow and deploy. Edit the matching `.mdc` file. Do not paste the full rule set back here.
 
-**Last updated:** 2026-11-12
+**Last updated:** 2026-11-23
 
 ## Rule files
 
@@ -29,6 +29,7 @@ For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_O
 ## Where to read more
 
 - [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — one-page start for a new chat
+- [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — npm audit reports 6 high + 18 moderate, all dev-time, accepted risk. Do not run `npm audit fix --force` on the Expo SDK 56 line.
 
 ## Section index
 
