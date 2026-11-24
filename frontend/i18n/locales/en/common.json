@@ -59,6 +59,13 @@
     "http400": "The request could not be processed. Please check your entries.",
     "http403": "You do not have permission for this action.",
     "http404": "The requested entry was not found.",
-    "http409": "This table is open by another cashier. Please close it first."
+    "http409": "This table is open by another cashier. Please close it first.",
+    "network": "No connection to the server. Please check your network or Wi-Fi and try again.",
+    "timeout": "The request took too long. Please try again.",
+    "http401": "Your session has expired. Please sign in again.",
+    "http422": "The input is invalid. Please check it and try again.",
+    "http429": "Too many requests. Please wait a moment and try again.",
+    "http5xx": "The server reported an error. Please try again in a few seconds. If the problem persists, contact support.",
+    "unknown": "An unexpected error occurred. Please try again."
   }
 }

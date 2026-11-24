@@ -306,6 +306,17 @@
         "forbidden": "{{prefix}} No permission for PDF export. QR and print remain available. Ask an administrator if needed (InvoiceView).",
         "notFound": "{{prefix}} PDF was not found. Please try again later or contact an administrator.",
         "httpGeneric": "{{prefix}} PDF could not be loaded (HTTP {{status}}). Please try again later."
+      },
+      "guards": {
+        "busy": "A payment is already being processed. Please wait a moment.",
+        "voucherOffline": "Vouchers cannot be redeemed offline. Please reconnect or choose another payment method.",
+        "noMethod": "Please select a payment method first (step 2).",
+        "emptyCart": "The cart is empty. Please add items first.",
+        "coverage": "The amount is not fully covered: voucher and cash add up to {{paid}} of {{total}}. Please adjust the amounts or add another payment method.",
+        "voucherInvalid": "The voucher is invalid or not yet redeemed. Please check the code and confirm the amount.",
+        "registerNotReady": "The register is not ready. {{reason}}",
+        "invalidTotal": "The total amount is invalid. Please check the cart and try again.",
+        "cartLoadFailed": "The cart could not be loaded. Please check the connection and start the payment again."
       }
     },
     "stornoRefund": {
@@ -380,6 +391,22 @@
         "selectOneLine": "Select at least one line.",
         "submitFailed": "Operation failed."
       }
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "openHint": "Shortcuts (?)",
+      "openA11y": "Show keyboard shortcuts",
+      "close": "Close",
+      "help": "Show keyboard shortcuts",
+      "customer": "Select customer",
+      "receipts": "Open receipt list",
+      "kitchen": "Send to kitchen",
+      "clearCart": "Clear cart",
+      "pay": "Pay",
+      "escape": "Close dialog",
+      "footer": "Shortcuts work in the browser while no input field is active (function keys always work).",
+      "clearCartConfirmTitle": "Clear cart?",
+      "clearCartConfirmMessage": "All items of table {{table}} will be removed."
     }
   },
   "monatsbeleg": {

@@ -13,6 +13,7 @@ import {
   Pressable,
 } from 'react-native';
 
+import { PosListSkeleton } from './PosListSkeleton';
 import { QrCustomerScanner } from './QrCustomerScanner';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { customerService, type Customer } from '../services/api/customerService';
@@ -192,9 +193,12 @@ export default function CustomerSelectionSheet({
               </TouchableOpacity>
             </View>
             {listLoading ? (
-              <View style={styles.loadingBox}>
-                <WaveLoader size={28} color={SoftColors.accent} />
-                <Text style={styles.loadingText}>{t('customers:selectionSheet.loadingList')}</Text>
+              <View>
+                <PosListSkeleton rows={4} testID="pos-customer-skeleton" />
+                <View style={styles.loadingBox}>
+                  <WaveLoader size={28} color={SoftColors.accent} />
+                  <Text style={styles.loadingText}>{t('customers:selectionSheet.loadingList')}</Text>
+                </View>
               </View>
             ) : (
               <FlatList

@@ -103,7 +103,7 @@
   "addDiscount": "Rabatt hinzufügen",
   "display": {
     "tableTitle": "Tisch {{table}}",
-    "loading": "Lädt…",
+    "loading": "Warenkorb wird geladen…",
     "emptyBadge": "Leer",
     "itemCount": "{{count}} Artikel",
     "clearCartA11y": "Warenkorb leeren",

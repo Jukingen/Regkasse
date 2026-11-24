@@ -17,6 +17,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef, useSyncExtern
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,6 +31,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
+import { BusyButton } from '../../components/BusyButton';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader, CashRegisterTableBadge } from '../../components/CashRegisterHeader';
@@ -40,6 +42,7 @@ import { FavoritesBar } from '../../components/FavoritesBar';
 import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
+import { PosShortcutsHelpModal } from '../../components/PosShortcutsHelpModal';
 import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { ProductBarcodeScan } from '../../components/ProductBarcodeScan';
@@ -73,6 +76,8 @@ import { useVerticalFeatures } from '../../contexts/VerticalProfileContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
 import { useFavorites } from '../../hooks/useFavorites';
+import { usePosKeyboardShortcuts, type PosShortcutHandlers } from '../../hooks/usePosKeyboardShortcuts';
+import type { PosShortcutAction } from '../../utils/posKeyboardShortcuts';
 import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
@@ -279,18 +284,19 @@ function POSSummaryBlock({
         onDecrementModifier={decrementModifier}
       />
       {onSendToKitchen && summaryTotals.itemCount > 0 ? (
-        <Pressable
-          style={styles.kitchenSendBtn}
-          onPress={onSendToKitchen}
-          disabled={sendingToKitchen}
-          accessibilityRole="button"
-          accessibilityLabel={t('verticalProfiles:screens.kitchen.send')}>
-          <Text style={styles.kitchenSendText}>
-            {sendingToKitchen
+        <BusyButton
+          busy={sendingToKitchen === true}
+          label={
+            sendingToKitchen
               ? t('verticalProfiles:screens.kitchen.sending')
-              : t('verticalProfiles:screens.kitchen.send')}
-          </Text>
-        </Pressable>
+              : t('verticalProfiles:screens.kitchen.send')
+          }
+          style={styles.kitchenSendBtn}
+          textStyle={styles.kitchenSendText}
+          spinnerColor={SoftColors.accentDark}
+          onPress={onSendToKitchen}
+          accessibilityLabel={t('verticalProfiles:screens.kitchen.send')}
+        />
       ) : null}
     </>
   );
@@ -436,7 +442,7 @@ function usePOSOrderFlow(
  * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
  */
 export default function CashRegisterScreen() {
-  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles']);
+  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles', 'cart']);
   const { posLayout, posFeatures, profileId } = useVerticalFeatures();
   const showTables =
     posFeatures.tables === true ||
@@ -448,6 +454,8 @@ export default function CashRegisterScreen() {
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
   const [monatsbelegHardBlockVisible, setMonatsbelegHardBlockVisible] = useState(false);
+  const [shortcutHelpVisible, setShortcutHelpVisible] = useState(false);
+  const [screenFocused, setScreenFocused] = useState(true);
   const [generateTickets, setGenerateTickets] = useState(true);
   const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
   const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
@@ -496,6 +504,7 @@ export default function CashRegisterScreen() {
     incrementModifier,
     decrementModifier,
     removeModifier,
+    isPaymentModalVisible,
     setIsPaymentModalVisible,
     saleCustomer,
     setSaleCustomer,
@@ -1014,6 +1023,125 @@ export default function CashRegisterScreen() {
     t,
   ]);
 
+  // --- Web keyboard shortcuts (F1-F6, Esc, ?) ---------------------------------
+  // The payment modal lives in (tabs)/_layout and owns the keyboard while it is open.
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, [])
+  );
+
+  const shortcutOverlayOpen =
+    customerSheetVisible ||
+    splitMergeVisible ||
+    monatsbelegHardBlockVisible ||
+    pendingVariantProduct != null ||
+    pendingImeiProduct != null ||
+    modifierSheetProduct != null;
+
+  const closeTopOverlay = useCallback((): boolean => {
+    if (shortcutHelpVisible) {
+      setShortcutHelpVisible(false);
+    } else if (customerSheetVisible) {
+      setCustomerSheetVisible(false);
+    } else if (splitMergeVisible) {
+      setSplitMergeVisible(false);
+    } else if (pendingVariantProduct != null) {
+      setPendingVariantProduct(null);
+    } else if (pendingImeiProduct != null) {
+      setPendingImeiProduct(null);
+    } else if (modifierSheetProduct != null) {
+      setModifierSheetProduct(null);
+    } else if (monatsbelegHardBlockVisible) {
+      setMonatsbelegHardBlockVisible(false);
+    } else {
+      return false;
+    }
+    return true;
+  }, [
+    customerSheetVisible,
+    modifierSheetProduct,
+    monatsbelegHardBlockVisible,
+    pendingImeiProduct,
+    pendingVariantProduct,
+    shortcutHelpVisible,
+    splitMergeVisible,
+  ]);
+
+  const handleClearCartShortcut = useCallback(() => {
+    if (!cart?.items?.length) {
+      addToast('warning', t('checkout:posFlow.toast.emptyCart'), 3000);
+      return;
+    }
+    showConfirm(
+      t('checkout:posFlow.shortcuts.clearCartConfirmTitle'),
+      t('checkout:posFlow.shortcuts.clearCartConfirmMessage', { table: activeTableId }),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('cart:display.clearLabel'),
+          style: 'destructive',
+          onPress: () => {
+            void handleClearCart();
+          },
+        },
+      ]
+    );
+  }, [activeTableId, addToast, cart?.items?.length, handleClearCart, t]);
+
+  const availableShortcuts = useMemo<PosShortcutAction[]>(() => {
+    const list: PosShortcutAction[] = ['help', 'customer'];
+    if (canOpenReceiptList) list.push('receipts');
+    if (posFeatures.kitchenDisplay) list.push('kitchen');
+    list.push('clearCart', 'pay', 'escape');
+    return list;
+  }, [canOpenReceiptList, posFeatures.kitchenDisplay]);
+
+  const shortcutHandlers = useMemo<PosShortcutHandlers>(() => {
+    if (shortcutHelpVisible) {
+      return { escape: closeTopOverlay, help: () => setShortcutHelpVisible(false) };
+    }
+    // While a sheet or picker is open only Esc is active, so F6 cannot start a payment underneath it.
+    if (shortcutOverlayOpen) return { escape: closeTopOverlay };
+
+    const handlers: PosShortcutHandlers = {
+      escape: closeTopOverlay,
+      help: () => setShortcutHelpVisible(true),
+      customer: () => setCustomerSheetVisible(true),
+      clearCart: handleClearCartShortcut,
+      pay: () => {
+        if (cartLoading) return;
+        if (posLayout === 'taxi' && !guardTakeOrder()) return;
+        handlePayment();
+      },
+    };
+    if (canOpenReceiptList) handlers.receipts = handleOpenReceiptList;
+    if (posFeatures.kitchenDisplay) {
+      handlers.kitchen = () => {
+        if (sendingToKitchen) return;
+        void handleSendToKitchen();
+      };
+    }
+    return handlers;
+  }, [
+    canOpenReceiptList,
+    cartLoading,
+    closeTopOverlay,
+    guardTakeOrder,
+    handleClearCartShortcut,
+    handleOpenReceiptList,
+    handlePayment,
+    handleSendToKitchen,
+    posFeatures.kitchenDisplay,
+    posLayout,
+    sendingToKitchen,
+    shortcutHelpVisible,
+    shortcutOverlayOpen,
+  ]);
+
+  usePosKeyboardShortcuts(shortcutHandlers, screenFocused && !isPaymentModalVisible);
+
   const tablePane = showTables ? (
     <>
       <TableSelector
@@ -1173,6 +1301,12 @@ export default function CashRegisterScreen() {
         provisioningMessage={recoveryProvisioningMessage}
         onOpenPaymentHistory={handleOpenPaymentHistory}
         onOpenReceiptList={canOpenReceiptList ? handleOpenReceiptList : undefined}
+        onOpenShortcutHelp={Platform.OS === 'web' ? () => setShortcutHelpVisible(true) : undefined}
+      />
+      <PosShortcutsHelpModal
+        visible={shortcutHelpVisible}
+        onClose={() => setShortcutHelpVisible(false)}
+        available={availableShortcuts}
       />
 
       <MonatsbelegSalesWarningBanner />
