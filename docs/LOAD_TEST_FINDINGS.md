@@ -45,6 +45,32 @@ k6 run -e VUS=200 -e CASHIERS_FILE=cashiers.local.json scripts/load-test/pos-cri
 
 Payment is no longer the pile-up. At 200 cashiers the pay step p95 is 271 ms and the HTTP error rate is 0%, while the full sale p95 is 4131 ms. The 3 s lab budget holds at 100 cashiers and misses at 200. Startup auto-Tagesabschluss was still catching up business day 2026-11-23 on other tenants during this run.
 
+#### 2026-11-24, re-run on `main` after the Expo SDK 58 merge
+
+Same setup as the table above: tenant `dev`, Fake TSE (`Tse__Mode=Fake`, `Tse__Provider=fake`, soft-fallback flags on), `cashiers.local.json`, `PRODUCT_COUNT=5`, pool maximum 200. The API was started fresh for this run. The POS app change in that merge does not touch the API. Percentiles come from the k6 JSON points (one point per HTTP call), nearest-rank.
+
+| Cashiers | API state | Requests | HTTP error rate | Sale p95 | Payment p95 | 3 s budget |
+|----------|-----------|---------:|-----------------|---------:|------------:|------------|
+| 100 | cold (first run after API start) | 1100 | 0.00% | 4602 ms | not recorded | Fail. k6 exit 99. |
+| 100 | warm | 1100 | 0.00% | 2099 ms | 531 ms | Pass. k6 exit 0. |
+| 200 | warm | 2200 | 0.00% | 4162 ms | 1220 ms | Fail. k6 exit 99. |
+
+Checks passed 100% in all three runs. The cold run was the first load after the API process started. Every cashier finished within 4507–4753 ms, so the whole cohort waited together. The likely cause is first-use work in a fresh process (JIT, cold caches). That was not measured separately. Treat the warm row as the comparable 100-cashier figure.
+
+Step timings of the two warm runs:
+
+| Step | 100: p50 | 100: p95 | 200: p50 | 200: p95 |
+|------|---------:|---------:|---------:|---------:|
+| Login | 481 ms | 605 ms | 867 ms | 1026 ms |
+| Current shift | 103 ms | 135 ms | 178 ms | 198 ms |
+| Shift start | 160 ms | 217 ms | 350 ms | 739 ms |
+| Catalog | 96 ms | 147 ms | 300 ms | 676 ms |
+| Add item (each of 5) | 104 ms | 204 ms | 246 ms | 419 ms |
+| Payment | 381 ms | 531 ms | 536 ms | 1220 ms |
+| Shift end | 118 ms | 255 ms | 178 ms | 438 ms |
+
+Compared with the earlier 2026-11-24 table, the 200-cashier sale p95 is about the same (4162 ms against 4131 ms) and the 100-cashier warm figure is slightly better (2099 ms against 2269 ms). The 200-cashier payment p95 is higher (1220 ms against 271 ms). One run per size does not show whether that is variance or a change, and this document does not isolate the cause. Step p95 values do not add up to the sale p95, which is the p95 of the whole iteration.
+
 ## 500 cashiers is a stress test
 
 500 cashiers is a stress test. Production target is 50-200 cashiers.
