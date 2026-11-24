@@ -2,7 +2,7 @@
 
 Ordered checklist for the first real production deployment. Piece-by-piece guides stay in the linked docs. This file is the sequence. It is not a legal RKSV or FinanzOnline compliance certificate.
 
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
 
 | Related | Link |
 |---------|------|
@@ -25,7 +25,8 @@ Do not write secrets into this file. Do not run a real sale on a real mandant du
 
 Lab notes: [`LOAD_TEST_FINDINGS.md`](LOAD_TEST_FINDINGS.md). Fake TSE, one API process, one register per cashier. The pool maximum of 200 is the size for the production target below.
 
-- Validated: 50 cashiers, sale p95 1153 ms (under 3 s). Production target is 50-200 cashiers. The 100- and 200-cashier rows in that note are the earlier pool-100 lab (sale p95 about 20 s). They are not a measured pass under 3 s on the current pool of 200.
+- Validated under 3 s: 50 cashiers (sale p95 1153 ms) and 100 cashiers on pool 200 (sale p95 2269 ms, pay p95 375 ms, HTTP errors 0%, 2026-11-24).
+- 200 cashiers on the same pool: sale p95 4131 ms, pay p95 271 ms, HTTP errors 0%. Over the 3 s lab budget. Not a validated pass.
 - Stress-tested: 500 cashiers (p95 ~9.4 s, acceptable for stress). That wait is the 200-connection pool queue. It is not a production target.
 
 ## Pre-flight (D-7)
