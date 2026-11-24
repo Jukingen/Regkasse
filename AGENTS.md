@@ -45,6 +45,7 @@ For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_O
 ## Where to read more
 
 - [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — one-page start for a new chat
+- [docs/PRODUCTION_CUTOVER.md](docs/PRODUCTION_CUTOVER.md) — ordered production cutover checklist (Fiskaly BYOK, marketplaces, audit export, GDPR purge)
 - [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — written for Expo SDK 57. On the SDK 58 lockfile `npm audit` reports 0 high and 26 moderate (checked 2026-11-24), so that note needs a refresh. Do not run `npm audit fix --force`.
 
 ## Section index
