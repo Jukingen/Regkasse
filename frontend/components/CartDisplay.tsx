@@ -1,9 +1,10 @@
 // Compact POS cart display - optimized for speed and minimal space
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { CartItemRow } from './CartItemRow';
+import { PosListSkeleton } from './PosListSkeleton';
 import {
   SoftColors,
   SoftRadius,
@@ -70,7 +71,16 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{tableTitle}</Text>
         </View>
-        <Text style={styles.loadingText}>{t('cart:display.loading')}</Text>
+        <View
+          testID="pos-cart-loading"
+          accessibilityLabel={t('cart:display.loading')}
+          accessibilityLiveRegion="polite">
+          <PosListSkeleton rows={2} testID="pos-cart-skeleton" />
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={SoftColors.accent} />
+            <Text style={styles.loadingText}>{t('cart:display.loading')}</Text>
+          </View>
+        </View>
       </View>
     );
   }
@@ -282,6 +292,12 @@ const styles = StyleSheet.create({
     color: SoftColors.accent,
     minWidth: 60,
     textAlign: 'right',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SoftSpacing.sm,
   },
   loadingText: {
     padding: SoftSpacing.md,

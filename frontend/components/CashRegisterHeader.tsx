@@ -18,6 +18,8 @@ interface CashRegisterHeaderProps {
   provisioningMessage?: string | null;
   onOpenPaymentHistory?: () => void;
   onOpenReceiptList?: () => void;
+  /** Web only: opens the keyboard shortcut cheat sheet. */
+  onOpenShortcutHelp?: () => void;
 }
 
 /** Shared table chip: header (on accent) and the order panel (on card). */
@@ -49,6 +51,7 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   provisioningMessage,
   onOpenPaymentHistory,
   onOpenReceiptList,
+  onOpenShortcutHelp,
 }) => {
   const { t } = useTranslation(['checkout', 'common', 'paymentHistory', 'receipts']);
 
@@ -101,6 +104,20 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
               💰
             </Text>
             <Text style={styles.historyButtonText}>{t('paymentHistory:quickAccess')}</Text>
+          </Pressable>
+        ) : null}
+        {onOpenShortcutHelp ? (
+          <Pressable
+            onPress={onOpenShortcutHelp}
+            style={({ pressed }) => [styles.historyButton, pressed && styles.historyButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('checkout:posFlow.shortcuts.openA11y')}
+            testID="pos-shortcuts-open"
+            hitSlop={6}>
+            <Text style={styles.historyButtonEmoji} accessibilityElementsHidden>
+              ⌨️
+            </Text>
+            <Text style={styles.historyButtonText}>{t('checkout:posFlow.shortcuts.openHint')}</Text>
           </Pressable>
         ) : null}
       </View>

@@ -27,9 +27,36 @@ export function userFacingPosHttpMessage(status: number): string | undefined {
       return i18n.t('common:errors.http404');
     case 409:
       return i18n.t('common:errors.http409');
+    case 401:
+      return i18n.t('common:errors.http401');
+    case 422:
+      return i18n.t('common:errors.http422');
+    case 429:
+      return i18n.t('common:errors.http429');
     default:
-      return undefined;
+      return status >= 500 && status <= 599 ? i18n.t('common:errors.http5xx') : undefined;
   }
+}
+
+const TIMEOUT_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT', 'ERR_TIMEOUT']);
+
+/**
+ * Cashier-facing text when no HTTP response arrived (offline, DNS, timeout).
+ * Display only: callers that decide on offline queueing must keep reading `code` / `message`.
+ */
+export function userFacingPosNetworkMessage(error: unknown): string {
+  const e = error as { code?: unknown; message?: unknown } | null;
+  const code = typeof e?.code === 'string' ? e.code : '';
+  const message = typeof e?.message === 'string' ? e.message : '';
+  if (TIMEOUT_CODES.has(code) || /timeout/i.test(message)) {
+    return i18n.t('common:errors.timeout');
+  }
+  return i18n.t('common:errors.network');
+}
+
+/** Last-resort cashier text for failures without a usable server message. */
+export function userFacingPosUnknownMessage(): string {
+  return i18n.t('common:errors.unknown');
 }
 
 /**
@@ -47,7 +74,13 @@ export function resolvePosHttpErrorMessage(
 
   const body = usableApiMessage(bodyMessage);
   const transport = usableApiMessage(transportMessage);
-  if (status === 400 || status === 409) {
+  if (
+    status === 400 ||
+    status === 409 ||
+    status === 422 ||
+    status === 429 ||
+    (status !== undefined && status >= 500 && status <= 599)
+  ) {
     return body ?? transport ?? userFacingPosHttpMessage(status);
   }
 

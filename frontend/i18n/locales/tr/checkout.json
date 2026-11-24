@@ -306,6 +306,17 @@
         "forbidden": "{{prefix}} PDF dışa aktarma izni yok. QR ve yazdırma kullanılabilir. Gerekirse yöneticiye danışın (InvoiceView).",
         "notFound": "{{prefix}} PDF bulunamadı. Daha sonra tekrar deneyin veya yöneticiye bildirin.",
         "httpGeneric": "{{prefix}} PDF yüklenemedi (HTTP {{status}}). Daha sonra tekrar deneyin."
+      },
+      "guards": {
+        "busy": "Bir ödeme zaten işleniyor. Lütfen biraz bekleyin.",
+        "voucherOffline": "Hediye çekleri çevrimdışı kullanılamaz. Lütfen bağlantıyı kurun veya başka bir ödeme yöntemi seçin.",
+        "noMethod": "Lütfen önce bir ödeme yöntemi seçin (2. adım).",
+        "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin.",
+        "coverage": "Tutar tamamen karşılanmadı: hediye çeki ve nakit toplamı {{total}} içinden {{paid}}. Lütfen tutarları düzeltin veya başka bir ödeme yöntemi ekleyin.",
+        "voucherInvalid": "Hediye çeki geçersiz veya henüz kullanılmadı. Lütfen kodu kontrol edin ve tutarı onaylayın.",
+        "registerNotReady": "Kasa hazır değil. {{reason}}",
+        "invalidTotal": "Toplam tutar geçersiz. Lütfen sepeti kontrol edip tekrar deneyin.",
+        "cartLoadFailed": "Sepet yüklenemedi. Lütfen bağlantıyı kontrol edin ve ödemeyi yeniden başlatın."
       }
     },
     "stornoRefund": {
@@ -380,6 +391,22 @@
         "selectOneLine": "En az bir satır seçin.",
         "submitFailed": "İşlem başarısız."
       }
+    },
+    "shortcuts": {
+      "title": "Klavye kısayolları",
+      "openHint": "Kısayollar (?)",
+      "openA11y": "Klavye kısayollarını göster",
+      "close": "Kapat",
+      "help": "Klavye kısayollarını göster",
+      "customer": "Müşteri seç",
+      "receipts": "Fiş listesini aç",
+      "kitchen": "Mutfağa gönder",
+      "clearCart": "Sepeti boşalt",
+      "pay": "Öde",
+      "escape": "Pencereyi kapat",
+      "footer": "Kısayollar tarayıcıda, bir giriş alanı etkin değilken çalışır (F tuşları her zaman çalışır).",
+      "clearCartConfirmTitle": "Sepet boşaltılsın mı?",
+      "clearCartConfirmMessage": "{{table}} numaralı masadaki tüm ürünler kaldırılacak."
     }
   },
   "monatsbeleg": {

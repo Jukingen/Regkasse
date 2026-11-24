@@ -59,6 +59,13 @@
     "http400": "İstek işlenemedi. Lütfen girişlerinizi kontrol edin.",
     "http403": "Bu işlem için yetkiniz yok.",
     "http404": "Aranan kayıt bulunamadı.",
-    "http409": "Bu masa başka bir kasiyer tarafından açılmış. Lütfen önce kapatın."
+    "http409": "Bu masa başka bir kasiyer tarafından açılmış. Lütfen önce kapatın.",
+    "network": "Sunucuyla bağlantı yok. Lütfen ağ veya Wi-Fi bağlantısını kontrol edip tekrar deneyin.",
+    "timeout": "İstek çok uzun sürdü. Lütfen tekrar deneyin.",
+    "http401": "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.",
+    "http422": "Girilen bilgiler geçersiz. Lütfen kontrol edip tekrar deneyin.",
+    "http429": "Çok fazla istek. Lütfen biraz bekleyip tekrar deneyin.",
+    "http5xx": "Sunucu bir hata bildirdi. Lütfen birkaç saniye sonra tekrar deneyin. Sorun sürerse destek ile iletişime geçin.",
+    "unknown": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."
   }
 }

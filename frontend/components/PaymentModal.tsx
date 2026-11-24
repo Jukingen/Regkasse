@@ -991,7 +991,7 @@ export default function PaymentModal({
     }
   };
 
-  /** POST /api/pos/payment � exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
+  /** POST /api/pos/payment � exhaustive logs + a German guard message on every guard exit (operator confirmations log only). */
   const executePaymentSubmission = async (confirmedCardIntentId?: string) => {
     const logPay = (step: string, detail?: Record<string, unknown>) => {
       debugPosPaymentTrace(step, detail);
@@ -1044,7 +1044,10 @@ export default function PaymentModal({
     if (paymentBusy || purchaseState === 'processing') {
       debugPosPaymentTrace('submit_blocked_busy', { paymentBusy, purchaseState });
       logPay('Guard exit: busy');
-      Alert.alert('Debug Error', 'Failed at: paymentBusy or purchaseState processing');
+      showAlert(
+        t('checkout:posFlow.payment.alerts.hintTitle'),
+        t('checkout:posFlow.payment.guards.busy')
+      );
       return;
     }
 
@@ -1059,13 +1062,16 @@ export default function PaymentModal({
 
     if (offlineBlocksVoucher) {
       logPay('Guard exit: offline blocks voucher');
-      Alert.alert('Debug Error', 'Failed at: Gutschein offline nicht m�glich');
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.voucherOffline')
+      );
       return;
     }
 
     if (offlineBlocksOnlinePayment) {
       logPay('Guard exit: offline blocks online payment');
-      Alert.alert(
+      showAlert(
         t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
         t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
       );
@@ -1079,16 +1085,16 @@ export default function PaymentModal({
       setPaymentMethodSubmitAttempted(true);
       debugPosPaymentTrace('submit_blocked_no_payment_method', {});
       logPay('Guard exit: no settlement method');
-      Alert.alert(
-        'Debug Error',
-        'Failed at: keine g�ltige Zahlungsart (Schritt 2; nicht nur �Gutschein� als Methodentyp)'
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.noMethod')
       );
       return;
     }
 
     if (needFiscalTseForPay && payGateTseBlocked) {
       logPay('Guard exit: TSE gate');
-      Alert.alert(
+      showAlert(
         t('checkout:posFlow.payment.alerts.errorTitle'),
         resolveTseGateMessage()
       );
@@ -1103,7 +1109,10 @@ export default function PaymentModal({
     if (cartItems.length === 0) {
       debugPosPaymentTrace('submit_blocked_empty_cart', {});
       logPay('Guard exit: empty cart');
-      Alert.alert('Debug Error', 'Failed at: Warenkorb leer');
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.emptyCart')
+      );
       return;
     }
 
@@ -1113,18 +1122,21 @@ export default function PaymentModal({
         totalAmount,
       });
       logPay('Guard exit: coverage');
-      Alert.alert(
-        'Debug Error',
-        `Failed at: Deckung � Gutschein+Bar=${submitCoverage.sumPaid.toFixed(2)} �, Gesamt=${totalAmount.toFixed(2)} �`
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.coverage', {
+          paid: formatPrice(submitCoverage.sumPaid),
+          total: formatPrice(totalAmount),
+        })
       );
       return;
     }
 
     if (voucherEnabled && !voucherSettlementValid) {
       logPay('Guard exit: voucher settlement invalid');
-      Alert.alert(
-        'Debug Error',
-        'Failed at: Gutschein nicht g�ltig / nicht eingel�st (Pr�fen + Betrag)'
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.voucherInvalid')
       );
       return;
     }
@@ -1135,7 +1147,7 @@ export default function PaymentModal({
         settlementAmountDue,
       });
       logPay('Guard exit: cash below Restbetrag');
-      Alert.alert(
+      showAlert(
         t('checkout:posFlow.payment.cash.belowTotalTitle'),
         t('checkout:posFlow.payment.cash.belowTotalMessage', {
           amount: formatPrice(settlementAmountDue),
@@ -1151,9 +1163,11 @@ export default function PaymentModal({
         registerListFailureKind,
       });
       logPay('Guard exit: cash register');
-      Alert.alert(
-        'Debug Error',
-        `Failed at: Kasse nicht bereit � ${registerGateAlertMessage(registerGateCtx)}`
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.registerNotReady', {
+          reason: registerGateAlertMessage(registerGateCtx),
+        })
       );
       return;
     }
@@ -1165,7 +1179,10 @@ export default function PaymentModal({
     if (!validateAmount(totalAmount) && !allowZeroTotalWithValidatedVoucher) {
       debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
       logPay('Guard exit: validateAmount totalAmount');
-      Alert.alert('Debug Error', `Failed at: ung�ltiger Gesamtbetrag (${String(totalAmount)})`);
+      showAlert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.guards.invalidTotal')
+      );
       return;
     }
 
@@ -1210,7 +1227,7 @@ export default function PaymentModal({
     const effectiveCardIntentId = confirmedCardIntentId ?? cardPaymentIntentId;
     const hostedOnlineSelected = isHostedOnlinePaymentMethod(selectedPaymentMethod);
     if (hostedOnlineSelected && !isOnline) {
-      Alert.alert(
+      showAlert(
         t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
         t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
       );
@@ -1239,8 +1256,8 @@ export default function PaymentModal({
         });
         logPay('Guard exit: cart fetch');
         showAlert(
-          'Debug Error',
-          `Failed at: Warenkorb laden � ${cartErr instanceof Error ? cartErr.message : String(cartErr)}`
+          t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+          t('checkout:posFlow.payment.guards.cartLoadFailed')
         );
         return;
       }
@@ -1417,7 +1434,7 @@ export default function PaymentModal({
           pendingQueueId: response.pendingQueueId,
         });
         setPurchaseState('input');
-        Alert.alert(
+        showAlert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
           t('checkout:posFlow.payment.alerts.fiscalPending')
         );
@@ -1471,7 +1488,7 @@ export default function PaymentModal({
             setTseCheckFailureStreak(streak);
           }
         }
-        Alert.alert(t('checkout:posFlow.payment.errors.failed'), errorMsg);
+        showAlert(t('checkout:posFlow.payment.errors.failed'), errorMsg);
         setPurchaseState('input');
         return;
       }
@@ -1493,7 +1510,7 @@ export default function PaymentModal({
       });
 
       if (response.invoicePersisted === false) {
-        Alert.alert(
+        showAlert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
           t('checkout:posFlow.payment.alerts.invoiceReconcileAttention')
         );
