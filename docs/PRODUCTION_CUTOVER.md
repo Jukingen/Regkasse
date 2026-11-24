@@ -14,6 +14,7 @@ Ordered checklist for the first real production deployment. Piece-by-piece guide
 | FinanzOnline | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) |
 | Monitoring | [`MONITORING.md`](MONITORING.md) · [`ALERTING.md`](ALERTING.md) |
 | Backup | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) |
+| Marketplaces (Wolt, Foodora, Lieferando) | [`MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md) · [`ONLINE_ORDER_INTEGRATIONS.md`](ONLINE_ORDER_INTEGRATIONS.md) |
 | Marketing | [`../frontend-marketing/README.md`](../frontend-marketing/README.md) |
 | Pre-flight script | [`../scripts/pre-flight-cutover.mjs`](../scripts/pre-flight-cutover.mjs) |
 
@@ -37,6 +38,9 @@ Lab notes: [`LOAD_TEST_FINDINGS.md`](LOAD_TEST_FINDINGS.md). Fake TSE, one API p
 - [ ] The trial / demo path is confirmed. The first real mandant will be created with `seedDemo=false` (wizard default).
 - [ ] Backup target exists (`PgDump`, staging and archive dirs). Execution mode is not `Fake` ([`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)).
 - [ ] Each real mandant will use its own Fiskaly organization. API key, secret, and SCU id go into `tenant_fiskaly_credentials` from FA `/settings` (`cash_register.manage`). Production does not fall back to a host `Fiskaly:ApiKey`. See [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md).
+- [ ] Marketplace intake is only for mandants on a gastronomy or gastronomy-tables profile. If one will use it: Super Admin (`digital.manage`) enables the provider and maps `(provider, external location id)` to the tenant. Wolt is connected through OAuth. The Mandanten-Admin (`digital.orders.manage`) saves Foodora and Lieferando credentials, stored in `online_order_integration_tenant_credentials`. Screen: FA `/admin/online-order-integrations`. Steps: [`MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md). Marketplace orders land in `online_orders`. They are not a fiscal receipt until a cashier pays the cart on POS.
+- [ ] Audit retention is at least 7 years (`AuditRetention:RetentionYears`, default 7, read with `GET /api/admin/audit/retention`). Audit log export is `GET /api/admin/audit-logs/export?format=csv|xlsx` (`audit.view`). It stops with `EXPORT_TOO_LARGE` above 100,000 rows, so operators narrow the filters.
+- [ ] The GDPR purge is understood before go-live. It runs only for an Archived tenant (license more than 30 days overdue): request, confirm, 7-day wait, then the daily `AutoPurgeService` sweep. It is irreversible. It anonymizes non-fiscal personal data (customers, online orders, support, activity) and redacts personal data in audit log rows. It keeps payment and invoice amounts, receipt numbers, and TSE signatures. It does not touch the Fiskaly or marketplace credential rows. Never rehearse it on a real mandant.
 - [ ] RKSV/TSE key material for a real tenant is in that tenant row or the secret store, not in git ([`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md)).
 - [ ] FinanzOnline credentials are in the secret store ([`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)).
 - [ ] NTP is configured. Online fiscal payments stay blocked when sync fails or the offset is over `MaxAllowedOffsetSeconds`.
@@ -100,6 +104,7 @@ There is no CI job for this script. `npm run validate:scripts` only checks that 
 - [ ] Super Admin first login completes TOTP 2FA. Development bypass codes do not work.
 - [ ] One demo tenant is created with the demo button (`seedDemo=true`, Super Admin only).
 - [ ] One test sale is completed per vertical on that demo tenant only. No test sale on a real mandant.
+- [ ] Audit log export works on the demo tenant: `GET /api/admin/audit-logs/export?format=csv` with a narrow date range returns 200 (FA activity log export).
 - [ ] One system backup succeeds (`PgDump`) and one restore drill is recorded ([`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)).
 - [ ] Monitoring health check: `/api/health/live` and `/api/health/ready` are 200, and `/admin/monitoring` shows the API, Sentry, and Slack path.
 
@@ -108,6 +113,7 @@ There is no CI job for this script. `npm run validate:scripts` only checks that 
 - [ ] 24 hours of monitoring with no unacked critical alert (Sentry, uptime, Slack).
 - [ ] First real tenant is onboarded in the wizard with `seedDemo=false`.
 - [ ] That tenant's Mandanten-Admin has saved Fiskaly BYOK credentials (`GET /api/admin/fiskaly/credentials` shows `configured: true` and `environment: LIVE`) and FON/SCU initialization for that ambient tenant is `INITIALIZED` ([`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)).
+- [ ] If that tenant uses a marketplace, one test order per enabled provider (Wolt, Foodora, Lieferando) appears in the online-order inbox (FA `/orders/online`). No receipt exists until the cart is paid on POS.
 - [ ] First license is activated for that tenant (`POST /api/license/activate`).
 - [ ] First FinanzOnline submission follows the written policy (TEST webservice user first, then PROD). Do not skip the TEST gate in [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md).
 
