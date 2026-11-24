@@ -103,7 +103,7 @@
   "addDiscount": "İndirim ekle",
   "display": {
     "tableTitle": "Masa {{table}}",
-    "loading": "Yükleniyor…",
+    "loading": "Sepet yükleniyor…",
     "emptyBadge": "Boş",
     "itemCount": "{{count}} ürün",
     "clearCartA11y": "Sepeti temizle",

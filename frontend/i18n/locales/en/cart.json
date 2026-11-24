@@ -103,7 +103,7 @@
   "addDiscount": "Add discount",
   "display": {
     "tableTitle": "Table {{table}}",
-    "loading": "Loading…",
+    "loading": "Loading cart…",
     "emptyBadge": "Empty",
     "itemCount": "{{count}} items",
     "clearCartA11y": "Clear cart",

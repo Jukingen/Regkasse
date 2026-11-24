@@ -306,6 +306,17 @@
         "forbidden": "{{prefix}} Keine Berechtigung für PDF-Export. QR-Code und Druck bleiben nutzbar. Bei Bedarf den Administrator bitten (Berechtigung „Rechnung ansehen“ / InvoiceView).",
         "notFound": "{{prefix}} PDF wurde nicht gefunden. Bitte später erneut versuchen oder den Administrator informieren.",
         "httpGeneric": "{{prefix}} PDF konnte nicht geladen werden (HTTP {{status}}). Bitte später erneut versuchen."
+      },
+      "guards": {
+        "busy": "Eine Zahlung wird bereits verarbeitet. Bitte kurz warten.",
+        "voucherOffline": "Gutscheine können offline nicht eingelöst werden. Bitte Verbindung herstellen oder eine andere Zahlungsart wählen.",
+        "noMethod": "Bitte wählen Sie zuerst eine Zahlungsart (Schritt 2).",
+        "emptyCart": "Der Warenkorb ist leer. Bitte fügen Sie zuerst Artikel hinzu.",
+        "coverage": "Der Betrag ist nicht vollständig gedeckt: Gutschein und Bar ergeben {{paid}} von {{total}}. Bitte Beträge anpassen oder eine weitere Zahlungsart ergänzen.",
+        "voucherInvalid": "Der Gutschein ist ungültig oder noch nicht eingelöst. Bitte Code prüfen und den Betrag bestätigen.",
+        "registerNotReady": "Die Kasse ist nicht bereit. {{reason}}",
+        "invalidTotal": "Der Gesamtbetrag ist ungültig. Bitte Warenkorb prüfen und erneut versuchen.",
+        "cartLoadFailed": "Der Warenkorb konnte nicht geladen werden. Bitte Verbindung prüfen und die Zahlung erneut starten."
       }
     },
     "stornoRefund": {
@@ -380,6 +391,22 @@
         "selectOneLine": "Mindestens eine Position auswählen.",
         "submitFailed": "Vorgang fehlgeschlagen."
       }
+    },
+    "shortcuts": {
+      "title": "Tastenkürzel",
+      "openHint": "Tastenkürzel (?)",
+      "openA11y": "Tastenkürzel anzeigen",
+      "close": "Schließen",
+      "help": "Tastenkürzel anzeigen",
+      "customer": "Kunde wählen",
+      "receipts": "Belegliste öffnen",
+      "kitchen": "An Küche senden",
+      "clearCart": "Warenkorb leeren",
+      "pay": "Bezahlen",
+      "escape": "Dialog schließen",
+      "footer": "Die Kürzel gelten im Browser, solange kein Eingabefeld aktiv ist (F-Tasten funktionieren immer).",
+      "clearCartConfirmTitle": "Warenkorb leeren?",
+      "clearCartConfirmMessage": "Alle Artikel von Tisch {{table}} werden entfernt."
     }
   },
   "monatsbeleg": {
