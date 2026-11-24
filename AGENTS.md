@@ -29,7 +29,7 @@ For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_O
 ## Where to read more
 
 - [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — one-page start for a new chat
-- [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — npm audit reports 6 high + 18 moderate, all dev-time, accepted risk. Do not run `npm audit fix --force` on the Expo SDK 56 line.
+- [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — npm audit reports 3 high + 10 moderate after Expo SDK 57, all dev-time, accepted risk. Do not run `npm audit fix --force` (that downgrades Expo or jumps the router to SDK 58).
 
 ## Section index
 

@@ -24,7 +24,7 @@ Versions below match `package.json` / monorepo baselines (`AGENTS.md`). Installe
 | **ESLint / Prettier** | ESLint 9 flat config (`eslint.config.mjs`) + Prettier 3.9 (`prettier.config.mjs`) |
 | **Orval** | `^6.31.0` ← `../backend/swagger.json` |
 | Backend (.NET) / EF Core | 10.0.8 (API consumed by FA) |
-| Expo / React Native (POS) | SDK 56 / 0.85.3 (sibling package — not used in FA) |
+| Expo / React Native (POS) | SDK 57 / 0.86.3 (sibling package — not used in FA) |
 
 ### Related documentation
 

@@ -7,33 +7,33 @@ Repo onboarding: [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) · 
 
 ## Tech Stack
 
-Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` when upgrading Expo-locked packages so peer ranges stay aligned.
+Versions from `package.json` (Expo SDK **57**). Prefer `npx expo install <pkg>` when upgrading Expo-locked packages so peer ranges stay aligned.
 
 | Layer | Package / tool | Version (approx.) |
 | ----- | -------------- | ----------------- |
-| Runtime | Expo | `~56.0.23` |
-| UI | React / React Native | `19.2.3` / `0.85.3` |
-| Navigation | `expo-router` | `~56.2.21` |
+| Runtime | Expo | `^57.0.0` (installed `57.0.34`) |
+| UI | React / React Native | `19.2.3` / `0.86.3` |
+| Navigation | `expo-router` | `~57.0.32` |
 | Screens | `react-native-screens` | `~4.26.0` |
 | Language | TypeScript | `~6.0.3` (`strict`, `jsx: react-jsx`) |
-| Bundler | Metro (`expo/metro-config`) | via Expo 56 |
+| Bundler | Metro (`expo/metro-config`) | via Expo 57 |
 | Transform | `babel-preset-expo` + `module-resolver` | via Expo / Babel 7 |
 | HTTP | `axios` | `^1.18.1` |
 | i18n | `i18next` / `react-i18next` | `^26` / `^17` |
 | UI state | `zustand` | `^5` (ephemeral checkout UI only) |
-| Animations | `react-native-reanimated` + worklets | `4.3.1` / `0.8.3` |
-| Camera / QR | `expo-camera` | `~56.0.8` |
-| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.26` |
-| Build props | `expo-build-properties` | `~56.0.27` |
-| OTA | `expo-updates` | `~56.0.28` (`checkAutomatically`: `ON_LOAD`) |
+| Animations | `react-native-reanimated` + worklets | `4.5.1` / `0.10.1` |
+| Camera / QR | `expo-camera` | `~57.0.6` |
+| Print / share | `expo-print` / `expo-sharing` | `~57.0.2` / `~57.0.27` |
+| Build props | `expo-build-properties` | `~57.0.24` |
+| OTA | `expo-updates` | `~57.0.29` (`checkAutomatically`: `ON_LOAD`) |
 | Lint / format | ESLint 9 flat + `eslint-config-universe` / Prettier | `^9.39` / `^16` / `^3.9` |
-| Tests | Jest + `jest-expo` + RNTL | `^29` / `~56.0.5` / `^14` |
+| Tests | Jest + `jest-expo` + RNTL | `^29` / `~57.0.6` / `^14` |
 
 **Tooling notes**
 
-- TypeScript **~6.0.3** (Expo SDK 56 expected): no `baseUrl` in `tsconfig.json` (paths are relative to the config file). Run `npm run typecheck`.
+- TypeScript **~6.0.3** (Expo SDK 57 expected): no `baseUrl` in `tsconfig.json` (paths are relative to the config file). Run `npm run typecheck`.
 - Babel: do **not** duplicate `transform-runtime` / Reanimated plugins — `babel-preset-expo` already provides them (`babel.config.js`).
-- Keep Expo-locked packages aligned with `npx expo install --check` / `--fix` **from `frontend/`** (or `npm exec -w cash-register -- expo install --check`). Do not run bare `npx expo` at the monorepo root — FA/Sites stay on TypeScript 5.9; POS uses `~6.0.3`. Do not jump to SDK 57 while on 56.
+- Keep Expo-locked packages aligned with `npx expo install --check` / `--fix` **from `frontend/`** (or `npm exec -w cash-register -- expo install --check`). Do not run bare `npx expo` at the monorepo root — FA/Sites stay on TypeScript 5.9; POS uses `~6.0.3`. Do not jump to SDK 58 while on 57.
 - Metro: `maxWorkers: 2`, project-local `watchFolders`, blockList for `dist`/`archive`/`examples`/`coverage` only under `frontend/` (`metro.config.js`).
 - Assets: keep native icons as PNG; in-app login logo is `assets/images/logo.webp`. Receipt font: `OCRA-B` only.
 
@@ -331,7 +331,7 @@ TypeScript-only phase.
 
 | Item | Detail |
 | ---- | ------ |
-| Version | `expo-camera` ~56.0.8 (Expo SDK 56) |
+| Version | `expo-camera` ~57.0.6 (Expo SDK 57) |
 | Plugin | `app.json` → `barcodeScannerEnabled: true`, German `cameraPermission`, `microphonePermission: false` |
 | Shared permission | `hooks/usePosCameraPermission.ts` (prompt / blocked → settings) |
 | Barcode presets | `constants/posCameraScan.ts` — QR-only for voucher/customer; product set for generic modal |
@@ -346,7 +346,7 @@ Device test: run on a physical iOS/Android device (simulators often lack a real 
 
 | Item | Detail |
 | ---- | ------ |
-| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.26 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
+| Versions | `expo-print` ~57.0.2, `expo-sharing` ~57.0.27 (Expo SDK 57 — keep via `npx expo install expo-print expo-sharing`) |
 | HTML receipts | `services/receiptFormatter.ts` → thermal layout (`max-width: 300px`), viewport meta, escaped text, RKSV QR as `data:image/png;base64,…` |
 | Print entry | `services/receiptPrinter.ts` → `utils/expoPrintShare.printHtmlAsync` (native print preview; PDF fallback if HTML print fails) |
 | Tagesabschluss | `utils/dailyClosingReportPrint.ts` (HTML + server PDF URI) |
@@ -363,10 +363,10 @@ Device smoke (physical tablet recommended):
 
 | Item | Detail |
 | ---- | ------ |
-| Version | `expo-build-properties` ~56.0.27 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
+| Version | `expo-build-properties` ~57.0.24 (Expo SDK 57 — keep via `npx expo install expo-build-properties`; do **not** jump to 58.x while on SDK 57) |
 | Plugin | `app.json` → `plugins[]` entry for `expo-build-properties` |
 | Android cleartext | `usesCleartextTraffic: true` — required for LAN/`http://` API bases in development and optional on-device API IP (`ApiSettingsModal`) |
-| Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 56 defaults) |
+| Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 57 defaults) |
 | iOS | `deploymentTarget` `16.4`; ATS cleartext for localhost/LAN also in `ios.infoPlist.NSAppTransportSecurity` |
 | EAS | Single `production` profile in `eas.json` (internal Android APK). One binary for all verticals — see [Native build](#native-build) |
 | Runtime | `runtimeVersion.policy: sdkVersion` in `app.json`. OTA updates use the same policy so a JS update only applies to binaries built with this SDK. |
@@ -613,7 +613,7 @@ Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIG
 | ----- | ------ |
 | Android APK | `app-release.apk` is about **131 MiB** (137,631,483 bytes). One APK contains every ABI (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`). A Play device download from the `production` AAB is smaller. |
 | iOS archive | Requires **macOS** and `xcodebuild`. Windows `expo prebuild` skips the `ios/` tree, and this repo was measured on Windows. |
-| `npx expo-doctor` | **21/22** checks passed on Expo SDK 56. The remaining failure is Hermes V1 `250829098.0.10` (memory regression). The fix is Hermes V1 `250829098.0.16`, which ships with Expo SDK 57 (`expo@57.0.9` or later) and React Native 0.86.2. Stay on SDK 56 until that upgrade is planned. |
+| `npx expo-doctor` | **21/21** checks passed on Expo SDK 57 (`expo@57.0.34`, React Native 0.86.3). `@sentry/react-native` stays at 8.32.0 and is listed in `expo.install.exclude` because the SDK 57 bundled list still names `~7.11.0`. |
 
 ### OTA updates (`expo-updates`)
 

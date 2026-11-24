@@ -3,7 +3,7 @@
     "name": "Cash Register",
     "slug": "cash-register",
     "version": "1.0.0",
-    "sdkVersion": "56.0.0",
+    "sdkVersion": "57.0.0",
     "runtimeVersion": {
       "policy": "sdkVersion"
     },

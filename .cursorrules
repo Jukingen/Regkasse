@@ -45,7 +45,7 @@ coding_standards:  # details + versions in AGENTS.md § Repo Map
     ui: Ant Design 6
     language: TypeScript
   mobile_pos:
-    framework: Expo SDK 56
+    framework: Expo SDK 57
     language: TypeScript
   sites:
     framework: Next.js 16
@@ -74,7 +74,7 @@ ai_assistance:
 - **Languages:** POS UI German (de-DE); Admin UI i18n (de/en/tr); IDE explanations Turkish; code identifiers English.
 - **API:** POS → `/api/pos/*` (+ Auth/Receipts); Admin → `/api/admin/*` — do not cross boundaries.
 - **Tenancy:** Cross-tenant access → HTTP **404** (not 403). Never `IgnoreQueryFilters()` except Super Admin ops.
-- **Stack (pinned):** .NET 10 / EF 10.0.10; FA Next.js 16 + Ant Design 6; POS Expo SDK 56 — see AGENTS.md for exact package versions.
+- **Stack (pinned):** .NET 10 / EF 10.0.10; FA Next.js 16 + Ant Design 6; POS Expo SDK 57 — see AGENTS.md for exact package versions.
 - **FA Ant Design:** use `useNotify()` / `useAntdApp()` — never static `message` / `notification` / `Modal.confirm` from `antd`.
 - **High-risk:** payments, TSE/RKSV chain, tenant isolation, FinanzOnline outbox, voucher ledger, backup/restore.
 - **Recent DX (2026-07):** npm workspaces, path-filtered CI, OpenAPI→Orval + Husky verify, i18n hard gate — details in `AGENTS.md` § Recent Improvements.

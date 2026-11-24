@@ -44,7 +44,7 @@ Regkasse is a multi-tenant SaaS point-of-sale system for Austria. The production
 - Monitoring: Sentry, uptime, Slack alerts, `/admin/monitoring`.
 - ImageSharp replaced by SkiaSharp (MIT).
 - Dependabot guard and branch protection are active.
-- npm audit reports 6 high + 18 moderate, all dev-time, accepted risk. Detail: `docs/SECURITY_ADVISORIES.md`. Do not run `npm audit fix --force` (that downgrades Expo SDK 56 to 52).
+- npm audit reports 3 high + 10 moderate after the Expo SDK 57 upgrade, all dev-time, accepted risk. Detail: `docs/SECURITY_ADVISORIES.md`. Do not run `npm audit fix --force` (that downgrades Expo or jumps the router to SDK 58).
 
 ## High-risk do-not
 
