@@ -47,7 +47,7 @@ scripts/load-test/cashiers.local.json
 ]
 ```
 
-One object per cashier. `cashRegisterId` values must be unique.
+One object per cashier. `cashRegisterId` values must be unique. An optional `tenantSlug` on a row overrides `TENANT_SLUG` for that cashier, for lab data spread over several tenants.
 
 ## Run
 

@@ -52,6 +52,9 @@ if (productIds.length > 0 && productIds.length < productCount) {
 
 const isLocal = isLocalHost(hostOf(baseUrl));
 const tenantSlug = __ENV.TENANT_SLUG || (isLocal ? 'dev' : '');
+// A cashier row may carry its own `tenantSlug` (multi-tenant lab seed). Each VU is its own
+// JS runtime, so this module-level value is per cashier.
+let activeTenantSlug = tenantSlug;
 
 const saleMs = new Trend('pos_sale_ms', true);
 
@@ -74,6 +77,7 @@ export const options = {
 
 export default function () {
   const cashier = cashiers[__VU - 1];
+  activeTenantSlug = cashier.tenantSlug || tenantSlug;
   const started = Date.now();
   let succeeded = false;
   try {
@@ -241,7 +245,7 @@ function loadProductIds(token) {
 function requestParams(token, step) {
   const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (tenantSlug) headers['X-Tenant-Id'] = tenantSlug;
+  if (activeTenantSlug) headers['X-Tenant-Id'] = activeTenantSlug;
   return { headers, tags: { step }, timeout: '60s' };
 }
 

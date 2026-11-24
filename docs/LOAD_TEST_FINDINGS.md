@@ -12,7 +12,7 @@ Recorded lab results for the POS cash sale path (`login` → catalog → shift �
 
 ## Scope
 
-- One tenant, Fake TSE (`Tse__Mode=Fake`). No Fiskaly HTTP on the signing path.
+- One tenant, Fake TSE (`Tse__Mode=Fake`). No Fiskaly HTTP on the signing path. The 500-cashier stress runs spread cashiers over 50 tenants.
 - One cash register per cashier. Cashiers do not share a register, so register-scoped `FOR UPDATE` locks do not line the cohort up behind one row.
 - Sale p95 is the k6 trend from login through payment and shift end.
 - The 50-cashier figure is the recorded baseline (1153 ms). The 2026-11-21 rows used a pool ceiling of 100. The 2026-11-24 rows are the re-run with the current pool maximum of 200.
@@ -66,6 +66,42 @@ The 2026-11-23 run used the existing multi-tenant seed (`tenants.local.json`, fi
 
 After the fix, k6 recorded 4500 requests (9 steps × 500 cashiers) and a 100% check pass rate. It still exited 99 because sale p95 is above 3000 ms. That remaining wait is the fiscal transaction holding a pooled connection (ceiling 200), not the TCP accept queue. Login p95 rose from 1.2 s to 2.7 s because every cashier entered the API. Pay p95 dropped from 6.3 s to 2.9 s.
 
+### 2026-11-24, 500 cashiers, stress re-run
+
+This is a stress test, not a production target. The production target stays 50-200 cashiers. Nothing here changes that target, and the 3000 ms sale budget in the k6 script is not a service-level objective for a 500-cashier burst.
+
+Setup: Fake TSE (`Tse__Mode=Fake`, `Tse__Provider=fake`, `Tse__FallbackEnabled=true`, `Tse__SoftTseEnabled=true`), pool maximum 200 (`Database:MaxPoolSize`), PostgreSQL on this host, the listen-backlog fix from above. Credentials are the first 500 rows of the multi-tenant seed (`tenants.local.json`: 50 tenants, 10 cashiers each, one register each), flattened to a gitignored `cashiers-500.local.json` with a `tenantSlug` per row. `PRODUCT_COUNT=3`, because the seeded tenants have three simple products. The API was started fresh and was idle (startup Tagesabschluss finished) before the first run.
+
+```text
+k6 run -e VUS=500 -e PRODUCT_COUNT=3 -e CASHIERS_FILE=cashiers-500.local.json scripts/load-test/pos-critical-path.js
+```
+
+The same command ran four times in a row against the same API process. Percentiles per step come from the k6 JSON points (nearest-rank). Sale p95 and HTTP p95 come from the k6 summary. All four runs exited 99 on the 3 s sale budget.
+
+| Run | API state | Requests | HTTP error rate | HTTP p95 | Sale p95 | Login p95 | Pay p95 |
+|-----|-----------|---------:|-----------------|---------:|---------:|----------:|--------:|
+| 1 | Fresh process, two single-cashier smokes only | 3583 | **8.99%** (322 HTTP 500) | 35438 ms | 67756 ms | 19500 ms | 44794 ms |
+| 2 | Warm, but 292 cashiers still had an open shift from run 1 | 4208 | 0.00% | 6649 ms | 25798 ms | 7294 ms | 7166 ms |
+| 3 | Warm, clean start | 4500 | 0.00% | 3681 ms | 12593 ms | 3793 ms | 2304 ms |
+| 4 | Warm, clean start | 4500 | 0.00% | 4038 ms | 13141 ms | 4355 ms | 3252 ms |
+
+Runs 3 and 4 are the comparable steady-state figures: 4500 requests (9 steps × 500 cashiers), HTTP error rate 0.00%, checks 100%, sale p95 about 12.6-13.1 s. The 2026-11-23 record above has sale p95 9429 ms with the same 500 cashiers and a different run state. One cohort per state does not show whether the gap is variance or a change, and this document does not isolate the cause.
+
+Run 1 is the failure case. Only 178 of the 500 cashiers finished a sale. The API log has 428 lines with `The connection pool has been exhausted ... 'Max Pool Size' (currently 200)` (one failed request can log more than once). Failed calls were HTTP 500 on add-item (213), pay (59), shift start (18), catalog (18), shift current (11), and login (3). A cold process plus 500 simultaneous cashiers queues on the 200-connection pool past the 15 s acquire timeout. Run 2 differs from run 1 only by process warm-up and leftover shifts, and it had no errors, so cold start matters for this burst. The cold effect was not measured separately.
+
+Step timings of runs 3 and 4 (steady state):
+
+| Step | Run 3 p50 | Run 3 p95 | Run 4 p50 | Run 4 p95 |
+|------|----------:|----------:|----------:|----------:|
+| Login | 3657 ms | 3793 ms | 3999 ms | 4355 ms |
+| Current shift | 632 ms | 2711 ms | 856 ms | 2951 ms |
+| Shift start | 873 ms | 1021 ms | 859 ms | 1189 ms |
+| Catalog | 626 ms | 765 ms | 857 ms | 1058 ms |
+| Add item (each of 3) | 856 ms | 2174 ms | 827 ms | 1115 ms |
+| Payment | 1754 ms | 2304 ms | 2863 ms | 3252 ms |
+| Shift end | 1050 ms | 2054 ms | 1361 ms | 1627 ms |
+
+Login is the largest single step at 500 cashiers (median near 4 s). Step p95 values do not add up to the sale p95, which is the p95 of the whole iteration.
 ### Listen queue
 
 The local API is Kestrel. `launchSettings.json` profile `http` is `commandName: Project`. nginx in this repo fronts the admin UI and the static POS web, not port 5184. There is no IIS in front of this process, so no proxy `worker_connections` change applies.
