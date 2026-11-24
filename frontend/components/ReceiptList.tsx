@@ -310,7 +310,7 @@ export function ReceiptList({
         }
         contentContainerStyle={receipts.length === 0 ? styles.emptyList : styles.listContent}
         ListHeaderComponent={
-          receipts.length === 0 ? null : (
+          receipts.length === 0 ? undefined : (
             <View style={styles.columnHeader} accessibilityRole="header">
               <Text style={[styles.columnHeaderText, styles.colNumber]}>{t('receipts:receiptNumber')}</Text>
               <Text style={[styles.columnHeaderText, styles.colDate]}>{t('receipts:issuedAt')}</Text>

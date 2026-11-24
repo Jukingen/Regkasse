@@ -95,10 +95,10 @@ Developer experience and CI (see root [`README.md`](../../README.md), [`CONTRIBU
 | Next.js (FA) | **16.2.10** |
 | Next.js (Sites) | **16.2.6** (caret in `frontend-sites`) |
 | React (FA) | **19.2.7** |
-| React (POS) | **19.2.3** |
+| React (POS) | **19.3.0** |
 | Ant Design | **6.4.3** |
-| Expo | SDK **57** (`~57.0.0`) |
-| React Native | **0.86.3** |
+| Expo | SDK **58** (`^58.0.0`) |
+| React Native | **0.88.1** |
 
 - Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`). Fail-closed: non-public routes require a non-expired JWT cookie/header → else redirect `/login`. Permission RBAC is client-side (`PermissionRouteGuard` → inline 403), not in `proxy.ts`.
 - Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` — toasts via `useNotify()` / `NotificationService`; modal via `useAntdApp()`.

@@ -11,7 +11,6 @@ import {
   RefreshControl,
   useWindowDimensions,
   Platform,
-  type DimensionValue,
 } from 'react-native';
 
 import { ProductGridCard } from './ProductGridCard';
@@ -63,7 +62,7 @@ function gridCellLayout(paneWidth: number, columns: number, horizontalPadding: n
       flexBasis: measured,
     };
   }
-  const share = `${100 / columns}%` as DimensionValue;
+  const share = `${100 / columns}%`;
   return {
     width: share,
     flexGrow: 0,
@@ -445,7 +444,7 @@ export const ProductList: React.FC<ProductListProps> = ({
                 {searchQuery ? t('noSearchResults') : t('noProductsFound')}
               </Text>
             </View>
-          ) : null
+          ) : undefined
         }
         showsVerticalScrollIndicator={false}
       />

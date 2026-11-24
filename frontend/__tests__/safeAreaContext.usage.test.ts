@@ -9,11 +9,11 @@ function read(rel: string): string {
 }
 
 describe('SafeAreaContext usage', () => {
-  it('pins react-native-safe-area-context to Expo SDK 56 range', () => {
+  it('pins react-native-safe-area-context to Expo SDK 58 range', () => {
     const pkg = JSON.parse(read('package.json')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['react-native-safe-area-context']).toMatch(/^~?5\.7\./);
+    expect(pkg.dependencies['react-native-safe-area-context']).toMatch(/^~?5\.11\./);
   });
 
   it('roots SafeAreaProvider with initialWindowMetrics', () => {

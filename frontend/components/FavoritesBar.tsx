@@ -92,7 +92,7 @@ export function FavoritesBar({
           friction={2}
           overshootRight={false}
           rightThreshold={40}
-          dragOffsetFromRightEdge={20}
+          dragOffsetFromRight={20}
           renderRightActions={(progress, translation, methods) =>
             renderRightActions(fav.id, progress, translation, methods)
           }>
