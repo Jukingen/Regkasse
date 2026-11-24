@@ -1789,6 +1789,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IPermissionAuditService, PermissionAuditService>();
         builder.Services.AddScoped<IPermissionAuditReportService, PermissionAuditReportService>();
         builder.Services.AddScoped<IAuditExportService, AuditExportService>();
+        builder.Services.AddScoped<IAuditTypedExportService, AuditTypedExportService>();
         builder.Services.AddSingleton<IAuditExportJobManager, AuditExportJobManager>();
         builder.Services.AddScoped<IAuditReportScheduler, AuditReportScheduler>();
         builder.Services.AddScoped<IAuditReportEmailService, AuditReportEmailService>();
