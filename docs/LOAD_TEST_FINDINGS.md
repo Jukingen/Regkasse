@@ -2,7 +2,7 @@
 
 Recorded lab results for the POS cash sale path (`login` → catalog → shift → cart → cash payment → shift end). This document is a diagnosis. It does not change connection strings, pooling, or queries.
 
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
 
 | Related | Link |
 |---------|------|
@@ -15,9 +15,11 @@ Recorded lab results for the POS cash sale path (`login` → catalog → shift �
 - One tenant, Fake TSE (`Tse__Mode=Fake`). No Fiskaly HTTP on the signing path.
 - One cash register per cashier. Cashiers do not share a register, so register-scoped `FOR UPDATE` locks do not line the cohort up behind one row.
 - Sale p95 is the k6 trend from login through payment and shift end.
-- The 50-cashier figure is the recorded baseline (1153 ms). The 100- and 200-cashier figures are the instrumented runs.
+- The 50-cashier figure is the recorded baseline (1153 ms). The 2026-11-21 rows used a pool ceiling of 100. The 2026-11-24 rows are the re-run with the current pool maximum of 200.
 
 ## Results
+
+### 2026-11-21, pool ceiling 100
 
 | Cashiers | Sale p95 | Payment step p95 | Verdict |
 |----------|----------|------------------|---------|
@@ -27,15 +29,31 @@ Recorded lab results for the POS cash sale path (`login` → catalog → shift �
 
 At 100 cashiers the payment step p95 is 14.8 s and the slowest payment is about 15.5 s. At 200 cashiers the payment p95 drops to 7.7 s while login and catalog slow down. The sale still ends near 20 s. HTTP error rate on these two runs stayed under 1%. k6 exited 99 because sale p95 crossed the 3000 ms script budget, not because requests failed.
 
+### 2026-11-24, pool maximum 200
+
+Same sale path, one tenant (`dev`), Fake TSE (`Tse__Mode=Fake`, `Tse__Provider=fake`, `Tse__FallbackEnabled=true`, `Tse__SoftTseEnabled=true`). Credential file `cashiers.local.json` (200 cashiers, one register each). Default `PRODUCT_COUNT=5`. The connection string does not set `MaxPoolSize`; `Database:MaxPoolSize` is 200. PostgreSQL `max_connections` on this host was 300.
+
+```text
+k6 run -e VUS=100 -e CASHIERS_FILE=cashiers.local.json scripts/load-test/pos-critical-path.js
+k6 run -e VUS=200 -e CASHIERS_FILE=cashiers.local.json scripts/load-test/pos-critical-path.js
+```
+
+| Cashiers | Sale p95 | Payment step p95 | Login p95 | HTTP error rate | 3 s budget |
+|----------|----------|------------------|-----------|-----------------|------------|
+| 100 | 2269 ms | 375 ms | 820 ms | 0.00% | Pass. k6 exit 0. 1100 requests, checks 100%. |
+| 200 | 4131 ms | 271 ms | 1295 ms | 0.00% | Fail. k6 exit 99. 2200 requests, checks 100%. |
+
+Payment is no longer the pile-up. At 200 cashiers the pay step p95 is 271 ms and the HTTP error rate is 0%, while the full sale p95 is 4131 ms. The 3 s lab budget holds at 100 cashiers and misses at 200. Startup auto-Tagesabschluss was still catching up business day 2026-11-23 on other tenants during this run.
+
 ## 500 cashiers is a stress test
 
 500 cashiers is a stress test. Production target is 50-200 cashiers.
 
 At 500 cashiers, p95 is ~9.4 s due to the 200-connection pool queue.
 
-This is expected. The pool size (200) is correct for 50-200 cashiers.
+This is expected for that burst. On the 2026-11-24 re-run the pool of 200 keeps the pay step under 400 ms at 100 and 200 cashiers. The 3 s sale budget holds at 100 and misses at 200.
 
-The 50-cashier baseline in the table above is 1153 ms, under the 3 s lab budget. The 100- and 200-cashier rows (about 20 s) are the 2026-11-21 lab, recorded while the pool ceiling was still 100. They are not a re-test of the current pool of 200, and they are not a pass under 3 s. The ~9.4 s figure is the post-listen-fix sale p95 in the table below (9429 ms).
+The 50-cashier baseline is 1153 ms. The 2026-11-24 re-run with pool 200 measured 100 cashiers at 2269 ms (under 3 s) and 200 cashiers at 4131 ms (over 3 s, HTTP errors 0%). The ~20 s rows are the 2026-11-21 pool-100 lab. The ~9.4 s figure is the post-listen-fix sale p95 in the table below (9429 ms).
 
 Five hundred cashiers starting a sale in the same second is a stress test. It is not a normal production load. A shop does not open hundreds of cash sales on one API process at the same instant. The 3000 ms sale budget in the k6 script is a lab target for the smaller cohorts, not a production SLO for this burst.
 
@@ -64,7 +82,7 @@ The pool paragraphs below describe the 2026-11-21 lab, recorded before the pool 
 
 Development does not set a pool size. `appsettings.Development.json` has no `DefaultConnection` and no `MaxPoolSize` or `Minimum Pool Size`. The connection string comes from user secrets or the environment.
 
-On 2026-11-21, `ApplicationHost` applied pool defaults only when `IsProduction()` was true. That helper set `MinPoolSize` 5, `MaxPoolSize` 20, and `ConnectionLifetime` 300 only when those keywords were absent. Development did not enter that block. The helper now runs in every environment and the default maximum is 200. The sentences that follow describe the pool that produced the 100- and 200-cashier table.
+On 2026-11-21, `ApplicationHost` applied pool defaults only when `IsProduction()` was true. That helper set `MinPoolSize` 5, `MaxPoolSize` 20, and `ConnectionLifetime` 300 only when those keywords were absent. Development did not enter that block. The helper now runs in every environment and the default maximum is 200. The sentences that follow describe the pool that produced the 2026-11-21 table (sale p95 about 20 s), not the 2026-11-24 re-run.
 
 Npgsql’s own defaults then apply: **maximum pool size 100, minimum pool size 0, connection timeout 15 seconds.**
 
