@@ -13,6 +13,7 @@ Ordered checklist for the first real production deployment. Piece-by-piece guide
 | RKSV / TSE | [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md) |
 | FinanzOnline | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) |
 | Monitoring | [`MONITORING.md`](MONITORING.md) · [`ALERTING.md`](ALERTING.md) |
+| Marketplace | [`MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md) · [`ONLINE_ORDER_INTEGRATIONS.md`](ONLINE_ORDER_INTEGRATIONS.md) |
 | Backup | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) |
 | Marketing | [`../frontend-marketing/README.md`](../frontend-marketing/README.md) |
 | Pre-flight script | [`../scripts/pre-flight-cutover.mjs`](../scripts/pre-flight-cutover.mjs) |
@@ -26,7 +27,7 @@ Do not write secrets into this file. Do not run a real sale on a real mandant du
 Lab notes: [`LOAD_TEST_FINDINGS.md`](LOAD_TEST_FINDINGS.md). Fake TSE, one API process, one register per cashier. The pool maximum of 200 is the size for the production target below.
 
 - Validated under 3 s: 50 cashiers (sale p95 1153 ms) and 100 cashiers on pool 200 (sale p95 2269 ms, pay p95 375 ms, HTTP errors 0%, 2026-11-24).
-- 200 cashiers on the same pool: sale p95 4131 ms, pay p95 271 ms, HTTP errors 0%. Over the 3 s lab budget. Not a validated pass.
+- 200 cashiers on the same pool: sale p95 4131 ms and 5350 ms on two runs, pay p95 271 ms and 695 ms, HTTP errors 0%. Over the 3 s lab budget. Not a validated pass. Login is the slowest step.
 - Stress-tested: 500 cashiers (p95 ~9.4 s, acceptable for stress). That wait is the 200-connection pool queue. It is not a production target.
 
 ## Pre-flight (D-7)
@@ -37,6 +38,8 @@ Lab notes: [`LOAD_TEST_FINDINGS.md`](LOAD_TEST_FINDINGS.md). Fake TSE, one API p
 - [ ] The trial / demo path is confirmed. The first real mandant will be created with `seedDemo=false` (wizard default).
 - [ ] Backup target exists (`PgDump`, staging and archive dirs). Execution mode is not `Fake` ([`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)).
 - [ ] Each real mandant will use its own Fiskaly organization. API key, secret, and SCU id go into `tenant_fiskaly_credentials` from FA `/settings` (`cash_register.manage`). Production does not fall back to a host `Fiskaly:ApiKey`. See [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md).
+- [ ] Marketplace intake (Wolt, Foodora, Lieferando) is optional per mandant and needs a gastronomy profile. Credentials are per tenant (`online_order_integration_tenant_credentials`), entered on FA `/admin/online-order-integrations`. Foodora's webhook token is set per tenant. A marketplace order is not a receipt until a cashier pays it on POS. Super Admin maps locations to tenants ([`MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md)).
+- [ ] Audit retention is understood: audit logs are kept at least 7 years. A user with `audit.view` can export a filtered audit log with `GET /api/admin/audit-logs/export?format=csv|xlsx` (max 100,000 rows per export).
 - [ ] RKSV/TSE key material for a real tenant is in that tenant row or the secret store, not in git ([`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md)).
 - [ ] FinanzOnline credentials are in the secret store ([`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)).
 - [ ] NTP is configured. Online fiscal payments stay blocked when sync fails or the offset is over `MaxAllowedOffsetSeconds`.
@@ -102,12 +105,15 @@ There is no CI job for this script. `npm run validate:scripts` only checks that 
 - [ ] One test sale is completed per vertical on that demo tenant only. No test sale on a real mandant.
 - [ ] One system backup succeeds (`PgDump`) and one restore drill is recorded ([`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)).
 - [ ] Monitoring health check: `/api/health/live` and `/api/health/ready` are 200, and `/admin/monitoring` shows the API, Sentry, and Slack path.
+- [ ] On the demo tenant, an audit log CSV export downloads from the FA activity log, and a search by actor email returns rows.
+- [ ] GDPR purge is never run on a real mandant during D-0. Rehearse it on the demo tenant only. The purge anonymizes non-fiscal PII and keeps payments, receipts, TSE signatures, and the RKSV issuer snapshot (company name, address, Steuernummer). It is irreversible; restore is from backup only (`DataDeletionService`, `TenantPiiPurge`).
 
 ## Post-cutover (D+1)
 
 - [ ] 24 hours of monitoring with no unacked critical alert (Sentry, uptime, Slack).
 - [ ] First real tenant is onboarded in the wizard with `seedDemo=false`.
 - [ ] That tenant's Mandanten-Admin has saved Fiskaly BYOK credentials (`GET /api/admin/fiskaly/credentials` shows `configured: true` and `environment: LIVE`) and FON/SCU initialization for that ambient tenant is `INITIALIZED` ([`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)).
+- [ ] If that tenant uses a marketplace, one test order per provider reaches `/orders/online` and no receipt exists before POS payment.
 - [ ] First license is activated for that tenant (`POST /api/license/activate`).
 - [ ] First FinanzOnline submission follows the written policy (TEST webservice user first, then PROD). Do not skip the TEST gate in [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md).
 
