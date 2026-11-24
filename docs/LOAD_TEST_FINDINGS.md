@@ -17,6 +17,19 @@ Recorded lab results for the POS cash sale path (`login` → catalog → shift �
 - Sale p95 is the k6 trend from login through payment and shift end.
 - The 50-cashier figure is the recorded baseline (1153 ms). The 2026-11-21 rows used a pool ceiling of 100. The 2026-11-24 rows are the re-run with the current pool maximum of 200.
 
+## Summary
+
+Current numbers at pool maximum 200, Fake TSE, HTTP error rate 0% on every row. Production target is 50-200 cashiers on one API process.
+
+| Cashiers | Sale p95 | Pay p95 | Verdict |
+|---------:|---------:|--------:|---------|
+| 50 | 1153 ms | — | Pass (baseline). |
+| 100 | 2269 ms | 375 ms | Pass. Under the 3 s lab budget. |
+| 200 | 4131 ms, 5350 ms | 271 ms, 695 ms | Over the 3 s lab budget on two runs. Login is the slowest step. Not a validated pass. |
+| 500 | 9429 ms | 2926 ms | Stress test, not a production target. Wait is the 200-connection pool queue. |
+
+The k6 script calls the API directly. The POS client (Expo SDK 58) is not in that path, so these numbers do not depend on the SDK version. Details for each row are below.
+
 ## Results
 
 ### 2026-11-21, pool ceiling 100
@@ -45,9 +58,31 @@ k6 run -e VUS=200 -e CASHIERS_FILE=cashiers.local.json scripts/load-test/pos-cri
 
 Payment is no longer the pile-up. At 200 cashiers the pay step p95 is 271 ms and the HTTP error rate is 0%, while the full sale p95 is 4131 ms. The 3 s lab budget holds at 100 cashiers and misses at 200. Startup auto-Tagesabschluss was still catching up business day 2026-11-23 on other tenants during this run.
 
+#### 200 cashiers, step timings (2026-11-24, later the same morning)
+
+Same cohort (`VUS=200`, `cashiers.local.json`, `PRODUCT_COUNT=5`, Fake TSE, pool maximum 200). k6 JSON samples, one point per HTTP call. HTTP error rate 0%. Sale p95 was 5350 ms (k6 exit 99). A run taken while startup auto-Tagesabschluss was still scanning registers was slower on every step (sale p95 10111 ms, pay p95 3533 ms) and is not the table below.
+
+Step p95 values do not add up to the sale p95. The sale figure is the p95 of the whole iteration.
+
+| Step | Calls | p50 | p95 |
+|------|------:|----:|----:|
+| Login | 200 | 2142 ms | 2171 ms |
+| Current shift | 200 | 243 ms | 1594 ms |
+| Shift start | 200 | 241 ms | 610 ms |
+| Catalog | 200 | 375 ms | 523 ms |
+| Add item (each of 5) | 1000 | 241 ms | 518 ms |
+| Payment | 200 | 561 ms | 695 ms |
+| Shift end | 200 | 290 ms | 634 ms |
+
+Login is the slowest step. Payment is not. A typical cashier, using the p50 of each step, spends about 5.1 s: login 2.1 s, five adds about 1.2 s together, payment 0.6 s, and the other four calls about 1.2 s together. That is the 3.8 s gap in the earlier 4131 ms / 271 ms row as well: the missing time is the sum of the non-payment calls, and login is the largest single call.
+
+Login p50 and p95 differ by 29 ms. Every cashier waited about 2.1 s, which is a batch finishing together, not a slow-query tail. `AuthController.Login` calls `CheckPasswordAsync` on Identity's default password hasher. This host does not set `Password.IterationCount`. Two hundred of those checks at the same instant fill the CPU. A catalog cache does not move this number. Catalog p95 is 523 ms. Lowering the hasher iteration count would weaken password storage and is not a lab-budget change.
+
+The next tail is current-shift (p50 243 ms, p95 1594 ms). It is still smaller than login.
+
 ## 500 cashiers is a stress test
 
-500 cashiers is a stress test. Production target is 50-200 cashiers.
+500 cashiers is a stress test. Production target is 50-200 cashiers. Do not use the 500-cashier rows as a pass or fail gate.
 
 At 500 cashiers, p95 is ~9.4 s due to the 200-connection pool queue.
 

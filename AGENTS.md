@@ -2,7 +2,21 @@
 
 This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc) on every task. Other rules attach by glob, or manually for workflow and deploy. Edit the matching `.mdc` file. Do not paste the full rule set back here.
 
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
+
+## Stack pins
+
+`package.json` and `backend/KasseAPI_Final.csproj` are the source of truth. This table is a summary.
+
+| Component | Pin |
+|-----------|-----|
+| .NET / ASP.NET Core / EF Core | .NET 10 (`net10.0`), EF Core 10.0.10 |
+| Node.js | 22+ (CI runs 22) |
+| Next.js (FA, Sites, Marketing) | 16.4.6 (`^16.4.6`) |
+| React (web) | 19.3.x |
+| Ant Design (FA) | 6 (`^6.4.3`) |
+| Expo (POS) | SDK 58 (`expo` 58.0.26) |
+| React Native / React (POS) | 0.88.1 / 19.3.0 |
 
 ## Rule files
 
@@ -24,12 +38,14 @@ For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_O
 
 - Per-tenant Fiskaly credentials (BYOK) and the production cutover note in [`docs/FISKALY_PRODUCTION_CUTOVER.md`](docs/FISKALY_PRODUCTION_CUTOVER.md).
 - Wolt, Foodora, and Lieferando online-order intake. Operator steps: [`docs/MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](docs/MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md).
-- GDPR purge keeps fiscal amounts and TSE signatures and strips other tenant PII.
+- GDPR purge keeps fiscal amounts, TSE signatures, and the RKSV issuer snapshot on payments, and strips other tenant PII.
+- `PaymentService` refactor: split into 14 injected services plus one static helper (`PaymentCommitFailureMapper`), under `backend/Services/Payment*.cs`. `PaymentService.cs` went from 4,723 to 1,271 lines. It is still a high-risk flow. Change the extracted service that owns the step, not the orchestrator. List: [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md).
+- Audit log export: `GET /api/admin/audit-logs/export?format=csv|xlsx` (`audit.view`). It uses the same filters and PostgreSQL full-text `search` as `api/AuditLog`, and rejects more than 100,000 rows with `EXPORT_TOO_LARGE`. Not a new boundary: it stays under `/api/admin/*`.
 
 ## Where to read more
 
 - [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — one-page start for a new chat
-- [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — npm audit reports 3 high + 10 moderate after Expo SDK 57, all dev-time, accepted risk. Do not run `npm audit fix --force` (that downgrades Expo or jumps the router to SDK 58).
+- [`docs/SECURITY_ADVISORIES.md`](docs/SECURITY_ADVISORIES.md) — written for Expo SDK 57. On the SDK 58 lockfile `npm audit` reports 0 high and 23 moderate (checked 2026-11-24), so that note needs a refresh. Do not run `npm audit fix --force`.
 
 ## Section index
 
