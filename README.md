@@ -22,6 +22,7 @@ Regkasse is an npm-workspace monorepo for:
 - **API** — ASP.NET Core multi-tenant backend with RKSV/TSE, FinanzOnline outbox, backup/DR, and licensing
 - **Fiskaly BYOK** — each mandant stores its own SIGN AT API key, secret, and SCU on `tenant_fiskaly_credentials` (FA `/settings`). Production does not share one Fiskaly organization.
 - **Marketplace orders** — Wolt (OAuth), Foodora (client credentials), and Lieferando (JET Connect) post into `online_orders`. FA: `/admin/online-order-integrations`. Not a receipt until POS payment.
+- **Audit log search and export** — full-text search over the audit log, and CSV or XLSX download of the filtered result (`GET /api/admin/audit-logs/export`, permission `audit.view`, up to 100,000 rows).
 
 **Single POS UI:** production POS is one shared host (`pos.regkasse.at`); tenant comes from JWT `tenant_id` after login — not `{slug}.regkasse.at` as the POS entry point. See [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
 
@@ -39,7 +40,7 @@ Regkasse is an npm-workspace monorepo for:
 
 | Tool | Notes |
 |------|-------|
-| Node.js | **20+** LTS |
+| Node.js | **22+** LTS (CI runs 22; root `package.json` `engines` still allows `>=20`) |
 | npm | Workspaces enabled at repo root |
 | .NET SDK | **10.x** |
 | PostgreSQL | **16+** (local or Docker) |
@@ -350,9 +351,9 @@ docker build -f frontend-sites/Dockerfile \
 | Area | Technology |
 |------|------------|
 | Backend | ASP.NET Core **10** (`net10.0`), EF Core **10.0.10**, PostgreSQL, JWT / Identity |
-| Admin (FA) | Next.js **16.2.x**, React **19.2.x**, Ant Design **6**, TanStack Query, Orval |
-| POS | Expo SDK **56**, React Native **0.85.x**, TypeScript |
-| Sites | Next.js **16**, React **19** |
+| Admin (FA) | Next.js **16.4.6**, React **19.3.x**, Ant Design **6**, TanStack Query, Orval |
+| POS | Expo SDK **58**, React Native **0.88.1**, React **19.3.0**, TypeScript |
+| Sites / Marketing | Next.js **16.4.6**, React **19.3.x** |
 | i18n | Shared [`localization/`](localization/) tooling; FA locales de/en/tr; POS de-DE |
 | Tooling | npm workspaces, Husky pre-commit, GitHub Actions, TestSprite YAML + Node runners |
 | Infra helpers | Redis (optional), license issuer under [`tools/`](tools/) |
