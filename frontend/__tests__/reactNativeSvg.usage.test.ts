@@ -11,11 +11,11 @@ function read(rel: string): string {
 }
 
 describe('react-native-svg / RKSV QR usage', () => {
-  it('pins Expo SDK 56 compatible react-native-svg', () => {
+  it('pins Expo SDK 58 compatible react-native-svg', () => {
     const pkg = JSON.parse(read('package.json')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['react-native-svg']).toBe('15.15.4');
+    expect(pkg.dependencies['react-native-svg']).toBe('15.16.0');
     expect(pkg.dependencies['react-native-qrcode-svg']).toBeDefined();
   });
 

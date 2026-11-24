@@ -102,6 +102,20 @@ module.exports = defineConfig([
     },
   },
   {
+    // Expo SDK 58: eslint-plugin-import cannot statically resolve the named exports of
+    // expo-splash-screen, expo-notifications and expo-clipboard (they exist at runtime).
+    // Scoped to the files that use those namespace imports; the rule stays on elsewhere.
+    files: [
+      'app/_layout.tsx',
+      'services/appointmentNotifications.ts',
+      'services/pushNotification.ts',
+      'utils/clipboard.ts',
+    ],
+    rules: {
+      'import/namespace': 'off',
+    },
+  },
+  {
     files: ['utils/loggingUtils.ts', 'utils/debugPosPaymentTrace.ts', 'lib/logger.ts'],
     rules: {
       'no-console': 'off',

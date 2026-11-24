@@ -1,11 +1,15 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
 import { POS_WEB_DOCUMENT } from '../utils/posWebDocument';
 
 export default function Root({ children }: { children: ReactNode }) {
+  // Expo Router 58 passes the client bundle script, react-native-web styles, fonts and
+  // metadata through the server document context. A custom +html must render them.
+  const { bodyAttributes, bodyNodes, htmlAttributes, headNodes } = useServerDocumentContext();
+
   return (
-    <html lang={POS_WEB_DOCUMENT.lang}>
+    <html lang={POS_WEB_DOCUMENT.lang} {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -27,8 +31,12 @@ export default function Root({ children }: { children: ReactNode }) {
           }}
         />
         <ScrollViewStyleReset />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

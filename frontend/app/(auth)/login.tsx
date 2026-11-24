@@ -7,6 +7,7 @@ import {
   View,
   Text,
   TextInput,
+  type TextInputInstance,
   Image,
   StyleSheet,
   Pressable,
@@ -72,8 +73,8 @@ export default function LoginScreen() {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [industryLine, setIndustryLine] = useState<string | null>(null);
   const [prefilledTenant, setPrefilledTenant] = useState<string | null>(null);
-  const usernameInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
+  const usernameInputRef = useRef<TextInputInstance>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
 
   // Auth layout redirects when authenticated. The only network call here is the
   // anonymous public tenant profile used for the industry line.
@@ -256,11 +257,11 @@ export default function LoginScreen() {
   );
 
   /** Web: sync absolute Caps Lock state (avoids toggle desync). */
-  const handlePasswordKeyDownWeb = useCallback(
-    (e: {
-      getModifierState?: (key: string) => boolean;
-      nativeEvent?: { getModifierState?: (key: string) => boolean };
-    }) => {
+  const handlePasswordKeyDownWeb = useCallback((event: object) => {
+      const e = event as {
+        getModifierState?: (key: string) => boolean;
+        nativeEvent?: { getModifierState?: (key: string) => boolean };
+      };
       const getModifierState = e.getModifierState ?? e.nativeEvent?.getModifierState;
       if (typeof getModifierState === 'function') {
         setCapsLockOn(getModifierState('CapsLock'));

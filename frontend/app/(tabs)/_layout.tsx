@@ -303,7 +303,7 @@ function PosTabsInner({
             name="cash-register"
             options={{
               title: t('navigation:cashRegister') || 'Kasa',
-              tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+              tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={typeof color === 'number' || color == null ? undefined : color} />,
             }}
           />
 
@@ -321,7 +321,7 @@ function PosTabsInner({
             options={{
               href: profileId === 'beherbergung' || posLayout === 'rooms' ? undefined : null,
               title: t('verticalProfiles:tabs.rooms'),
-              tabBarIcon: ({ color }) => <Ionicons name="bed-outline" size={24} color={color} />,
+              tabBarIcon: ({ color }) => <Ionicons name="bed-outline" size={24} color={typeof color === 'number' || color == null ? undefined : color} />,
             }}
           />
 
@@ -335,7 +335,7 @@ function PosTabsInner({
                   ? kitchenPendingCount
                   : undefined,
               tabBarIcon: ({ color }) => (
-                <Ionicons name="fast-food-outline" size={24} color={color} />
+                <Ionicons name="fast-food-outline" size={24} color={typeof color === 'number' || color == null ? undefined : color} />
               ),
             }}
           />
@@ -352,7 +352,7 @@ function PosTabsInner({
                 <Ionicons
                   name={profileId === 'doctor' ? 'person-outline' : 'paw-outline'}
                   size={24}
-                  color={color}
+                  color={typeof color === 'number' || color == null ? undefined : color}
                 />
               ),
             }}
@@ -364,7 +364,7 @@ function PosTabsInner({
               href: posFeatures.appointment ? undefined : null,
               title: t('verticalProfiles:tabs.appointments'),
               tabBarIcon: ({ color }) => (
-                <Ionicons name="calendar-outline" size={24} color={color} />
+                <Ionicons name="calendar-outline" size={24} color={typeof color === 'number' || color == null ? undefined : color} />
               ),
             }}
           />

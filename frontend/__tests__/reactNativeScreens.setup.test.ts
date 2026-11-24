@@ -9,11 +9,11 @@ function read(rel: string): string {
 }
 
 describe('react-native-screens setup', () => {
-  it('pins Expo SDK 56 compatible react-native-screens', () => {
+  it('pins Expo SDK 58 compatible react-native-screens', () => {
     const pkg = JSON.parse(read('package.json')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['react-native-screens']).toBe('~4.26.0');
+    expect(pkg.dependencies['react-native-screens']).toBe('~4.30.1');
   });
 
   it('enables native screens and freeze in root layout before navigators', () => {

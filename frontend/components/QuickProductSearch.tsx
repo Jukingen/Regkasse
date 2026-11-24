@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   TextInput,
+  type TextInputInstance,
   TouchableOpacity,
   FlatList,
   Modal,
@@ -33,7 +34,7 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({ products, onPro
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
 
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<TextInputInstance>(null);
 
   // Kategorileri al
   const categories = ['all', ...new Set(products.map((p) => p.category))];
