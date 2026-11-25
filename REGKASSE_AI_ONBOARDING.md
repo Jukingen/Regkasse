@@ -176,8 +176,8 @@ Reference: `backend/Services/LicenseService.cs` (`EvaluateOnStartup`, `GetCurren
 - TSE signing service abstraction exists.
 - FinanzOnline / RKSV submission/outbox infrastructure exists. FinanzOnline integration is partially implemented:
   - Session service uses SOAP transport with configurable BaseUrl and credentials
-  - RKSV submission (Startbeleg/Jahresbeleg) client exists as a guarded skeleton and does NOT perform real outbound requests in this repository version
-  - Default configuration uses Fake/Disabled mode. Do not assume production-ready BMF integration.
+  - RKSV submission (Startbeleg/Jahresbeleg) client performs real SOAP (`belegpruefung`) when `FinanzOnline:RksvSubmission:ClientKind=Real` and `Enabled=true`
+  - Default templates use Fake (Development). Production/Staging startup now fails closed on an incomplete Real config (`RksvFinanzOnlineSubmissionOptionsValidator`). BMF E2E verification remains open; do not assume production-proven BMF integration.
 - BMF Belegcheck App manual verification is part of the operational workflow.
 
 ---
@@ -837,7 +837,7 @@ Current position (implementation-based):
 
 - Manual BMF Belegcheck App workflow remains operationally important.
 - Session webservice path uses configurable SOAP transport when credentials and `BaseUrl` are supplied (see backend FinanzOnline session integration); this is not the same as “full production RKSV submission” completeness.
-- RKSV Startbeleg/Jahresbeleg **submission** client exists as a **guarded skeleton** in this repository revision: it does **not** perform real outbound SOAP for that path by default (`FinanzOnline:RksvSubmission` defaults to Fake/Disabled in examples). Do not describe that path as production-complete BMF integration.
+- RKSV Startbeleg/Jahresbeleg **submission** client performs real SOAP when `FinanzOnline:RksvSubmission:ClientKind=Real` and `Enabled=true`. Default templates use Fake (`appsettings.example.json`, Development). Production/Staging startup now fails closed on incomplete Real config (`ClientKind`, `Enabled`, `AllowOutboundNetworkCalls`, HTTPS `EndpointUrl`, `ParticipantCredentialsConfigurationKey`, `TimeoutSeconds`); `AllowFakeClientInProduction` is a Fake-only escape hatch. BMF E2E verification remains open; do not describe that path as production-proven BMF integration.
 - Startbeleg and Jahresbeleg are the special receipt types with explicit FinanzOnline **outbox/tracking** plumbing in code; other special receipt types may still rely on manual Belegcheck depending on operator workflow.
 
 Do not claim legal completeness or guaranteed FinanzOnline acceptance.
