@@ -10,7 +10,8 @@ namespace KasseAPI_Final.Tests;
 
 /// <summary>
 /// Coverage for ApplyVoucherRefundsForStornoAsync.
-/// Full storno restores voucher balance via Refund ledger rows. Partial fiscal refund does not.
+/// Full storno restores voucher balance via Refund ledger rows. A refund on a voucher-paid sale (any amount, pure or mixed)
+/// is rejected with VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED.
 /// Expired vouchers are still refunded on storno (expiry is a redemption-time rule).
 /// </summary>
 public sealed class PaymentServiceVoucherStornoRefundTests
@@ -72,8 +73,107 @@ public sealed class PaymentServiceVoucherStornoRefundTests
             Times.Once);
     }
 
+    private const string VoucherRefundRejectedCode = "VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED";
+
     [Fact]
-    public async Task PartialRefund_WhenVoucherPayment_DoesNotRestoreBalance()
+    public async Task PartialRefund_WhenVoucherPayment_IsRejectedWithExplicitError()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, voucherId) =
+            await SeedCatalogAndVoucherAsync(ctx, CodeA, remaining: 100m);
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(ctx);
+
+        var sale = await CreateVoucherSaleAsync(sut, customerId, productId, registerId, CodeA, 5m);
+        Assert.True(sale.Success, sale.Message);
+        var ledgerCountBefore = await ctx.VoucherLedgerEntries.CountAsync();
+
+        var refund = await sut.RefundPaymentAsync(
+            sale.Payment!.Id,
+            2.50m,
+            "Teilweise Reklamation",
+            PaymentServiceCoverageHarness.CashierId,
+            reasonCode: RefundReasonCode.CustomerComplaint);
+
+        Assert.False(refund.Success);
+        Assert.Equal(VoucherRefundRejectedCode, refund.DiagnosticCode);
+        Assert.True(refund.IsDeterministicFailure);
+        Assert.Contains("full storno", refund.Message, StringComparison.OrdinalIgnoreCase);
+
+        // No balance change, no ledger entry.
+        var voucher = await ctx.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId);
+        Assert.Equal(95m, voucher.RemainingAmount);
+        Assert.Equal(ledgerCountBefore, await ctx.VoucherLedgerEntries.CountAsync());
+        Assert.Empty(await ctx.VoucherLedgerEntries.AsNoTracking()
+            .Where(l => l.Type == VoucherTransactionType.Refund)
+            .ToListAsync());
+
+        // Sale is not marked as refunded and no refund document exists.
+        var original = await ctx.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == sale.Payment.Id);
+        Assert.Null(original.RefundedAt);
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync(p => p.IsRefund));
+    }
+
+    [Fact]
+    public async Task FullAmountRefund_WhenVoucherPayment_IsAlsoRejected()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, voucherId) =
+            await SeedCatalogAndVoucherAsync(ctx, CodeA, remaining: 100m);
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(ctx);
+
+        var sale = await CreateVoucherSaleAsync(sut, customerId, productId, registerId, CodeA, 5m);
+        Assert.True(sale.Success, sale.Message);
+
+        var refund = await sut.RefundPaymentAsync(
+            sale.Payment!.Id,
+            5m,
+            "Komplette Reklamation",
+            PaymentServiceCoverageHarness.CashierId,
+            reasonCode: RefundReasonCode.CustomerComplaint);
+
+        Assert.False(refund.Success);
+        Assert.Equal(VoucherRefundRejectedCode, refund.DiagnosticCode);
+        var voucher = await ctx.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId);
+        Assert.Equal(95m, voucher.RemainingAmount);
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync(p => p.IsRefund));
+    }
+
+    [Fact]
+    public async Task PartialRefund_WhenMixedCashAndVoucherPayment_IsRejectedWithSameError()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, voucherId) =
+            await SeedCatalogAndVoucherAsync(ctx, CodeA, remaining: 100m);
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(ctx);
+
+        // Cash method + voucher redemption: PaymentMethodRaw is Cash, voucher portion is only visible in the ledger.
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId, total: 5m, method: "cash");
+        request.Payment.Amount = 2m;
+        request.Payment.VoucherRedemptions = [new VoucherRedemptionRequestItem { Code = CodeA, Amount = 3m }];
+        var sale = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+        Assert.True(sale.Success, sale.Message + ": " + string.Join("; ", sale.Errors));
+        var original = await ctx.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == sale.Payment!.Id);
+        Assert.Equal(((int)PaymentMethod.Cash).ToString(), original.PaymentMethodRaw);
+        Assert.Equal(97m, (await ctx.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId)).RemainingAmount);
+
+        var refund = await sut.RefundPaymentAsync(
+            sale.Payment!.Id,
+            1m,
+            "Teilweise Reklamation",
+            PaymentServiceCoverageHarness.CashierId,
+            reasonCode: RefundReasonCode.CustomerComplaint);
+
+        Assert.False(refund.Success);
+        Assert.Equal(VoucherRefundRejectedCode, refund.DiagnosticCode);
+        Assert.Equal(97m, (await ctx.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId)).RemainingAmount);
+        Assert.Empty(await ctx.VoucherLedgerEntries.AsNoTracking()
+            .Where(l => l.Type == VoucherTransactionType.Refund)
+            .ToListAsync());
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync(p => p.IsRefund));
+    }
+
+    [Fact]
+    public async Task Storno_AfterRejectedRefund_StillRestoresBalanceAndWritesRefundLedger()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();
         var (customerId, productId, registerId, voucherId) =
@@ -89,13 +189,27 @@ public sealed class PaymentServiceVoucherStornoRefundTests
             "Teilweise Reklamation",
             PaymentServiceCoverageHarness.CashierId,
             reasonCode: RefundReasonCode.CustomerComplaint);
+        Assert.False(refund.Success);
+        Assert.Equal(VoucherRefundRejectedCode, refund.DiagnosticCode);
 
-        Assert.True(refund.Success, refund.Message + ": " + string.Join("; ", refund.Errors));
+        var storno = await sut.CancelPaymentAsync(
+            sale.Payment.Id,
+            "Kunde hat storniert",
+            PaymentServiceCoverageHarness.CashierId,
+            reasonCode: CancellationReasonCode.CustomerRequest);
+
+        Assert.True(storno.Success, storno.Message + ": " + string.Join("; ", storno.Errors));
         var voucher = await ctx.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId);
-        Assert.Equal(95m, voucher.RemainingAmount);
-        Assert.Empty(await ctx.VoucherLedgerEntries.AsNoTracking()
-            .Where(l => l.Type == VoucherTransactionType.Refund)
-            .ToListAsync());
+        Assert.Equal(100m, voucher.RemainingAmount);
+        Assert.Equal(VoucherStatus.Active, voucher.Status);
+
+        var refunds = await ctx.VoucherLedgerEntries.AsNoTracking()
+            .Where(l => l.VoucherId == voucherId && l.Type == VoucherTransactionType.Refund)
+            .ToListAsync();
+        var entry = Assert.Single(refunds);
+        Assert.Equal(5m, entry.Amount);
+        Assert.Equal(100m, entry.BalanceAfter);
+        Assert.Equal(storno.Payment!.Id, entry.PaymentId);
     }
 
     [Fact]

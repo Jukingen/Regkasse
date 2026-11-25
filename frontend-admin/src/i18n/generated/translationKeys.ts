@@ -3946,6 +3946,7 @@ export const ADMIN_TRANSLATION_KEYS = [
   'common.apiErrors.finanzOnlineOutboxProductionDisableConfirm',
   'common.apiErrors.finanzOnlineOutboxReasonRequired',
   'common.apiErrors.finanzOnlineOutboxWorkerInvalid',
+  'common.apiErrors.voucherPartialRefundNotSupported',
   'common.approvals.accessDenied',
   'common.approvals.actionFailed',
   'common.approvals.approve',

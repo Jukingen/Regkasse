@@ -42,7 +42,8 @@
     "stornoFailed": "Cancellation could not be completed",
     "stornoBlockedByRefunds": "Full cancellation is not allowed after partial refunds",
     "specialReceiptNotStornoable": "Special receipts cannot be cancelled here",
-    "validationFailed": "Invalid input"
+    "validationFailed": "Invalid input",
+    "voucherPartialRefundNotSupported": "Sales paid with a voucher can only be cancelled in full. Please use cancellation (storno)."
   },
   "messages": {
     "stornoSuccess": "Cancellation completed successfully",

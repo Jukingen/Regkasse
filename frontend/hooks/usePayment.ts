@@ -196,7 +196,14 @@ export const usePayment = (cashRegisterId?: string | null) => {
     }
   }, []);
 
-  // Ödeme iade
+  /**
+   * Ödeme iade (refund).
+   *
+   * Voucher-paid sales (pure voucher or mixed cash + voucher) are rejected by the backend with
+   * `VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED` (full storno only); the thrown `PaymentRefundRejectedError`
+   * carries that code. Callers should prefer `useRefund` from `usePaymentHistory`, which maps it to the
+   * localized `paymentHistory:errors.voucherPartialRefundNotSupported` message.
+   */
   const refundPayment = useCallback(async (paymentId: string, amount: number, reason: string) => {
     try {
       setLoading(true);

@@ -57,6 +57,40 @@ describe('translateApiError', () => {
     ).toBe('common.apiErrors.CASH_REGISTER_CLOSED');
   });
 
+  it('reads diagnosticCode (refund 400 body) and maps VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED', () => {
+    expect(
+      translateApiError(
+        t,
+        {
+          response: {
+            status: 400,
+            data: {
+              success: false,
+              message: 'Voucher-paid sales support full storno only; a refund is not supported.',
+              diagnosticCode: 'VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED',
+            },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('common.apiErrors.voucherPartialRefundNotSupported');
+  });
+
+  it('falls back to the generic HTTP message for an unknown diagnosticCode', () => {
+    expect(
+      translateApiError(
+        t,
+        {
+          response: {
+            status: 400,
+            data: { success: false, message: 'x', diagnosticCode: 'REFUND_EXCEEDS_REMAINING' },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('common.errors.http400');
+  });
+
   it('maps USERNAME_CONFLICT and SLUG_CONFLICT', () => {
     expect(
       translateApiError(

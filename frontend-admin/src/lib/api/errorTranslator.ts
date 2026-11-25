@@ -56,6 +56,7 @@ export const DEFAULT_API_ERROR_CODE_I18N_KEYS: Readonly<Record<string, string>> 
   EXTENSION_OPTIONS_UNSUPPORTED: 'common.apiErrors.extensionOptionsUnsupported',
   BARCODE_DUPLICATE: 'common.apiErrors.barcodeDuplicate',
   BARCODE_NOT_FOUND: 'common.apiErrors.barcodeNotFound',
+  VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED: 'common.apiErrors.voucherPartialRefundNotSupported',
 };
 
 let defaultsRegistered = false;

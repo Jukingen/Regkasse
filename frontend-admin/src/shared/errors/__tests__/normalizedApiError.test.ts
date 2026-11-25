@@ -28,6 +28,25 @@ describe('normalizeApiError', () => {
     expect(normalizeApiError({ response: { data: { error_code: 'E_2' } } }).code).toBe('E_2');
   });
 
+  it('reads diagnosticCode only as lowest-priority fallback', () => {
+    expect(
+      normalizeApiError({
+        response: { status: 400, data: { diagnosticCode: 'REFUND_EXCEEDS_REMAINING' } },
+      }).code
+    ).toBe('REFUND_EXCEEDS_REMAINING');
+    expect(
+      normalizeApiError({
+        response: { status: 400, data: { code: 'REAL_CODE', diagnosticCode: 'OTHER_CODE' } },
+      }).code
+    ).toBe('REAL_CODE');
+    // Not a machine code shape: ignored.
+    expect(
+      normalizeApiError({
+        response: { status: 400, data: { diagnosticCode: 'free text, not a code' } },
+      }).code
+    ).toBeUndefined();
+  });
+
   it('ignores RFC7807 type URL as code', () => {
     const n = normalizeApiError({
       response: {

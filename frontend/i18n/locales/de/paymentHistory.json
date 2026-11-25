@@ -42,7 +42,8 @@
     "stornoFailed": "Storno konnte nicht durchgeführt werden",
     "stornoBlockedByRefunds": "Storno nach Teilrückerstattung nicht möglich",
     "specialReceiptNotStornoable": "Sonderbelege können hier nicht storniert werden",
-    "validationFailed": "Eingabe ungültig"
+    "validationFailed": "Eingabe ungültig",
+    "voucherPartialRefundNotSupported": "Mit Gutschein bezahlte Verkäufe können nur vollständig storniert werden. Bitte Storno verwenden."
   },
   "messages": {
     "stornoSuccess": "Storno erfolgreich durchgeführt",
