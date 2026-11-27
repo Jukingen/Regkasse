@@ -63,7 +63,7 @@ If you are unsure, narrow the scope, list risks and unknowns explicitly, and ask
 - **Impersonation:** `impersonated_by` is not stored on `AuditLog`. Production handoff to a mandant host is not fully implemented (current FA stores the token and reloads the same origin).
 - **Cross-tenant SaaS metrics:** no dedicated API surface.
 - **Load:** 200 concurrent cashiers do not meet the 3 s lab budget (`docs/LOAD_TEST_FINDINGS.md`); production target is 50-200 cashiers.
-- **Security advisories:** `npm audit` on the SDK 58 lockfile reports 0 high and 23 moderate (checked 2026-11-24). `docs/SECURITY_ADVISORIES.md` still describes SDK 57 and needs a refresh.
+- **Security advisories:** `npm audit` on the SDK 58 lockfile reports 0 high and 26 moderate (rechecked 2026-11-27 at the repo root). `docs/SECURITY_ADVISORIES.md` still describes SDK 57 and needs a refresh.
 - **Sites:** no unit tests (`test` = `tsc --noEmit`); i18n deferred.
 
 ## 4. Conflicts between documentation and code (follow the code)

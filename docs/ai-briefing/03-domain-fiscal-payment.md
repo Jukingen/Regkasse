@@ -24,7 +24,7 @@ Money rules: keep existing precision and rounding (`CartMoneyHelper`). Do not ch
 
 ## 2. POS payment flow (backend)
 
-Entry: `POST /api/pos/payment` (`PaymentController.Create`). Implemented in `PaymentService` and its partials (`PaymentService.CreatePaymentCore.cs`, `...InTransaction.cs`). The 2026-11 refactor split `PaymentService` from about 4,700 to about 1,270 lines, with behavior preserved and golden-master tests added first.
+Entry: `POST /api/pos/payment` (`PaymentController.Create`). Implemented in `PaymentService` and its partials (`PaymentService.CreatePaymentCore.cs`, `...InTransaction.cs`). The 2026-11 refactor split `PaymentService.cs` from 5,487 to 1,271 lines (plus two `CreatePaymentCore` partials), with behavior preserved and golden-master tests added first.
 
 Order of operations (verified in `CreatePaymentCore`):
 
