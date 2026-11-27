@@ -68,7 +68,7 @@ Full architecture: `docs/MULTI_TENANT.md`.
 - RKSV special-receipt lifecycle (Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg)
 - **Decommissioned** register: must not accept a new session/payment (backend guardrails are final)
 - Daily closing / report close
-- FinanzOnline: session SOAP path may be config-dependent; **RKSV Startbeleg/Jahresbeleg SOAP submit is not production-complete in this repo** (skeleton + Fake/Disabled defaults) — outbox/tracking tables remain sensitive.
+- FinanzOnline: session SOAP path may be config-dependent; **RKSV Startbeleg/Jahresbeleg submit performs real SOAP when `ClientKind=Real` and `Enabled=true`** (default templates use Fake; Production/Staging startup fails closed on incomplete Real config; BMF E2E verification remains open) — outbox/tracking tables remain sensitive.
 - Audit log and legal-hold fields
 
 ## Change rule

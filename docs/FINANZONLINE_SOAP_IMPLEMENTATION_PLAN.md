@@ -1,7 +1,7 @@
 # FinanzOnline Sonderbeleg SOAP — Implementation Plan (P0-1)
 
 **Date:** 2026-07-29  
-**Goal:** Wire the `RksvFinanzOnlineSubmissionClient` skeleton to real BMF `rkdb` / `belegpruefung` submission  
+**Goal:** Wire `RksvFinanzOnlineSubmissionClient` to real BMF `rkdb` / `belegpruefung` submission. Status: the client performs real SOAP when `ClientKind=Real` and `Enabled=true`; default templates use Fake; Production/Staging startup fails closed on incomplete Real config; BMF E2E verification remains open.  
 **Source action:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P0-1**  
 **Assessment:** [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md)
 

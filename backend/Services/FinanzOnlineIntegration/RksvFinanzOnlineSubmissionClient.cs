@@ -124,7 +124,13 @@ public sealed class RksvFinanzOnlineSubmissionClientOptions
     public RksvFinanzOnlineSubmissionDeploymentEnvironment Environment { get; set; } =
         RksvFinanzOnlineSubmissionDeploymentEnvironment.Test;
 
-    /// <summary>Outbound request timeout hint (1–600 seconds).</summary>
+    /// <summary>Lowest accepted <see cref="TimeoutSeconds"/> (shared by the runtime guard and the startup validator).</summary>
+    public const int MinTimeoutSeconds = 1;
+
+    /// <summary>Highest accepted <see cref="TimeoutSeconds"/> (shared by the runtime guard and the startup validator).</summary>
+    public const int MaxTimeoutSeconds = 600;
+
+    /// <summary>Outbound request timeout hint (<see cref="MinTimeoutSeconds"/>–<see cref="MaxTimeoutSeconds"/> seconds).</summary>
     public int TimeoutSeconds { get; set; } = 120;
 
     /// <summary>
@@ -583,8 +589,9 @@ public sealed class RksvFinanzOnlineSubmissionClient : IRksvFinanzOnlineSubmissi
         if (!Uri.TryCreate(o.EndpointUrl.Trim(), UriKind.Absolute, out var uri) ||
             !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             return (false, "FinanzOnline:RksvSubmission:EndpointUrl must be an absolute HTTPS URI when Enabled=true.");
-        if (o.TimeoutSeconds < 1 || o.TimeoutSeconds > 600)
-            return (false, "FinanzOnline:RksvSubmission:TimeoutSeconds must be between 1 and 600 when Enabled=true.");
+        if (o.TimeoutSeconds < RksvFinanzOnlineSubmissionClientOptions.MinTimeoutSeconds ||
+            o.TimeoutSeconds > RksvFinanzOnlineSubmissionClientOptions.MaxTimeoutSeconds)
+            return (false, $"FinanzOnline:RksvSubmission:TimeoutSeconds must be between {RksvFinanzOnlineSubmissionClientOptions.MinTimeoutSeconds} and {RksvFinanzOnlineSubmissionClientOptions.MaxTimeoutSeconds} when Enabled=true.");
         if (string.IsNullOrWhiteSpace(o.ParticipantCredentialsConfigurationKey))
             return (false, "FinanzOnline:RksvSubmission:ParticipantCredentialsConfigurationKey is required when Enabled=true (reference name only).");
         // Client certificate is optional — session SOAP uses tid/benid/pin; mTLS is Ops-dependent.

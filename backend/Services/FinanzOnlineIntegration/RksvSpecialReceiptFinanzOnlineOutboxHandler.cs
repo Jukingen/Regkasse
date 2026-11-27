@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 /// <summary>
-/// Processes FinanzOnline outbox rows for RKSV Startbeleg/Jahresbeleg using <see cref="IRksvFinanzOnlineSubmissionClient"/> (fake by default; no BMF network).
+/// Processes FinanzOnline outbox rows for RKSV Startbeleg/Jahresbeleg using <see cref="IRksvFinanzOnlineSubmissionClient"/> (real SOAP when <c>ClientKind=Real</c> and <c>Enabled=true</c>; default templates use Fake; Production/Staging startup fails closed on incomplete Real config; BMF E2E verification remains open).
 /// </summary>
 public sealed class RksvSpecialReceiptFinanzOnlineOutboxHandler
 {
