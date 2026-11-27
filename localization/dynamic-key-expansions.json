@@ -61,6 +61,24 @@
         "description": "StornoRefundSelection reason codes",
         "staticPrefix": "checkout:posFlow.stornoRefund.reasons",
         "suffixes": ["FalscherBetrag", "KundeStorniert", "TechnischerFehler", "Anderes"]
+      },
+      {
+        "id": "license.statusChip.state",
+        "description": "LicenseStatus chip state labels (PosLicenseChipState)",
+        "staticPrefix": "statusChip.state",
+        "suffixes": ["Active", "Grace", "Locked"]
+      },
+      {
+        "id": "checkout.monatsbeleg.banner.body",
+        "description": "MonatsbelegSalesWarningBanner body text (MonatsbelegBannerBodyKey)",
+        "staticPrefix": "checkout:monatsbeleg.banner",
+        "suffixes": ["bodyStrict", "bodyGrace", "bodyWarning"]
+      },
+      {
+        "id": "verticalProfiles.screens.appointments.roles",
+        "description": "StaffPicker role labels (POS staff endpoint returns Cashier, Waiter, Manager only)",
+        "staticPrefix": "screens.appointments.roles",
+        "suffixes": ["Cashier", "Waiter", "Manager"]
       }
     ],
     "frontend-admin": [
