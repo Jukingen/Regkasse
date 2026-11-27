@@ -1428,7 +1428,7 @@ export default function CashRegisterScreen() {
                 onError={(notice) =>
                   addToast(
                     'error',
-                    ticketSeatToastMessage((key) => t(`verticalProfiles:${key}`), notice),
+                    ticketSeatToastMessage(t, notice),
                     3000,
                   )
                 }

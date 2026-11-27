@@ -55,7 +55,7 @@ function NotifyHarness() {
     <>
       <TicketSeatBoard
         onError={(notice) => {
-          setToast(ticketSeatToastMessage((key) => i18n.t(`verticalProfiles:${key}`), notice));
+          setToast(ticketSeatToastMessage((key) => i18n.t(key), notice));
         }}
       />
       <Text testID="seat-toast">{toast}</Text>
@@ -243,7 +243,7 @@ describe('TicketSeatBoard', () => {
 
   it('surfaces category capacity and missing price without clearing the cart', async () => {
     expect(
-      ticketSeatToastMessage((key) => i18n.t(`verticalProfiles:${key}`), 'CATEGORY_PRICE_MISSING'),
+      ticketSeatToastMessage((key) => i18n.t(key), 'CATEGORY_PRICE_MISSING'),
     ).toBe('Für diese Kategorie ist kein Preis hinterlegt.');
 
     mockSeats.mockResolvedValue([
