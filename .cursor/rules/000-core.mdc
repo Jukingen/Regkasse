@@ -92,9 +92,9 @@ Developer experience and CI (see root [`README.md`](../../README.md), [`CONTRIBU
 |-----------|----------------------------------|
 | Backend (.NET) | **10.0** (`net10.0`; ASP.NET / EF packages **10.0.10**) |
 | EF Core | **10.0.10** |
-| Next.js (FA) | **16.2.10** |
-| Next.js (Sites) | **16.2.6** (caret in `frontend-sites`) |
-| React (FA) | **19.2.7** |
+| Next.js (FA) | **16.4.6** |
+| Next.js (Sites) | **16.4.6** (caret in `frontend-sites`) |
+| React (FA) | **19.3.1** |
 | React (POS) | **19.3.0** |
 | Ant Design | **6.4.3** |
 | Expo | SDK **58** (`^58.0.0`) |
@@ -105,7 +105,7 @@ Developer experience and CI (see root [`README.md`](../../README.md), [`CONTRIBU
 
 ### Packages
 - `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI); npm workspace `@regkasse/backend` wraps `dotnet`
-- `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript); package `cash-register`
+- `frontend/` - Mobile POS (Expo SDK 58 + React Native + TypeScript); package `cash-register`
 - `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query); package `registrierkasse-admin`
 - `frontend-sites/` - Shared multi-tenant customer websites (Next.js; `/[slug]` + public catalog / online-order UI; optional custom host via `TenantDomain`); package `regkasse-sites`
 - `localization/` - Shared i18n import/export/validation tooling (`@regkasse/localization`)
