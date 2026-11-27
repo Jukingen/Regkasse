@@ -84,6 +84,11 @@ function pickBackendCode(data: Record<string, unknown> | undefined): string | un
     const s = t.trim();
     if (!/^https?:\/\//i.test(s) && s.length <= 96) return s;
   }
+  // Payment/refund endpoints return the machine code as `diagnosticCode` (lowest-priority fallback).
+  const diagnostic = data.diagnosticCode;
+  if (typeof diagnostic === 'string' && isMachineErrorCode(diagnostic.trim())) {
+    return diagnostic.trim();
+  }
   return undefined;
 }
 

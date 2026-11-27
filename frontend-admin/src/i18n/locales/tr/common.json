@@ -107,7 +107,8 @@
     "backupKnownGapUnknown": "En az bir Backup/DR boşluk kimliği tanınmıyor.",
     "extensionOptionsUnsupported": "Bu uzantı seçenek kabul etmiyor.",
     "barcodeDuplicate": "Bu barkod zaten kullanılıyor.",
-    "barcodeNotFound": "Bu barkoda ait ürün bulunamadı."
+    "barcodeNotFound": "Bu barkoda ait ürün bulunamadı.",
+    "voucherPartialRefundNotSupported": "Hediye çeki (Gutschein) ile ödenen satışlar yalnızca tam iptal (storno) edilebilir. İade yapılamaz."
   },
   "backend": {
     "serverHintIntro": "Sunucu mesaji (dil garanti degil):",

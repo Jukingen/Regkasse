@@ -107,7 +107,8 @@
     "backupKnownGapUnknown": "Mindestens eine Backup/DR-Lücken-ID ist unbekannt.",
     "extensionOptionsUnsupported": "Diese Erweiterung akzeptiert keine Optionen.",
     "barcodeDuplicate": "Dieser Barcode ist bereits vergeben.",
-    "barcodeNotFound": "Kein Produkt mit diesem Barcode gefunden."
+    "barcodeNotFound": "Kein Produkt mit diesem Barcode gefunden.",
+    "voucherPartialRefundNotSupported": "Mit Gutschein bezahlte Verkäufe können nur vollständig storniert werden. Eine Rückerstattung ist nicht möglich."
   },
   "backend": {
     "serverHintIntro": "Hinweis vom Server (Sprache nicht garantiert):",

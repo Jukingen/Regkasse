@@ -42,7 +42,8 @@
     "stornoFailed": "İptal işlemi başarısız",
     "stornoBlockedByRefunds": "Kısmi iade sonrası tam iptal yapılamaz",
     "specialReceiptNotStornoable": "Özel fişler buradan iptal edilemez",
-    "validationFailed": "Geçersiz giriş"
+    "validationFailed": "Geçersiz giriş",
+    "voucherPartialRefundNotSupported": "Hediye çeki (Gutschein) ile ödenen satışlar yalnızca tam iptal edilebilir. Lütfen iptal (storno) kullanın."
   },
   "messages": {
     "stornoSuccess": "İptal işlemi başarılı",

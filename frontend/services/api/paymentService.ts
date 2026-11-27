@@ -27,6 +27,7 @@ import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 import { isPaymentTransportFailure } from '../../utils/isPaymentTransportFailure';
 import { normalizePosPaymentItemsForRequest } from '../../utils/paymentTaxType';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
+import { readPosApiErrorBody } from '../../utils/readPosApiErrorMessage';
 import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
 import { saveOfflineOrderSnapshot } from '../offline/offlineOrderManager';
 import { resolveEffectiveOfflineTenantLimit } from '../offline/offlineTenantLimit';
@@ -349,6 +350,31 @@ function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+/** Backend refusal: refund on a voucher-paid sale (any amount, pure or mixed) — full storno only. */
+export const VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED_CODE = 'VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED';
+
+/** Deterministic server refusal of a refund; carries the backend `diagnosticCode`. */
+export class PaymentRefundRejectedError extends Error {
+  readonly diagnosticCode: string;
+
+  constructor(diagnosticCode: string, message: string) {
+    super(message);
+    this.name = 'PaymentRefundRejectedError';
+    this.diagnosticCode = diagnosticCode;
+  }
+}
+
+/** Reads `details.diagnosticCode` from a POS error body (`{ success:false, message, details }`). */
+export function readRefundDiagnosticCode(error: unknown): string | undefined {
+  const body = readPosApiErrorBody(error);
+  const details = body?.details;
+  if (details && typeof details === 'object' && !Array.isArray(details)) {
+    const code = (details as Record<string, unknown>).diagnosticCode;
+    if (typeof code === 'string' && code.trim()) return code.trim();
+  }
+  return undefined;
 }
 
 class PaymentService {
@@ -962,6 +988,13 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment refund failed:', error);
+      // Deterministic server refusal: keep the code so the UI can show an actionable message.
+      if (readRefundDiagnosticCode(error) === VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED_CODE) {
+        throw new PaymentRefundRejectedError(
+          VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED_CODE,
+          i18n.t('paymentHistory:errors.voucherPartialRefundNotSupported')
+        );
+      }
       throw new Error(
         'Erstattung erfordert Serververbindung (RKSV). Bitte online erneut versuchen.'
       );

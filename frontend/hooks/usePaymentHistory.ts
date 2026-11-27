@@ -11,7 +11,11 @@ import {
   type StornoRequestPayload,
   type StornoResponsePayload,
 } from '../services/api/paymentHistoryService';
-import { paymentService } from '../services/api/paymentService';
+import {
+  paymentService,
+  PaymentRefundRejectedError,
+  VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED_CODE,
+} from '../services/api/paymentService';
 import { readPosApiErrorMessage } from '../utils/readPosApiErrorMessage';
 
 function readApiErrorMessage(error: unknown): string {
@@ -226,6 +230,17 @@ export function useRefund(onSuccess?: () => void) {
         }
         return result;
       } catch (e) {
+        // Voucher-paid sale: refund refused by the backend, full storno only (actionable message).
+        if (
+          e instanceof PaymentRefundRejectedError &&
+          e.diagnosticCode === VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED_CODE
+        ) {
+          const errorKey = 'errors.voucherPartialRefundNotSupported';
+          setError(translateBackendKey(errorKey, e.message));
+          const rejected: RefundResponsePayload = { success: false, errorKey };
+          setLastResult(rejected);
+          return rejected;
+        }
         const msg = readApiErrorMessage(e);
         setError(msg);
         const failed: RefundResponsePayload = { success: false, errorKey: 'errors.stornoFailed' };

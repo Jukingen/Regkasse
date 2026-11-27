@@ -30,7 +30,9 @@ namespace KasseAPI_Final.Services
     }
 
     /// <summary>
-    /// Partial refund. Gateway refund runs before the fiscal transaction. Voucher balance is not restored.
+    /// Partial refund. Gateway refund runs before the fiscal transaction.
+    /// Sales that redeemed a voucher (pure voucher or mixed cash + voucher) are refused with
+    /// <c>VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED</c>: this path never restores stored-value balance, so only full storno is allowed.
     /// </summary>
     public sealed class PaymentRefundService : IPaymentRefundService
     {
@@ -269,6 +271,28 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                // Voucher-paid sale (pure voucher or mixed cash + voucher): this refund path never restores
+                // stored-value balance, in any amount. Refuse before approval gate and gateway refund; full storno only.
+                // Detection mirrors the storno path (Redeem ledger rows of the original payment) plus the voucher method.
+                var paidWithVoucher =
+                    string.Equals(payment.PaymentMethodRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal)
+                    || await _context.VoucherLedgerEntries.AsNoTracking()
+                        .AnyAsync(l => l.PaymentId == paymentId && l.Type == VoucherTransactionType.Redeem);
+                if (paidWithVoucher)
+                {
+                    _logger.LogWarning(
+                        "Refund refused for voucher-paid sale (full storno only). OriginalPaymentId={PaymentId}",
+                        paymentId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Voucher-paid sales support full storno only; a refund is not supported.",
+                        Errors = { "Voucher-paid sales support full storno only; a refund is not supported." },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "VOUCHER_PARTIAL_REFUND_NOT_SUPPORTED"
+                    };
+                }
+
                 var formattedRefundReason = PaymentReversalReasonMapper.FormatRefundReason(reasonCode, reason);
                 var approvalGate = await _reversalApproval.EnforceApprovalAsync(
                     payment,
@@ -495,14 +519,6 @@ namespace KasseAPI_Final.Services
                     _context.PaymentDetails.Add(refund);
                     _context.Invoices.Add(refundInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(refund);
-
-                    if (string.Equals(payment.PaymentMethodRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal))
-                    {
-                        _logger.LogWarning(
-                            "Voucher fiscal refund does not restore stored-value balance. Use full storno (cancellation) for voucher sales. OriginalPaymentId={PaymentId} RefundId={RefundId}",
-                            paymentId,
-                            refundId);
-                    }
 
                     foreach (var item in originalItems)
                     {

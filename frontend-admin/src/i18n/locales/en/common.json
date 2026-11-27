@@ -107,7 +107,8 @@
     "backupKnownGapUnknown": "At least one Backup/DR gap id is unknown.",
     "extensionOptionsUnsupported": "This extension does not accept options.",
     "barcodeDuplicate": "This barcode is already in use.",
-    "barcodeNotFound": "No product found for this barcode."
+    "barcodeNotFound": "No product found for this barcode.",
+    "voucherPartialRefundNotSupported": "Sales paid with a voucher can only be cancelled in full. A refund is not possible."
   },
   "backend": {
     "serverHintIntro": "Message from server (language not guaranteed):",
